@@ -36,6 +36,7 @@ Nothing player-facing is done until it has all ten:
 | 1.3 | The character faces the mouse aim on PC and the movement or aim stick on mobile | Faces target | S1 |
 | 1.4 | Jump is a short hop with a cooldown. No climbing anywhere. Can't stand on trees or rocks, can't get over walls. | No jump in LDoE; ours is bounded | S1 |
 | 1.5 | The selected tool or weapon is visible in the hand. Other carried weapons and tools are holstered on the back or belt. | Weapon in hand | S1 |
+| 1.5b | **Held items look natural:** realistic scale for the 5.6-stud survivor (hatchet about 1.7 studs, pick about 2.2), correct grip orientation per item in data (blade or head forward, handle in the fist). Verified in close-up from front, side and gameplay views while idle, walking and swinging. | Natural grip | S1 |
 | 1.6 | Footstep sounds per surface (grass, dirt, wood floor, metal, road), plus a light dust puff when sprinting | Surface footsteps | S1 |
 | 1.7 | Readable at night: a subtle rim or readability light | Readable silhouette (rec6) | S1 |
 | 1.8 | Other players show name tags. Your own character shows none. | — | S1 |
@@ -71,7 +72,7 @@ Nothing player-facing is done until it has all ten:
 
 | # | Requirement | LDoE reference | Owner |
 |---|---|---|---|
-| 4.1 | **Pixel-crisp UI:** no CanvasGroup at rest, no fractional scaling, near-opaque panels, high-contrast text | Crisp panels (rec1, rec2) | S1 |
+| 4.1 | **Pixel-crisp UI:** no CanvasGroup at rest, no SurfaceGui or ViewportFrame for 2D UI, no fractional scaling, near-opaque panels, high-contrast text, icons uploaded at 2× their display size. **Test:** zoom a capture to 200% beside Roblox's own Esc menu on the same screen. Our text and edges must look as sharp as Roblox's. | Crisp panels (rec1, rec2) | S1 |
 | 4.2 | Pockets plus backpack grid, and an equipment paper-doll (head, body, legs, feet, backpack, hand) | rec1, rec2 | S1 |
 | 4.3 | Each slot shows the icon, the stack count at bottom-right, a durability bar, a rarity frame, and a NEW badge on new items | — | S1 |
 | 4.4 | Drag and drop, split (Shift-drag or right-click → split), quick-move (Shift-click), drop to the ground (drag out) | — | S1 |
@@ -107,6 +108,8 @@ Nothing player-facing is done until it has all ten:
 | 6.6 | Doors open and close with an animation and sound, and lock to the owner (crew in S3) | — | S1 |
 | 6.7 | Interiors stay readable: walls and roofs between the camera and the player fade (see 2.3) | — | S1 |
 | 6.8 | Walls are taller than any reachable point (enforced by a test) | — | S1 |
+| 6.9 | **Seamless tiling:** adjacent foundations and walls mesh into one continuous surface with no gaps or seams. Use exact cell-sized geometry with world-aligned MaterialVariant textures, and trim meshes for character. Corner posts appear automatically where walls meet. | Seamless base | S1 |
+| 6.10 | **Free furniture placement:** stations, storage and decor sit anywhere on a foundation on a fine sub-grid (¼ cell). They snap flush against walls (back to the wall), rotate in 90° steps, are blocked by overlaps, and must be on a foundation. | Stations against walls | S1 |
 
 ## 7. Survival meters
 

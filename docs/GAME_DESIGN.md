@@ -306,6 +306,8 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 ## Building
 
 - Grid **foundations**; **walls, doorways, doors, gates and windows** snap to cell edges. Build menu tabs: Foundations, Walls, Doors, Windows, Stations, Storage, Defense, Decor.
+- Structure (foundations, walls, doors) snaps to the cell grid and **meshes seamlessly**. Corner posts appear where walls meet.
+- **Furniture** (stations, storage, decor) is placed freely on foundations on a ¼-cell sub-grid. It snaps flush against walls and rotates in 90° steps, so bases can be laid out like real rooms.
 - Upgrade pieces in place, and HP is shown. Wall tier cannot exceed floor tier. Placement is touch first: tap a cell, the piece snaps, confirm or cancel.
 - Defenses: spikes, traps, turrets, and lights, which matter against the Fog at night.
 - **Night assaults** on your outpost happen while you're online (escalating, with a weekly Blood Moon). Offline plots are never attacked.
