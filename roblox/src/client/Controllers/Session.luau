@@ -35,12 +35,16 @@ local function onFx(kind: string, payload: any)
 	elseif kind == "items" then
 		for _, stack in payload.items or {} do
 			State.reward(stack.itemId, stack.count)
+			State.markNew(stack.itemId)
 		end
 		Sfx.play(SOURCE_SOUND[payload.source] or "pickup")
 	elseif kind == "gather" then
 		for _, stack in payload.items or {} do
 			State.reward(stack.itemId, stack.count)
+			State.markNew(stack.itemId)
 		end
+	elseif kind == "bagFull" then
+		State.patch({ bagFullAt = os.clock() })
 	elseif kind == "levelUp" then
 		State.patch({ levelUp = { level = payload.level, rewards = payload.rewards or {}, at = os.clock() } })
 		Sfx.play("levelUp")

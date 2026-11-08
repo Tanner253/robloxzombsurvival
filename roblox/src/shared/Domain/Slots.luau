@@ -271,6 +271,77 @@ function Slots.putAllFilter(items: ItemLookup): (slot: Slot) -> boolean
 end
 
 -- Equipment record -> container in EQUIP_ORDER.
+-- Category order for Slots.sort: tools and weapons first, junk last.
+local SORT_ORDER: { [string]: number } = {
+	tool = 1,
+	weapon = 2,
+	ammo = 3,
+	armor = 4,
+	bag = 5,
+	consumable = 6,
+	medical = 7,
+	resource = 8,
+	component = 9,
+	blueprint = 10,
+	junk = 11,
+}
+
+--[[
+	Sorts a container (the Sort button): merges partial stacks of the same item,
+	then orders by category, item id and remaining durability, empties last. Worn
+	items keep their own durability. Returns a new container of the same size.
+]]
+function Slots.sort(container: Container, items: ItemLookup): Container
+	local merged: { Slot } = {}
+	local open: { [string]: Slot } = {}
+	for _, slot in container do
+		if isEmpty(slot) then
+			continue
+		end
+		local def = items[slot.itemId]
+		local stackSize = if def then def.stackSize else 1
+		if slot.durability == nil and stackSize > 1 then
+			local left = slot.count
+			while left > 0 do
+				local partial = open[slot.itemId]
+				if partial == nil then
+					partial = { itemId = slot.itemId, count = 0, durability = nil } :: Slot
+					table.insert(merged, partial)
+					open[slot.itemId] = partial
+				end
+				local add = math.min(left, stackSize - partial.count)
+				partial.count += add
+				left -= add
+				if partial.count >= stackSize then
+					open[slot.itemId] = nil
+				end
+			end
+		else
+			table.insert(merged, copySlot(slot))
+		end
+	end
+	local function rank(slot: Slot): number
+		local def = items[slot.itemId] :: any
+		return if def and def.category then SORT_ORDER[def.category] or 99 else 99
+	end
+	table.sort(merged, function(a: Slot, b: Slot): boolean
+		local ra, rb = rank(a), rank(b)
+		if ra ~= rb then
+			return ra < rb
+		elseif a.itemId ~= b.itemId then
+			return a.itemId < b.itemId
+		elseif a.count ~= b.count then
+			return a.count > b.count
+		end
+		return (a.durability or 0) > (b.durability or 0)
+	end)
+	local result: Container = {}
+	for index = 1, #container do
+		result[index] = merged[index] or empty()
+	end
+	return result
+end
+
 function Slots.fromEquipment(equipment: { [string]: Slot }): Container
 	local container: Container = {}
 	for index, name in Slots.EQUIP_ORDER do

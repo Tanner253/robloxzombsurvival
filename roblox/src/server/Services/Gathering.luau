@@ -281,7 +281,7 @@ local function gather(player: Player, key: string)
 		local from = if root then root.Position else node.position + Vector3.xAxis
 		local away = (node.position - from) * Vector3.new(1, 0, 1)
 		local spot = node.position - (if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis) * (node.radius + 1.5)
-		Drops.spawn(player, spot, leftover)
+		Drops.spawn(player, spot, leftover :: any)
 		Sync.notice(player, "Your bag is full. The rest dropped on the ground.")
 		Sync.fx(player, "bagFull", { key = key })
 	end

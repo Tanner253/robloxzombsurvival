@@ -19,7 +19,15 @@ local Actions = {}
 
 local tuning = Content.Tuning
 
+-- Leaving the inventory marks everything in it as seen (clears NEW badges).
+local function seenInventory()
+	if State.ui().panel == "inventory" and next(State.ui().newItems) ~= nil then
+		State.patch({ newItems = {} })
+	end
+end
+
 function Actions.toggleInventory()
+	seenInventory()
 	State.toggle("inventory")
 	Sfx.play(if State.ui().panel == "inventory" then "uiOpen" else "uiClose")
 end
@@ -30,6 +38,7 @@ function Actions.toggleBuild()
 end
 
 function Actions.closePanel()
+	seenInventory()
 	if State.ui().panel ~= "none" then
 		State.toggle(State.ui().panel, State.ui().stationUid)
 		Sfx.play("uiClose")
@@ -71,6 +80,26 @@ function Actions.hotbar(index: number)
 	end
 	Net.fire("HotbarSelect", if inventory.held == index then 0 else index)
 	Sfx.play("uiClick")
+end
+
+-- Selects the next (+1) or previous (-1) filled pocket on the hotbar (mouse wheel).
+function Actions.cycleHotbar(step: number)
+	local inventory = State.get("inventory")
+	if not inventory then
+		return
+	end
+	local count = math.min(9, #inventory.pockets)
+	local index = inventory.held or 0
+	for _ = 1, count do
+		index = (index + step - 1) % count + 1
+		local slot = inventory.pockets[index]
+		local def = if slot and slot.count > 0 then Content.Items[slot.itemId] else nil
+		if def and (def.tool or def.weapon) then
+			Net.fire("HotbarSelect", index)
+			Sfx.play("uiHover")
+			return
+		end
+	end
 end
 
 function Actions.setSprint(on: boolean)

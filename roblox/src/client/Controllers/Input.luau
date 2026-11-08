@@ -107,6 +107,18 @@ function Input.start()
 			end
 		end
 	end)
+	-- The mouse wheel cycles the hotbar outside menus (Ctrl+wheel zooms: Camera).
+	UserInputService.InputChanged:Connect(function(input, processed)
+		if
+			input.UserInputType == Enum.UserInputType.MouseWheel
+			and not processed
+			and State.ui().panel == "none"
+			and not UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
+			and not UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+		then
+			Actions.cycleHotbar(if input.Position.Z > 0 then -1 else 1)
+		end
+	end)
 	UserInputService.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			Building.setPainting(false)

@@ -276,6 +276,28 @@ function Inventory.give(
 	return given, leftover
 end
 
+-- Gives whole slots (keeping each one's durability). Returns what fit and what didn't.
+function Inventory.giveSlots(player: Player, slots: { Types.Slot }): ({ Types.Slot }, { Types.Slot })
+	local result = Inventory.view(player)
+	if result == nil then
+		return {}, slots
+	end
+	local given: { Types.Slot } = {}
+	local leftover: { Types.Slot } = {}
+	for _, slot in slots do
+		local nextInventory, left = InventoryMath.addSlot(result, slot, Items)
+		result = nextInventory
+		if slot.count - left > 0 then
+			table.insert(given, { itemId = slot.itemId, count = slot.count - left, durability = slot.durability })
+		end
+		if left > 0 then
+			table.insert(leftover, { itemId = slot.itemId, count = left, durability = slot.durability })
+		end
+	end
+	Inventory.commit(player, result)
+	return given, leftover
+end
+
 -- Removes every stack atomically. Returns false (and changes nothing) if any is missing.
 function Inventory.take(player: Player, stacks: { Types.ItemStack }, sink: string?): boolean
 	local current = Inventory.view(player)
@@ -497,6 +519,37 @@ local function split(player: Player, ref: string, index: number)
 	apply(player, data, { [ref] = result })
 end
 
+-- Takes a whole slot out of the player's pockets, backpack or open crate (dropping
+-- it on the ground). Returns the slot, or nil.
+function Inventory.takeSlot(player: Player, ref: string, index: number): Types.Slot?
+	local data = PlayerData.get(player)
+	if data == nil or ref == "equipment" or ref == "stash" then
+		return nil
+	end
+	local container = read(player, data, ref)
+	local slot = container and container[index]
+	if container == nil or slot == nil or slot.count <= 0 then
+		return nil
+	end
+	local result = table.clone(container)
+	result[index] = InventoryMath.emptySlot()
+	apply(player, data, { [ref] = result })
+	return { itemId = slot.itemId, count = slot.count, durability = slot.durability }
+end
+
+local function sort(player: Player, ref: string)
+	local data = PlayerData.get(player)
+	if data == nil or (ref ~= "backpack" and ref ~= "storage" and ref ~= "pockets") then
+		return
+	end
+	local container, why = read(player, data, ref)
+	if container == nil then
+		Sync.notice(player, REASON_TEXT[why or "badSlot"])
+		return
+	end
+	apply(player, data, { [ref] = Slots.sort(container, Items) })
+end
+
 local function transfer(player: Player, mode: string)
 	local data = PlayerData.get(player)
 	if data == nil then
@@ -679,6 +732,7 @@ function Inventory.init()
 	Net.onEvent("InventoryMove", move)
 	Net.onEvent("InventorySplit", split)
 	Net.onEvent("InventoryTransfer", transfer)
+	Net.onEvent("InventorySort", sort)
 	Net.onEvent("StorageOpen", openCrate)
 	Net.onEvent("UseItem", use)
 	Net.onEvent("HotbarSelect", hold)

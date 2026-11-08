@@ -52,6 +52,8 @@ export type Ui = {
 	sprinting: boolean,
 	auto: boolean, -- AUTO gather is on
 	touch: boolean,
+	newItems: { [string]: boolean }, -- item ids gained since the inventory was last opened
+	bagFullAt: number?, -- os.clock() of the last "bag is full", for the Bag button flash
 }
 
 -- Fires (key) when a section or "ui" changes.
@@ -76,6 +78,8 @@ local ui: Ui = {
 	sprinting = false,
 	auto = false,
 	touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled,
+	newItems = {},
+	bagFullAt = nil,
 }
 
 local nextId = 0
@@ -137,6 +141,15 @@ function State.notify(text: string, tone: Tone?)
 end
 
 local REWARD_MERGE_SECONDS = 2.5
+
+-- Marks an item as new (NEW badge on its slots and the Bag button) until the inventory is seen.
+function State.markNew(itemId: string)
+	if not ui.newItems[itemId] then
+		local items = table.clone(ui.newItems)
+		items[itemId] = true
+		State.patch({ newItems = items })
+	end
+end
 
 function State.reward(itemId: string, count: number)
 	local list: { Reward } = table.clone(ui.rewards)

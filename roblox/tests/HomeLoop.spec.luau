@@ -287,4 +287,20 @@ return function(test: TestKit.Register)
 		local cost = BuildRules.costText(wall.cost, inv, Content.Items :: any)
 		TestKit.truthy(string.find(cost, "Timber 3/", 1, true) ~= nil, cost)
 	end)
+
+	test("Slots.sort merges partial stacks, groups by category and keeps durability", function()
+		local sorted = Slots.sort(
+			container(slot("item.stone", 5), E, slot("item.axe", 1, 12), slot("item.stone", 18), slot("item.wood", 3)),
+			ITEMS
+		)
+		TestKit.equal(sorted[1].itemId, "item.axe", "tools first")
+		TestKit.equal(sorted[1].durability, 12, "worn tool keeps its durability")
+		TestKit.equal(sorted[2].itemId, "item.stone")
+		TestKit.equal(sorted[2].count, 20, "stones merged up to the stack size")
+		TestKit.equal(sorted[3].itemId, "item.stone")
+		TestKit.equal(sorted[3].count, 3, "the rest")
+		TestKit.equal(sorted[4].itemId, "item.wood")
+		TestKit.equal(sorted[5].count, 0, "empties last; same size")
+		TestKit.equal(#sorted, 5)
+	end)
 end

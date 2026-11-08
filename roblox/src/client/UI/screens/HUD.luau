@@ -347,9 +347,15 @@ local function ActionButton(
 		layoutOrder: number,
 		onPress: () -> (),
 		onRelease: (() -> ())?,
+		dot: boolean?, -- something new inside (NEW badge, checklist 8.4)
+		alertAt: number?, -- os.clock() of an alert: the button flashes red briefly
 	}
 )
 	local pressed, setPressed = React.useState(false)
+	local now = hooks.useClock(0.1)
+	local alerting = props.alertAt ~= nil and os.clock() - props.alertAt < 1.2
+	local flash = alerting and math.floor((os.clock() - (props.alertAt :: number)) * 6) % 2 == 0
+	local _ = now
 	local scale = hooks.useAnimated(if pressed then 0.92 else 1, 24)
 	return e("TextButton", {
 		Size = UDim2.fromOffset(props.size, props.size),
@@ -410,6 +416,23 @@ local function ActionButton(
 			anchorPoint = Vector2.new(1, 0),
 			accent = props.primary,
 		}),
+		Dot = props.dot and e("Frame", {
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(4, 4),
+			BackgroundColor3 = Theme.colors.accent,
+			ZIndex = 3,
+		}, {
+			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+			Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1.5 }),
+		}),
+		Alert = flash and e("Frame", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Theme.colors.threat,
+			BackgroundTransparency = 0.35,
+			ZIndex = 2,
+		}, {
+			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		}),
 	})
 end
 
@@ -466,6 +489,8 @@ local function ActionBar()
 			size = 64,
 			layoutOrder = 3,
 			onPress = Actions.toggleInventory,
+			dot = next(ui.newItems) ~= nil,
+			alertAt = ui.bagFullAt,
 		}),
 		Interact = e(ActionButton, {
 			label = interactLabel,

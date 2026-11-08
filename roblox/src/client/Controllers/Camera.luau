@@ -84,7 +84,13 @@ function Camera.start()
 
 	UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
 		if input.UserInputType == Enum.UserInputType.MouseWheel and not processed then
-			zoomTarget = math.clamp(zoomTarget - input.Position.Z * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
+			-- The plain wheel cycles the hotbar (Input); Ctrl+wheel zooms.
+			if
+				UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
+				or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+			then
+				zoomTarget = math.clamp(zoomTarget - input.Position.Z * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
+			end
 		end
 	end)
 	local pinchStart = zoomTarget

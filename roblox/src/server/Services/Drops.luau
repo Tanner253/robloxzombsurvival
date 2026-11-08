@@ -4,7 +4,7 @@
 	hold, the overflow lands beside the node as a drop (LDoE leaves a loot bag),
 	and items dropped from the inventory land at the player's feet.
 
-	A drop belongs to the player who made it, shows as a small sack tagged
+	Dropped slots keep their durability. A drop belongs to the player who made it, shows as a small sack tagged
 	EO_Drop (attributes DropId, OwnerUserId, Label), and is picked up with the
 	PickupDrop remote from within reach. Whatever still doesn't fit stays on the
 	ground. Drops vanish after Tuning.drops.lifetimeSeconds or when the owner
@@ -29,7 +29,7 @@ Drops.TAG = "EO_Drop"
 type Drop = {
 	id: string,
 	owner: Player,
-	items: { Types.ItemStack },
+	items: { Types.Slot }, -- whole slots, so dropped tools keep their durability
 	model: Model,
 	expiresAt: number,
 }
@@ -51,7 +51,7 @@ local function folder(): Folder
 	return made
 end
 
-local function label(items: { Types.ItemStack }): string
+local function label(items: { Types.Slot }): string
 	local parts: { string } = {}
 	for index, stack in items do
 		if index > 2 then
@@ -70,11 +70,11 @@ local function remove(drop: Drop)
 end
 
 -- Puts `stacks` on the ground at `position` for `player`. Returns the drop's id.
-function Drops.spawn(player: Player, position: Vector3, stacks: { Types.ItemStack }): string?
-	local items: { Types.ItemStack } = {}
+function Drops.spawn(player: Player, position: Vector3, stacks: { Types.Slot }): string?
+	local items: { Types.Slot } = {}
 	for _, stack in stacks do
 		if stack.count > 0 then
-			table.insert(items, { itemId = stack.itemId, count = stack.count })
+			table.insert(items, { itemId = stack.itemId, count = stack.count, durability = stack.durability })
 		end
 	end
 	if #items == 0 then
@@ -87,7 +87,7 @@ function Drops.spawn(player: Player, position: Vector3, stacks: { Types.ItemStac
 			for _, stack in items do
 				local merged = false
 				for _, existing in drop.items do
-					if existing.itemId == stack.itemId then
+					if existing.itemId == stack.itemId and existing.durability == nil and stack.durability == nil then
 						existing.count += stack.count
 						merged = true
 						break
@@ -141,7 +141,7 @@ local function pickup(player: Player, id: string)
 	if Vector3.new(offset.X, 0, offset.Z).Magnitude > tuning.interaction.reachStuds + 2 then
 		return
 	end
-	local given, leftover = Inventory.give(player, drop.items)
+	local given, leftover = Inventory.giveSlots(player, drop.items)
 	if #given == 0 then
 		Sync.notice(player, "Your bag is full")
 		return
@@ -157,8 +157,22 @@ local function pickup(player: Player, id: string)
 	end
 end
 
+-- Drops a whole slot from the inventory (or open crate) just in front of the player.
+local function dropFromInventory(player: Player, ref: string, index: number)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root == nil then
+		return
+	end
+	local slot = Inventory.takeSlot(player, ref, index)
+	if slot then
+		Drops.spawn(player, root.Position + root.CFrame.LookVector * 3, { slot })
+	end
+end
+
 function Drops.init()
 	Net.onEvent("PickupDrop", pickup)
+	Net.onEvent("InventoryDrop", dropFromInventory)
 end
 
 function Drops.start()

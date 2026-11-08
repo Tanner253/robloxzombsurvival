@@ -139,6 +139,20 @@ Remotes.list = {
 	},
 
 	-- Gathering ---------------------------------------------------------------------------
+	InventorySort = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.oneOf({ "pockets", "backpack", "storage" })),
+		description = "(ref) merges and sorts one container (the Sort button)",
+	},
+	InventoryDrop = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(ref, slot),
+		description = "(ref, index) drops a whole slot on the ground at the player's feet",
+	},
 	PickupDrop = {
 		kind = "event",
 		clientCanSend = true,

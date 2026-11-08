@@ -24,6 +24,11 @@ export type Props = {
 	placeholder: string?, -- shown in an empty slot (equipment slot names)
 	dim: boolean?,
 	size: number?,
+	isNew: boolean?, -- shows a NEW badge (gained since the inventory was last seen)
+	-- Where this slot lives, written as attributes (SlotRef, SlotIndex) so drag and drop
+	-- can find the slot under the cursor.
+	slotRef: string?,
+	slotIndex: number?,
 	onActivated: (() -> ())?,
 	onSecondary: (() -> ())?,
 	onHover: ((hovering: boolean) -> ())?,
@@ -99,6 +104,12 @@ local function ItemSlot(props: Props)
 		BackgroundTransparency = if empty then 0.35 else 0,
 		[React.Event.Activated] = props.onActivated,
 		[React.Event.MouseButton2Click] = props.onSecondary,
+		ref = function(rbx: TextButton?)
+			if rbx and props.slotRef then
+				rbx:SetAttribute("SlotRef", props.slotRef)
+				rbx:SetAttribute("SlotIndex", props.slotIndex)
+			end
+		end,
 		[React.Event.MouseEnter] = function()
 			setHovering(true)
 			if props.onHover then
@@ -175,6 +186,19 @@ local function ItemSlot(props: Props)
 			TextColor3 = if props.selected then Theme.colors.accent else Theme.colors.textMuted,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 4,
+		}),
+		New = not empty and props.isNew and React.createElement("TextLabel", {
+			Size = UDim2.fromOffset(30, 14),
+			Position = UDim2.new(1, -3, 0, 3),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundColor3 = Theme.colors.accent,
+			FontFace = Theme.fonts.header,
+			Text = "NEW",
+			TextSize = 10,
+			TextColor3 = Theme.colors.textOnAccent,
+			ZIndex = 6,
+		}, {
+			Corner = React.createElement("UICorner", { CornerRadius = UDim.new(0, 4) }),
 		}),
 		Count = not empty and (props.count or 0) > 1 and React.createElement("TextLabel", {
 			Size = UDim2.new(1, -6, 0, Theme.textSize.caption),
