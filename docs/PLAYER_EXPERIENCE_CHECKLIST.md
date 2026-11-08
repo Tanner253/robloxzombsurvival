@@ -195,5 +195,6 @@ S2 and S3 briefs expand these into full rows. The minimum:
   - **Room kits:** prefab material bundles such as "Stone room 3×3".
   - **Capacity packs:** "+1 Campfire can be placed".
   - The currency "+" opens it. Receipt flow.
+- **Buy at the moment of need** (GAME_DESIGN Monetization): Energy refill in the travel panel, "Fill up" missing materials in every craft, build and upgrade panel, a backpack offer on the inventory-full toast, capacity offers at limits, timer speed-ups on station rows, and a gear offer on the death screen. All are one tap through the Roblox prompt, and the item lands in the inbox and counts toward have/need instantly. S1 should leave a slot for these buttons in its panels now.
 - **Delivery inbox** (rec8): purchases, event rewards and mail land here, with TAKE per row, Take all and a category filter. It's safe storage that can't be raided, which is our locked-stash rule turned into UX. Items never expire if they were bought.
 - **Crews:** invites, roles, a shared outpost.

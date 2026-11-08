@@ -416,6 +416,22 @@ LDoE-level grind and prices, tuned with live data. Don't pre-soften them.
 Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 
 **Stance** (the developer, 2026-11-08): LDoE has about 100k daily players on a hard grind with pay-to-win. Copy that model. Don't soften the grind or the prices up front; tune them with live data.
+- **Everything is reachable without paying.** A free player can progress through all content; it's slower and grindier. Paying is the natural shortcut, never a wall.
+- **The game creates the want; the shop is always one tap away when it hits.** In the developer's words, LDoE's way is "elegant and extremely effective... it's easy to make purchases in that game."
+
+**Buy at the moment of need** (frictionless purchasing, where most conversions happen):
+- **Out of Energy** when choosing Run → a "Refill" button right in the travel panel.
+- **Missing materials** for a craft, build or upgrade → "Fill up" the shortfall with premium currency, in the same panel (LDoE's FILL UP).
+- **Inventory full** while gathering or looting → a backpack upgrade offer on the toast.
+- **Storage or placement limit reached** → a capacity pack offer in the build or storage panel.
+- **Waiting on a timer** → speed up with currency, priced by time left, on the station and queue rows.
+- **Downed or lost gear on a run** → a gear pack offer on the death screen.
+- **Tough location, weak gear** → an equipment pack suggestion on the location panel.
+- **Shared mechanics:**
+  - Premium currency, so prices feel small, with the balance and "+" on every screen.
+  - Roblox's one-tap purchase prompt.
+  - Purchases arrive in the inbox at once and count toward have/need straight away.
+- **The first purchase gets a starter offer,** shown only after the first big win (see "The first 10 minutes").
 
 **Platform rules** (Roblox requirements, not choices):
 - Any paid random outcome (packs, or breeding with paid food) shows its odds, and is hidden where PolicyService restricts paid random items.
