@@ -178,26 +178,55 @@ Nothing player-facing is done until it has all ten:
 | 10.3 | The first 10 minutes as designed (arrival, first Hearth pushes back the fog, first craft, first build) with an objective beacon or arrow | — | S3 |
 | 10.4 | Quest tracker with chapters and rewards, plus a premium row | rec5 | S3 |
 
-## 11. Fog map, locations, combat (S2), and monetization, crews (S3)
+## 11. Fog map and travel (S2)
 
-S2 and S3 briefs expand these into full rows. The minimum:
-- **Fog map:**
-  - Location panels with main and possible loot, Run/Walk, and "items left here are lost".
-  - A loading screen with the location name, time, temperature, stats and tips.
-- **Locations:**
-  - Container search with a progress bar (about 5 s).
-  - Travel bonus loot.
-  - Extraction points.
-  - The shared lobby.
-- **Combat:**
-  - Targeting, attack animations per weapon class, hit-stop, damage numbers.
-  - The Hollow dissolve to ash.
-  - Loot drops.
-  - Ammo counts, reload, noise.
-  - Dodge roll.
+| # | Requirement | LDoE reference | Owner |
+|---|---|---|---|
+| 11.1 | Walking into the Neighbourhood fog edge or the Trailhead starts a 1.5 s fog-in (the screen fogs, audio shifts); backing out cancels it. Then the Fog map opens. M opens it anywhere for planning only. | — | S2 |
+| 11.2 | **Fog map:** a painted map of the region with location markers by fog tier (Light, Dense, Black), rotating-event markers with countdowns, and your outpost. Pan and zoom. It's a real illustrated map, not a UI grid. | rec1 world map | S2 |
+| 11.3 | **Location panel:** name and art, fog tier, main loot and possible loot (icons), Hollow types, a recommended gear score, **Run** (Energy cost) or **Walk** (real-time minutes), and the warning "items left here are lost when the lobby closes". | rec1, rec3 | S2 |
+| 11.4 | The travel route is drawn on the map. Walk shows a real-time timer you can leave running while you do other things at home. | rec3 route | S2 |
+| 11.5 | **Loading screen:** location name, time of day, fog tier, your HP, Energy, food and water, and a rotating gameplay tip, over location art. | rec7 | S2 |
+| 11.6 | **Travel bonus loot:** a "found on the way" panel on arrival, with TAKE per item and Take all (the ad slot is wired in S3). | rec3 | S2 |
+| 11.7 | Energy display with "+", and regen ticking in real time. When Energy is short, the Run button shows the shortfall slot for the S3 refill. | rec1 | S2 |
+
+## 12. Locations and lobbies (S2: PvE lobbies; PvP is M2)
+
+| # | Requirement | LDoE reference | Owner |
+|---|---|---|---|
+| 12.1 | Each location is its own place, played in a reserved-server lobby of up to 12 matched by power band. Parties teleport together. Joining closes after 3 min. | — | S2 |
+| 12.2 | **Three handcrafted locations** (one Light, one Dense, one Black) plus one rotating event spot. Each is dense with art: buildings to enter, cars, fences, ruins, foliage, landmarks, and three-layer ground (ART_DIRECTION). No empty fields. | rec3, rec6 | S2 |
+| 12.3 | **Lobby-wide Fog meter:** visible on the HUD; it rises over about 15 min, raising loot tier and Hollow strength. Visible fog thickens as it rises. A 60 s warning before it closes. Anyone left inside is lost (death rules). | — | S2 |
+| 12.4 | **Containers** (crates, lockers, car trunks, cabinets): E to search with a progress bar (about 5 s, interruptible), an opening animation and sound, then a loot panel with TAKE and Take all. Each player rolls their own loot in Light fog; loot is shared and contested in Dense and Black. Searched containers look visibly open. | rec6 | S2 |
+| 12.5 | **Extraction:** in Light fog you leave from any edge. Dense and Black have 2–3 marked extraction points (one closed at random each run), shown on the minimap, with an 8 s channel that's interrupted by damage. | — | S2 |
+| 12.6 | **Death on a run:** a death screen with the cause and what was lost. The backpack drops as a lootable bag with a lantern glow. You can re-enter the same lobby while it's open (costs Energy) to recover it. Bags persist until the lobby closes. Access by tier per GAME_DESIGN. | — | S2 |
+| 12.7 | Minimap at locations: points of interest, extraction points, your bag, party members, and Hollow dots when alerted (§8.7). | rec6 | S2 |
+| 12.8 | Other players show name tags and party colour. Light fog has no friendly fire. | — | S2 |
+
+## 13. Combat and the Hollow (S2)
+
+| # | Requirement | LDoE reference | Owner |
+|---|---|---|---|
+| 13.1 | **Hollow archetypes for M1:** shambler, runner and bloater. Each has a distinct silhouette (ART_DIRECTION §6), ash-grey skin, cyan eye glow and fog wisps, and its own custom animation set (idle, walk or run, attack, hit-react, death). | rec6 enemies | S2 |
+| 13.2 | **Hollow AI:** wander, alert (a sound or sight cue, with a "!" read), chase, attack, and fear of light (they back off from strong light and flares). Packs form around noise. The bloater bursts into a toxic cloud. | — | S2 |
+| 13.3 | **Targeting:** mouse aim on PC with a soft target lock on the nearest enemy in the aim cone; auto-aim on touch. The targeted enemy's name and HP bar show at top centre. | rec6 | S2 |
+| 13.4 | **Melee:** per-class swing animations (light and heavy), hit-stop of about 60 ms, a small screen shake on heavy hits, impact VFX and SFX per material, knockback, stamina cost. | — | S2 |
+| 13.5 | **Bow:** draw and release animation, an arrow projectile with a trail, arrows that can be recovered from bodies and the ground, silent. | — | S2 |
+| 13.6 | **Firearms:** Pipe Pistol, Scrap Shotgun and Flare Pistol, each with its own model and in-hand pose, muzzle flash, light flash, shell eject, recoil kick, tracer, impact decals, and an ammo counter on the hotbar slot. A reload animation and sound. Out of ammo gives a dry click and a toast. | rec6 ammo counts | S2 |
+| 13.7 | **Noise:** gunshots emit a noise radius that pulls the Hollow; it shows as a brief ring on the minimap. Melee and bows are quiet. | — | S2 |
+| 13.8 | **Flare Pistol:** the flare lights an area for 20 s, burns the Hollow it hits, and makes the Hollow flee its light. It's the signature light weapon. | — | S2 |
+| 13.9 | **Damage feedback:** floating damage numbers (crits larger), hit-reacts on enemies, and a red vignette, directional damage indicator and grunt when the player is hit. | rec6 | S2 |
+| 13.10 | **Hollow death:** dissolve into ash and embers (no blood, Mild rating), a loot drop that pops, and +XP. | — | S2 |
+| 13.11 | **Dodge roll (C):** an i-frame roll with a stamina cost, its own animation and a dust puff. | — | S2 |
+| 13.12 | **Ammo Press station:** crafts Light rounds, Shells and Flares from Rusted Scrap and Blackpowder, with all station rows (§5) applying. | — | S2 |
+| 13.13 | **Combat music:** a tension layer when alerted Hollow are near, fading out after combat. | — | S2 |
+
+## 14. Monetization and crews (S3)
+
+S3's brief expands these into full rows:
 - **Shop (rec8 anatomy):**
   - Tabs: Best, Season, Daily Deals, Outpost, Equipment, Building, Vehicles, Companions, Currency, plus Inbox and VIP.
-  - Cards: title, description, contents shown exactly (never "possible reward" randomness), art, price button, tag ribbons (Popular, Limited, New), purchase limit and timer, and an honest "was" price only when it truly was.
+  - Cards: title, description, contents, art, price button, tag ribbons (Popular, Limited, Hot, New), discount badges, purchase limit and countdown. "Possible reward" packs show their odds (a Roblox rule).
   - A **daily free claim**.
   - **Daily Deals:** a rotating stock bought with soft currency, with one free refresh and further refreshes by rewarded ad for 13+.
   - **Room kits:** prefab material bundles such as "Stone room 3×3".
