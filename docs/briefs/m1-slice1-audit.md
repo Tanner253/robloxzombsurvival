@@ -28,6 +28,21 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
   spring.
 - Spend this pass 213.25 credits (4 sheets + 17 conversions); pool total about 360 of 500.
 
+## Quality gate (checklist §0) — this pass
+
+- **Nothing below A is visible.** `Art.approved` lists the kit models graded A: pine, fatwood stump, the
+  outpost kit walls and scrap window, workbench, the four tools. Every lookup goes through it and the
+  stand-in builders are deleted. Hidden until their replacements are graded A: boulder (lichen card),
+  fallen branches (leaf mat), ember bush, reeds and loose stones (floaters found by the gate), spring
+  (primitive), campfire (generated), crates, recycler (Generator stand-in), doorways/doors/wood and
+  reinforced windows (procedural), all look-test dressing, the Hearth brazier, the ground sack. Capture 73.
+- **Floater gate:** art/tools/glb_floaters.py (+ glb_layflat.py) on all 29 GLBs → 0 flags after fixes;
+  roblox/tools/kit_detached.luau in Studio → 140 kit models, 0 detached parts.
+- **World as code:** tools/syncback.luau put the kit masters, StarterCharacter, survivor rigs and material
+  sets into roblox/place/kit/; `rojo build` reproduces the saved place's content.
+- **Blocked on one click:** model uploads only work from approved folders; the worktree's art folder isn't
+  one and the tool forbids copying around that. 17 converted models wait.
+
 ## Audit table
 
 | # | Status | Notes |
@@ -51,16 +66,16 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 | 3.2 | ✅ | Auto-swap, clip, swap back. |
 | 3.3 | ✅ | Chips and per-node hit sounds. |
 | 3.4 | ✅ | Wobble and hit pips. |
-| 3.5 | ⚠️ | Trees fall to stumps, boulders to rubble; reeds and bushes leave nothing until the stubble and bare-branch models pass the lineup (the old squashed copy read as a mud blob). |
+| 3.5 | ⚠️ | Pines fall to fatwood stumps. Boulder, branches, bush and reeds are hidden by the quality gate until their A models upload (boulder rubble, stubble, bare branches converted). |
 | 3.6 | ✅ | Merged "+N" cards, icon flies to the Bag, "+XP". |
-| 3.7 | ✅ | Tool refusal; overflow drops a sack plus toast; AUTO stops. |
+| 3.7 | ✅ | Tool refusal; overflow goes to the inbox (no ground sack until a sack model is graded A) + toast; AUTO stops. |
 | 3.8 | ✅ | Wear, warning, break burst. |
 | 3.9 | ✅ | AUTO walks node to node and stops when full. |
-| 3.10 | ⚠️ | Bare-branches model converted (no leaf mats) and waiting on the upload click and lineup; the leafy model is still in the world. |
+| 3.10 | ⚠️ | Bare-branches model converted, laid flat, floater-free (glb_floaters 0 flags); waits on the upload click. The leaf-mat model is hidden, so Gather Sticks is unreachable meanwhile. |
 | 4.1 | ✅ | Text F2EEE6 / B8B2A6; section headers 25 px and captions 19 px at 1080p; disabled buttons plain grey; locked text in red; crisp (no CanvasGroup). |
 | 4.2 | ✅ | Pockets, backpack, gear paper-doll with silhouettes (63). |
 | 4.3 | ✅ | Icon, count, durability, rarity, NEW badge at readable size. |
-| 4.4 | ✅ | Drag and drop, drag out to drop, split, quick-move. |
+| 4.4 | ⚠️ | Drag and drop, split, quick-move; drag-out-to-drop and Drop are hidden until a ground-sack model is graded A (§0). |
 | 4.5 | ✅ | Details: name, stat chips, category/tier and description, action bar. |
 | 4.6 | ✅ | Crate panel with Take all / Put all and Sort. |
 | 4.7 | ✅ | Sort; full-bag flash and toast. |
@@ -75,7 +90,7 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 | 5.1 | ✅ | Locked recipes greyed under a padlock, red unlock condition, sorted last. |
 | 5.2 | ✅ | Inputs have/need (home pool), output, time; where each input comes from. |
 | 5.3 | ✅ | Queue, collect, reward pop. |
-| 5.4 | ⚠️ | Progress above the station, ready count, fire only while fuelled, saw loop; the workbench model doesn't animate. |
+| 5.4 | ⚠️ | Workbench progress, ready count, saw loop; the campfire is hidden (generated model below A) until the converted campfire passes the lineup; fire/embers/smoke/light only while fuelled are coded for it. |
 | 5.5 | ✅ | Fuel slot and stalls. |
 | 5.6 | ✅ | "Ready while you were away". |
 | 5.7 | ✅ | Station upgrade with cost. |
@@ -90,16 +105,16 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 | 6.3 | ✅ | R rotates; snap, dust, thud. |
 | 6.4 | ⚠️ | Upgrade swaps the tier model; no "can be improved" marker. |
 | 6.5 | ✅ | Demolish confirm and refund (overflow to the inbox); HP on hover. |
-| 6.6 | ⚠️ | Doors swing locally; server lock is S3. |
+| 6.6 | ⚠️ | Doorways, doors and wood/reinforced windows are hidden (stand-ins removed); the palisade doorway, door leaf and window are converted and wait on the upload. |
 | 6.7 | ✅ | See 2.3. |
 | 6.8 | ✅ | Wall height test. |
 | 6.9 | ✅ | Seamless decks; trim frame outside the decks, beams abut end to end, one corner block per outside corner (64, 71-72). |
 | 6.10 | ✅ | Quarter-cell furniture, flush to walls. |
 | 6.11 | ✅ | Scan 0 hits; tiles abut with zero overlap; trim and posts offset ≥ 0.05; deck tops 0.95 above terrain; closest/farthest zoom captures from two angles (71-72). |
-| 6.12 | ⚠️ | Workbench stands on its legs facing the room, crates upright, campfire flat, doors hinge, R turns about vertical only; the lineup capture of every placeable vs rec8 comes with the art lineup. |
+| 6.12 | ✅ | Kit pivots at the base centre, up +Y (Studio check); the workbench source model turned so its working side faces the pivot front (tools/conform_pivots.luau); against a wall it stands on its legs, worktop up, back to the wall, working side to the room (74). Other placeables are gated until their models land and go through the same lineup. |
 | 7.1 | ✅ | Bars drain smoothly, pulse when low. |
 | 7.2 | ✅ | Starvation/dehydration damage and regen. |
-| 7.3 | ⚠️ | Spring pool and boiling in data; the spring model is the primitive until the basin passes the lineup. |
+| 7.3 | ⚠️ | The primitive spring is hidden; the spring basin is converted and waits on the upload (water surface, wet stones, crouch-and-cup drink to follow with it). |
 | 8.1 | ⚠️ | Bars, level/XP, Energy (amber +N over the cap), hotbar, tracker; premium currency chip waits on 4.8. |
 | 8.2 | ✅ | Toasts top centre, rewards right; inbox toast. |
 | 8.3 | ✅ | Burst, sting, rewards ("rewards are in your inbox"), unlocks. |
@@ -110,7 +125,7 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 | 8.10 | ⚠️ | Bottom bar Auto, Craft (NEW count), Build, Bag (inbox count), Use; Quests is the tracker; Shop and Social are S3. |
 | 8.11 | ✅ | Home minimap: floors, walls, stations, storage and your arrow (70). |
 | 9.1 | ✅ | Three layers in one terrain pass: noise zones, rolling land, dry grass to the fog; worn paths, plot wear, Hearth ash; wind grass (68). |
-| 9.2 | ⚠️ | Rule-based dressing works; most props are look-test models waiting on the Camp family lineup. |
+| 9.2 | ⚠️ | Dressing by rule, but every look-test prop is hidden by the gate; only edge pines remain until the Camp family models land. |
 | 9.3 | ✅ | Fog banks, Trailhead. |
 | 9.4 | ⚠️ | Hearth light and radius disc; fog doesn't yet retreat from light. |
 | 9.5 | ✅ | 24-minute cycle, eased. |
