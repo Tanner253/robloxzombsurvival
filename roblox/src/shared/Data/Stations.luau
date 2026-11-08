@@ -180,6 +180,26 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 			},
 		},
 	},
+	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns.
+	["station.ammo_press"] = {
+		id = "station.ammo_press",
+		name = "Ammo Press",
+		levels = {
+			{ level = 1, upgradeCost = {}, queueSlots = 3, speedMultiplier = 1 },
+			{
+				level = 2,
+				upgradeCost = {
+					{ itemId = "item.scrap_plate", count = 12 },
+					{ itemId = "item.rivets", count = 8 },
+					{ itemId = "item.brass_gear", count = 2 },
+				},
+				queueSlots = 5,
+				speedMultiplier = 1.25,
+				requiredLevel = 15, -- about a week in: the Reinforced tier's ammo demand
+			},
+		},
+		feature = "fogRuns",
+	},
 }
 
 return Stations

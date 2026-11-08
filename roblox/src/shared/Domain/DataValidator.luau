@@ -25,6 +25,11 @@
 	- nothing is orphaned: every loot table, node, enemy and station is used, every
 	  blueprint unlocks something, and every item can be earned in play (not only
 	  bought)
+	- Fog Runs (slice 2): firearm, bow and melee stats, flares, bursts, each
+	  location's run rules (extraction by fog tier, band loot, travel bonus), the
+	  lobby and combat tuning, and feature tags naming a real Tuning.features flag.
+	  Boot validates the bundle with disabled features stripped (Shared/Features),
+	  so untagged content pointing at tagged content fails there.
 ]]
 
 local Types = require("../Types")
@@ -163,6 +168,73 @@ end
 
 -- Items ------------------------------------------------------------------------------
 
+local function isChance(value: number): boolean
+	return value >= 0 and value <= 1
+end
+
+-- Fog Runs: melee, firearm and bow stats (Domain/Combat).
+local function checkWeaponStats(errors: Errors, where: string, weapon: Types.WeaponStats)
+	if weapon.critChance ~= nil and not isChance(weapon.critChance) then
+		push(errors, `{where}: critChance must be between 0 and 1`)
+	end
+	local melee = weapon.melee
+	if melee then
+		if weapon.kind ~= "melee" then
+			push(errors, `{where}: melee stats only go on melee weapons`)
+		end
+		for _, value in { melee.arcDegrees, melee.heavyMultiplier, melee.knockbackStuds, melee.hitStopSeconds } do
+			if value ~= nil and value < 0 then
+				push(errors, `{where}.melee: values must not be negative`)
+			end
+		end
+		if melee.arcDegrees ~= nil and (melee.arcDegrees <= 0 or melee.arcDegrees > 360) then
+			push(errors, `{where}.melee: arcDegrees must be in (0, 360]`)
+		end
+	end
+	if weapon.kind == "ranged" and (weapon.firearm ~= nil) == (weapon.bow ~= nil) then
+		push(errors, `{where}: ranged weapons need exactly one of firearm and bow stats`)
+	end
+	if weapon.kind == "melee" and (weapon.firearm ~= nil or weapon.bow ~= nil) then
+		push(errors, `{where}: melee weapons take no firearm or bow stats`)
+	end
+	local gun = weapon.firearm
+	if gun then
+		if gun.fireInterval <= 0 or gun.reloadSeconds <= 0 or gun.projectileSpeed <= 0 or gun.noiseRadius <= 0 then
+			push(
+				errors,
+				`{where}.firearm: fireInterval, reloadSeconds, projectileSpeed and noiseRadius must be positive`
+			)
+		end
+		if not isPositiveInteger(gun.magazine) or (gun.pellets ~= nil and not isPositiveInteger(gun.pellets)) then
+			push(errors, `{where}.firearm: magazine and pellets must be positive integers`)
+		end
+		if gun.spreadDegrees < 0 or gun.spreadDegrees >= 180 then
+			push(errors, `{where}.firearm: spreadDegrees must be in [0, 180)`)
+		end
+		if gun.falloffMin ~= nil and (gun.falloffMin <= 0 or gun.falloffMin > 1) then
+			push(errors, `{where}.firearm: falloffMin must be in (0, 1]`)
+		end
+		if gun.falloffStart ~= nil and (gun.falloffStart < 0 or gun.falloffStart >= weapon.range) then
+			push(errors, `{where}.firearm: falloffStart must be at least 0 and below range`)
+		end
+		-- The item card shows attacksPerSecond: it must be the sustained rate Combat fires at.
+		local cycle = (gun.magazine - 1) * gun.fireInterval + gun.reloadSeconds
+		local sustained = if cycle > 0 then gun.magazine / cycle else 0
+		if sustained > 0 and math.abs(weapon.attacksPerSecond - sustained) > sustained * 0.02 then
+			push(errors, `{where}: attacksPerSecond must be the sustained rate {sustained} (Combat.sustainedRate)`)
+		end
+	end
+	local bow = weapon.bow
+	if bow then
+		if bow.drawSeconds <= 0 or bow.projectileSpeed <= 0 then
+			push(errors, `{where}.bow: drawSeconds and projectileSpeed must be positive`)
+		end
+		if bow.minDraw < 0 or bow.minDraw >= 1 or not isChance(bow.recoveryChance) then
+			push(errors, `{where}.bow: need 0 <= minDraw < 1 and recoveryChance in [0, 1]`)
+		end
+	end
+end
+
 local function checkItems(errors: Errors, content: Types.Content)
 	for _, id in TableUtil.sortedKeys(content.Items) do
 		local item = content.Items[id]
@@ -235,6 +307,19 @@ local function checkItems(errors: Errors, content: Types.Content)
 				end
 			elseif weapon.ammoItemId ~= nil then
 				push(errors, `{where}.weapon: melee weapons take no ammo`)
+			end
+			checkWeaponStats(errors, `{where}.weapon`, weapon)
+		end
+		if item.flare then
+			if category ~= "ammo" then
+				push(errors, `{where}: only ammo can burn as a flare`)
+			end
+			local flare = item.flare
+			if flare.lightRadius <= 0 or flare.seconds <= 0 or flare.fleeRadius <= 0 then
+				push(errors, `{where}.flare: lightRadius, seconds and fleeRadius must be positive`)
+			end
+			if flare.burnDps < 0 or flare.burnSeconds < 0 then
+				push(errors, `{where}.flare: burnDps and burnSeconds must not be negative`)
 			end
 		end
 		if item.armor and item.armor.defense <= 0 then
@@ -500,6 +585,24 @@ local function checkEnemies(errors: Errors, content: Types.Content)
 		if content.LootTables[enemy.lootTableId] == nil then
 			push(errors, `{where}: unknown loot table '{enemy.lootTableId}'`)
 		end
+		if enemy.hearing <= 0 or enemy.lightFear <= 0 then
+			push(errors, `{where}: hearing and lightFear must be positive`)
+		end
+		local burst = enemy.burst
+		if burst then
+			for _, value in { burst.triggerRange, burst.radius, burst.damagePerSecond, burst.cloudSeconds } do
+				if value <= 0 then
+					push(
+						errors,
+						`{where}.burst: triggerRange, radius, damagePerSecond and cloudSeconds must be positive`
+					)
+					break
+				end
+			end
+			if burst.fuseSeconds < 0 then
+				push(errors, `{where}.burst: fuseSeconds must not be negative`)
+			end
+		end
 	end
 end
 
@@ -513,6 +616,72 @@ local function checkLocationNodes(errors: Errors, content: Types.Content, where:
 		if not isPositiveInteger(entry.count) then
 			push(errors, `{where}[{index}]: count must be a positive integer`)
 		end
+	end
+end
+
+local EXTRACTION_POINT_FORM = "^[%l%d_]+$"
+
+-- Fog Runs: the lobby rules of one location. Band loot drops here, so it joins `drops`.
+local function checkLocationRun(errors: Errors, content: Types.Content, location: Types.LocationDef, drops: ItemSet)
+	local where = `Locations['{location.id}'].run`
+	local run = location.run
+	if run == nil then
+		push(errors, `{where}: every location needs its Fog Run rules`)
+		return
+	end
+	if run.recommendedGearScore < 0 or not isNonNegativeInteger(run.placeId) then
+		push(errors, `{where}: need recommendedGearScore >= 0 and an integer placeId (0 until published)`)
+	end
+
+	local extraction = run.extraction
+	if location.fogTier == 1 and extraction.kind ~= "edge" then
+		push(errors, `{where}.extraction: Light fog is left from any edge (kind 'edge')`)
+	end
+	if location.fogTier > 1 and extraction.kind ~= "points" then
+		push(errors, `{where}.extraction: Dense and Black fog leave only through extraction points`)
+	end
+	if extraction.kind == "points" then
+		local seen: { [string]: boolean } = {}
+		for index, point in extraction.points do
+			if string.match(point.id, EXTRACTION_POINT_FORM) == nil or #point.id > 32 then
+				push(errors, `{where}.extraction.points[{index}]: id must be snake_case, at most 32 characters`)
+			end
+			if seen[point.id] then
+				push(errors, `{where}.extraction.points[{index}]: '{point.id}' is listed twice`)
+			end
+			seen[point.id] = true
+		end
+		local count = #extraction.points
+		if count < 2 or count > 3 then
+			push(errors, `{where}.extraction: needs 2-3 points (GAME_DESIGN)`)
+		end
+		if not isNonNegativeInteger(extraction.closeCount) or extraction.closeCount >= count then
+			push(errors, `{where}.extraction: closeCount must leave at least one point open`)
+		end
+		if extraction.flare and location.fogTier ~= 3 then
+			push(errors, `{where}.extraction: the flare extract is Black fog only`)
+		end
+	end
+
+	local bands = #content.Tuning.lobby.bands
+	local seenBands: { [number]: boolean } = {}
+	for index, entry in run.bandLoot do
+		local entryWhere = `{where}.bandLoot[{index}]`
+		if not isPositiveInteger(entry.band) or entry.band < 2 or entry.band > bands then
+			push(errors, `{entryWhere}: band must be an integer from 2 to {bands} (band 1 is the base loot)`)
+		end
+		if seenBands[entry.band] then
+			push(errors, `{entryWhere}: band {entry.band} is listed twice`)
+		end
+		seenBands[entry.band] = true
+		local loot = content.LootTables[entry.lootTableId]
+		if loot == nil then
+			push(errors, `{entryWhere}: unknown loot table '{entry.lootTableId}'`)
+		end
+		addLootItems(drops, content, loot)
+	end
+	if content.LootTables[run.travelBonusTableId] == nil then
+		push(errors, `{where}: unknown travel bonus loot table '{run.travelBonusTableId}'`)
 	end
 end
 
@@ -555,7 +724,11 @@ local function checkLocations(errors: Errors, content: Types.Content)
 			end
 			checkRange(errors, `{where}.containers[{index}].count`, container.count)
 			addLootItems(drops, content, loot)
+			if container.searchSeconds ~= nil and container.searchSeconds <= 0 then
+				push(errors, `{where}.containers[{index}]: searchSeconds must be positive`)
+			end
 		end
+		checkLocationRun(errors, content, location, drops)
 		checkLocationNodes(errors, content, `{where}.nodes`, location.nodes)
 		for _, entry in location.nodes do
 			local node = content.Nodes[entry.nodeId]
@@ -572,6 +745,13 @@ local function checkLocations(errors: Errors, content: Types.Content)
 			end
 			checkRange(errors, `{where}.enemySpawns[{index}].count`, spawn.count)
 			addLootItems(drops, content, if enemy then content.LootTables[enemy.lootTableId] else nil)
+			local band = spawn.minBand
+			if band ~= nil and (not isPositiveInteger(band) or band > #content.Tuning.lobby.bands) then
+				push(
+					errors,
+					`{where}.enemySpawns[{index}]: minBand must be an integer from 1 to {#content.Tuning.lobby.bands}`
+				)
+			end
 		end
 
 		if #location.mainLoot == 0 then
@@ -827,6 +1007,116 @@ local function checkProducts(errors: Errors, content: Types.Content)
 	end
 end
 
+local function allPositive(errors: Errors, where: string, section: { [string]: any })
+	for _, key in TableUtil.sortedKeys(section) do
+		local value = section[key]
+		if type(value) == "number" and value <= 0 then
+			push(errors, `{where}.{key} must be positive`)
+		end
+	end
+end
+
+-- Fog Runs (slice 2) tuning: lobby bands, per-tier tables and the combat constants.
+local function checkFogRunTuning(errors: Errors, content: Types.Content)
+	local tuning = content.Tuning
+	local tiers = #tuning.travel.fogTierNames
+	for _, key in TableUtil.sortedKeys(tuning.features :: any) do
+		if type((tuning.features :: any)[key]) ~= "boolean" then
+			push(errors, `Tuning.features.{key} must be a boolean`)
+		end
+	end
+
+	local lobby = tuning.lobby
+	allPositive(errors, "Tuning.lobby", lobby :: any)
+	if not isPositiveInteger(lobby.capacity) then
+		push(errors, "Tuning.lobby.capacity must be a positive integer")
+	end
+	if lobby.joinWindowSeconds >= lobby.durationSeconds or lobby.warningSeconds >= lobby.durationSeconds then
+		push(errors, "Tuning.lobby: the join window and the warning must be shorter than the run")
+	end
+	if lobby.reentryCutoffSeconds >= lobby.durationSeconds then
+		push(errors, "Tuning.lobby: reentryCutoffSeconds must be shorter than the run")
+	end
+	if #lobby.bands == 0 or lobby.bands[1].from ~= 0 then
+		push(errors, "Tuning.lobby.bands: the first band must start at 0")
+	end
+	for index, band in lobby.bands do
+		if index > 1 and (band.from <= lobby.bands[index - 1].from or band.from >= 1) then
+			push(errors, `Tuning.lobby.bands[{index}]: from must rise and stay below 1`)
+		end
+		if band.lootMultiplier < 1 or band.hollowStrength < 1 then
+			push(errors, `Tuning.lobby.bands[{index}]: multipliers must be at least 1`)
+		end
+	end
+	if #lobby.drops ~= tiers then
+		push(errors, `Tuning.lobby.drops: needs one rule per fog tier ({tiers})`)
+	end
+	local extraction = tuning.extraction
+	if #extraction.xpByTier ~= tiers then
+		push(errors, `Tuning.extraction.xpByTier: needs one value per fog tier ({tiers})`)
+	end
+	if extraction.edgeSeconds < 0 or extraction.pointSeconds <= 0 or extraction.flareSeconds <= 0 then
+		push(errors, "Tuning.extraction: need edgeSeconds >= 0 and positive point and flare channels")
+	end
+	if #tuning.containers.lootModeByTier ~= tiers then
+		push(errors, `Tuning.containers.lootModeByTier: needs one mode per fog tier ({tiers})`)
+	end
+	allPositive(errors, "Tuning.matchmaking", tuning.matchmaking :: any)
+	local travelBonus = tuning.travelBonus
+	if not isChance(travelBonus.runChance) or not isChance(travelBonus.walkChance) then
+		push(errors, "Tuning.travelBonus: chances must be between 0 and 1")
+	end
+	if not isPositiveInteger(travelBonus.walkRolls) then
+		push(errors, "Tuning.travelBonus.walkRolls must be a positive integer")
+	end
+	allPositive(errors, "Tuning.noise", tuning.noise :: any)
+	allPositive(errors, "Tuning.dodge", tuning.dodge :: any)
+	allPositive(errors, "Tuning.melee", tuning.melee :: any)
+	allPositive(errors, "Tuning.hollow", tuning.hollow :: any)
+	checkRange(errors, "Tuning.hollow.idleSeconds", tuning.hollow.idleSeconds)
+	local stamina = tuning.stamina
+	if
+		stamina.max <= 0
+		or stamina.regenPerSecond <= 0
+		or stamina.regenDelaySeconds < 0
+		or stamina.sprintPerSecond < 0
+	then
+		push(errors, "Tuning.stamina: need positive max and regen, and non-negative delay and sprint cost")
+	end
+	if tuning.dodge.staminaCost > stamina.max or tuning.melee.staminaHeavy > stamina.max then
+		push(errors, "Tuning: a dodge or heavy swing can't cost more than full stamina")
+	end
+	local combat = tuning.combat
+	if not isChance(combat.critChance) or combat.critMultiplier < 1 then
+		push(errors, "Tuning.combat: critChance must be in [0, 1] and critMultiplier at least 1")
+	end
+	if combat.pvpMaxHitFraction <= 0 or combat.pvpMaxHitFraction >= 1 or combat.lagToleranceStuds < 0 then
+		push(errors, "Tuning.combat: need 0 < pvpMaxHitFraction < 1 and lagToleranceStuds >= 0")
+	end
+	if tuning.travel.reentryEnergyMultiplier < 0 then
+		push(errors, "Tuning.travel.reentryEnergyMultiplier must not be negative")
+	end
+end
+
+-- Tagged content must name a flag that exists in Tuning.features.
+local function checkFeatureTags(errors: Errors, content: Types.Content)
+	local flags = content.Tuning.features :: any
+	local function check(where: string, feature: string?)
+		if feature ~= nil and flags[feature] == nil then
+			push(errors, `{where}: unknown feature '{feature}'`)
+		end
+	end
+	for _, id in TableUtil.sortedKeys(content.Recipes) do
+		check(`Recipes['{id}']`, content.Recipes[id].feature)
+	end
+	for _, id in TableUtil.sortedKeys(content.Stations) do
+		check(`Stations['{id}']`, content.Stations[id].feature)
+	end
+	for _, id in TableUtil.sortedKeys(content.BuildPieces) do
+		check(`BuildPieces['{id}']`, content.BuildPieces[id].feature)
+	end
+end
+
 local function checkTuning(errors: Errors, content: Types.Content)
 	local tuning = content.Tuning
 	local energy = tuning.energy
@@ -880,6 +1170,7 @@ local function checkTuning(errors: Errors, content: Types.Content)
 	end
 	checkStacks(errors, content, "Tuning.newPlayer.items", tuning.newPlayer.items)
 	checkLocationNodes(errors, content, "Tuning.home.nodes", tuning.home.nodes)
+	checkFogRunTuning(errors, content)
 end
 
 -- Cross-checks: nothing orphaned ----------------------------------------------------------------
@@ -897,6 +1188,12 @@ local function checkUsage(errors: Errors, content: Types.Content)
 		end
 		for _, spawn in location.enemySpawns do
 			usedEnemies[spawn.enemyId] = true
+		end
+		if location.run then
+			for _, entry in location.run.bandLoot do
+				usedLoot[entry.lootTableId] = true
+			end
+			usedLoot[location.run.travelBonusTableId] = true
 		end
 	end
 	for _, entry in content.Tuning.home.nodes do
@@ -1049,6 +1346,7 @@ function DataValidator.validate(content: Types.Content): { string }
 	checkQuests(errors, content)
 	checkProducts(errors, content)
 	checkTuning(errors, content)
+	checkFeatureTags(errors, content)
 	checkUsage(errors, content)
 
 	table.sort(errors)

@@ -125,11 +125,11 @@ return function(test: TestKit.Register)
 		local errors = brokenCopy(function(c)
 			c.Locations["loc.pine_hollow"].nodes[1].nodeId = "node.ghost"
 			c.Locations["loc.sunken_quarry"].enemySpawns[1].enemyId = "enemy.ghost"
-			c.Enemies["enemy.brute"].lootTableId = "loot.ghost"
+			c.Enemies["enemy.bloater"].lootTableId = "loot.ghost"
 		end)
 		TestKit.anyContains(errors, "unknown node 'node.ghost'")
 		TestKit.anyContains(errors, "unknown enemy 'enemy.ghost'")
-		TestKit.anyContains(errors, "Enemies['enemy.brute']: unknown loot table 'loot.ghost'")
+		TestKit.anyContains(errors, "Enemies['enemy.bloater']: unknown loot table 'loot.ghost'")
 	end)
 
 	test("catches an unknown item in a product grant", function()
@@ -220,7 +220,7 @@ return function(test: TestKit.Register)
 	test("catches broken loot nesting, entries and pity", function()
 		local errors = brokenCopy(function(c)
 			c.LootTables["loot.quarry_toolbox"].entries[4].tableId = "loot.nowhere"
-			c.LootTables["loot.junk"].entries[1] = { tableId = "loot.enemy_brute", weight = 1, min = 1, max = 1 }
+			c.LootTables["loot.junk"].entries[1] = { tableId = "loot.road_dense", weight = 1, min = 1, max = 1 }
 			c.LootTables["loot.pine_pack"].entries[1].tableId = "loot.junk"
 			c.LootTables["loot.pine_crate"].pity = { rarity = "epic", every = 4 }
 		end)

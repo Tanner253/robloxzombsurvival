@@ -27,6 +27,8 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "MaterialPool", spec = require("./MaterialPool.spec") },
 	{ name = "ItemSources", spec = require("./ItemSources.spec") },
 	{ name = "DevSpeed", spec = require("./DevSpeed.spec") },
+	-- Fog Runs (slice 2)
+	{ name = "Features", spec = require("./Features.spec") },
 }
 
 local passed, failed = 0, 0
