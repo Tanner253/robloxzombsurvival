@@ -11,7 +11,8 @@
 	  At an inside corner the east/west beam owns the shared square and the
 	  north/south beam stops short of it; an outside corner gets one corner block.
 	- A corner post stands at every grid vertex a wall, doorway or window touches,
-	  covering the joint where walls meet and the open end of a run.
+	  covering the joint where walls meet and the open end of a run (scrap and
+	  reinforced tiers; wood walls carry their own end stakes).
 
 	Rebuilt as one model per plot whenever the layout changes; it's cheap (a plot is
 	10 x 10 cells).
@@ -31,16 +32,15 @@ local BEAM_HEIGHT = 1.2
 local RIM = 0.18 -- the trim stands this far proud of the deck
 local SINK = 0.05 -- detail layers sit at least this far off any surface they meet
 
-type Trim = { material: Enum.Material, color: Color3, post: "log" | "box", postSize: number }
+type Trim = { material: Enum.Material, color: Color3, post: "none" | "box", postSize: number }
 
 local TRIMS: { Trim } = {
-	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "log", postSize = 1.15 },
+	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "none", postSize = 0 },
 	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 0.95 },
 	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 1.1 },
 }
 local CAP = { Color3.fromRGB(62, 44, 32), Color3.fromRGB(70, 72, 76), Color3.fromRGB(70, 72, 76) }
 local CAP_MATERIAL = { Enum.Material.Wood, Enum.Material.DiamondPlate, Enum.Material.DiamondPlate }
-local BAND = Color3.fromRGB(132, 108, 74) -- rope lashing on log posts
 
 local function trimFor(tier: number): Trim
 	return TRIMS[math.clamp(tier, 1, #TRIMS)]
@@ -126,41 +126,8 @@ local function post(model: Model, origin: Vector3, vx: number, vz: number, base:
 	local height = Art.WALL_HEIGHT + 0.3 -- caps just over the wall line
 	local at = origin + Vector3.new(vx * CELL, base, vz * CELL)
 	local s = trim.postSize
-	if trim.post == "log" then
-		-- A round log standing upright (cylinders run along X, so turn it up).
-		local upright = CFrame.Angles(0, 0, math.rad(90))
-		add(
-			model,
-			Vector3.new(height, s, s),
-			CFrame.new(at + Vector3.new(0, height / 2, 0)) * upright,
-			trim.material,
-			trim.color,
-			Enum.PartType.Cylinder
-		)
-		add(
-			model,
-			Vector3.new(0.5, s + 0.12, s + 0.12),
-			CFrame.new(at + Vector3.new(0, height * 0.72, 0)) * upright,
-			Enum.Material.Fabric,
-			BAND,
-			Enum.PartType.Cylinder
-		)
-		add(
-			model,
-			Vector3.new(0.5, s + 0.12, s + 0.12),
-			CFrame.new(at + Vector3.new(0, 1.4, 0)) * upright,
-			Enum.Material.Fabric,
-			BAND,
-			Enum.PartType.Cylinder
-		)
-		add(
-			model,
-			Vector3.new(0.35, s * 0.82, s * 0.82),
-			CFrame.new(at + Vector3.new(0, height + 0.17, 0)) * upright,
-			CAP_MATERIAL[1],
-			CAP[1],
-			Enum.PartType.Cylinder
-		)
+	if trim.post == "none" then
+		return -- wood walls bring their own end stakes and close their own corners (QA2)
 	else
 		-- The body starts SINK below the floor so its base never shares a plane with the collar's.
 		add(

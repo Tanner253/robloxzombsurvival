@@ -641,7 +641,7 @@ end
 -- (LDoE does the same).
 
 local CANOPY_MIN_HEIGHT = 7
-local CANOPY_ALPHA = 0.85
+local CANOPY_ALPHA = 0.94 -- QA2: faded leaves still crisscrossed the survivor at 0.85
 local faded: { [Model]: boolean } = {}
 
 -- True when a canopy (base, top, radius) hides the survivor at `root` from the camera:

@@ -44,9 +44,9 @@ Art.pieces = {
 -- runtime. Their 12-stud tile matches the cell, so the texture runs on unbroken
 -- across neighbouring foundations.
 Art.decks = {
-	-- Wood uses Roblox's own wide, calm planks: the generated variant read as a noisy
-	-- barcode at the gameplay camera (QA).
-	{ base = Enum.Material.WoodPlanks, variant = "", tint = Color3.fromRGB(122, 96, 72) },
+	-- Wood: rough survivor planks with dark gaps and per-plank colour (QA2: Roblox's own
+	-- planks read as laminate with grout seams; the first generated variant as a barcode).
+	{ base = Enum.Material.WoodPlanks, variant = "LT_Timber3", tint = Color3.fromRGB(200, 176, 148) },
 	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
@@ -57,16 +57,17 @@ Art.decks = {
 -- earth, leaf litter in the leafy ground. Sand is the dead grass: the grass tile, straw-tinted.
 Art.ground = {
 	[Enum.Material.Grass] = { variant = "EO_Ground_Grass", tint = Color3.fromRGB(150, 148, 122) },
-	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(150, 146, 128) },
-	[Enum.Material.Ground] = { variant = "EO_Ground_Earth", tint = Color3.fromRGB(128, 128, 122) },
+	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(196, 184, 166) },
+	[Enum.Material.Ground] = { variant = "EO_Ground_Earth", tint = Color3.fromRGB(132, 124, 112) },
 	[Enum.Material.Mud] = { variant = "EO_Ground_Mud", tint = Color3.fromRGB(138, 138, 128) },
-	[Enum.Material.Sand] = { variant = "EO_Ground_DryGrass", tint = Color3.fromRGB(172, 162, 128) },
+	[Enum.Material.Sand] = { variant = "EO_Ground_DryGrass", tint = Color3.fromRGB(164, 156, 118) },
 } :: { [Enum.Material]: { variant: string, tint: Color3 } }
 
 -- Kit models whose texture sits off the shared palette, warmed or cooled by a multiply on
 -- their SurfaceAppearance (QA: the workbench's blue-grey wood clashed with the deck).
 Art.tints = {
 	Workbench = Color3.fromRGB(255, 226, 192),
+	WallWood = Color3.fromRGB(255, 226, 192), -- QA2: the palisade's blue-grey wood vs the deck
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.

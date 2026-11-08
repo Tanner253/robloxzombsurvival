@@ -658,9 +658,9 @@ local function ActionButton(
 		}),
 		Badge = (props.badge or 0) > 0 and e("TextLabel", {
 			Size = UDim2.fromOffset(22, 22),
-			-- On the left edge below the key-chip line: clear of this button's chip, the
-			-- neighbour's chip and the label (QA: badges crowded the key chips).
-			Position = UDim2.fromOffset(-6, 20),
+			-- On this button's top-left rim: opposite its own key chip and clear of the
+			-- neighbour's (QA2: mid-height badges looked like the neighbour's).
+			Position = UDim2.fromOffset(-2, -2),
 			-- A solid red count with light digits: dark digits on salmon read as a blot.
 			BackgroundColor3 = Color3.fromHex("C8473A"),
 			FontFace = Theme.fonts.header,

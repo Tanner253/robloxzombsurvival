@@ -177,14 +177,14 @@ local function terrain(origin: Vector3, random: Random)
 		if fromHearth < 14 then
 			return Enum.Material.Ground -- the trodden plaza where the Hearth will stand
 		end
-		-- The road: compacted gravel with two dark wheel ruts along it, ragged at the verges.
+		-- The road: a compacted dirt track with a gravel crown down the middle, ragged verges.
 		local ragged = math.noise(x / 9, 0, 3.3) * 2.5 + math.noise(x / 27, 0, 8.1) * 4 + grain * 1.5
 		if math.abs(z) < roadHalf + ragged and math.abs(x) < HALF_WIDTH + 60 then
 			local sway = math.noise(x / 30, 0, 4.4) * 1.2
-			if math.abs(math.abs(z + sway) - 6) < 2 then
-				return Enum.Material.Mud
+			if math.abs(z + sway) < 2 + grain * 0.8 then
+				return Enum.Material.Ground
 			end
-			return Enum.Material.Ground
+			return Enum.Material.Mud
 		end
 		for _, centre in plots do
 			local dx, dz = math.abs(x - centre.x), math.abs(z - centre.z)
@@ -220,7 +220,7 @@ local function terrain(origin: Vector3, random: Random)
 		if edge > 0 and patches * 0.5 + edge / 90 > 0.42 then
 			return Enum.Material.Sand -- dead, dry grass toward the fog
 		elseif edge > 15 and speckle > 0.5 then
-			return Enum.Material.Rock
+			return Enum.Material.Ground -- stony patches past the edge (QA2: bare Rock read as snow)
 		elseif patches > 0.38 then
 			return Enum.Material.Ground
 		elseif zones + grain * 0.12 > 0.18 then

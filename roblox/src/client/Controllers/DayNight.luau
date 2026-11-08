@@ -36,7 +36,7 @@ type Key = {
 
 local DAY: Key = {
 	brightness = 2.6,
-	exposure = 0,
+	exposure = 0.3, -- QA2: midday read murky next to LDoE's bright, warm noon
 	ambient = Color3.fromRGB(66, 70, 80),
 	outdoor = Color3.fromRGB(118, 124, 134),
 	tint = Color3.fromRGB(244, 246, 250),
