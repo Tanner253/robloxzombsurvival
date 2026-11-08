@@ -8,6 +8,8 @@ This is the source of truth that worker sessions build against. Reference materi
 
 **IP boundary:** copy mechanics, loops, pacing and UX patterns freely. Never copy LDoE's names (locations, items, characters), art, map, story or exact UI look.
 
+**Guiding rule: when in doubt, LDoE is the standard** for depth, complexity, visual quality and mechanics. Match its depth and polish everywhere. **Where we differ, we're better.** The main difference is multiplayer: the social, co-op, raiding and guild mechanics Roblox players engage with most. Back any deviation from LDoE with a reason.
+
 ## Pitch
 
 The world is lost to **the Fog**, and the **Hollow** walk inside it. Only firelight holds them back. You build and defend your **outpost** around your **Hearth**. You scavenge locations on a world map, craft your way up tier by tier, and work toward big goals: a working vehicle, a restored radio tower, the next region.
@@ -47,7 +49,18 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 | Clans | **Guilds:** guild districts on the map, a guild hall in Haven, defense calls, guild raids, co-op Vaults and territory control points. |
 | Raids on other bases (underwhelming in LDoE: level 150 gate, quest-chain access, unbreakable top walls) | **Core feature:** real player outposts on the Fog map, with matchmaking by power band, raid tools, partial loot, shields and live defense. See "The Fog map" below. |
 
-**Camera:** a fixed angled top-down camera like LDoE's (about 55° pitch, zoomable), with a virtual joystick on the left and action, attack, sprint and auto buttons on the right. Mouse and keyboard on PC.
+**Platform: PC first, mobile fully supported.** Design and polish for mouse and keyboard first, then make sure every feature works on touch.
+
+**Camera:** a fixed angled top-down camera like LDoE's (about 55° pitch, zoomable with the mouse wheel or pinch).
+
+**PC controls:**
+- WASD to move, the mouse to aim, left click to attack or gather, E to interact, Shift to sprint
+- a 1–9 hotbar
+- Tab for inventory, B for build mode, M for the Fog map
+
+**Mobile controls:** a virtual joystick on the left, and action, attack, sprint and auto buttons on the right.
+
+**Gamepad:** later.
 
 ## The Fog map: neighbours, raids, guilds
 
@@ -122,6 +135,18 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - VIP servers
 - Cosmetics as a side line
 
+**Conversion levers seen in LDoE that we adopt** (detail in [reference/ldoe-recordings/NOTES.md](reference/ldoe-recordings/NOTES.md)):
+- Run vs Walk on Energy
+- **auto-gather** (rewarded ad with a daily cap, or paid)
+- **bonus travel loot** for a rewarded ad
+- **"fill up" missing blueprint parts** with premium currency
+- a **premium row on the questline** next to the free rewards
+- storage and part packs
+- timed offers, used sparingly
+- the premium currency balance with "+" shown on inventory screens
+
+Rewarded ads are only shown to players aged 13+ (a Roblox rule).
+
 **Guardrails:**
 - More generous pacing and fair prices compared with LDoE.
 - No paid random boxes until we're ready to publish odds and handle regional restrictions.
@@ -137,7 +162,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - Rated **Mild**: the Hollow dissolve into ash, with no blood.
 - R15 avatars and a distinct look, which qualify for the 18+ payout uplift.
 - Works without chat: pings, emotes, quick chat.
-- Mid-range phone first: streaming, LODs, low instance counts.
+- PC first, but it must hold 30+ fps on mid-range phones: streaming, LODs, low instance counts.
 
 ## MVP (first playable)
 

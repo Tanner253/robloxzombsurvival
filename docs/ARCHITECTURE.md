@@ -145,7 +145,9 @@ A feature is done only when all of these hold:
 - One feature per ticket, specified from GAME_DESIGN.md and the systems catalog.
 - **Code-only work** (Domain, Data, tests) can run in parallel, each in its own git worktree or branch.
 - **Anything that touches the Studio place** (Rojo sync, world building, playtests) runs **one worker at a time**.
-- Workers commit to their own feature branch. The orchestrator reviews, and the developer approves each merge.
+- **Repo:** https://github.com/Tanner253/robloxzombsurvival (`origin`). **Commit often**, in small logical commits, and push each one to the feature branch on origin.
+- Merging into `main` happens after the orchestrator reviews and the developer approves.
+- Workers sharing this folder never check out another branch. Parallel code work uses its own git worktree.
 
 ## 12. Build order
 

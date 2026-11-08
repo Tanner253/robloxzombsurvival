@@ -21,6 +21,12 @@
 
 | 2026-11-07 | **Architecture: data-driven, server-authoritative, Rojo + Git** | See [ARCHITECTURE.md](ARCHITECTURE.md): typed content data with a reference validator; pure domain logic tested with Lune; one service per feature; timers stored as timestamps; ProfileStore; React-lua UI kit; M0 foundation before features. |
 
+| 2026-11-07 | **PC first, mobile supported** | Design and polish for mouse and keyboard first (WASD, mouse aim, hotbar, keybind hints). Every feature must also work on touch and hold 30+ fps on mid-range phones. |
+
+| 2026-11-07 | **Art style: grounded stylized (toon-PBR with survival grit)** | The developer asked for whatever lands best with players. Top Roblox hits are stylized, and realistic survival games stay niche. The mood is tuned toward the LDoE references: weathered, muted, cold nights, warm fire. Our own designs, no copying LDoE's look. |
+
+| 2026-11-07 | **When in doubt, LDoE is the standard** | It sets the bar for depth, complexity, visual quality and mechanics. Ours differs by being better, mainly through Roblox-native multiplayer (co-op, social, raids, guilds). Our own IP throughout. |
+
 ## ZombieLab (parked) (Unity 6000.3.27f2, built-in render pipeline)
 
 `ZombieLab/` is a greybox prototype. Open it in Unity Hub and press **Play** in any scene: `World.cs` builds everything at runtime. It tests the core loop:

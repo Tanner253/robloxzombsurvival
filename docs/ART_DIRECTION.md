@@ -7,7 +7,14 @@ Every asset, animation, effect and UI element must pass this document. If someth
 **"Cozy dread": warm firelight against cold fog.**
 - Stylized **toon-PBR**: simple, slightly chunky shapes; hand-tuned colors; physically based roughness and metalness so wood, rust, cloth and glass read clearly; strong lighting and atmosphere.
 - Not hyper-real, not blocky classic Roblox, not anime. It should look like a polished stylized studio game.
+- **Grounded stylized: survival grit, not cute.** Confirmed on 2026-11-07 because stylized is what the most popular Roblox games use.
+  - Human proportions stay close to realistic (R15-friendly); props are a bit chunky.
+  - Every surface is weathered: rust, grime, chipped paint, patched repairs.
+  - Muted colors with cold blue nights, and warm firelight as the only real warmth.
+  - The mood follows the developer's Last Day on Earth references, with our own designs.
 - Mild rating: spooky, never gory.
+
+**Quality benchmark:** LDoE's level of visual polish is the minimum: rich materials, readable top-down silhouettes, atmospheric night lighting, consistent props and UI. We match that polish with our own designs, never its assets or look.
 
 ## 2. Shape language
 
@@ -79,12 +86,14 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - a soft drop shadow
 - **Font:** Builder Sans (ExtraBold for headers, Medium for body). Use no other fonts.
 - **Icons:** one style, chunky with soft shading, a 2 px dark outline and a consistent light direction (top-left).
-- **Mobile first:** tap targets at least 44 pt, thumb zones respected, HUD kept to the corners.
+- **PC first, mobile supported:**
+  - Design layouts for 16:9 desktop, with keybind hints on buttons and hover states.
+  - Every screen also needs a touch layout: tap targets at least 44 pt, thumb zones respected, HUD in the corners, and no hover-only information.
 - **Juice:** every reward pops (scale and settle), sparkles and plays a sound. Rarity colors appear only in UI and item glows.
 
-## 9. Performance budgets (mid-range phone first)
+## 9. Performance budgets (PC first, mobile must hold up)
 
-- Streaming enabled. A target of 60 fps on mid-range phones, never below 30.
+- Streaming enabled. A target of 60 fps on PC, and never below 30 on mid-range phones.
 - Prefer MeshParts with LODs. Keep instance counts low per plot and per zone. Cap dynamic lights per screen (exact numbers set in the look test).
 
 ## 10. Asset pipeline and consistency gate
