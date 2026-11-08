@@ -13,6 +13,9 @@ These are the developer's own recordings of Last Day on Earth (v1.53, Halloween 
 | 4 | Settlement hub with NPCs and a speech bubble, base edit mode (rotate arrows, floor-layer toggle), **Chopper** (luggage, fuel 4/200), **ATV blueprint** (part counts like /250, /200, **"FILL UP" with coins**, FINALIZE), Stonecutter's Table and Workbench recipes (single input → output), a trunk full of food |
 | 5 | **Survivor's Path**: chapter quest chains (Laboratory, Heavy Machinery, Radiation Protection, Expeditions, New Home, Engineering Networks, Air Support), each with item rewards, plus **"TAKE ALL (52)" and "BUY ULTRA"** (a premium reward track on the questline) |
 
+| 6 | **Night location combat:** the targeted enemy's name and HP bar at top centre (e.g. a 60/80/120 HP tier), floating damage numbers, "+XP" popups, red enemy dots on the minimap, weapon swap with ammo counts, container search with a progress bar (about 5 s), opening a gate, a readable player silhouette at night |
+| 7 | **Dungeon flow:** map travel to a bunker, then a **loading screen** with location name, time, temperature, the player's stats (HP, Energy, food, water) and **gameplay tips** (e.g. why spore weapons matter), then the industrial bunker interior, then an **elevator radial floor selector** (floors 2–6) |
+
 ## How the game works (confirmed by the footage)
 
 - **Map loop:** choose a location, see its main and possible loot, then pay Energy to Run or spend real time to Walk. Resource locations **reset when you leave**, and anything left behind is lost, which creates carry-capacity pressure.
