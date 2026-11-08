@@ -148,6 +148,7 @@ Every asset, animation, effect and UI element must pass this document. If someth
    - Never generate a lone asset.
 3. **Conversion** with fixed settings for every asset.
 4. **Conform pass:**
+   - **Automated floater gate** (a script in `tools/`, run on every GLB before upload and on every existing kit model): split the mesh into connected components and flag any island that's detached from the ground and from the rest of the model, or that is a flat card hovering over it. A model ships only with zero flags. Developer-found floaters so far: the fallen-branches leaf card and the boulder fragments.
    - Delete floating fragments and internal faces, and plant the base on the ground.
    - Normalize scale to the survivor.
    - **Normalize color and value:** tint each asset's SurfaceAppearance so rocks match rocks and wood matches wood across assets. Keep the baked realistic detail.
