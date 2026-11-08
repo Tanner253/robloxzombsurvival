@@ -11,6 +11,7 @@
 	keep counting without server messages.
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
@@ -31,6 +32,7 @@ local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
 local Glyph = require("../components/Glyph")
 local LockGlyph = require("../components/LockGlyph")
+local ModelView = require("../components/ModelView")
 local ProgressBar = require("../components/ProgressBar")
 local Sheet = require("../components/Sheet")
 
@@ -45,6 +47,27 @@ local function iconBox(itemId: string, size: number, rarityStroke: boolean?)
 			and e("UIStroke", { Color = Theme.rarity[def.rarity], Thickness = Theme.strokeThickness }),
 		Icon = e(ItemIcon, { itemId = itemId }),
 	})
+end
+
+-- The station's real model for the header picture (4.16): the build piece as the
+-- server builds it (the same model as its build card), else the placed model itself.
+local function stationModel(uid: string, stationId: string): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	local pieces = assets and assets:FindFirstChild("Pieces")
+	for pieceId, piece in Content.BuildPieces do
+		if (piece :: any).stationId == stationId then
+			local model = pieces and pieces:FindFirstChild(pieceId)
+			if model and model:IsA("Model") then
+				return model
+			end
+		end
+	end
+	for _, placed in CollectionService:GetTagged("EO_Station") do
+		if placed:IsA("Model") and placed:GetAttribute("Uid") == uid then
+			return placed
+		end
+	end
+	return nil
 end
 
 local function recipesFor(stationId: string): { any }
@@ -655,16 +678,26 @@ local function StationScreen()
 			end
 		end
 
+		local model = stationModel(uid :: string, station.stationId)
 		body = {
 			Upgrade = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 44),
+				Size = UDim2.new(1, 0, 0, 64),
 				BackgroundTransparency = 1,
 			}, {
+				-- The station itself, rendered from its model (4.16).
+				Picture = model and e("Frame", {
+					Size = UDim2.fromOffset(84, 64),
+					BackgroundColor3 = Theme.colors.panelRaised,
+				}, {
+					Corner = e("UICorner", { CornerRadius = Theme.radius }),
+					View = e(ModelView, { model = model, margin = 1.02 }),
+				}),
 				Level = e(Label, {
 					text = `Level {station.level} · {level.queueSlots} queue slots · speed x{level.speedMultiplier}`,
 					style = "caption",
 					tone = "muted",
-					size = UDim2.fromScale(0.5, 1),
+					size = UDim2.new(0.5, -96, 1, 0),
+					position = UDim2.fromOffset(96, 0),
 				}),
 				Cost = nextLevel and e(Label, {
 					text = table.concat(upgradeCost, " · "),
@@ -681,16 +714,16 @@ local function StationScreen()
 						or (nextLevel.requiredLevel or 1) > progress.level
 						or #station.queue > 0,
 					size = UDim2.fromOffset(190, 44),
-					position = UDim2.fromScale(1, 0),
-					anchorPoint = Vector2.new(1, 0),
+					position = UDim2.fromScale(1, 0.5),
+					anchorPoint = Vector2.new(1, 0.5),
 					onActivated = function()
 						Net.fire("StationUpgrade", uid)
 					end,
 				}),
 			}),
 			List = e("ScrollingFrame", {
-				Size = UDim2.new(0, 290, 1, -60),
-				Position = UDim2.fromOffset(0, 56),
+				Size = UDim2.new(0, 290, 1, -80),
+				Position = UDim2.fromOffset(0, 76),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				ScrollBarThickness = 4,
@@ -699,13 +732,13 @@ local function StationScreen()
 				CanvasSize = UDim2.new(),
 			}, list),
 			Middle = e("Frame", {
-				Size = UDim2.new(0, 360, 1, -60),
-				Position = UDim2.fromOffset(310, 56),
+				Size = UDim2.new(0, 360, 1, -80),
+				Position = UDim2.fromOffset(310, 76),
 				BackgroundTransparency = 1,
 			}, middle),
 			Right = e("Frame", {
-				Size = UDim2.new(1, -690, 1, -60),
-				Position = UDim2.new(1, 0, 0, 56),
+				Size = UDim2.new(1, -690, 1, -80),
+				Position = UDim2.new(1, 0, 0, 76),
 				AnchorPoint = Vector2.new(1, 0),
 				BackgroundTransparency = 1,
 			}, {

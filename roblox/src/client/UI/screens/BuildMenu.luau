@@ -139,8 +139,6 @@ local function Card(props: {
 			model = model,
 			size = UDim2.new(1, -12, 0, 70),
 			position = UDim2.fromOffset(6, 4),
-			yaw = 40,
-			pitch = 32,
 		}),
 		Name = e(Label, {
 			text = def.name,

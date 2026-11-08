@@ -1,8 +1,11 @@
 --!strict
 --[[
 	ItemIcon: an item's picture. In order of preference:
-	1. the ItemDef.icon image (the painted icon set),
-	2. a rendered 3D icon of the item's model (ReplicatedStorage.Assets.Icons),
+	1. the item's real in-game model (ReplicatedStorage.Assets.Icons: the very model
+	   held in the hand or worn), rendered live by ModelView (checklist 4.16), so the
+	   slot shows exactly what the player sees; held items lie on the icon diagonal,
+	2. the ItemDef.icon image (the painted icon set), for items with no model in the
+	   game (materials, parts, food), where the picture is the only form there is,
 	3. a fallback badge: a rarity-tinted disc with the item's initials (no emoji, 4.17).
 ]]
 
@@ -10,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Art = require(ReplicatedStorage.Shared.Art)
 local Theme = require("../theme")
 local ModelView = require("./ModelView")
 
@@ -36,6 +40,17 @@ local function ItemIcon(props: Props)
 	if def == nil then
 		return nil
 	end
+	local model = iconModel(props.itemId)
+	if model then
+		return React.createElement(ModelView, {
+			model = model,
+			pose = Art.held[props.itemId],
+			size = size,
+			position = position,
+			anchorPoint = anchor,
+			zIndex = props.zIndex,
+		})
+	end
 	if def.icon ~= "" then
 		return React.createElement("ImageLabel", {
 			Size = size,
@@ -45,16 +60,6 @@ local function ItemIcon(props: Props)
 			Image = def.icon,
 			ScaleType = Enum.ScaleType.Fit,
 			ZIndex = props.zIndex,
-		})
-	end
-	local model = iconModel(props.itemId)
-	if model then
-		return React.createElement(ModelView, {
-			model = model,
-			size = size,
-			position = position,
-			anchorPoint = anchor,
-			zIndex = props.zIndex,
 		})
 	end
 	local tint = Theme.rarity[def.rarity] or Theme.rarity.common
