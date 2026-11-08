@@ -193,13 +193,18 @@ end
 	The model for a build piece, pivoted per the kit convention. Attributes and
 	placement are the Building service's job.
 ]]
--- A foundation: an exact cell-sized deck slab, pivoted at its top centre. The trim
--- around a group of foundations comes from World/Seams.
+-- A foundation: a deck slab DECK_SEAM short of its cell (a thin dark seam on the grid),
+-- pivoted at its top centre. The trim around a group of foundations comes from World/Seams.
 function Models.deck(tier: number): Model
 	local deck = Art.decks[math.clamp(tier, 1, #Art.decks)]
 	local model = newModel("Foundation")
-	local slab =
-		part(model, Vector3.new(CELL, DECK_DEPTH, CELL), CFrame.new(0, -DECK_DEPTH / 2, 0), deck.base, deck.tint)
+	local slab = part(
+		model,
+		Vector3.new(CELL - Art.DECK_SEAM, DECK_DEPTH, CELL - Art.DECK_SEAM),
+		CFrame.new(0, -DECK_DEPTH / 2, 0),
+		deck.base,
+		deck.tint
+	)
 	slab.Name = "Deck"
 	slab.MaterialVariant = deck.variant
 	return finish(model)

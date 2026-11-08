@@ -21,8 +21,8 @@ Art.FLOOR_HEIGHT = 0.5 -- deck tops sit 0.45 above the ground: a step, not a sta
 Art.WALL_HEIGHT = 8.6
 
 -- Build pieces -> kit master names.
--- Foundations are not kit meshes: they are exact 12 x 12 deck slabs (Art.decks) so a
--- group of tiles reads as one floor; World/Seams adds trim and corner posts.
+-- Foundations are not kit meshes: they are cell-sized deck slabs (Art.decks) with a
+-- hairline seam between them; World/Seams adds trim and (scrap/reinforced) corner posts.
 Art.pieces = {
 	["build.wall_wood"] = { "WallTimber" }, -- solid plank wall with a top cap (art pending)
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
@@ -41,12 +41,14 @@ Art.pieces = {
 -- base material, and the tint it is multiplied by. The variants are PBR materials made
 -- with Studio's material generator and live in the repo as Rojo model files
 -- (place/materials -> MaterialService.EO_Materials); scripts can't create them at
--- runtime. Their 12-stud tile matches the cell, so the texture runs on unbroken
--- across neighbouring foundations.
+-- runtime. Each slab stops DECK_SEAM short of its cell, so a thin dark seam marks the
+-- 8-stud grid between foundations, the way LDoE's floor tiles read (rec8_base_017s).
+Art.DECK_SEAM = 0.1
 Art.decks = {
-	-- Wood: rough survivor planks with dark gaps and per-plank colour (QA2: Roblox's own
-	-- planks read as laminate with grout seams; the first generated variant as a barcode).
-	{ base = Enum.Material.WoodPlanks, variant = "LT_Timber3", tint = Color3.fromRGB(200, 176, 148) },
+	-- Wood: wide, calm honey-tan boards, low contrast, dark seams, one 8-stud tile per
+	-- cell (benchmarked against rec8_base_017s; Roblox's planks read as laminate with
+	-- grout lines, LT_Timber3 as loud cartoon streaks).
+	{ base = Enum.Material.WoodPlanks, variant = "EO_Deck_Planks", tint = Color3.fromRGB(228, 210, 160) },
 	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }

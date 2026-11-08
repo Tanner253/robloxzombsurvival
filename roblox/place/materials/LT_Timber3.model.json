@@ -6,6 +6,6 @@
 		"NormalMap": "rbxassetid://100952258995231",
 		"RoughnessMap": "rbxassetid://88957404609424",
 		"MetalnessMap": "rbxassetid://100395516376612",
-		"StudsPerTile": 16
+		"StudsPerTile": 10
 	}
 }
