@@ -15,13 +15,13 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local GatheringMath = require(ReplicatedStorage.Shared.Domain.Gathering)
 local InventoryMath = require(ReplicatedStorage.Shared.Domain.Inventory)
 local Net = require("../Net")
+local Animations = require("./Animations")
 local State = require("../State")
 
 local Interaction = {}
@@ -191,33 +191,6 @@ local function face(position: Vector3)
 	end
 end
 
-local function swingArm()
-	local character = player.Character
-	local arm = character and character:FindFirstChild("RightUpperArm")
-	local joint = arm and arm:FindFirstChild("RightShoulder")
-	-- Custom rigs may drive the shoulder with something other than a Motor6D.
-	if joint == nil or not joint:IsA("Motor6D") then
-		return
-	end
-	local shoulder = joint
-	local rest = shoulder:GetAttribute("RestC0")
-	if typeof(rest) ~= "CFrame" then
-		rest = shoulder.C0
-		shoulder:SetAttribute("RestC0", rest)
-	end
-	local raised = (rest :: CFrame) * CFrame.Angles(math.rad(110), 0, math.rad(-10))
-	local up = TweenService:Create(
-		shoulder,
-		TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ C0 = raised }
-	)
-	up.Completed:Once(function()
-		TweenService:Create(shoulder, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), { C0 = rest })
-			:Play()
-	end)
-	up:Play()
-end
-
 -- One swing at a node model (throttled to the swing time).
 local function swingAt(model: Model): boolean
 	local key = model:GetAttribute("NodeKey")
@@ -230,10 +203,15 @@ local function swingAt(model: Model): boolean
 	end
 	lastSwing = now
 	face(model:GetPivot().Position)
-	Net.fire("Gather", key)
-	-- Cosmetic only; never let it stop the swing.
-	pcall(swingArm)
-	State.fx:Fire("swing", { key = key, model = model })
+	-- Chop, mine or pick up; the request goes out on the hit frame so the impact,
+	-- chips and sound land with the blow (3.2, 3.3).
+	local def = Content.Nodes[model:GetAttribute("NodeId") :: string]
+	local action = Animations.forTool(if def and def.tool then def.tool.kind else nil)
+	local hitIn = Animations.play(player.Character, action)
+	task.delay(hitIn, function()
+		Net.fire("Gather", key)
+		State.fx:Fire("swing", { key = key, model = model })
+	end)
 	return true
 end
 

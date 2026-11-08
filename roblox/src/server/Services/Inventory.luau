@@ -24,6 +24,7 @@ local InventoryMath = require(Domain.Inventory)
 local Slots = require(Domain.Slots)
 local PlayerSchema = require(Domain.PlayerSchema)
 local Net = require("../Net")
+local Art = require(ReplicatedStorage.Shared.Art)
 local Models = require("../World/Models")
 local Analytics = require("./Analytics")
 local PlayerData = require("./PlayerData")
@@ -66,55 +67,134 @@ function Inventory.view(player: Player): Types.Inventory?
 	return { pockets = data.inventory.pockets, backpack = data.inventory.backpack }
 end
 
+-- Which carried item goes on each mount: the held pocket slot in the hand, other
+-- tools and weapons holstered on the belt (both hips) and the back (1.5).
+local function gearPlan(data: PlayerData, heldIndex: number): { [string]: string }
+	local plan: { [string]: string } = {}
+	local heldSlot = if heldIndex > 0 then data.inventory.pockets[heldIndex] else nil
+	if heldSlot and heldSlot.count > 0 then
+		plan.hand = heldSlot.itemId
+	end
+	local seen: { [string]: boolean } = {}
+	if plan.hand then
+		seen[plan.hand] = true
+	end
+	local carried: { string } = {}
+	local weapon = (data.inventory.equipment :: any).weapon
+	if weapon and weapon.count > 0 then
+		table.insert(carried, weapon.itemId)
+	end
+	for _, container in { data.inventory.pockets, data.inventory.backpack } do
+		for _, slot in container do
+			if slot.count > 0 then
+				table.insert(carried, slot.itemId)
+			end
+		end
+	end
+	for _, itemId in carried do
+		local art = Art.held[itemId]
+		local def = Items[itemId]
+		if not seen[itemId] and def and (art or def.tool) then
+			seen[itemId] = true
+			local kind = if art then art.holster else "belt"
+			if kind == "back" and plan.back == nil then
+				plan.back = itemId
+			elseif kind == "belt" and plan.belt == nil then
+				plan.belt = itemId
+			elseif kind == "belt" and plan.beltLeft == nil then
+				plan.beltLeft = itemId
+			end
+		end
+	end
+	return plan
+end
+
+-- A body part's rest rotation relative to the root, from the StarterCharacter, so a
+-- mount is laid out in the character's frame (forward, up) whatever the custom
+-- rig's part axes are, and still follows the part when it animates.
+local restRotations: { [string]: CFrame } = {}
+local function restRotation(partName: string): CFrame
+	local cached = restRotations[partName]
+	if cached then
+		return cached
+	end
+	local rig = game:GetService("StarterPlayer"):FindFirstChild("StarterCharacter")
+	local root = rig and rig:FindFirstChild("HumanoidRootPart")
+	local part = rig and rig:FindFirstChild(partName)
+	local rotation = CFrame.identity
+	if root and part and root:IsA("BasePart") and part:IsA("BasePart") then
+		rotation = root.CFrame:ToObjectSpace(part.CFrame).Rotation
+	end
+	restRotations[partName] = rotation
+	return rotation
+end
+
+-- The mount's frame on `part`: the part's live rotation with its rest rotation removed.
+local function bodyFrame(part: BasePart, at: Vector3): CFrame
+	return CFrame.new(at) * part.CFrame.Rotation * restRotation(part.Name):Inverse()
+end
+
+local function mountCFrame(character: Model, mount: string): (CFrame?, BasePart?)
+	local function partNamed(name: string): BasePart?
+		local found = character:FindFirstChild(name)
+		return if found and found:IsA("BasePart") then found else nil
+	end
+	if mount == "hand" then
+		local hand = partNamed("RightHand") or partNamed("Right Arm")
+		if hand == nil then
+			return nil, nil
+		end
+		local grip = hand:FindFirstChild("RightGripAttachment") :: Attachment?
+		local at = if grip then grip.WorldPosition else hand.Position
+		return bodyFrame(hand, at), hand
+	elseif mount == "back" then
+		local torso = partNamed("UpperTorso") or partNamed("Torso")
+		if torso == nil then
+			return nil, nil
+		end
+		local frame = bodyFrame(torso, torso.Position)
+		return frame * CFrame.new(-0.35, 0.1, 0.78), torso
+	end
+	local hips = partNamed("LowerTorso") or partNamed("Torso")
+	if hips == nil then
+		return nil, nil
+	end
+	local side = if mount == "belt" then 1 else -1
+	return bodyFrame(hips, hips.Position) * CFrame.new(0.78 * side, -0.25, 0.1), hips
+end
+
+-- Rebuilds the visible gear (in hand and holstered) when what the player carries changes.
 local function refreshHeld(player: Player)
 	local data = PlayerData.get(player)
 	local character = player.Character
-	local index = held[player] or 0
-	local slot = if data and index > 0 then data.inventory.pockets[index] else nil
-	local itemId = if slot and slot.count > 0 then slot.itemId else ""
-
-	local current = heldModels[player]
-	if current and current:GetAttribute("ItemId") == itemId and current.Parent ~= nil then
+	if data == nil or character == nil then
 		return
 	end
-	if current then
-		current:Destroy()
-		heldModels[player] = nil
-	end
-	if itemId == "" or character == nil then
+	local plan = gearPlan(data, held[player] or 0)
+	local signature = `{plan.hand or ""}|{plan.belt or ""}|{plan.beltLeft or ""}|{plan.back or ""}`
+	local folder = heldModels[player]
+	if folder and folder.Parent == character and folder:GetAttribute("Signature") == signature then
 		return
 	end
-	local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
-	if hand == nil or not hand:IsA("BasePart") then
-		return
+	if folder then
+		folder:Destroy()
 	end
-	local model = Models.held(itemId, Items[itemId])
-	if model == nil then
-		return
-	end
-	model.Name = "Held"
-	model:SetAttribute("ItemId", itemId)
-	local grip = hand:FindFirstChild("RightGripAttachment") :: Attachment?
-	local gripCFrame = (if grip then grip.CFrame else CFrame.new(0, -1, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			descendant.Anchored = false
-			descendant.CanCollide = false
-			descendant.CanQuery = false
-			descendant.Massless = true
+	local made = Instance.new("Model")
+	made.Name = "Gear"
+	made:SetAttribute("Signature", signature)
+	made:SetAttribute("HandItem", plan.hand or "")
+	for mount, itemId in plan do
+		local where, anchor = mountCFrame(character, mount)
+		local gear = if where and anchor then Models.held(itemId, Items[itemId], mount :: any) else nil
+		if gear and where and anchor then
+			gear.model.Name = mount
+			gear.model:SetAttribute("ItemId", itemId)
+			Models.mount(gear, where, anchor)
+			gear.model.Parent = made
 		end
 	end
-	model:PivotTo(hand.CFrame * gripCFrame)
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = hand
-			weld.Part1 = descendant
-			weld.Parent = descendant
-		end
-	end
-	model.Parent = character
-	heldModels[player] = model
+	made.Parent = character
+	heldModels[player] = made
 end
 
 -- Writes new pockets and backpack and syncs them.
@@ -227,13 +307,38 @@ function Inventory.heldIndex(player: Player): number
 	return held[player] or 0
 end
 
--- Holds pocket `index` in hand (Gathering holds the tool it swings with).
+-- Holds pocket `index` in hand.
 function Inventory.hold(player: Player, index: number)
 	if held[player] ~= index then
 		held[player] = index
 		Sync.mark(player, "inventory")
 		refreshHeld(player)
 	end
+end
+
+-- For an action (a swing, a pickup): holds `index` now, and puts back whatever was
+-- in hand once no action has happened for `seconds` (3.2: swap to the tool, swap back).
+local actionRestore: { [Player]: { index: number, untilClock: number } } = {}
+function Inventory.holdForAction(player: Player, index: number, seconds: number)
+	local current = held[player] or 0
+	local pending = actionRestore[player]
+	if pending == nil and current == index then
+		return
+	end
+	if pending == nil then
+		pending = { index = current, untilClock = 0 }
+		actionRestore[player] = pending
+	end
+	local entry = pending :: { index: number, untilClock: number }
+	entry.untilClock = os.clock() + seconds
+	Inventory.hold(player, index)
+	task.delay(seconds + 0.05, function()
+		local live = actionRestore[player]
+		if live == entry and os.clock() >= entry.untilClock then
+			actionRestore[player] = nil
+			Inventory.hold(player, entry.index)
+		end
+	end)
 end
 
 -- The UID of the crate the player has open, if any.
@@ -506,6 +611,7 @@ local function use(player: Player, ref: string, index: number)
 		end
 		if spendOne() then
 			Survival.consume(player, def.consume)
+			Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "eat" })
 			Analytics.economy(player, "sink", slot.itemId, 1, 0, "Consume")
 			Sync.fx(player, "consumed", { itemId = slot.itemId })
 		end

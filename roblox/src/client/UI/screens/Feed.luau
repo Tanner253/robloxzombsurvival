@@ -211,13 +211,14 @@ local function LevelUp()
 			}
 		)
 	end
-	return e("CanvasGroup", {
+	-- A plain Frame (no CanvasGroup) so the banner text stays crisp (4.1).
+	return e("Frame", {
 		Size = UDim2.fromOffset(520, 220),
 		Position = UDim2.new(0.5, 0, 0, 120),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
-		GroupTransparency = alpha:map(function(a: number)
-			return 1 - a
+		Visible = alpha:map(function(a: number)
+			return a > 0.02
 		end),
 	}, {
 		Scale = e("UIScale", {

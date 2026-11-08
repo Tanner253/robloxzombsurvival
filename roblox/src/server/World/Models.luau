@@ -585,45 +585,111 @@ end
 
 -- Held items --------------------------------------------------------------------------------------
 
---[[
-	The model a player holds for a tool, or nil for items with nothing to show.
-	Pivoted at the grip, with the head pointing along +Y.
-]]
-function Models.held(itemId: string, def: Types.ItemDef): Model?
-	local names = Art.items[itemId]
-	local kit = if names and def.tool then Models.kit(names) else nil
-	if kit then
-		local size = kit:GetExtentsSize()
-		local longest = math.max(size.X, size.Y, size.Z)
-		if longest > 0.01 then
-			kit:ScaleTo(kit:GetScale() * 2.8 / longest)
-		end
-		return kit
+-- A rotation whose lookVector is `look` and whose upVector is as close to `up` as possible.
+local function frame(look: Vector3, up: Vector3): CFrame
+	local back = -look.Unit
+	local right = up:Cross(back)
+	if right.Magnitude < 1e-4 then
+		right = Vector3.xAxis:Cross(back)
 	end
-	if def.tool == nil then
-		return nil
-	end
-	local model = newModel(itemId)
-	part(model, Vector3.new(0.28, 2.8, 0.28), CFrame.new(0, 1.2, 0), Enum.Material.Wood, BARK)
-	if def.tool.kind == "hatchet" then
-		part(model, Vector3.new(1.1, 0.75, 0.22), CFrame.new(0.45, 2.3, 0), Enum.Material.Slate, STONE)
-	else
-		part(
-			model,
-			Vector3.new(1.9, 0.38, 0.3),
-			CFrame.new(0, 2.45, 0) * CFrame.Angles(0, 0, math.rad(8)),
-			Enum.Material.Slate,
-			STONE
-		)
-	end
+	right = right.Unit
+	return CFrame.fromMatrix(Vector3.zero, right, back:Cross(right).Unit, back)
+end
+
+export type Mount = "hand" | "belt" | "beltLeft" | "back"
+
+-- How an item sits on each mount, in the mount's own frame: the handle points along
+-- `look` and the blade faces away from `up`.
+local MOUNT_FRAMES: { [string]: CFrame } = {
+	-- In the fist, head forward and a little up, blade down (LDoE's carry pose).
+	hand = frame(Vector3.new(0, 0.35, -1), Vector3.new(0, 1, 0.35)),
+	-- Hung from the belt, head down by the thigh, blade facing back.
+	belt = frame(Vector3.new(0.08, -1, 0.1), Vector3.new(0, 0, -1)),
+	beltLeft = frame(Vector3.new(-0.08, -1, 0.1), Vector3.new(0, 0, -1)),
+	-- Across the back, head over the right shoulder.
+	back = frame(Vector3.new(0.55, 1, 0), Vector3.new(0, 0, -1)),
+}
+
+export type Held = {
+	model: Model,
+	rotation: CFrame, -- applied in the mount's frame
+	gripPoint: Vector3, -- in the model's pivot space
+}
+
+local function weldable(model: Model)
 	for _, descendant in model:GetDescendants() do
 		if descendant:IsA("BasePart") then
 			descendant.Anchored = false
 			descendant.CanCollide = false
+			descendant.CanQuery = false
+			descendant.CanTouch = false
 			descendant.Massless = true
 		end
 	end
+end
+
+local function fallbackTool(itemId: string, def: Types.ItemDef): Model?
+	if def.tool == nil then
+		return nil
+	end
+	local model = newModel(itemId)
+	part(model, Vector3.new(0.28, 2.8, 0.28), CFrame.new(0, 1.4, 0), Enum.Material.Wood, BARK)
+	if def.tool.kind == "hatchet" then
+		part(model, Vector3.new(0.22, 0.75, 1.1), CFrame.new(0, 2.5, -0.45), Enum.Material.Slate, STONE)
+	else
+		part(model, Vector3.new(0.3, 0.38, 1.9), CFrame.new(0, 2.6, 0), Enum.Material.Slate, STONE)
+	end
 	return finish(model)
+end
+
+--[[
+	The model for an item carried in hand or holstered, with how to mount it, or nil
+	for items with nothing to show. Kit models are scaled to Art.held[id].length and
+	gripped per its axis/edge/grip data; fallbacks are built handle-up.
+]]
+function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
+	local art = Art.held[itemId]
+	local names = Art.items[itemId]
+	local kit = if names and art then Models.kit(names) else nil
+	local axis: Vector3, edge: Vector3, grip: number, length: number
+	local model: Model
+	if kit and art then
+		model = kit
+		model:PivotTo(CFrame.identity)
+		axis, edge, grip, length = art.axis.Unit, art.edge.Unit, art.grip, art.length
+		local _, size = model:GetBoundingBox()
+		local span = math.abs(axis.X) * size.X + math.abs(axis.Y) * size.Y + math.abs(axis.Z) * size.Z
+		if span > 0.01 then
+			model:ScaleTo(model:GetScale() * length / span)
+		end
+	else
+		local built = fallbackTool(itemId, def)
+		if built == nil then
+			return nil
+		end
+		model = built
+		axis, edge, grip, length = Vector3.yAxis, Vector3.new(0, 0, -1), 0.15, 2.8
+	end
+	weldable(model)
+	model:PivotTo(CFrame.identity)
+	local centre = model:GetBoundingBox().Position
+	local gripPoint = centre - axis * (length / 2) + axis * (grip * length)
+	local rotation = MOUNT_FRAMES[mount] * frame(axis, -edge):Inverse()
+	model.Name = itemId
+	return { model = model, rotation = rotation, gripPoint = gripPoint }
+end
+
+-- Places a held model on a mount (a world CFrame) and welds it to `anchorPart`.
+function Models.mount(held: Held, mountCFrame: CFrame, anchorPart: BasePart)
+	held.model:PivotTo(mountCFrame * held.rotation * CFrame.new(-held.gripPoint))
+	for _, descendant in held.model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = anchorPart
+			weld.Part1 = descendant
+			weld.Parent = descendant
+		end
+	end
 end
 
 return Models

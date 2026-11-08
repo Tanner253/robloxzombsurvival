@@ -59,7 +59,8 @@ function Assets.start()
 		local names = Art.items[itemId]
 		local model = if names then Models.kit(names) else nil
 		if model == nil and def.tool then
-			model = Models.held(itemId, def)
+			local built = Models.held(itemId, def, "hand")
+			model = if built then built.model else nil
 		end
 		if model then
 			model.Name = itemId

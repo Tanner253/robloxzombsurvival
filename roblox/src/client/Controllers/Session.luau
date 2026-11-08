@@ -12,7 +12,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local Players = game:GetService("Players")
 local Net = require("../Net")
+local Animations = require("./Animations")
 local Sfx = require("../Sfx")
 local State = require("../State")
 
@@ -43,6 +45,7 @@ local function onFx(kind: string, payload: any)
 		State.patch({ levelUp = { level = payload.level, rewards = payload.rewards or {}, at = os.clock() } })
 		Sfx.play("levelUp")
 	elseif kind == "consumed" then
+		Animations.play(Players.LocalPlayer.Character, "eat")
 		local def = Content.Items[payload.itemId]
 		local drink = def and def.consume and (def.consume.thirst or 0) > (def.consume.hunger or 0)
 		Sfx.play(if drink then "drink" else "eat")

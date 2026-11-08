@@ -34,7 +34,7 @@ local function card(props: { size: UDim2, position: UDim2, anchorPoint: Vector2?
 		Position = props.position,
 		AnchorPoint = props.anchorPoint,
 		BackgroundColor3 = Theme.colors.panel,
-		BackgroundTransparency = Theme.colors.panelTransparency + 0.06,
+		BackgroundTransparency = Theme.colors.panelTransparency + 0.02,
 	}, {
 		Corner = e("UICorner", { CornerRadius = Theme.radius }),
 		Stroke = e("UIStroke", {

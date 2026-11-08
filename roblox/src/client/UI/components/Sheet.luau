@@ -1,8 +1,10 @@
 --!strict
 --[[
 	Sheet: an animated Panel for full screens (inventory, stations, build menu).
-	Opening eases it in (fade, a small rise and scale); closing eases it out and
-	then hides it. Children render only while it is open or animating, so closed
+	Opening eases it in (a small rise and scale); closing eases it out and then
+	hides it. No CanvasGroup: a CanvasGroup renders its content through an
+	offscreen texture, which blurs text and icons (checklist 4.1), so motion
+	comes from position and UIScale only and the content is always crisp. Children render only while it is open or animating, so closed
 	screens cost nothing. Header shows a title, an optional subtitle and a close
 	button with its keybind.
 ]]
@@ -53,21 +55,22 @@ local function Sheet(props: Props)
 	local base = props.position or UDim2.fromScale(0.5, 0.5)
 	local headerHeight = if props.title then HEADER else 0
 
-	return React.createElement("CanvasGroup", {
+	return React.createElement("Frame", {
 		Size = props.size,
 		Position = alpha:map(function(a: number)
-			return base + UDim2.fromOffset(0, (1 - a) * rise)
+			return base + UDim2.fromOffset(0, math.round((1 - a) * rise))
 		end),
 		AnchorPoint = props.anchorPoint or Vector2.new(0.5, 0.5),
 		BackgroundTransparency = 1,
-		GroupTransparency = alpha:map(function(a: number)
-			return 1 - a
+		Visible = alpha:map(function(a: number)
+			return a > 0.02
 		end),
 		ZIndex = 10,
 	}, {
 		Scale = React.createElement("UIScale", {
 			Scale = alpha:map(function(a: number)
-				return 0.94 + 0.06 * a
+				-- Exactly 1 at rest, so nothing is resampled while the screen is open.
+				return if a > 0.995 then 1 else 0.94 + 0.06 * a
 			end),
 		}),
 		Shadow = React.createElement("Frame", {

@@ -62,6 +62,50 @@ Art.items = {
 	["item.pack_frame"] = { "Raw_Backpack", "Gen_backpack" },
 } :: { [string]: { string } }
 
+-- How each held item sits in the fist and on the body (checklist 1.5, 1.5b).
+-- `axis` is the butt-to-head direction and `edge` the blade-facing direction, both
+-- in the kit model's own space (read from front and side renders); `grip` is how
+-- far up the handle the fist holds (0 = butt end); `length` is the in-game size
+-- in studs against the 5.6-stud survivor. `holster` picks the back or the belt.
+export type HeldArt = {
+	axis: Vector3,
+	edge: Vector3,
+	grip: number,
+	length: number,
+	holster: "back" | "belt",
+}
+
+Art.held = {
+	["item.stone_hatchet"] = {
+		axis = Vector3.new(0.75, 0.65, -0.13),
+		edge = Vector3.new(0, 0, -1),
+		grip = 0.18,
+		length = 1.7,
+		holster = "belt",
+	},
+	["item.stone_pick"] = {
+		axis = Vector3.new(0.48, 0.88, -0.26),
+		edge = Vector3.new(0, 0, -1),
+		grip = 0.16,
+		length = 2.2,
+		holster = "belt",
+	},
+	["item.spiked_club"] = {
+		axis = Vector3.new(0.36, 0.69, 0.67),
+		edge = Vector3.new(1, 0, 0),
+		grip = 0.14,
+		length = 2.3,
+		holster = "back",
+	},
+	["item.scrapblade"] = {
+		axis = Vector3.new(0.35, 1, 1),
+		edge = Vector3.new(0, -1, 1),
+		grip = 0.12,
+		length = 2,
+		holster = "back",
+	},
+} :: { [string]: HeldArt }
+
 -- Sound IDs. PLACEHOLDER: every "" is still to be chosen in Studio (Phase 2);
 -- the client's Sfx skips empty IDs, so nothing plays until one is set.
 Art.sounds = {

@@ -54,6 +54,9 @@ local GRID_APRON = 4
 local SPACING = 7
 -- The walkway from the road into the plot stays clear.
 local PATH_HALF_WIDTH = 10
+-- After the last swing, the previous hand item comes back after this long.
+local SWAP_BACK_SECONDS = 2.5
+local ACTION_BY_TOOL: { [string]: string } = { hatchet = "chop", pick = "mine", hand = "pickup" }
 -- Analytics: gathered totals are sent per player at most this often.
 local ANALYTICS_SECONDS = 60
 
@@ -267,9 +270,14 @@ local function gather(player: Player, key: string)
 
 	local toolItem = ""
 	local broke = false
+	-- Swap to the tool (or empty hands for a pickup), then back after a short idle.
+	Inventory.holdForAction(player, toolIndex, SWAP_BACK_SECONDS)
+	Net.fireAllClients(
+		"Fx",
+		"act",
+		{ userId = player.UserId, action = ACTION_BY_TOOL[if node.def.tool then node.def.tool.kind else "hand"] }
+	)
 	if toolIndex > 0 then
-		-- Swinging a tool puts it in your hand (LDoE's context switch to the axe).
-		Inventory.hold(player, toolIndex)
 		local slot = (Inventory.view(player) :: Types.Inventory).pockets[toolIndex]
 		toolItem = slot.itemId
 		local worn, didBreak = Slots.wear(slot, tuning.gathering.durabilityPerHit)

@@ -43,7 +43,8 @@ local function useFitScale(): number
 		local camera = workspace.CurrentCamera
 		local viewport = if camera then camera.ViewportSize else Theme.designSize
 		local scale = math.min(viewport.X / Theme.designSize.X, viewport.Y / Theme.designSize.Y)
-		return math.clamp(scale, MIN_SCALE, MAX_SCALE)
+		-- Snap to 1/8 steps so most edges land on whole pixels (crisp text and icons, 4.1).
+		return math.clamp(math.floor(scale * 8) / 8, MIN_SCALE, MAX_SCALE)
 	end
 	local scale, setScale = React.useState(measure())
 	React.useEffect(function()

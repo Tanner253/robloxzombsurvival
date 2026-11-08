@@ -7,9 +7,9 @@
 local Theme = {}
 
 Theme.colors = {
-	-- Panels: dark charcoal at 92% opacity.
+	-- Panels: dark charcoal, near-opaque so contrast holds over a bright scene (4.1).
 	panel = Color3.fromHex("1C1F24"),
-	panelTransparency = 0.08,
+	panelTransparency = 0.03,
 	panelRaised = Color3.fromHex("262A31"),
 
 	-- Strokes: 2 px warm gray, ember for primary actions.

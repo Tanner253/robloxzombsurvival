@@ -51,6 +51,13 @@ local function step(dt: number)
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.FieldOfView = FOV
 
+	-- Studio only: a fixed camera for close-up captures (Workspace attribute CaptureCam).
+	local capture = if RunService:IsStudio() then workspace:GetAttribute("CaptureCam") else nil
+	if typeof(capture) == "CFrame" then
+		camera.CFrame = capture
+		return
+	end
+
 	local target = root.Position
 	focus = if focus then (focus :: Vector3):Lerp(target, 1 - math.exp(-FOLLOW_RATE * dt)) else target
 	local wanted = zoomTarget + (if State.ui().panel == "build" then BUILD_EXTRA else 0)
