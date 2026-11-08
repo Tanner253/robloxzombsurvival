@@ -74,7 +74,8 @@ roblox/
     shared/   -> ReplicatedStorage.Shared
       Types.luau          content and inventory types
       Data/               content tables keyed by permanent ID; init.luau bundles and freezes them
-      Domain/             pure logic: Inventory, Timers, DataValidator, PlayerSchema, Migrations
+      Domain/             pure logic: Inventory, Timers, Crafting, Loot, Grid, Energy, Survival,
+                          Death, Travel, Rng, DataValidator, PlayerSchema, Migrations
       Net/                Remotes (the one list of remotes), Check (validators), RateLimiter
       Util/               Table helpers, Lifecycle (service/controller boot)
     server/   -> ServerScriptService.Server
