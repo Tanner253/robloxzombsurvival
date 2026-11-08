@@ -270,6 +270,16 @@ The developer asked for this: a run should feel like a Tarkov lobby. Strangers m
 | On death | Your backpack drops. **Re-enter the same lobby** while it's open (costs Energy), or have a teammate carry it out. | Backpack drops and **anyone can loot it** | **Full loot:** everything you carry drops, equipped gear included, **except your secure pouch** |
 | Leaving | Any edge | 2–3 extraction points; one is closed at random each run | 2 extraction points, plus a **flare extract**: fire a flare and survive 30 s while everyone sees it |
 
+**Bodies stay until the lobby ends.**
+- Whatever a player drops on death stays in the world as a lootable body or bag, **however they died**: another player, the Hollow, or the Fog.
+- It lasts until the lobby closes, when the Fog closes in. The next lobby at that location is a fresh roll.
+- Example: player 1 kills player 2, then dies to the Hollow. Players 3 and 4 can loot both bodies.
+- Who can open a drop depends on the fog tier:
+  - **Light:** only the owner and their party.
+  - **Dense:** anyone can take the backpack.
+  - **Black:** anyone can take everything except the secure pouch.
+- A fresh death drops a faint lantern glow that's visible from a distance. Scavengers notice and come running, which creates more emergent fights over the spoils.
+
 **Social tools:**
 - **Party up** at the Trailhead before a run, or queue with friends.
 - **Truce ("show your light"):**
