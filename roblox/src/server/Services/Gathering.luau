@@ -7,7 +7,10 @@
 	the owner gathers their home nodes. Each Gather request is one swing: the
 	server checks reach, the swing cooldown (Tuning.gathering.swingSeconds), the
 	tool (Domain/Gathering.pickTool) and bag space, then yields items and XP and
-	wears the tool. Depleted nodes respawn on their own timer.
+	wears the tool. Home nodes are saved per player (PlayerData.homeNodes, keyed
+	"<nodeId>#<n>") and regrow on real-time stamps (Tuning.home.regrowHours), so a
+	restart or rejoin never refills them. The plot's layout is seeded by the player,
+	so their home grows the same way on whichever plot they get.
 
 	Node models carry attributes for the client: NodeKey, NodeId, Standing,
 	HitsLeft, Hits and OwnerUserId, and the "EO_Node" tag.
@@ -29,6 +32,7 @@ local Models = require("../World/Models")
 local Analytics = require("./Analytics")
 local Drops = require("./Drops")
 local Inventory = require("./Inventory")
+local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
@@ -39,6 +43,7 @@ Gathering.TAG = "EO_Node"
 
 type Node = {
 	key: string,
+	saveKey: string, -- "<nodeId>#<n>": the key in the owner's PlayerData.homeNodes
 	def: Types.ResourceNodeDef,
 	state: GatheringMath.Node,
 	model: Model,
@@ -66,6 +71,7 @@ local ACTION_BY_TOOL: { [string]: string } = { hatchet = "chop", pick = "mine", 
 local ANALYTICS_SECONDS = 60
 
 local nodes: { [string]: Node } = {}
+local saveNode: (player: Player, node: Node) -> ()
 local lastSwing: { [Player]: number } = {}
 local gathered: { [Player]: { [string]: number } } = {}
 local rng = Rng.new(Random.new():NextInteger(1, 2 ^ 31 - 2))
@@ -139,21 +145,24 @@ local function spotFor(plot: Plots.Plot, random: Random, taken: { Vector2 }, spa
 end
 
 local function spawnNodes(player: Player, plot: Plots.Plot)
-	local random = Random.new(plot.index * 7919)
+	local random = Random.new(player.UserId % 2147483000 + 7919)
 	local taken: { Vector2 } = {}
-	local count = 0
+	local data = PlayerData.get(player)
+	local saved = if data then data.homeNodes else {}
+	local stamp = os.time()
 	for _, entry in tuning.home.nodes do
 		local def = Content.Nodes[entry.nodeId]
 		if not Art.nodeReady(entry.nodeId) then
 			continue -- no approved model yet: the node doesn't appear (checklist §0)
 		end
-		for _ = 1, entry.count do
+		for index = 1, entry.count do
 			local spacing = if def.tool and def.tool.kind == "hatchet" then SPACING + 3 else SPACING
 			local spot = spotFor(plot, random, taken, spacing)
 			if spot then
 				table.insert(taken, spot)
-				count += 1
-				local key = `p{plot.index}n{count}`
+				-- The save key is the node's type and number; the live key adds the owner.
+				local saveKey = `{def.id}#{index}`
+				local key = `{player.UserId}:{saveKey}`
 				local model = Models.node(def, random) :: Model
 				local wx, wz = plot.origin.X + spot.X, plot.origin.Z + spot.Y
 				local y = groundAt(plot, wx, wz)
@@ -170,7 +179,8 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 				local node: Node = {
 					key = key,
 					def = def,
-					state = GatheringMath.new(def),
+					saveKey = saveKey,
+					state = GatheringMath.fromSave(saved[saveKey], def, stamp),
 					model = model,
 					position = position,
 					radius = math.max(size.X, size.Z) / 2,
@@ -190,12 +200,22 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 					remnant.Parent = plot.nodes
 					node.remnant = parts
 				end
-				setStanding(node, true)
+				setStanding(node, GatheringMath.isStanding(node.state, stamp) and node.state.hitsLeft > 0)
+				model:SetAttribute("HitsLeft", node.state.hitsLeft)
 				model.Parent = plot.nodes
 				nodes[key] = node
 			end
 		end
 	end
+end
+
+-- Records a home node's state in the owner's profile (nothing while it is whole).
+saveNode = function(player: Player, node: Node)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return
+	end
+	(data.homeNodes :: any)[node.saveKey] = GatheringMath.toSave(node.state, node.def)
 end
 
 local function clearNodes(plot: Plots.Plot)
@@ -272,11 +292,13 @@ local function gather(player: Player, key: string)
 		return
 	end
 	lastSwing[player] = now
-	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp)
+	local regrow = GatheringMath.regrowSeconds(tuning.home.regrowHours[node.def.id], rng:NextNumber())
+	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp, regrow)
 	if nextState == nil then
 		return
 	end
 	node.state = nextState
+	saveNode(player, node)
 	local given, leftover = Inventory.give(player, yields)
 	if #leftover > 0 then
 		-- Bag full: the rest lands beside the node as a bag to pick up later (LDoE).
@@ -362,6 +384,9 @@ function Gathering.start()
 				if node.state.hitsLeft <= 0 and GatheringMath.isStanding(node.state, stamp) then
 					node.state = GatheringMath.refresh(node.state, node.def, stamp)
 					setStanding(node, true)
+					if node.plot.owner then
+						saveNode(node.plot.owner, node)
+					end
 				end
 			end
 			sinceAnalytics += 1

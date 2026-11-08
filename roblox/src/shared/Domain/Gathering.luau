@@ -107,11 +107,13 @@ end
 	One hit. Returns the new node state, what it yielded and whether this hit
 	depleted it, or nil, {}, false and "depleted" when it is not standing.
 ]]
+-- `respawnSeconds` overrides the def's respawn (home nodes regrow on Tuning.home.regrowHours).
 function Gathering.hit(
 	node: Node,
 	def: Types.ResourceNodeDef,
 	rng: Rng.Source,
-	now: number
+	now: number,
+	respawnSeconds: number?
 ): (Node?, { Types.ItemStack }, boolean, Reason?)
 	local current = Gathering.refresh(node, def, now)
 	if current.hitsLeft <= 0 then
@@ -127,11 +129,43 @@ function Gathering.hit(
 	local depleted = hitsLeft <= 0
 	return {
 		hitsLeft = hitsLeft,
-		respawnAt = if depleted then now + def.respawnSeconds else 0,
+		respawnAt = if depleted then now + (respawnSeconds or def.respawnSeconds) else 0,
 	},
 		yields,
 		depleted,
 		nil
+end
+
+-- A saved node (home nodes persist per player): nil when the node is whole, so only
+-- hit or depleted nodes take space. Stamps are real Unix seconds (os.time).
+export type Saved = { hitsLeft: number, respawnAt: number }
+
+function Gathering.toSave(node: Node, def: Types.ResourceNodeDef): Saved?
+	if node.hitsLeft >= def.hits then
+		return nil
+	end
+	return { hitsLeft = node.hitsLeft, respawnAt = node.respawnAt }
+end
+
+-- The node a save describes at `now`: whole when nothing was saved or its regrowth has
+-- passed, else exactly as saved (a restart or rejoin never refills it).
+function Gathering.fromSave(saved: Saved?, def: Types.ResourceNodeDef, now: number): Node
+	if type(saved) ~= "table" or type(saved.hitsLeft) ~= "number" or type(saved.respawnAt) ~= "number" then
+		return Gathering.new(def)
+	end
+	return Gathering.refresh(
+		{ hitsLeft = math.clamp(saved.hitsLeft, 0, def.hits), respawnAt = saved.respawnAt },
+		def,
+		now
+	)
+end
+
+-- A regrow time in seconds within a span of real hours.
+function Gathering.regrowSeconds(span: { min: number, max: number }?, roll: number): number?
+	if span == nil then
+		return nil
+	end
+	return math.floor((span.min + (span.max - span.min) * math.clamp(roll, 0, 1)) * 3600)
 end
 
 return Gathering

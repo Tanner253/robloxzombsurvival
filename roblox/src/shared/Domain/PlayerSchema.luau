@@ -20,7 +20,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 4
+PlayerSchema.VERSION = 5
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -90,6 +90,9 @@ export type PlayerData = {
 	-- The crafting catalogue (5.9): starred recipes, and recipes already looked at
 	-- (anything unlocked and not seen wears a NEW badge).
 	recipeMarks: { favourites: { [string]: boolean }, seen: { [string]: boolean } },
+	-- Home resource nodes that are hit or depleted, by node key ("<nodeId>#<n>"): they
+	-- regrow on real-time stamps, so leaving and rejoining never refills the plot.
+	homeNodes: { [string]: { hitsLeft: number, respawnAt: number } },
 	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 	settings: Settings,
@@ -172,6 +175,7 @@ function PlayerSchema.template(): PlayerData
 		quests = { active = {}, completed = {} },
 		unlocks = { recipes = {}, blueprints = {} },
 		recipeMarks = { favourites = {}, seen = {} },
+		homeNodes = {},
 		purchases = { receiptIds = {} },
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
@@ -217,6 +221,12 @@ PlayerSchema.migrations = {
 		data.inboxSeq = seq
 		data.lockedStash = nil
 		data.recipeMarks = { favourites = {}, seen = {} }
+	end,
+	-- v5: home resource nodes are saved (depleted ones stay depleted across sessions).
+	[4] = function(data)
+		if type(data.homeNodes) ~= "table" then
+			data.homeNodes = {}
+		end
 	end,
 } :: Migrations.Steps
 

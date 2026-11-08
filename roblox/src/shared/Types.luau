@@ -431,6 +431,7 @@ export type TuningDef = {
 	},
 	home: {
 		nodes: { LocationNode }, -- what grows on a fresh home plot; feeds the first quests
+		regrowHours: { [string]: { min: number, max: number } }, -- real hours, per node type
 	},
 	plots: {
 		count: number, -- plots per server (one per player)

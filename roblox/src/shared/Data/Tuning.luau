@@ -10,7 +10,7 @@ local Types = require("../Types")
 local Tuning: Types.TuningDef = {
 	-- Studio playtests only: timers, yields, regen and XP sped up by this much
 	-- (Shared/DevSpeed). Live servers always run at 1.
-	devSpeed = 10,
+	devSpeed = 1, -- timers only, opt-in: Workspace attribute "DevSpeed" in Studio (Shared/DevSpeed)
 	energy = {
 		-- LDoE: cap 200 at 1 per 5 min. Same regen here, half the cap, and runs cost
 		-- about two thirds as much, so a run pays back in two thirds of the time.
@@ -89,15 +89,32 @@ local Tuning: Types.TuningDef = {
 		durabilityScalesChance = true,
 	},
 	home = {
-		-- Enough for quests 1-5 (about 60 timber and 20 stone) with respawns.
+		-- Home is for starter materials (LDoE): enough for the first 30-60 minute hook
+		-- (hatchet and pick, a workbench, a campfire, first floors and walls), then it
+		-- runs dry and the bulk comes from Fog Runs. Node state is saved per player and
+		-- regrows on real-time stamps, so a server restart never refills it.
 		nodes = {
-			{ nodeId = "node.fallen_branches", count = 6 },
+			{ nodeId = "node.fallen_branches", count = 8 },
 			{ nodeId = "node.loose_stones", count = 6 },
-			{ nodeId = "node.pine_tree", count = 10 },
-			{ nodeId = "node.boulder", count = 6 },
-			{ nodeId = "node.reed_patch", count = 4 },
-			{ nodeId = "node.ember_bush", count = 2 },
+			{ nodeId = "node.pine_tree", count = 12 },
+			{ nodeId = "node.boulder", count = 2 },
+			{ nodeId = "node.reed_patch", count = 5 },
+			{ nodeId = "node.ember_bush", count = 3 },
 			{ nodeId = "node.spring_pool", count = 1 },
+		},
+		-- How long a depleted home node takes to regrow, in real hours (a random time
+		-- in the span each time).
+		regrowHours = {
+			["node.fallen_branches"] = { min = 1, max = 2 },
+			["node.loose_stones"] = { min = 1, max = 2 },
+			["node.pine_tree"] = { min = 8, max = 12 },
+			["node.fatwood_stump"] = { min = 8, max = 12 },
+			["node.boulder"] = { min = 12, max = 24 },
+			["node.scrap_heap"] = { min = 12, max = 24 },
+			["node.reed_patch"] = { min = 4, max = 6 },
+			["node.ember_bush"] = { min = 4, max = 6 },
+			["node.ashroot_mound"] = { min = 4, max = 6 },
+			["node.spring_pool"] = { min = 1, max = 2 },
 		},
 	},
 	plots = {
