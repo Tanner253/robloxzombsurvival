@@ -377,7 +377,7 @@ end
 
 local function storageInReach(player: Player, uid: string): boolean
 	local position = Plots.piecePosition(player, uid)
-	return position ~= nil and Plots.inReach(player, position, tuning.interaction.reachStuds + 2)
+	return position ~= nil and Plots.withinArm(player, position, Plots.pieceRadius(player, uid))
 end
 
 -- The current container for a ref, or nil and a reason.

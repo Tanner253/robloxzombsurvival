@@ -127,8 +127,11 @@ local Tuning: Types.TuningDef = {
 		marginStuds = 28,
 	},
 	interaction = {
-		reachStuds = 10,
-		gatherReachStuds = 9,
+		-- Arm's reach (checklist 3.11): how far from an object's edge (its footprint
+		-- radius) the survivor can use it, for nodes, pickups, crates and stations.
+		reachStuds = 5,
+		-- The server allows this much more for movement and latency.
+		toleranceStuds = 1.5,
 	},
 	drops = {
 		lifetimeSeconds = 600, -- a bag on the ground lasts 10 minutes

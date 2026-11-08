@@ -114,7 +114,9 @@ function Input.start()
 			if ui.panel == "build" then
 				Building.setPainting(true)
 			elseif ui.panel == "none" then
-				if ui.target and ui.target.kind == "node" then
+				if Interaction.clickFar() then
+					return -- walking there to use it (3.11)
+				elseif ui.target and ui.target.kind == "node" then
 					Actions.setGathering(true)
 				else
 					Interaction.aimAtMouse()

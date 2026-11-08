@@ -91,5 +91,9 @@
  "EO_PineConifer": {
   "glb": "pine_medium_p2.glb",
   "assetId": 130639495990824
+ },
+ "EO_LooseStonesClean": {
+  "glb": "loose_stones.glb",
+  "assetId": 100348018403125
  }
 }

@@ -271,7 +271,7 @@ local function gather(player: Player, key: string)
 	if now - (lastSwing[player] or 0) < tuning.gathering.swingSeconds * COOLDOWN_TOLERANCE then
 		return
 	end
-	if not Plots.inReach(player, node.position, tuning.interaction.gatherReachStuds + node.radius) then
+	if not Plots.withinArm(player, node.position, node.radius) then
 		return
 	end
 	local stamp = os.time()

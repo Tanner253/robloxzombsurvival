@@ -82,7 +82,7 @@ Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_S
 Art.nodes = {
 	["node.pine_tree"] = { names = { "EO_PineConifer", "EO_PineTree" }, height = 22 },
 	["node.boulder"] = { names = { "EO_RockCluster", "EO_Boulder" }, height = 3.1 },
-	["node.loose_stones"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.8 },
+	["node.loose_stones"] = { names = { "EO_LooseStonesClean", "EO_LooseStones" }, height = 1.1 },
 	["node.fallen_branches"] = { names = { "EO_BareBranches", "EO_FallenBranches" }, height = 0.94 },
 	["node.reed_patch"] = { names = { "EO_Reeds" }, height = 4.2 },
 	["node.ember_bush"] = { names = { "EO_EmberBush" }, height = 4 },
@@ -137,6 +137,8 @@ Art.approved = {
 	EO_DeadTree = true,
 	-- Workbench v2 (Tripo P2, the hard-surface A/B winner over Hunyuan3D v3; capture 115).
 	EO_WorkbenchP2 = true,
+	-- Loose fieldstones (floaters removed by the gate): the home stone source (capture 121).
+	EO_LooseStonesClean = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -166,6 +168,7 @@ Art.uploaded = {
 	EO_Signpost = { id = 129379454140930, yaw = 0, axis = "Y", size = 7 },
 	EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
 	EO_PineConifer = { id = 130639495990824, yaw = 0, axis = "Y", size = 22 },
+	EO_LooseStonesClean = { id = 100348018403125, yaw = 0, axis = "X", size = 2.4 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean

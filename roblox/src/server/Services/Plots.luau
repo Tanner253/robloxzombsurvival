@@ -408,6 +408,24 @@ function Plots.inReach(player: Player, position: Vector3, reach: number): boolea
 	return Vector2.new(offset.X, offset.Z).Magnitude <= reach and math.abs(offset.Y) <= reach + 6
 end
 
+-- Whether the player stands within arm's reach of an object's edge (checklist 3.11):
+-- `radius` is the object's footprint radius; the server adds a little tolerance.
+function Plots.withinArm(player: Player, position: Vector3, radius: number): boolean
+	local reach = Content.Tuning.interaction
+	return Plots.inReach(player, position, radius + reach.reachStuds + reach.toleranceStuds)
+end
+
+-- The footprint radius of a placed piece (half its widest side), or 1 when it has no model.
+function Plots.pieceRadius(player: Player, uid: string): number
+	local plot = Plots.of(player)
+	local model = plot and plot.pieceModels[uid]
+	if model == nil then
+		return 1
+	end
+	local size = model:GetExtentsSize()
+	return math.max(size.X, size.Z) / 2
+end
+
 function Plots.init()
 	store = Stores.open(STORE_NAME, template())
 end

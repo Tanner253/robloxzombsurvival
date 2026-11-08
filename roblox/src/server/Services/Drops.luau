@@ -146,8 +146,10 @@ local function pickup(player: Player, id: string)
 		return
 	end
 	local offset = root.Position - drop.model:GetPivot().Position
-	if Vector3.new(offset.X, 0, offset.Z).Magnitude > tuning.interaction.reachStuds + 2 then
-		return
+	local size = drop.model:GetExtentsSize()
+	local reach = tuning.interaction.reachStuds + tuning.interaction.toleranceStuds + math.max(size.X, size.Z) / 2
+	if Vector3.new(offset.X, 0, offset.Z).Magnitude > reach then
+		return -- out of arm's reach (3.11)
 	end
 	local given, leftover = Inventory.giveSlots(player, drop.items)
 	if #given == 0 then

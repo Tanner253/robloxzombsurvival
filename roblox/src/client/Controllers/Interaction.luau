@@ -2,16 +2,19 @@
 --[[
 	Interaction: what the player is about to use, and using it.
 
-	Ten times a second it picks a target: the node, station or crate under the
-	mouse when it is within reach, otherwise the nearest one in reach. The HUD's
-	prompt draws State.ui().target. `activate` (E, or the touch action button)
-	opens a station or crate, or swings at a node; holding the gather button
-	(LMB, or holding the touch button) keeps swinging every
-	Tuning.gathering.swingSeconds. Swings face the target and play a local arm
-	swing; the server decides what each swing yields.
+	Ten times a second it picks a target: the node, station, crate or pickup under
+	the mouse when it is within arm's reach (Tuning.interaction.reachStuds from its
+	edge, checklist 3.11), otherwise the nearest one in reach. The HUD's prompt and
+	highlight draw State.ui().target, so they only show in reach. `activate` (E, or the
+	touch action button) opens a station or crate, picks up, or swings at a node; on
+	something farther away it walks there first (pathfinding) and then uses it.
+	Holding the gather button (LMB, or holding the touch button) keeps swinging every
+	Tuning.gathering.swingSeconds; auto-gather stops at arm's reach before it swings.
+	The server checks the same reach and rejects anything out of range.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -104,12 +107,10 @@ local function describe(model: Model, kind: string): State.Target?
 	}
 end
 
-local function reachFor(kind: string, model: Model): number
-	if kind == "node" then
-		local size = model:GetExtentsSize()
-		return tuning.interaction.gatherReachStuds + math.max(size.X, size.Z) / 2
-	end
-	return tuning.interaction.reachStuds
+-- Arm's reach to a model's centre: the reach from its edge plus its footprint radius.
+local function reachFor(_kind: string, model: Model): number
+	local size = model:GetExtentsSize()
+	return tuning.interaction.reachStuds + math.max(size.X, size.Z) / 2
 end
 
 local function taggedAncestor(instance: Instance?): (Model?, string?)
@@ -380,10 +381,153 @@ local function autoStep()
 	end
 end
 
--- Uses the current target: opens stations and crates, swings at nodes.
+-- Approach-and-use (3.11): walk to something out of reach along a path, then use it.
+type Approach = { model: Model, kind: string, waypoints: { Vector3 }, step: number, startedAt: number }
+local approach: Approach? = nil
+local APPROACH_GIVE_UP = 12 -- seconds
+local APPROACH_RADIUS = 80 -- how far E or a click will walk to something
+local MOVE_KEYS = { Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D }
+
+local function humanoidOf(): Humanoid?
+	local character = player.Character
+	return character and character:FindFirstChildOfClass("Humanoid")
+end
+
+function Interaction.cancelApproach()
+	if approach then
+		approach = nil
+		local humanoid, here = humanoidOf(), root()
+		if humanoid and here then
+			humanoid:MoveTo(here.Position)
+		end
+	end
+end
+
+-- Uses a described target now (it is in reach).
+local function use(target: State.Target)
+	if target.kind == "station" then
+		State.toggle("station", target.key)
+	elseif target.kind == "drop" then
+		Net.fire("PickupDrop", target.key)
+	elseif target.kind == "storage" then
+		Net.fire("StorageOpen", target.key)
+		if State.ui().panel ~= "inventory" then
+			State.toggle("inventory")
+		end
+	else
+		swingAt(target.model)
+	end
+end
+
+-- Starts walking to `model` (a stand point at its edge), along a path when one exists.
+local function startApproach(model: Model, kind: string)
+	local here = root()
+	if here == nil then
+		return
+	end
+	local at = model:GetPivot().Position
+	local size = model:GetExtentsSize()
+	local away = Vector3.new(here.Position.X - at.X, 0, here.Position.Z - at.Z)
+	local stand = math.max(size.X, size.Z) / 2 + tuning.interaction.reachStuds * 0.5
+	local goal = at + (if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis) * stand
+	local waypoints = { goal }
+	local path = PathfindingService:CreatePath({ AgentRadius = 1.5, AgentHeight = 5.5, AgentCanJump = false })
+	local ok = pcall(function()
+		path:ComputeAsync(here.Position, goal)
+	end)
+	if ok and path.Status == Enum.PathStatus.Success then
+		waypoints = {}
+		for _, point in path:GetWaypoints() do
+			table.insert(waypoints, point.Position)
+		end
+	end
+	approach = { model = model, kind = kind, waypoints = waypoints, step = 1, startedAt = os.clock() }
+end
+
+local function approachStep()
+	local current = approach
+	local here = root()
+	local humanoid = humanoidOf()
+	if current == nil or here == nil or humanoid == nil then
+		return
+	end
+	for _, key in MOVE_KEYS do
+		if UserInputService:IsKeyDown(key) then
+			Interaction.cancelApproach() -- the player took over
+			return
+		end
+	end
+	if not current.model:IsDescendantOf(workspace) or os.clock() - current.startedAt > APPROACH_GIVE_UP then
+		Interaction.cancelApproach()
+		return
+	end
+	if flat(current.model:GetPivot().Position, here.Position) <= reachFor(current.kind, current.model) then
+		approach = nil
+		humanoid:MoveTo(here.Position)
+		face(current.model:GetPivot().Position)
+		local described = describe(current.model, current.kind)
+		if described then
+			use(described)
+		end
+		return
+	end
+	local point = current.waypoints[current.step]
+	if point and flat(point, here.Position) < 2 and current.step < #current.waypoints then
+		current.step += 1
+		point = current.waypoints[current.step]
+	end
+	if point then
+		humanoid:MoveTo(point)
+	end
+end
+
+-- Something usable under the mouse (any distance), or the nearest within APPROACH_RADIUS.
+local function farTarget(): (Model?, string?)
+	local hovered, kind = underMouse()
+	local here = root()
+	if hovered and kind and here and describe(hovered, kind) then
+		return hovered, kind
+	end
+	if here == nil then
+		return nil, nil
+	end
+	local best, bestKind, bestDistance = nil, nil, APPROACH_RADIUS
+	for tagKind, tag in TAGS do
+		for _, instance in CollectionService:GetTagged(tag) do
+			if instance:IsA("Model") and instance:IsDescendantOf(workspace) and describe(instance, tagKind) then
+				local distance = flat(instance:GetPivot().Position, here.Position)
+				if distance < bestDistance then
+					best, bestKind, bestDistance = instance, tagKind, distance
+				end
+			end
+		end
+	end
+	return best, bestKind
+end
+
+-- A click on something out of reach walks there and uses it (3.11). True when it did.
+function Interaction.clickFar(): boolean
+	local hovered, kind = underMouse()
+	if hovered == nil or kind == nil or describe(hovered, kind) == nil then
+		return false
+	end
+	local here = root()
+	if here and flat(hovered:GetPivot().Position, here.Position) <= reachFor(kind, hovered) then
+		return false -- in reach: the normal click handles it
+	end
+	startApproach(hovered, kind)
+	return true
+end
+
+-- Uses the current target: opens stations and crates, swings at nodes. With nothing
+-- in reach, walks to what's under the mouse (or the nearest thing) and uses it there.
 function Interaction.activate()
 	local target = State.ui().target
 	if target == nil then
+		local model, kind = farTarget()
+		if model and kind then
+			startApproach(model, kind)
+		end
 		return
 	end
 	if target.kind == "station" then
@@ -436,7 +580,9 @@ function Interaction.start()
 			scan()
 		end
 		local ui = State.ui()
-		if (gathering or ui.auto) and ui.panel == "none" then
+		if approach then
+			approachStep()
+		elseif (gathering or ui.auto) and ui.panel == "none" then
 			autoStep()
 		end
 	end)

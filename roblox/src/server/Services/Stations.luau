@@ -143,7 +143,7 @@ local function open(player: Player, uid: string): Context?
 		return nil
 	end
 	local position = Plots.piecePosition(player, uid)
-	if position == nil or not Plots.inReach(player, position, tuning.interaction.reachStuds + 2) then
+	if position == nil or not Plots.withinArm(player, position, Plots.pieceRadius(player, uid)) then
 		Sync.notice(player, "Move closer to the station")
 		return nil
 	end

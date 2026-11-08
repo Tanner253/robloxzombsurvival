@@ -50,8 +50,8 @@ local ref = Check.oneOf(Remotes.CONTAINER_REFS)
 local slot = Check.integer(1, Remotes.MAX_SLOT)
 -- Placed piece UIDs come from Domain/Grid: decimal strings.
 local uid = Check.pattern("^%d+$", 10)
--- World node keys from the Gathering service, e.g. "p3n12".
-local nodeKey = Check.pattern("^p%d+n%d+$", 16)
+-- World node keys from the Gathering service, e.g. "12345:node.pine_tree#3".
+local nodeKey = Check.pattern("^%d+:node%.[%w_]+#%d+$", 64) -- "<ownerUserId>:<nodeId>#<n>" (Services/Gathering)
 -- Ground drops from the Drops service, e.g. "d42".
 local dropId = Check.pattern("^d%d+$", 12)
 -- Item inbox rows from Domain/Inbox, e.g. "i17".

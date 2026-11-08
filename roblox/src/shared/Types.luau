@@ -441,8 +441,8 @@ export type TuningDef = {
 		marginStuds: number, -- the gathering ring around the build grid
 	},
 	interaction: {
-		reachStuds: number, -- stations, crates and prompts
-		gatherReachStuds: number, -- resource nodes
+		reachStuds: number, -- arm's reach from an object's edge (nodes, pickups, crates, stations)
+		toleranceStuds: number, -- extra the server allows for movement and latency
 	},
 	drops: {
 		lifetimeSeconds: number, -- how long a bag on the ground lasts
