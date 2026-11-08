@@ -18,10 +18,12 @@
 	- A kill pays the Hollow's XP to the killer and fires `killed` (Containers drops
 	  its loot pile there).
 
-	Movement is straight-line with ground snapping in Phase A; Phase B adds
-	pathing around the handcrafted maps.
+	Movement: straight at the goal while the way is clear; when a wall or a wreck is
+	in the way, a path round it (PathfindingService, computed off the tick and
+	refreshed as the goal moves). Positions snap to the ground or floor below.
 ]]
 
+local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
@@ -74,6 +76,10 @@ type Record = {
 	burn: FlareMath.Burn?,
 	burnOwner: Player?,
 	diedAt: number?,
+	path: { Vector3 }?, -- waypoints round an obstacle, nearest first
+	pathGoal: Plane.Point?,
+	pathAt: number,
+	pathing: boolean, -- a path is being computed
 }
 
 type Cloud = { position: Vector3, radius: number, dps: number, endsAt: number }
@@ -180,6 +186,10 @@ local function spawn(world: World, enemyId: string, amount: number)
 			burn = nil,
 			burnOwner = nil,
 			diedAt = nil,
+			path = nil,
+			pathGoal = nil,
+			pathAt = 0,
+			pathing = false,
 		}
 	end
 end
@@ -422,7 +432,78 @@ local function playerById(world: World, id: string?): Player?
 	return nil
 end
 
-local function stepHollow(world: World, record: Record, dt: number, exclude: { Instance })
+-- Pathing ------------------------------------------------------------------------------------------
+
+local PATH_REFRESH = 2 -- seconds before a path is recomputed
+local PATH_GOAL_MOVED = 6 -- studs the goal may move before the path is recomputed
+local PATH_BUDGET = 4 -- path computations started per world per tick
+local WAYPOINT_REACHED = 2
+local agent = { AgentRadius = 1.6, AgentHeight = 5.5, AgentCanJump = false, WaypointSpacing = 5 }
+
+-- Whether a straight walk to `goal` is clear at chest height (walls, wrecks, fences).
+local function clearWay(from: Vector3, goal: Vector3, exclude: { Instance }): boolean
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = exclude
+	params.RespectCanCollide = true
+	local origin = from + Vector3.new(0, 2.5, 0)
+	local target = Vector3.new(goal.X, origin.Y, goal.Z)
+	local offset = target - origin
+	if offset.Magnitude < 0.5 then
+		return true
+	end
+	return workspace:Raycast(origin, offset, params) == nil
+end
+
+local function requestPath(record: Record, goal: Vector3)
+	record.pathing = true
+	record.pathAt = now()
+	record.pathGoal = plane(goal)
+	task.spawn(function()
+		local path = PathfindingService:CreatePath(agent)
+		local ok = pcall(function()
+			path:ComputeAsync(record.position, goal)
+		end)
+		record.pathing = false
+		if not ok or path.Status ~= Enum.PathStatus.Success or record.diedAt then
+			record.path = nil
+			return
+		end
+		local points: { Vector3 } = {}
+		for _, waypoint in path:GetWaypoints() do
+			table.insert(points, waypoint.Position)
+		end
+		table.remove(points, 1) -- where it stands
+		record.path = points
+	end)
+end
+
+-- The point to walk toward this tick: the goal itself, or the next waypoint round an obstacle.
+local function steer(record: Record, goal: Plane.Point, budget: { n: number }, exclude: { Instance }): Plane.Point
+	local goal3 = Vector3.new(goal.x, record.position.Y, goal.z)
+	if clearWay(record.position, goal3, exclude) then
+		record.path = nil
+		return goal
+	end
+	local stale = record.pathGoal == nil
+		or Plane.distance(record.pathGoal :: Plane.Point, goal) > PATH_GOAL_MOVED
+		or now() - record.pathAt > PATH_REFRESH
+	if stale and not record.pathing and budget.n > 0 then
+		budget.n -= 1
+		requestPath(record, goal3)
+	end
+	local path = record.path
+	while path and #path > 0 do
+		local nextPoint = path[1]
+		if Plane.distance(plane(record.position), plane(nextPoint)) > WAYPOINT_REACHED then
+			return plane(nextPoint)
+		end
+		table.remove(path, 1)
+	end
+	return goal -- no path yet: lean on the obstacle until one arrives
+end
+
+local function stepHollow(world: World, record: Record, dt: number, exclude: { Instance }, budget: { n: number })
 	local stamp = now()
 	local here = plane(record.position)
 	if record.burn then
@@ -458,7 +539,8 @@ local function stepHollow(world: World, record: Record, dt: number, exclude: { I
 		cue(world, output.cue, record.id)
 	end
 	if output.action == "move" and output.moveTo then
-		local nextPoint = Plane.moveToward(here, output.moveTo, output.speed * dt)
+		local towards = steer(record, output.moveTo, budget, exclude)
+		local nextPoint = Plane.moveToward(here, towards, output.speed * dt)
 		record.yaw = Plane.yawTo(here, nextPoint)
 		record.position = Map.ground(nextPoint.x, nextPoint.z, record.position.Y, exclude)
 	elseif output.action == "attack" then
@@ -498,13 +580,14 @@ local function tickWorld(world: World, dt: number)
 	world.noises = Noise.prune(world.noises, stamp, tuning.noise)
 	world.flares = FlareMath.prune(world.flares, stamp)
 	local exclude = characters(world)
+	local budget = { n = PATH_BUDGET }
 	for id, record in world.hollows do
 		if record.diedAt then
 			if stamp - record.diedAt > DEAD_LINGER_SECONDS then
 				world.hollows[id] = nil
 			end
 		else
-			stepHollow(world, record, dt, exclude)
+			stepHollow(world, record, dt, exclude, budget)
 		end
 	end
 	tickClouds(world, dt)

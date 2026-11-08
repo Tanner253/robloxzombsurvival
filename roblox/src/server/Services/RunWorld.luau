@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Features = require(ReplicatedStorage.Shared.Features)
+local Map = require("../FogRuns/Map")
 local Maps = require("../FogRuns/Maps")
 local Teleport = require("../FogRuns/Teleport")
 
@@ -77,7 +78,29 @@ local function startRunServer()
 	end
 	local location = hostedLocation :: string
 	print(`RunWorld: run server for {location}`)
-	Maps.build(location, true)
+	local map = Maps.build(location, true)
+	-- Characters (and respawns) appear at the arrival point, never in the void before
+	-- Lobby seats them.
+	local first = map and Map.markers(map, "spawn")[1]
+	if first then
+		local spawn = Instance.new("SpawnLocation")
+		spawn.Name = "RunSpawn"
+		spawn.Anchored = true
+		spawn.CanCollide = false
+		spawn.CanQuery = false
+		spawn.Transparency = 1
+		spawn.Neutral = true
+		spawn.Duration = 0
+		spawn.Size = Vector3.new(6, 1, 6)
+		spawn.CFrame = first.CFrame
+		spawn.Parent = map
+		for _, player in Players:GetPlayers() do
+			player.RespawnLocation = spawn
+		end
+		Players.PlayerAdded:Connect(function(player: Player)
+			player.RespawnLocation = spawn
+		end)
+	end
 end
 
 function RunWorld.start()

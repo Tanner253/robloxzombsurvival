@@ -130,6 +130,7 @@ local function farmhouse(ctx: Builder.Ctx)
 		roof = "gable",
 		roofPaint = "shingle",
 		porch = "S",
+		chimney = true,
 		openings = {
 			{ side = "S", at = 0, kind = "door" },
 			{ side = "S", at = -7, kind = "window" },
@@ -246,19 +247,19 @@ local function ruinedCottage(ctx: Builder.Ctx)
 		width = 16,
 		depth = 12,
 		height = 9,
-		wall = "plaster",
+		wall = "brickDark",
 		trim = "trim",
 		floor = "floorPlanks",
 		roof = "none",
-		ruin = 0.65,
+		ruin = 0.55,
 		openings = {
 			{ side = "S", at = -2, kind = "door" },
 			{ side = "E", at = 0, kind = "window" },
 			{ side = "W", at = 1, kind = "window" },
 		},
 	})
-	Builder.rubble(ctx, RUIN.X + 7, RUIN.Y + 7, 4, "plaster")
-	Builder.rubble(ctx, RUIN.X - 5, RUIN.Y - 2, 3, "plaster")
+	Builder.rubble(ctx, RUIN.X + 7, RUIN.Y + 7, 4, "brickDark")
+	Builder.rubble(ctx, RUIN.X - 5, RUIN.Y - 2, 3, "brickDark")
 	local x, z, lift = Builder.inside(ctx, cottage, 3, -2)
 	Builder.container(ctx, "crate", x, z, 20, nil, lift)
 	Builder.kit(ctx, DEAD, RUIN.X - 12, RUIN.Y + 10, 40, { height = 16 })

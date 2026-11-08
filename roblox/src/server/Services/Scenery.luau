@@ -27,6 +27,7 @@ local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Models = require("../World/Models")
+local Teleport = require("../FogRuns/Teleport")
 
 local Scenery = {}
 
@@ -600,6 +601,10 @@ local function hearth(world: Instance, origin: Vector3)
 end
 
 function Scenery.start()
+	-- A Fog Run lobby server (same place, reserved) builds its location instead (RunWorld).
+	if Teleport.role() == "run" then
+		return
+	end
 	lighting()
 	local world = worldFolder()
 	local origin = originOf(world)

@@ -48,6 +48,7 @@ local Inventory = require("./Inventory")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Progression = require("./Progression")
+local RunWorld = require("./RunWorld")
 local Sync = require("./Sync")
 
 local Lobby = {}
@@ -62,6 +63,7 @@ local TICK_SECONDS = 0.5
 local MATCH_SECONDS = 1
 local PUBLISH_SECONDS = 5
 local STATE_SECONDS = 1
+local DEATH_LINGER_SECONDS = 4 -- the death screen shows on the run server before the trip home
 
 export type RunStats = {
 	enteredAt: number,
@@ -89,7 +91,7 @@ export type Run = {
 }
 
 type Party = { id: string, leader: Player, members: { Player } }
-type Queued = { entry: Matchmaking.Entry, players: { Player } }
+type Queued = { entry: Matchmaking.Entry, players: { Player }, mode: ("run" | "walk")? }
 type Reentry = { lobbyId: string, locationId: string, untilAt: number }
 
 -- Signals for the other Fog Run services.
@@ -116,6 +118,9 @@ local queue: { [string]: Queued } = {}
 local reentries: { [Player]: Reentry } = {}
 local lastCause: { [Player]: string } = {}
 local providers: { [string]: (Player, Run) -> any } = {}
+-- What a player brought home from their last run (results card, death screen, re-entry),
+-- shown once by the client from the "homecoming" section.
+local homecomings: { [Player]: { [string]: any } } = {}
 local seq = 0
 
 local function now(): number
@@ -322,7 +327,7 @@ local function sendHome(player: Player, run: Run, data: Teleport.HomeData)
 end
 
 -- Ends a player's run: results, XP, the exited signal, then home.
-local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome)
+local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome, death: { [string]: any }?)
 	if runs[player] ~= run then
 		return
 	end
@@ -347,14 +352,19 @@ local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome)
 	end
 	Sync.fx(player, "runResult", result)
 	Analytics.custom(player, "FogRunEnd", result.seconds, { hosted.location.id, outcome })
-	local home: Teleport.HomeData = { v = 1 }
+	local home: Teleport.HomeData = { v = 1, result = result :: any, death = death }
 	if outcome == "died" then
 		local closesAt = LobbyMath.closesAt(hosted.state, lobbyConfig) or stamp
 		home.lobbyId = hosted.id
 		home.locationId = hosted.location.id
 		home.reentryUntil = closesAt - lobbyConfig.reentryCutoffSeconds
 	end
-	sendHome(player, run, home)
+	-- A death lingers on its screen before the trip home; an extraction leaves at once.
+	task.delay(if outcome == "died" then DEATH_LINGER_SECONDS else 0, function()
+		if player.Parent == Players then
+			sendHome(player, run, home)
+		end
+	end)
 end
 
 -- Death drops by fog tier (Domain/Lobby), written back to the profile.
@@ -387,12 +397,14 @@ local function onDied(player: Player, run: Run)
 	end
 	local result = applyDeath(player, run, false)
 	local drop = result and result.drop
-	Sync.fx(player, "runDeath", {
+	local death = {
 		cause = lastCause[player] or "hollow",
 		lost = if drop then { backpack = drop.backpack, equipment = drop.equipment } else nil,
 		bagId = if drop then drop.id else nil,
-	})
-	finish(player, run, "died")
+		locationId = run.hosted.location.id,
+	}
+	Sync.fx(player, "runDeath", death)
+	finish(player, run, "died", death)
 end
 
 -- Extraction got the player out alive.
@@ -445,7 +457,7 @@ local function host(lobbyId: string, locationId: string, powerBand: number): Hos
 		band = 1,
 		warned = false,
 		players = {},
-		map = Map.of(locationId, role == "run"),
+		map = RunWorld.map(locationId) or Map.of(locationId, role == "run"),
 		lastPublish = 0,
 	}
 	hostedLobbies[lobbyId] = hosted
@@ -516,6 +528,9 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 	local spawn = spawnFor(hosted)
 	local character = player.Character
 	if spawn and character then
+		pcall(function()
+			player:RequestStreamAroundAsync(spawn.Position, 5)
+		end)
 		character:PivotTo(spawn)
 	end
 	local humanoid = humanoidOf(player)
@@ -531,10 +546,25 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 end
 
 -- The simulation's way home: back to the player's plot.
+local function welcomeHome(player: Player, data: Teleport.HomeData)
+	homecomings[player] = {
+		at = now(),
+		result = data.result,
+		death = data.death,
+		reentry = if data.lobbyId
+				and data.locationId
+				and data.reentryUntil
+			then { locationId = data.locationId, untilAt = data.reentryUntil }
+			else nil,
+	}
+	Sync.mark(player, "homecoming")
+end
+
 local function homeLocally(player: Player, data: Teleport.HomeData)
 	if data.lobbyId and data.locationId and data.reentryUntil then
 		reentries[player] = { lobbyId = data.lobbyId, locationId = data.locationId, untilAt = data.reentryUntil }
 	end
+	welcomeHome(player, data)
 	local plot = Plots.of(player)
 	local character = player.Character
 	local humanoid = humanoidOf(player)
@@ -835,7 +865,7 @@ end
 	Queues players (a whole party, or one) for a lobby at `locationId`. Travel calls
 	this when their trip arrives. They are matched within seconds (Matchmaking).
 ]]
-function Lobby.enqueue(players: { Player }, locationId: string)
+function Lobby.enqueue(players: { Player }, locationId: string, mode: ("run" | "walk")?)
 	if not Features.on(tuning, "fogRuns") or #players == 0 then
 		return
 	end
@@ -846,7 +876,7 @@ function Lobby.enqueue(players: { Player }, locationId: string)
 	end
 	local id = nextId("q")
 	local entry = Matchmaking.entry(id, locationId, ids, powers, Lobby.partyIdOf(players[1]), now(), tuning.matchmaking)
-	queue[id] = { entry = entry, players = table.clone(players) }
+	queue[id] = { entry = entry, players = table.clone(players), mode = mode }
 	for _, player in players do
 		Sync.fx(player, "matching", { locationId = locationId })
 	end
@@ -883,7 +913,8 @@ local function dispatch(queued: Queued, lobbyId: string, powerBand: number)
 		queued.entry.partyId,
 		false,
 		game.PlaceId,
-		math.floor(now())
+		math.floor(now()),
+		queued.mode
 	)
 	local ok, err = transport.send(queued.players, ticket)
 	if not ok then
@@ -982,11 +1013,24 @@ local function onPlayerAdded(player: Player)
 			connection:Disconnect()
 			arrive(player, accepted)
 		end
-	elseif type(data) == "table" and data.v == 1 and type(data.lobbyId) == "string" then
-		-- Home from a run they died in: offer re-entry (the run server re-checks it all).
-		if type(data.locationId) == "string" and type(data.reentryUntil) == "number" then
+	elseif type(data) == "table" and data.v == 1 then
+		-- Home from a run: offer re-entry if they died (the run server re-checks it all),
+		-- and show the results card or death screen once (display only, never trusted).
+		if
+			type(data.lobbyId) == "string"
+			and type(data.locationId) == "string"
+			and type(data.reentryUntil) == "number"
+		then
 			reentries[player] = { lobbyId = data.lobbyId, locationId = data.locationId, untilAt = data.reentryUntil }
 		end
+		welcomeHome(player, {
+			v = 1,
+			lobbyId = if type(data.lobbyId) == "string" then data.lobbyId else nil,
+			locationId = if type(data.locationId) == "string" then data.locationId else nil,
+			reentryUntil = if type(data.reentryUntil) == "number" then data.reentryUntil else nil,
+			result = if type(data.result) == "table" then data.result else nil,
+			death = if type(data.death) == "table" then data.death else nil,
+		})
 	end
 end
 
@@ -1001,6 +1045,7 @@ local function onPlayerRemoving(player: Player)
 	leaveParty(player)
 	invites[player] = nil
 	reentries[player] = nil
+	homecomings[player] = nil
 	lastCause[player] = nil
 	for id, queued in queue do
 		if table.find(queued.players, player) then
@@ -1042,6 +1087,9 @@ function Lobby.start()
 		Lobby.failed:Fire(player, message)
 	end)
 	print(`Lobby: Fog Runs on ({role} server, {transport.kind} teleports)`)
+	Sync.provide("homecoming", function(player: Player): any
+		return homecomings[player] or false
+	end)
 
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	for _, player in Players:GetPlayers() do

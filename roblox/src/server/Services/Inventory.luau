@@ -36,6 +36,16 @@ local Sync = require("./Sync")
 
 local Inventory = {}
 
+-- Set by Combat while Fog Runs are on: on a run the hands belong to Combat (magazines,
+-- swap delays, the meds rule), so WeaponSelect, WeaponSwap and UseMeds go there too.
+export type CombatHook = {
+	active: (player: Player) -> boolean,
+	select: (player: Player, n: number) -> (),
+	swap: (player: Player) -> (),
+	meds: (player: Player) -> (),
+}
+Inventory.combat = nil :: CombatHook?
+
 type PlayerData = PlayerSchema.PlayerData
 type Container = Types.Container
 
@@ -413,6 +423,10 @@ local function selectWeapon(player: Player, n: number)
 	if n ~= 1 and n ~= 2 then
 		return
 	end
+	local hook = Inventory.combat
+	if hook and hook.active(player) then
+		hook.select(player, n)
+	end
 	activeWeapon[player] = n
 	actionRestore[player] = nil
 	Inventory.hold(player, weaponRef(player))
@@ -420,6 +434,17 @@ local function selectWeapon(player: Player, n: number)
 end
 
 local function swapWeapon(player: Player)
+	local hook = Inventory.combat
+	if hook and hook.active(player) then
+		hook.swap(player)
+		-- Keep the held model in step without selecting twice on Combat's side.
+		activeWeapon[player] = if (activeWeapon[player] or 1) == 1 then 2 else 1
+		actionRestore[player] = nil
+		Inventory.hold(player, weaponRef(player))
+		Sync.mark(player, "inventory")
+		Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "swap" })
+		return
+	end
 	selectWeapon(player, if (activeWeapon[player] or 1) == 1 then 2 else 1)
 	Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "swap" })
 end
@@ -726,6 +751,11 @@ end
 
 -- The meds button (4.9): uses the carried consumable that heals the most.
 local function useMeds(player: Player)
+	local hook = Inventory.combat
+	if hook and hook.active(player) then
+		hook.meds(player)
+		return
+	end
 	local data = PlayerData.get(player)
 	if data == nil then
 		return

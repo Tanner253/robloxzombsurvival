@@ -20,3 +20,11 @@ image icons_s2_b 3e5e3238-f078-4734-8768-43ee5ccd9166 (2.75)
 3d hay_bales 56c2127b-49cb-48cb-bd42-86b288971ad5 (12) media 65d3a4a8-8833-4f31-828b-4b7902f18c6a
 3d boxcar 0cc12d20-b0a6-4f6a-9d5b-294590ec6c4b (12) media b6f8d4d0-00cd-41d6-af12-af98d5c2352c
 3d fuel_pump 4dac4593-4070-404f-a521-9fb0142913bb (12) media ac0ca23e-c3f4-4a42-a2ca-05181a248486
+image weapons_tools_sheet_v1 912009e3-daa8-44c7-a7c6-9603c09c5ead (2.75)
+image weapons_guns_sheet_v1 6557efe3-a05d-407f-bb5c-8f83add53df4 (2.75)
+3d flare_pistol f21a80c4-9fe8-4b39-b55e-ff2dc1a37a3d (12) media ad6882c5-e843-4bea-b695-618c5b6e6f0a
+3d machete b1673a03-ce5a-4d9d-a193-b1efe8de7af0 (12) media fdb12e26-1273-4d61-8694-0eadbea9674d
+3d fire_axe 6215bba8-013e-49ea-a6c7-305293a4047a (12) media d34710a5-519f-43b4-9465-a4c2955b0f25
+3d shortbow 6016ccd6-0e04-42e3-ba29-c028fb74ac96 (12) media 77089127-3b31-46a3-8275-a6270dd1f25f
+3d pipe_pistol 3db0707a-3269-4c3e-b664-25c9e8807c2d (12) media b86f1608-ac33-479d-9509-d002c9ed6269
+3d scrap_shotgun 6f3ce37c-4bfe-4245-83b8-45776cb14189 (12) media a7b095c9-cd61-4dae-8746-e8aa00789810

@@ -40,6 +40,7 @@ local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
+local Maps = require("../FogRuns/Maps")
 
 local Travel = {}
 
@@ -169,6 +170,10 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	if location == nil or trips[player] or Lobby.runOf(player) then
 		return
 	end
+	if not Maps.has(locationId) then
+		Sync.notice(player, "That place can't be reached yet")
+		return
+	end
 	if not Lobby.isPartyLeader(player) then
 		Sync.notice(player, "Your party leader starts the trip")
 		return
@@ -263,17 +268,6 @@ local function arrive(record: Trip)
 		if member.Parent == Players and trips[member] == record then
 			trips[member] = nil
 			table.insert(present, member)
-			local bonus =
-				TravelBonus.roll(record.location.id, record.location.run.travelBonusTableId, record.trip.mode, {
-					tables = Content.LootTables :: any,
-					rng = rng,
-					items = Items,
-					config = tuning.travelBonus,
-				})
-			if bonus then
-				bonuses[member] = bonus
-				Sync.fx(member, "travelBonus", { items = bonus.items })
-			end
 		end
 	end
 	if #present == 0 then
@@ -284,7 +278,7 @@ local function arrive(record: Trip)
 			refund(present[1], record.spent[present[1]] or 0, "ReentryRefund")
 		end
 	else
-		Lobby.enqueue(present, record.location.id)
+		Lobby.enqueue(present, record.location.id, record.trip.mode)
 	end
 end
 
@@ -497,8 +491,25 @@ function Travel.start()
 			Sync.notice(player, `Trip cancelled ({reason}); Energy refunded`, "info")
 		end
 	end)
-	Lobby.entered:Connect(function(player: Player)
+	Lobby.entered:Connect(function(player: Player, run: Lobby.Run)
 		lastSpend[player] = nil
+		-- "Found on the way" (checklist 11.6): rolled where the run is hosted, so it is there
+		-- on arrival whether the lobby is a reserved server or simulated here.
+		local mode = run.ticket.mode
+		if mode == nil or run.ticket.reentry then
+			return
+		end
+		local location = run.hosted.location
+		local bonus = TravelBonus.roll(location.id, location.run.travelBonusTableId, mode :: TravelMath.Mode, {
+			tables = Content.LootTables :: any,
+			rng = rng,
+			items = Items,
+			config = tuning.travelBonus,
+		})
+		if bonus then
+			bonuses[player] = bonus
+			Sync.fx(player, "travelBonus", { items = bonus.items })
+		end
 	end)
 	Lobby.exited:Connect(function(player: Player)
 		local bonus = bonuses[player]

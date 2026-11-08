@@ -50,77 +50,174 @@ export type Ctx = {
 
 export type Paint = {
 	material: Enum.Material,
-	color: Color3,
-	variant: string?, -- a MaterialVariant in MaterialService, used when it exists
+	color: Color3, -- the colour without the variant (and the tint multiplied over it with one)
+	variant: string?, -- a MaterialVariant in MaterialService on the same base material
+	tint: Color3?, -- the colour over the variant's own texture (default: a light neutral)
 	transparency: number?,
 	reflectance: number?,
 }
 
+local function rgb(r: number, g: number, b: number): Color3
+	return Color3.fromRGB(r, g, b)
+end
+
 -- One shared palette for every map (ART_DIRECTION §3: muted earth tones, about 60% saturation).
+-- The generated PBR variants (place/materials) carry the detail; tints only nudge them.
 Builder.paints = {
-	siding = { material = Enum.Material.WoodPlanks, color = Color3.fromRGB(152, 144, 126), variant = "EO_Siding" },
-	sidingBlue = { material = Enum.Material.WoodPlanks, color = Color3.fromRGB(112, 124, 128), variant = "EO_Siding" },
-	sidingGreen = { material = Enum.Material.WoodPlanks, color = Color3.fromRGB(118, 128, 106), variant = "EO_Siding" },
-	barn = { material = Enum.Material.WoodPlanks, color = Color3.fromRGB(128, 78, 56), variant = "EO_BarnBoards" },
-	boards = { material = Enum.Material.WoodPlanks, color = Color3.fromRGB(122, 98, 74), variant = "EO_Deck_Planks" },
-	brick = { material = Enum.Material.Brick, color = Color3.fromRGB(134, 88, 70), variant = "EO_Brick" },
-	brickDark = { material = Enum.Material.Brick, color = Color3.fromRGB(102, 74, 64), variant = "EO_Brick" },
-	plaster = { material = Enum.Material.Concrete, color = Color3.fromRGB(176, 166, 146), variant = "EO_Plaster" },
-	concrete = { material = Enum.Material.Concrete, color = Color3.fromRGB(140, 138, 132), variant = "EO_Concrete" },
-	concreteDark = { material = Enum.Material.Concrete, color = Color3.fromRGB(104, 104, 102), variant = "EO_Concrete" },
+	siding = {
+		material = Enum.Material.WoodPlanks,
+		color = rgb(152, 144, 126),
+		variant = "EO_Siding",
+		tint = rgb(226, 220, 206),
+	},
+	sidingBlue = {
+		material = Enum.Material.WoodPlanks,
+		color = rgb(112, 124, 128),
+		variant = "EO_Siding",
+		tint = rgb(170, 188, 196),
+	},
+	sidingGreen = {
+		material = Enum.Material.WoodPlanks,
+		color = rgb(118, 128, 106),
+		variant = "EO_Siding",
+		tint = rgb(182, 196, 166),
+	},
+	barn = {
+		material = Enum.Material.WoodPlanks,
+		color = rgb(128, 78, 56),
+		variant = "EO_BarnBoards",
+		tint = rgb(236, 226, 216),
+	},
+	boards = {
+		material = Enum.Material.Wood,
+		color = rgb(122, 98, 74),
+		variant = "EO_WornWood",
+		tint = rgb(222, 206, 186),
+	},
+	brick = {
+		material = Enum.Material.Brick,
+		color = rgb(134, 88, 70),
+		variant = "EO_Brick",
+		tint = rgb(232, 222, 214),
+	},
+	brickDark = {
+		material = Enum.Material.Brick,
+		color = rgb(102, 74, 64),
+		variant = "EO_Brick",
+		tint = rgb(172, 156, 150),
+	},
+	plaster = {
+		material = Enum.Material.Plaster,
+		color = rgb(176, 166, 146),
+		variant = "EO_Plaster",
+		tint = rgb(226, 218, 204),
+	},
+	concrete = {
+		material = Enum.Material.Concrete,
+		color = rgb(140, 138, 132),
+		variant = "EO_Concrete",
+		tint = rgb(216, 214, 208),
+	},
+	concreteDark = {
+		material = Enum.Material.Concrete,
+		color = rgb(104, 104, 102),
+		variant = "EO_Concrete",
+		tint = rgb(150, 148, 144),
+	},
 	corrugated = {
 		material = Enum.Material.CorrodedMetal,
-		color = Color3.fromRGB(124, 108, 96),
+		color = rgb(124, 108, 96),
 		variant = "EO_Corrugated",
+		tint = rgb(226, 220, 214),
 	},
 	corrugatedTeal = {
 		material = Enum.Material.CorrodedMetal,
-		color = Color3.fromRGB(96, 112, 108),
+		color = rgb(96, 112, 108),
 		variant = "EO_Corrugated",
+		tint = rgb(170, 196, 192),
 	},
-	shingle = { material = Enum.Material.Slate, color = Color3.fromRGB(84, 80, 78), variant = "EO_Shingle" },
-	shingleRed = { material = Enum.Material.Slate, color = Color3.fromRGB(104, 72, 62), variant = "EO_Shingle" },
+	shingle = {
+		material = Enum.Material.RoofShingles,
+		color = rgb(84, 80, 78),
+		variant = "EO_Shingle",
+		tint = rgb(210, 206, 204),
+	},
+	shingleRed = {
+		material = Enum.Material.RoofShingles,
+		color = rgb(104, 72, 62),
+		variant = "EO_Shingle",
+		tint = rgb(214, 170, 156),
+	},
 	roofMetal = {
 		material = Enum.Material.CorrodedMetal,
-		color = Color3.fromRGB(118, 94, 78),
+		color = rgb(118, 94, 78),
 		variant = "EO_Corrugated",
+		tint = rgb(214, 196, 184),
 	},
 	floorPlanks = {
 		material = Enum.Material.WoodPlanks,
-		color = Color3.fromRGB(132, 104, 78),
+		color = rgb(132, 104, 78),
 		variant = "EO_Deck_Planks",
+		tint = rgb(196, 170, 132),
 	},
-	floorTile = { material = Enum.Material.Slate, color = Color3.fromRGB(150, 146, 136), variant = "EO_FloorTile" },
+	floorTile = {
+		material = Enum.Material.CeramicTiles,
+		color = rgb(150, 146, 136),
+		variant = "EO_FloorTile",
+		tint = rgb(220, 216, 206),
+	},
 	floorConcrete = {
 		material = Enum.Material.Concrete,
-		color = Color3.fromRGB(120, 118, 114),
+		color = rgb(120, 118, 114),
 		variant = "EO_Concrete",
+		tint = rgb(180, 178, 172),
 	},
-	trim = { material = Enum.Material.Wood, color = Color3.fromRGB(86, 68, 52) },
-	trimLight = { material = Enum.Material.Wood, color = Color3.fromRGB(176, 168, 150) },
-	steel = { material = Enum.Material.Metal, color = Color3.fromRGB(92, 94, 96) },
-	rust = { material = Enum.Material.CorrodedMetal, color = Color3.fromRGB(122, 86, 64) },
-	paintedMetal = { material = Enum.Material.Metal, color = Color3.fromRGB(94, 110, 104) },
-	darkMetal = { material = Enum.Material.Metal, color = Color3.fromRGB(58, 60, 62) },
-	glass = {
-		material = Enum.Material.Glass,
-		color = Color3.fromRGB(70, 84, 90),
-		transparency = 0.45,
-		reflectance = 0.05,
+	trim = {
+		material = Enum.Material.Wood,
+		color = rgb(86, 68, 52),
+		variant = "EO_WornWood",
+		tint = rgb(150, 128, 106),
 	},
-	void = { material = Enum.Material.SmoothPlastic, color = Color3.fromRGB(34, 34, 36) },
-	rubble = { material = Enum.Material.Cobblestone, color = Color3.fromRGB(116, 110, 102) },
-	gravel = { material = Enum.Material.Pebble, color = Color3.fromRGB(118, 114, 106) },
-	hay = { material = Enum.Material.Grass, color = Color3.fromRGB(176, 158, 104) },
-	cloth = { material = Enum.Material.Fabric, color = Color3.fromRGB(112, 104, 88) },
-	tarp = { material = Enum.Material.Fabric, color = Color3.fromRGB(78, 92, 84) },
-	asphalt = { material = Enum.Material.Asphalt, color = Color3.fromRGB(78, 80, 84) },
-	roadPaint = { material = Enum.Material.SmoothPlastic, color = Color3.fromRGB(176, 160, 112) },
-	exitGlow = {
-		material = Enum.Material.Neon,
-		color = Color3.fromRGB(92, 200, 110),
-		transparency = 0.7,
+	trimLight = {
+		material = Enum.Material.Wood,
+		color = rgb(176, 168, 150),
+		variant = "EO_WornWood",
+		tint = rgb(236, 230, 216),
 	},
+	steel = {
+		material = Enum.Material.Metal,
+		color = rgb(92, 94, 96),
+		variant = "EO_PaintedMetal",
+		tint = rgb(176, 178, 180),
+	},
+	rust = {
+		material = Enum.Material.CorrodedMetal,
+		color = rgb(122, 86, 64),
+		variant = "EO_RustSteel",
+		tint = rgb(226, 214, 204),
+	},
+	paintedMetal = {
+		material = Enum.Material.Metal,
+		color = rgb(94, 110, 104),
+		variant = "EO_PaintedMetal",
+		tint = rgb(226, 230, 224),
+	},
+	darkMetal = {
+		material = Enum.Material.Metal,
+		color = rgb(58, 60, 62),
+		variant = "EO_PaintedMetal",
+		tint = rgb(104, 106, 108),
+	},
+	glass = { material = Enum.Material.Glass, color = rgb(70, 84, 90), transparency = 0.45, reflectance = 0.05 },
+	void = { material = Enum.Material.SmoothPlastic, color = rgb(34, 34, 36) },
+	rubble = { material = Enum.Material.Cobblestone, color = rgb(116, 110, 102) },
+	gravel = { material = Enum.Material.Pebble, color = rgb(118, 114, 106) },
+	hay = { material = Enum.Material.Grass, color = rgb(176, 158, 104) },
+	cloth = { material = Enum.Material.Fabric, color = rgb(112, 104, 88) },
+	tarp = { material = Enum.Material.Fabric, color = rgb(78, 92, 84) },
+	asphalt = { material = Enum.Material.Asphalt, color = rgb(78, 80, 84) },
+	roadPaint = { material = Enum.Material.SmoothPlastic, color = rgb(176, 160, 112) },
+	exitGlow = { material = Enum.Material.Neon, color = rgb(92, 200, 110), transparency = 0.7 },
 } :: { [string]: Paint }
 
 local function variantExists(name: string?): boolean
@@ -136,6 +233,7 @@ function Builder.paint(part: BasePart, key: string)
 	part.Color = paint.color
 	if variantExists(paint.variant) then
 		part.MaterialVariant = paint.variant :: string
+		part.Color = paint.tint or Color3.fromRGB(220, 220, 220)
 	end
 	part.Transparency = paint.transparency or 0
 	part.Reflectance = paint.reflectance or 0
@@ -257,7 +355,7 @@ local TERRAIN_COLORS: { [Enum.Material]: Color3 } = {
 	[Enum.Material.Basalt] = Color3.fromRGB(60, 58, 56),
 	[Enum.Material.Slate] = Color3.fromRGB(96, 98, 100),
 	[Enum.Material.Rock] = Color3.fromRGB(112, 108, 102),
-	[Enum.Material.Pebble] = Color3.fromRGB(116, 112, 104),
+	[Enum.Material.Cobblestone] = Color3.fromRGB(112, 108, 100), -- rail ballast
 }
 
 -- Writes the ground in strips (yielding between them) from the layout's functions.
@@ -553,6 +651,7 @@ export type BuildingSpec = {
 	ruin: number?, -- 0..1: broken wall tops, missing roof panels
 	porch: ("S" | "E")?,
 	plinth: number?, -- height of the base slab (default 0.8)
+	chimney: boolean?,
 }
 
 export type Building = {
@@ -610,9 +709,9 @@ local function wallSide(
 		if ruin <= 0 then
 			return height
 		end
-		local n = math.noise(u / 5, offset, #spec.name)
-		local drop = math.clamp((n + 0.3) * ruin * 1.6, 0, 0.85)
-		return math.max(height * (1 - drop), 2.5)
+		local n = math.noise(u / 9, offset / 7, #spec.name)
+		local drop = math.clamp((n + 0.35) * ruin * 1.3, 0, 0.7)
+		return math.max(height * (1 - drop), 3)
 	end
 	local function column(u0: number, u1: number, y0: number, y1: number)
 		if u1 - u0 < 0.05 or y1 - y0 < 0.05 then
@@ -622,7 +721,7 @@ local function wallSide(
 			-- Broken top: split into 2-stud columns with their own heights.
 			local u = u0
 			while u < u1 - 0.01 do
-				local step = math.min(2, u1 - u)
+				local step = math.min(3, u1 - u)
 				local top = math.max(topAt(u + step / 2), y0 + 0.5)
 				Builder.part(
 					holder,
@@ -704,6 +803,35 @@ local function wallSide(
 				end
 			end
 		end
+		if opening.kind == "door" then
+			-- The door itself, left ajar into the room (never shut: nobody gets stuck).
+			local swing = math.rad(70 + ctx.rng:NextNumber() * 40) * out
+			local door = Builder.part(
+				holder,
+				Vector3.new(w - 0.5, h - 0.3, 0.22),
+				wallFrame
+					* CFrame.new(u0 + 0.25, h / 2, -out * (WALL / 2))
+					* CFrame.Angles(0, swing, 0)
+					* CFrame.new((w - 0.5) / 2, 0, 0),
+				if ctx.rng:NextNumber() < 0.5 then "boards" else spec.trim or "trim",
+				"Door"
+			)
+			door.CanCollide = false
+		elseif opening.kind == "window" and ctx.rng:NextNumber() < 0.45 then
+			-- Shutters on the outside, one hanging off its hinge now and then.
+			for _, hand in { -1, 1 } do
+				local hang = if ctx.rng:NextNumber() < 0.25 then math.rad(14) else 0
+				Builder.part(
+					holder,
+					Vector3.new(w / 2 - 0.1, h + 0.2, 0.18),
+					wallFrame
+						* CFrame.new(opening.at + hand * (w * 0.75 + 0.1), bottom + h / 2, out * (WALL / 2 + 0.12))
+						* CFrame.Angles(0, 0, hang * hand),
+					spec.trim or "trim",
+					"Shutter"
+				)
+			end
+		end
 		cursor = u1
 	end
 	column(cursor, length / 2, 0, height)
@@ -754,6 +882,25 @@ local function gableRoof(ctx: Ctx, building: Model, base: CFrame, spec: Building
 		end
 	end
 	Builder.part(holder, Vector3.new(length + 0.1, 0.6, 0.9), top * CFrame.new(0, 0.05, 0), "trim", "Ridge")
+	-- Fascia boards along both eaves.
+	for _, sideSign in { -1, 1 } do
+		local eave = top
+			* CFrame.Angles(sideSign * pitch, 0, 0)
+			* CFrame.new(0, -0.45, sideSign * slope)
+			* CFrame.Angles(-sideSign * pitch, 0, 0)
+		Builder.part(holder, Vector3.new(length + 0.2, 0.7, 0.3), eave, "trim", "Fascia")
+	end
+	if spec.chimney then
+		local chimney = base * turn * CFrame.new(length * 0.28, height + rise * 0.6, -span * 0.18)
+		Builder.part(holder, Vector3.new(2.4, rise + 4, 2.4), chimney, "brickDark", "Chimney")
+		Builder.part(
+			holder,
+			Vector3.new(2.8, 0.4, 2.8),
+			chimney * CFrame.new(0, (rise + 4) / 2, 0),
+			"concreteDark",
+			"ChimneyCap"
+		)
+	end
 	-- Gable ends: two wedges each, in the wall's material.
 	for _, endSign in { -1, 1 } do
 		local x = endSign * (length - 1.6) / 2

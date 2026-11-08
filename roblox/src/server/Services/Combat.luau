@@ -631,8 +631,15 @@ function Combat.init()
 	Net.onEvent("CombatReload", reload)
 	Net.onEvent("CombatDodge", dodge)
 	-- WeaponSelect, WeaponSwap and UseMeds belong to the Inventory service (home remotes);
-	-- it forwards them to Combat.onWeaponSelect / onWeaponSwap / onUseMeds while the player is
-	-- fighting in a lobby (slice 2 Phase B).
+	-- it forwards them here while the player is fighting in a lobby.
+	Inventory.combat = {
+		active = function(player: Player): boolean
+			return fighters[player] ~= nil
+		end,
+		select = Combat.onWeaponSelect,
+		swap = Combat.onWeaponSwap,
+		meds = Combat.onUseMeds,
+	}
 end
 
 function Combat.start()

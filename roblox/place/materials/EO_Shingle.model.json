@@ -1,0 +1,12 @@
+{
+	"className": "MaterialVariant",
+	"properties": {
+		"BaseMaterial": "RoofShingles",
+		"ColorMap": "rbxassetid://116187379596414",
+		"NormalMap": "rbxassetid://98703625133938",
+		"RoughnessMap": "rbxassetid://89311563597986",
+		"MetalnessMap": "rbxassetid://83867489625792",
+		"MaterialPattern": "Regular",
+		"StudsPerTile": 6
+	}
+}

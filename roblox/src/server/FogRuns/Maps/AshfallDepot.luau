@@ -90,7 +90,7 @@ local function surface(x: number, z: number, y: number): Enum.Material
 	end
 	for _, tz in TRACK_Z do
 		if math.abs(z - tz) < 5 then
-			return Enum.Material.Pebble
+			return Enum.Material.Cobblestone
 		end
 	end
 	if z > 20 and z < DOCK_Z + 30 then
@@ -230,13 +230,19 @@ local function signalTower(ctx: Builder.Ctx)
 	local holder = Builder.model(Builder.folder(ctx, "Buildings"), "SignalTower")
 	holder:SetAttribute("Layer", "frame")
 	local base = Builder.frame(ctx, TOWER.X, TOWER.Y, 15)
-	local height = 34
+	local towerHeight = 34
 	for _, sx in { -3, 3 } do
 		for _, sz in { -3, 3 } do
-			Builder.part(holder, Vector3.new(0.5, height, 0.5), base * CFrame.new(sx, height / 2, sz), "rust", "Leg")
+			Builder.part(
+				holder,
+				Vector3.new(0.5, towerHeight, 0.5),
+				base * CFrame.new(sx, towerHeight / 2, sz),
+				"rust",
+				"Leg"
+			)
 		end
 	end
-	for y = 4, height - 2, 6 do
+	for y = 4, towerHeight - 2, 6 do
 		for _, side in { -3, 3 } do
 			Builder.part(holder, Vector3.new(6.4, 0.3, 0.3), base * CFrame.new(0, y, side), "rust", "Brace")
 			Builder.part(holder, Vector3.new(0.3, 0.3, 6.4), base * CFrame.new(side, y, 0), "rust", "Brace")
@@ -249,10 +255,10 @@ local function signalTower(ctx: Builder.Ctx)
 			)
 		end
 	end
-	Builder.part(holder, Vector3.new(8, 0.5, 8), base * CFrame.new(0, height, 0), "darkMetal", "Deck")
-	Builder.part(holder, Vector3.new(5, 4, 5), base * CFrame.new(0, height + 2.25, 0), "corrugated", "Hut")
+	Builder.part(holder, Vector3.new(8, 0.5, 8), base * CFrame.new(0, towerHeight, 0), "darkMetal", "Deck")
+	Builder.part(holder, Vector3.new(5, 4, 5), base * CFrame.new(0, towerHeight + 2.25, 0), "corrugated", "Hut")
 	local beacon =
-		Builder.part(holder, Vector3.new(1, 1, 1), base * CFrame.new(0, height + 4.8, 0), "exitGlow", "Beacon")
+		Builder.part(holder, Vector3.new(1, 1, 1), base * CFrame.new(0, towerHeight + 4.8, 0), "exitGlow", "Beacon")
 	beacon.Transparency = 0.1
 	local light = Instance.new("PointLight")
 	light.Color = Color3.fromRGB(255, 120, 80)
