@@ -27,6 +27,9 @@
 
 | 2026-11-07 | **When in doubt, LDoE is the standard** | It sets the bar for depth, complexity, visual quality and mechanics. Ours differs by being better, mainly through Roblox-native multiplayer (co-op, social, raids, guilds). Our own IP throughout. |
 
+| 2026-11-07 | **Full creative control given to the orchestrator** | The developer asked for "the most fun and engaging game possible optimized for micro txns and replayability". The orchestrator owns direction and merges reviewed, green code; the developer judges at milestones and keeps the veto and money decisions. |
+| 2026-11-07 | **Signature mechanics and a game-owned survivor character** | Light is territory (night tower defense), push-your-luck Fog Runs, rescued survivors staffing stations, the Neighbourhood and Blood Moon. Players are custom R15 survivors with cosmetic outfits, not default avatars. See the GAME_DESIGN Vision section. |
+
 ## ZombieLab (parked) (Unity 6000.3.27f2, built-in render pipeline)
 
 `ZombieLab/` is a greybox prototype. Open it in Unity Hub and press **Play** in any scene: `World.cs` builds everything at runtime. It tests the core loop:
