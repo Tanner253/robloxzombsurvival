@@ -428,6 +428,7 @@ export type TuningDef = {
 		critMultiplier: number,
 		pvpMaxHitFraction: number, -- M2 PvP: no hit takes more than this share of a full-health player
 		lagToleranceStuds: number, -- server hit checks allow this much extra reach
+		softLockDegrees: number, -- a locked target this close to the aim pulls the shot onto it (13.3)
 	},
 	gathering: {
 		swingSeconds: number,

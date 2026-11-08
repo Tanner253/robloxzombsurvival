@@ -69,6 +69,7 @@ local Tuning: Types.TuningDef = {
 		critMultiplier = 1.5,
 		pvpMaxHitFraction = 0.6, -- GAME_DESIGN: no one-shots from full HP; every fight takes 2+ hits
 		lagToleranceStuds = 3,
+		softLockDegrees = 12,
 	},
 	gathering = {
 		swingSeconds = 0.8,
