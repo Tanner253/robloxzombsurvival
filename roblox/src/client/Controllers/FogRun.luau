@@ -32,12 +32,14 @@ local Net = require("../Net")
 local Sfx = require("../Sfx")
 local State = require("../State")
 local Camera = require("./Camera")
+local HollowView = require("./HollowView")
 local TeleportScreen = require("./TeleportScreen")
 
 local FogRun = {}
 
 local player = Players.LocalPlayer
 local STALE_SECONDS = 3
+local updateCombatMusic: (onRun: boolean, dt: number) -> ()
 local CONTAINER_TAG = "EO_RunContainer"
 local CANOPY_TAG = "EO_Canopy"
 local ROOF_TAG = "EO_Roof"
@@ -323,6 +325,56 @@ local function updateCanopy()
 	end
 end
 
+-- Combat music ---------------------------------------------------------------------------------------
+
+-- A tension layer while the Hollow hunt you on a run: it swells in when one is chasing or
+-- attacking nearby, or you were just hit, and fades out a few seconds after it's quiet.
+local COMBAT_RADIUS = 40
+local COMBAT_LINGER = 6
+local COMBAT_FADE_IN, COMBAT_FADE_OUT = 1.5, 3.5
+local combatMusic: Sound? = nil
+local combatUntil = 0
+
+updateCombatMusic = function(onRun: boolean, dt: number)
+	local now = os.clock()
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if onRun and root and root:IsA("BasePart") then
+		local hurt = State.get("hurtAt")
+		local recentlyHurt = type(hurt) == "table" and now - (hurt.at or 0) < 1
+		if recentlyHurt or HollowView.hunting(root.Position, COMBAT_RADIUS) then
+			combatUntil = now + COMBAT_LINGER
+		end
+	else
+		combatUntil = 0
+	end
+	local full = Sfx.volumeOf("combatTension")
+	local target = if now < combatUntil then full else 0
+	local sound = combatMusic
+	if sound == nil then
+		if target == 0 then
+			return
+		end
+		sound = Sfx.loop("combatTension")
+		if sound == nil then
+			return
+		end
+		sound.Volume = 0
+		sound:Play()
+		combatMusic = sound
+	end
+	local active = sound :: Sound
+	local rate = full / (if target > active.Volume then COMBAT_FADE_IN else COMBAT_FADE_OUT)
+	if target > active.Volume then
+		active.Volume = math.min(target, active.Volume + rate * dt)
+	else
+		active.Volume = math.max(target, active.Volume - rate * dt)
+	end
+	if active.Volume <= 0 and target == 0 then
+		active:Destroy()
+		combatMusic = nil
+	end
+end
+
 -- Server effects ---------------------------------------------------------------------------------------
 
 local function onFx(kind: string, payload: any)
@@ -451,6 +503,7 @@ function FogRun.start()
 	local roofClock, canopyClock = 0, 0
 	RunService.RenderStepped:Connect(function(dt: number)
 		local run = FogRun.state()
+		updateCombatMusic(run ~= nil, dt)
 		if run and os.clock() - lastRunAt > STALE_SECONDS then
 			-- Left the run (home, or teleported): the world goes back to the Neighbourhood's.
 			State.set("run", false)

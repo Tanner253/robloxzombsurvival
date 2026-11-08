@@ -541,6 +541,22 @@ local function step()
 	end
 end
 
+-- Whether a living Hollow within `radius` of `position` is chasing or attacking (the
+-- combat music layer).
+function HollowView.hunting(position: Vector3, radius: number): boolean
+	for _, view in views do
+		if
+			view.alive
+			and view.model
+			and (view.state == "chase" or view.state == "attack")
+			and (view.model:GetPivot().Position - position).Magnitude <= radius
+		then
+			return true
+		end
+	end
+	return false
+end
+
 -- Living Hollow near the survivor, for aim assist and the target bar.
 function HollowView.targets(): { Target }
 	local list: { Target } = {}
