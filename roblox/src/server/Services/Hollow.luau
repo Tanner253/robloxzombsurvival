@@ -158,11 +158,18 @@ local function count(world: World): number
 	return total
 end
 
+-- Only kinds with a rig the clients can draw (ReplicatedStorage.EO_Hollow) ever spawn: an
+-- unseen enemy would be worse than none (checklist §0). Wildlife waits for its rigs (M4).
+local function drawable(enemyId: string): boolean
+	local rigs = ReplicatedStorage:FindFirstChild("EO_Hollow")
+	return rigs ~= nil and rigs:FindFirstChild(enemyId) ~= nil
+end
+
 local function spawn(world: World, enemyId: string, amount: number)
 	local enemy = Content.Enemies[enemyId]
 	local points = spawnPoints(world)
-	if enemy == nil or #points == 0 then
-		return -- no map yet (Phase A) or every spot is too close to a player
+	if enemy == nil or #points == 0 or not drawable(enemyId) then
+		return -- no map yet, every spot too close to a player, or no rig to draw it
 	end
 	local hp, damage = HollowAI.scaled(enemy, world.strength)
 	for _ = 1, amount do

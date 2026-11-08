@@ -495,11 +495,6 @@ local function edgeTrees(): { Vector3 }
 end
 
 local function Minimap()
-	-- On a Fog Run the location's own minimap (exits, bags, Hollow) and the Fog meter.
-	local run = hooks.useSection("run")
-	if type(run) == "table" then
-		return e(RunHud.RunMinimap)
-	end
 	local plot = hooks.useSection("plot")
 	local saved = hooks.useSection("layout")
 	hooks.useClock(0.25)
@@ -1055,6 +1050,7 @@ end
 
 local function HUD()
 	local ui = hooks.useUi()
+	local run = hooks.useSection("run")
 	local playing = ui.panel == "none"
 	return e(React.Fragment, nil, {
 		Gear = playing and e("TextButton", {
@@ -1087,7 +1083,8 @@ local function HUD()
 		}),
 		Status = e(Status),
 		Quest = playing and e(QuestTracker),
-		Minimap = playing and e(Minimap),
+		-- On a Fog Run the location's own minimap (exits, bags, Hollow) with the Fog meter.
+		Minimap = playing and e(if type(run) == "table" then RunHud.RunMinimap else Minimap),
 		LevelBar = e(LevelBar),
 		-- Studio playtests run sped up (Tuning.devSpeed): say so, never on live servers.
 		Dev = DevSpeed.factor(Content) > 1 and e("TextLabel", {

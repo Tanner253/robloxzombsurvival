@@ -184,7 +184,6 @@ local function westShops(ctx: Builder.Ctx)
 			{ side = "N", at = 4, kind = "window" },
 			{ side = "W", at = -8, kind = "door" },
 		},
-		ruin = 0.15,
 	})
 	shelving(hardware, -4, -6, 12, 0)
 	shelving(hardware, -4, 3, 12, 0)

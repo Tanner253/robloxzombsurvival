@@ -26,6 +26,16 @@ local function devCommand(command: string, ...: any): any
 			notices = #ui.notices,
 			rewards = #ui.rewards,
 		}
+	elseif command == "notices" then
+		local list = {}
+		for _, notice in State.ui().notices do
+			table.insert(list, notice.text)
+		end
+		return list
+	elseif command == "section" then
+		-- A synced or Fog Run section by name, e.g. ("section", "run").
+		local args = { ... }
+		return State.get(args[1])
 	elseif command == "panel" then
 		local args = { ... }
 		State.toggle(args[1], args[2])

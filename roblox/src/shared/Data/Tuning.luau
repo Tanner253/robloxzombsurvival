@@ -299,7 +299,7 @@ local Tuning: Types.TuningDef = {
 		-- needs brass and springs from Dense runs (about day 5, with level 15).
 		{
 			id = "tower_dense",
-			name = "Quarry Signal Tower",
+			name = "Crossing Signal Tower",
 			fogTier = 2,
 			parts = {
 				{ itemId = "item.plank", count = 20 },

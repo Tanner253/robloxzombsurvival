@@ -7,6 +7,6 @@
 		"RoughnessMap": "rbxassetid://114103281720450",
 		"MetalnessMap": "rbxassetid://112855099777439",
 		"MaterialPattern": "Regular",
-		"StudsPerTile": 6
+		"StudsPerTile": 4
 	}
 }

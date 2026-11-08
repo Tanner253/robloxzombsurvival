@@ -709,8 +709,9 @@ local function wallSide(
 		if ruin <= 0 then
 			return height
 		end
-		local n = math.noise(u / 9, offset / 7, #spec.name)
-		local drop = math.clamp((n + 0.35) * ruin * 1.3, 0, 0.7)
+		-- Broken stretches where the noise peaks, sloping in and out; whole wall elsewhere.
+		local n = math.noise(u / 10, offset / 7, #spec.name)
+		local drop = math.clamp((n - 0.05) * (0.6 + ruin * 2), 0, 0.72)
 		return math.max(height * (1 - drop), 3)
 	end
 	local function column(u0: number, u1: number, y0: number, y1: number)
@@ -721,7 +722,7 @@ local function wallSide(
 			-- Broken top: split into 2-stud columns with their own heights.
 			local u = u0
 			while u < u1 - 0.01 do
-				local step = math.min(3, u1 - u)
+				local step = math.min(1.5, u1 - u)
 				local top = math.max(topAt(u + step / 2), y0 + 0.5)
 				Builder.part(
 					holder,

@@ -237,10 +237,17 @@ local function watchContainer(instance: Instance)
 		return
 	end
 	local holder = instance :: Model
+	-- Parts can stream in after the tagged model: wait a moment for the body.
 	local body = marker(holder)
+	local waited = 0
+	while body == nil and waited < 10 and holder.Parent do
+		waited += task.wait(0.25)
+		body = marker(holder)
+	end
 	if body == nil then
 		return
 	end
+	holder:SetAttribute("Watched", true)
 	local function refresh(animate: boolean)
 		local run = FogRun.state()
 		local stocked = body:GetAttribute("ContainerId") ~= nil
@@ -432,7 +439,9 @@ function FogRun.start()
 	for _, instance in CollectionService:GetTagged(CONTAINER_TAG) do
 		task.spawn(watchContainer, instance)
 	end
-	CollectionService:GetInstanceAddedSignal(CONTAINER_TAG):Connect(watchContainer)
+	CollectionService:GetInstanceAddedSignal(CONTAINER_TAG):Connect(function(instance: Instance)
+		task.spawn(watchContainer, instance)
+	end)
 
 	local roofClock, canopyClock = 0, 0
 	RunService.RenderStepped:Connect(function(dt: number)
