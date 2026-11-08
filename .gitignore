@@ -1,0 +1,30 @@
+# --- Parked Unity prototype (ZombieLab) ---
+ZombieLab/[Ll]ibrary/
+ZombieLab/[Tt]emp/
+ZombieLab/[Ll]ogs/
+ZombieLab/[Oo]bj/
+ZombieLab/[Uu]ser[Ss]ettings/
+ZombieLab/[Bb]uild*/
+ZombieLab/*.csproj
+ZombieLab/*.sln
+ZombieLab/.vs/
+
+# --- Roblox / Rojo / Wally ---
+roblox/Packages/
+roblox/ServerPackages/
+roblox/DevPackages/
+roblox/build/
+roblox/sourcemap.json
+*.rbxl.lock
+*.rbxlx.lock
+
+# Build outputs (e.g. `rojo build -o build/test.rbxl`)
+build/
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
