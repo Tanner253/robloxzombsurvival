@@ -27,7 +27,8 @@ local State = require("../State")
 local Interaction = {}
 
 local tuning = Content.Tuning
-local TAGS: { [string]: string } = { node = "EO_Node", station = "EO_Station", storage = "EO_Storage" }
+local TAGS: { [string]: string } =
+	{ node = "EO_Node", station = "EO_Station", storage = "EO_Storage", drop = "EO_Drop" }
 local SCAN_SECONDS = 0.1
 local VERB: { [string]: string } = { hatchet = "Chop", pick = "Mine" }
 
@@ -80,6 +81,15 @@ local function describe(model: Model, kind: string): State.Target?
 	end
 	if model:GetAttribute("OwnerUserId") ~= player.UserId then
 		return nil
+	end
+	if kind == "drop" then
+		return {
+			kind = "drop",
+			key = model:GetAttribute("DropId") :: string,
+			label = (model:GetAttribute("Label") :: string?) or "Dropped items",
+			verb = "Pick up",
+			model = model,
+		}
 	end
 	local piece = Content.BuildPieces[model:GetAttribute("PieceId") :: string]
 	if piece == nil then
@@ -378,6 +388,8 @@ function Interaction.activate()
 	end
 	if target.kind == "station" then
 		State.toggle("station", target.key)
+	elseif target.kind == "drop" then
+		Net.fire("PickupDrop", target.key)
 	elseif target.kind == "storage" then
 		Net.fire("StorageOpen", target.key)
 		if State.ui().panel ~= "inventory" then
@@ -426,6 +438,13 @@ function Interaction.start()
 		local ui = State.ui()
 		if (gathering or ui.auto) and ui.panel == "none" then
 			autoStep()
+		end
+	end)
+	-- A full bag ends AUTO and held gathering (LDoE stops auto-gather when full).
+	State.fx:Connect(function(kind: any)
+		if kind == "bagFull" then
+			gathering = false
+			Interaction.setAuto(false)
 		end
 	end)
 	-- Closing the inventory screen closes the crate on the server too.

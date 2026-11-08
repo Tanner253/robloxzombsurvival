@@ -13,7 +13,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 40,
-		icon = "",
+		icon = "rbxassetid://95801563445519",
 	},
 	["item.timber"] = {
 		id = "item.timber",

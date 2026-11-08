@@ -15,6 +15,7 @@ local Inventory = require("./Inventory")
 local Diagnostics = {}
 
 -- What the Studio test kit holds (tools and weapons first, so they land in pockets).
+-- A pack frame is equipped first, so materials land in the backpack and pockets keep room.
 local DEV_KIT = {
 	{ itemId = "item.stone_hatchet", count = 1 },
 	{ itemId = "item.stone_pick", count = 1 },
@@ -40,6 +41,7 @@ function Diagnostics.start()
 		if workspace:GetAttribute("DevKit") == true then
 			task.wait(1)
 			if player.Parent == Players then
+				Inventory.equipBag(player, "item.pack_frame")
 				Inventory.give(player, DEV_KIT)
 			end
 		end

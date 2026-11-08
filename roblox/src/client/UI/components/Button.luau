@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
+local Sfx = require("../../Sfx")
 
 export type Variant = "primary" | "secondary"
 
@@ -50,8 +51,16 @@ local function Button(props: Props)
 		TextColor3 = if primary then Theme.colors.textOnAccent else Theme.colors.text,
 		TextTransparency = if disabled then 0.4 else 0,
 		[React.Event.Activated] = function()
-			if not disabled and props.onActivated then
+			if disabled then
+				Sfx.play("uiError")
+			elseif props.onActivated then
+				Sfx.play("uiClick")
 				props.onActivated()
+			end
+		end,
+		[React.Event.MouseEnter] = function()
+			if not disabled then
+				Sfx.play("uiHover")
 			end
 		end,
 		[React.Event.MouseButton1Down] = function()

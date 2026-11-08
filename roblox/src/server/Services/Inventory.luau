@@ -659,6 +659,22 @@ local function welcome(player: Player, data: PlayerData)
 	Sync.mark(player, "inventory")
 end
 
+-- Puts a bag straight into the equipment slot and resizes the backpack (Studio test kit).
+function Inventory.equipBag(player: Player, itemId: string)
+	local data = PlayerData.get(player)
+	if data == nil or Items[itemId] == nil or Items[itemId].bagSlots == nil then
+		return
+	end
+	local equipment = data.inventory.equipment :: any
+	equipment.bag = { itemId = itemId, count = 1 }
+	local inventory = { pockets = data.inventory.pockets, backpack = data.inventory.backpack }
+	local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(equipment))
+	if resized then
+		data.inventory.backpack = resized.backpack
+	end
+	Sync.mark(player, "inventory")
+end
+
 function Inventory.init()
 	Net.onEvent("InventoryMove", move)
 	Net.onEvent("InventorySplit", split)

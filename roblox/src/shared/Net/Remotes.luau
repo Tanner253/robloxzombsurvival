@@ -52,6 +52,8 @@ local slot = Check.integer(1, Remotes.MAX_SLOT)
 local uid = Check.pattern("^%d+$", 10)
 -- World node keys from the Gathering service, e.g. "p3n12".
 local nodeKey = Check.pattern("^p%d+n%d+$", 16)
+-- Ground drops from the Drops service, e.g. "d42".
+local dropId = Check.pattern("^d%d+$", 12)
 
 local SERVER_ONLY = { count = 1, perSeconds = 60 }
 local MOVES = { count = 24, perSeconds = 4 }
@@ -137,6 +139,13 @@ Remotes.list = {
 	},
 
 	-- Gathering ---------------------------------------------------------------------------
+	PickupDrop = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(dropId),
+		description = "(dropId) picks up a bag on the ground the player owns and is next to",
+	},
 	Gather = {
 		kind = "event",
 		clientCanSend = true,

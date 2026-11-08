@@ -583,6 +583,55 @@ function Models.node(def: Types.ResourceNodeDef, rng: Random): Model
 	return model
 end
 
+-- A loot sack on the ground (Drops): the satchel model, or a cloth bundle without the kit.
+function Models.drop(): Model
+	local kit = Models.kit({ "Gen_backpack", "EO_Satchel" })
+	local drop: Model
+	if kit then
+		drop = kit
+		local height = drop:GetExtentsSize().Y
+		if height > 0.01 then
+			drop:ScaleTo(drop:GetScale() * 1.5 / height)
+		end
+	else
+		drop = newModel("Drop")
+		local cloth = Color3.fromRGB(122, 98, 70)
+		part(drop, Vector3.new(1.6, 1.2, 1.4), CFrame.new(0, 0.6, 0), Enum.Material.Fabric, cloth, Enum.PartType.Ball)
+		part(drop, Vector3.new(0.5, 0.5, 0.5), CFrame.new(0, 1.25, 0), Enum.Material.Fabric, cloth, Enum.PartType.Ball)
+		finish(drop)
+	end
+	for _, descendant in drop:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.CanCollide = false
+			descendant.CanTouch = false
+		end
+	end
+	return drop
+end
+
+-- What a depleted node leaves behind (a stump, rubble), named "Remnant". Gathering
+-- places it beside the node and shows it only while the node is down.
+function Models.remnant(nodeId: string): Model?
+	local art = Art.remnants[nodeId]
+	local model = if art then Models.kit(art.names) else nil
+	if model == nil or art == nil then
+		return nil
+	end
+	local height = model:GetExtentsSize().Y
+	if height > 0.01 then
+		model:ScaleTo(model:GetScale() * art.height / height)
+	end
+	model.Name = "Remnant"
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.CanCollide = false
+			descendant.CanTouch = false
+			descendant.CanQuery = false
+		end
+	end
+	return model
+end
+
 -- Held items --------------------------------------------------------------------------------------
 
 -- A rotation whose lookVector is `look` and whose upVector is as close to `up` as possible.

@@ -23,8 +23,8 @@ export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
 export type Target = {
-	kind: "node" | "station" | "storage",
-	key: string, -- node key or piece UID
+	kind: "node" | "station" | "storage" | "drop",
+	key: string, -- node key, piece UID or drop id
 	label: string,
 	verb: string, -- "Chop", "Open", ...
 	model: Model,
@@ -136,10 +136,21 @@ function State.notify(text: string, tone: Tone?)
 	State.patch({ notices = list })
 end
 
+local REWARD_MERGE_SECONDS = 2.5
+
 function State.reward(itemId: string, count: number)
-	nextId += 1
 	local list: { Reward } = table.clone(ui.rewards)
-	local reward: Reward = { id = nextId, itemId = itemId, count = count, at = os.clock() }
+	local now = os.clock()
+	-- The same item again while its card is still up adds to that card ("+4 Fieldstone").
+	for index, existing in list do
+		if existing.itemId == itemId and now - existing.at < REWARD_MERGE_SECONDS then
+			list[index] = { id = existing.id, itemId = itemId, count = existing.count + count, at = now }
+			State.patch({ rewards = list })
+			return
+		end
+	end
+	nextId += 1
+	local reward: Reward = { id = nextId, itemId = itemId, count = count, at = now }
 	table.insert(list, reward)
 	while #list > 6 do
 		table.remove(list, 1)

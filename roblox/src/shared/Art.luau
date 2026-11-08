@@ -51,6 +51,18 @@ Art.nodes = {
 	["node.ashroot_mound"] = { names = { "AshrootMound" }, height = 1.6 },
 } :: { [string]: { names: { string }, height: number } }
 
+-- What a depleted node leaves behind until it regrows (LDoE leaves stumps and rubble):
+-- a kit model scaled to `height`. Small pickups (branches, loose stones) leave nothing.
+Art.remnants = {
+	["node.pine_tree"] = { names = { "EO_FatwoodStump" }, height = 1.5 },
+	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 0.55 },
+	["node.boulder"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.1 },
+	["node.scrap_heap"] = { names = { "EO_ScrapHeap" }, height = 0.9 },
+	["node.reed_patch"] = { names = { "EO_Reeds", "GrassClump" }, height = 0.9 },
+	["node.ember_bush"] = { names = { "EO_FallenBranches" }, height = 0.8 },
+	["node.ashroot_mound"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 0.5 },
+} :: { [string]: { names: { string }, height: number } }
+
 -- Items -> kit names for the model held in hand and the rendered 3D icon.
 Art.items = {
 	["item.stone_hatchet"] = { "EO_StoneHatchet", "Gen_axe" },
@@ -108,27 +120,80 @@ Art.held = {
 
 -- Sound IDs. PLACEHOLDER: every "" is still to be chosen in Studio (Phase 2);
 -- the client's Sfx skips empty IDs, so nothing plays until one is set.
+-- Sounds: every ID is a real asset from the Roblox Creator Store, mostly the licensed
+-- Pro Sound Effects and APM Music libraries. Volumes are normalised from measured
+-- peaks (AudioAnalyzer) so one-shots land near the same loudness; `region` trims a
+-- clip to one event; `variants` are picked at random to avoid repetition.
+-- `group` routes to a SoundGroup the settings sliders control.
+export type SoundSpec = {
+	id: string,
+	volume: number,
+	speed: number?,
+	region: { number }?, -- { start, stop } seconds
+	group: ("ui" | "sfx" | "ambience" | "music")?,
+	variants: { SoundSpec }?,
+}
+
+local function snd(id: number, volume: number, extra: { [string]: any }?): SoundSpec
+	local spec: any = { id = `rbxassetid://{id}`, volume = volume }
+	if extra then
+		for key, value in extra do
+			spec[key] = value
+		end
+	end
+	return spec
+end
+
+local BAG = 9113667260 -- Pro Sound Effects "Camera Bag 5": flap and rustle
+local CLICK = 82714919253928 -- "UI wood_click" (CoreKit)
+
 Art.sounds = {
-	uiOpen = "", -- PLACEHOLDER: soft cloth whoosh
-	uiClose = "", -- PLACEHOLDER
-	uiClick = "", -- PLACEHOLDER: wooden tick
-	uiError = "", -- PLACEHOLDER: dull thunk
-	pickup = "", -- PLACEHOLDER: item into bag
-	reward = "", -- PLACEHOLDER: warm chime
-	levelUp = "", -- PLACEHOLDER: ember swell + chime
-	chop = "", -- PLACEHOLDER: axe into wood
-	mine = "", -- PLACEHOLDER: pick on stone
-	pluck = "", -- PLACEHOLDER: hand gather rustle
-	nodeBreak = "", -- PLACEHOLDER: tree fall / rock crumble
-	place = "", -- PLACEHOLDER: heavy wooden thud
-	upgrade = "", -- PLACEHOLDER: metal clank
-	demolish = "", -- PLACEHOLDER: splintering
-	craftStart = "", -- PLACEHOLDER
-	collect = "", -- PLACEHOLDER: satisfying pop
-	fuel = "", -- PLACEHOLDER: fire whoosh
-	eat = "", -- PLACEHOLDER
-	drink = "", -- PLACEHOLDER
-} :: { [string]: string }
+	-- Interface
+	uiOpen = snd(BAG, 3.2, { region = { 0, 0.45 }, group = "ui" }),
+	uiClose = snd(BAG, 2.6, { region = { 0, 0.4 }, speed = 1.15, group = "ui" }),
+	uiClick = snd(CLICK, 1.5, { group = "ui" }),
+	uiHover = snd(CLICK, 0.45, { speed = 1.25, group = "ui" }),
+	uiError = snd(117572160588950, 0.6, { group = "ui" }),
+	pickup = snd(BAG, 3, { region = { 0, 0.35 }, speed = 1.2, group = "ui" }),
+	collect = snd(BAG, 3.4, { region = { 0, 0.35 }, speed = 1.05, group = "ui" }),
+	reward = snd(131408467630923, 0.5, { group = "ui" }),
+	levelUp = snd(9043711287, 0.7, { group = "music" }), -- APM "Triumph of the Underdog - Sting 1"
+	questComplete = snd(9038655602, 0.6, { group = "music" }), -- APM "Unfolding Triumph - Sting"
+	-- Gathering
+	chop = snd(159798370, 0.6, { variants = { snd(9120811299, 4), snd(9120808574, 5) } }),
+	mine = snd(9118629291, 0.75, { variants = { snd(9118607563, 0.8, { region = { 0, 0.5 } }) } }),
+	pluck = snd(9113581974, 0.6, { variants = { snd(9113581977, 0.6), snd(9113582134, 0.6) } }),
+	pluckGrass = snd(102870135066164, 6),
+	treeFall = snd(6365855087, 0.8),
+	rockBreak = snd(9118689425, 0.9),
+	bushBreak = snd(9114518080, 3),
+	toolBreak = snd(9113582284, 0.6),
+	-- Building and stations
+	place = snd(9120950231, 2),
+	upgrade = snd(9116652836, 0.7, { region = { 0, 1.2 } }),
+	demolish = snd(9120957463, 0.5),
+	door = snd(9114135682, 10),
+	craftStart = snd(9114769979, 0.6, { region = { 0.2, 1.5 } }),
+	workLoop = snd(100885263044327, 1.2),
+	fuel = snd(103911273184692, 0.5),
+	fireLoop = snd(150367086, 0.7),
+	-- Survival
+	eat = snd(92009203113499, 0.6),
+	drink = snd(9114687054, 1.4),
+	lowMeter = snd(6202853067, 0.5, { group = "ui" }),
+	-- Footsteps by surface
+	stepGrass = snd(116116590426843, 1.2),
+	stepDirt = snd(135139856111678, 0.5, { region = { 0, 0.3 } }),
+	stepWood = snd(116345792542812, 1.3, { region = { 0.3, 0.55 } }),
+	stepStone = snd(87061775498714, 6),
+	-- Ambience beds (loops) and music
+	dayBed = snd(9112777821, 6, { group = "ambience" }), -- PSE "Farmland Presence 2"
+	airBed = snd(9112761455, 4, { group = "ambience" }), -- PSE "Convict Lake 1"
+	nightBed = snd(9112764573, 7, { group = "ambience" }), -- PSE "Crickets Night 3"
+	eerieBed = snd(9112795463, 0.35, { group = "ambience" }), -- PSE "Hollow Rumble 1"
+	musicDay = snd(9040514823, 0.3, { group = "music" }), -- APM "Campfire Embers 60"
+	musicNight = snd(1843721367, 0.35, { group = "music" }), -- APM "Low Drone 19"
+} :: { [string]: SoundSpec }
 
 -- Fallback icon glyphs (emoji) for items with no rendered icon model yet. Placeholder
 -- until every item has a 3D icon; kept to emoji Roblox renders everywhere.

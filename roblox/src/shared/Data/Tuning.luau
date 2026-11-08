@@ -111,6 +111,9 @@ local Tuning: Types.TuningDef = {
 		reachStuds = 10,
 		gatherReachStuds = 9,
 	},
+	drops = {
+		lifetimeSeconds = 600, -- a bag on the ground lasts 10 minutes
+	},
 	newPlayer = {
 		items = {
 			{ itemId = "item.sealed_tin", count = 2 },

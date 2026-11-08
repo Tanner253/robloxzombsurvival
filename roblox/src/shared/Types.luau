@@ -438,6 +438,9 @@ export type TuningDef = {
 		reachStuds: number, -- stations, crates and prompts
 		gatherReachStuds: number, -- resource nodes
 	},
+	drops: {
+		lifetimeSeconds: number, -- how long a bag on the ground lasts
+	},
 	newPlayer: {
 		items: { ItemStack },
 	},

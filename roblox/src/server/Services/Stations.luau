@@ -92,16 +92,21 @@ local function updateModel(player: Player, uid: string)
 		return
 	end
 	local def = Content.Stations[station.stationId]
+	local now = os.time()
 	local ready = false
-	for _, job in Crafting.status(station, def, os.time()) do
+	local workingUntil = 0
+	for _, job in Crafting.status(station, def, now) do
 		if job.done then
 			ready = true
-			break
+		elseif not job.stalled then
+			workingUntil = math.max(workingUntil, station.queue[job.index].endsAt)
 		end
 	end
 	model:SetAttribute("Level", station.level)
 	model:SetAttribute("FuelEndsAt", station.fuelEndsAt)
 	model:SetAttribute("Ready", ready)
+	-- When the queue's running jobs finish, so clients can animate and sound the station meanwhile.
+	model:SetAttribute("WorkingUntil", workingUntil)
 end
 
 -- Refreshes a station's model attributes and the player's synced stations.

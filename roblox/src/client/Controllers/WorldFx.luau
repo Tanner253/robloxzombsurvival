@@ -22,6 +22,7 @@ local TweenService = game:GetService("TweenService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Sfx = require("../Sfx")
+local flyIcon = require("../UI/flyIcon")
 local State = require("../State")
 local Theme = require("../UI/theme")
 local Camera = require("./Camera")
@@ -34,6 +35,24 @@ local CHIP_COLORS: { [string]: Color3 } = {
 	hatchet = Color3.fromRGB(176, 128, 82),
 	pick = Color3.fromRGB(150, 146, 138),
 	hand = Color3.fromRGB(112, 128, 72),
+}
+-- Per node: the sound of each hit and of the node breaking (Art.sounds names).
+local NODE_SOUNDS: { [string]: { hit: string, gone: string } } = {
+	["node.fallen_branches"] = { hit = "pluck", gone = "bushBreak" },
+	["node.loose_stones"] = { hit = "mine", gone = "rockBreak" },
+	["node.reed_patch"] = { hit = "pluckGrass", gone = "bushBreak" },
+	["node.ember_bush"] = { hit = "pluckGrass", gone = "bushBreak" },
+	["node.ashroot_mound"] = { hit = "pluckGrass", gone = "bushBreak" },
+	["node.spring_pool"] = { hit = "drink", gone = "bushBreak" },
+	["node.pine_tree"] = { hit = "chop", gone = "treeFall" },
+	["node.fatwood_stump"] = { hit = "chop", gone = "demolish" },
+	["node.boulder"] = { hit = "mine", gone = "rockBreak" },
+	["node.scrap_heap"] = { hit = "upgrade", gone = "rockBreak" },
+}
+local TOOL_SOUNDS: { [string]: { hit: string, gone: string } } = {
+	hatchet = { hit = "chop", gone = "treeFall" },
+	pick = { hit = "mine", gone = "rockBreak" },
+	hand = { hit = "pluckGrass", gone = "bushBreak" },
 }
 local SNAP_SECONDS = 3 -- pieces placed within this long ago animate in
 local DOOR_RADIUS = 7
@@ -188,7 +207,7 @@ local function fell(model: Model, info: NodeFx)
 	local def = Content.Nodes[nodeId]
 	local tool = if def and def.tool then def.tool.kind else "hand"
 	local base = info.pivot.Position
-	Sfx.play("nodeBreak", base)
+	Sfx.play((NODE_SOUNDS[nodeId] or TOOL_SOUNDS[tool] or TOOL_SOUNDS.hand).gone, base)
 	if tool == "hatchet" then
 		local axis = Vector3.new(math.random() - 0.5, 0, math.random() - 0.5).Unit
 		local topple = CFrame.fromAxisAngle(axis:Cross(Vector3.yAxis), math.rad(84))
@@ -292,7 +311,13 @@ local function onGather(payload: any)
 	local def = Content.Nodes[payload.nodeId]
 	local tool = if def and def.tool then def.tool.kind else "hand"
 	local top = model:GetPivot().Position + Vector3.new(0, math.min(model:GetExtentsSize().Y * 0.5, 4), 0)
-	Sfx.play(if tool == "hatchet" then "chop" elseif tool == "pick" then "mine" else "pluck", top)
+	Sfx.play((NODE_SOUNDS[payload.nodeId] or TOOL_SOUNDS[tool] or TOOL_SOUNDS.hand).hit, top)
+	if payload.broke then
+		Sfx.play("toolBreak")
+	end
+	for index, stack in payload.items or {} do
+		flyIcon(stack.itemId, top, (index - 1) * 0.12)
+	end
 	chips(
 		top,
 		CHIP_COLORS[tool] or CHIP_COLORS.hand,
@@ -466,6 +491,7 @@ local function updateDoors()
 				end
 			end
 			local from = door.leaf:GetPivot()
+			Sfx.play("door", door.closed.Position, if near then 1 else 0.7)
 			local to = if near then door.closed * CFrame.Angles(0, math.rad(-100), 0) else door.closed
 			animateModel(door.leaf, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, function(alpha)
 				door.leaf:PivotTo(from:Lerp(to, alpha))

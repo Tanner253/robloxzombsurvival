@@ -26,6 +26,7 @@ local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Net = require("../Net")
 local Models = require("../World/Models")
 local Analytics = require("./Analytics")
+local Drops = require("./Drops")
 local Inventory = require("./Inventory")
 local Plots = require("./Plots")
 local Progression = require("./Progression")
@@ -43,6 +44,8 @@ type Node = {
 	position: Vector3,
 	radius: number,
 	plot: Plots.Plot,
+	-- The stump or rubble shown while the node is down: each part's authored transparency.
+	remnant: { [BasePart]: number }?,
 }
 
 local tuning = Content.Tuning
@@ -55,6 +58,7 @@ local SPACING = 7
 -- The walkway from the road into the plot stays clear.
 local PATH_HALF_WIDTH = 10
 -- After the last swing, the previous hand item comes back after this long.
+local LOW_DURABILITY = 0.15 -- warn when a tool's durability falls to this fraction
 local SWAP_BACK_SECONDS = 2.5
 local ACTION_BY_TOOL: { [string]: string } = { hatchet = "chop", pick = "mine", hand = "pickup" }
 -- Analytics: gathered totals are sent per player at most this often.
@@ -69,6 +73,11 @@ local rng = Rng.new(Random.new():NextInteger(1, 2 ^ 31 - 2))
 
 local function setStanding(node: Node, standing: boolean)
 	node.model:SetAttribute("Standing", standing)
+	if node.remnant then
+		for part, transparency in node.remnant do
+			part.Transparency = if standing then 1 else transparency
+		end
+	end
 	node.model:SetAttribute("HitsLeft", if standing then node.state.hitsLeft else 0)
 	for _, descendant in node.model:GetDescendants() do
 		if descendant:IsA("BasePart") then
@@ -163,6 +172,20 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 					radius = math.max(size.X, size.Z) / 2,
 					plot = plot,
 				}
+				local remnant = Models.remnant(def.id)
+				if remnant then
+					local parts: { [BasePart]: number } = {}
+					for _, descendant in remnant:GetDescendants() do
+						if descendant:IsA("BasePart") then
+							parts[descendant] = descendant.Transparency
+						end
+					end
+					remnant:ScaleTo(remnant:GetScale() * scale)
+					remnant:PivotTo(CFrame.new(position) * CFrame.Angles(0, random:NextNumber() * math.pi * 2, 0))
+					remnant.Name = `{key}_remnant`
+					remnant.Parent = plot.nodes
+					node.remnant = parts
+				end
 				setStanding(node, true)
 				model.Parent = plot.nodes
 				nodes[key] = node
@@ -244,24 +267,24 @@ local function gather(player: Player, key: string)
 		Sync.fx(player, "gatherDenied", { key = key, reason = reason })
 		return
 	end
-	local sure: { Types.ItemStack } = {}
-	for _, entry in node.def.yields do
-		if entry.chance == nil then
-			table.insert(sure, { itemId = entry.itemId, count = entry.perHit })
-		end
-	end
-	if not Inventory.fits(player, sure) then
-		Sync.notice(player, "Your bag is full")
-		return
-	end
-
 	lastSwing[player] = now
 	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp)
 	if nextState == nil then
 		return
 	end
 	node.state = nextState
-	local given = Inventory.give(player, yields)
+	local given, leftover = Inventory.give(player, yields)
+	if #leftover > 0 then
+		-- Bag full: the rest lands beside the node as a bag to pick up later (LDoE).
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local from = if root then root.Position else node.position + Vector3.xAxis
+		local away = (node.position - from) * Vector3.new(1, 0, 1)
+		local spot = node.position - (if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis) * (node.radius + 1.5)
+		Drops.spawn(player, spot, leftover)
+		Sync.notice(player, "Your bag is full. The rest dropped on the ground.")
+		Sync.fx(player, "bagFull", { key = key })
+	end
 	local totals = gathered[player] or {}
 	gathered[player] = totals
 	for _, stack in given do
@@ -283,8 +306,16 @@ local function gather(player: Player, key: string)
 		local worn, didBreak = Slots.wear(slot, tuning.gathering.durabilityPerHit)
 		broke = didBreak
 		Inventory.setPocket(player, toolIndex, worn)
+		local def = Content.Items[toolItem]
+		local max = if def then def.durability else nil
 		if broke then
-			Sync.notice(player, `Your {Content.Items[toolItem].name} broke`)
+			Sync.notice(player, `Your {def.name} broke`)
+		elseif max and slot.durability and worn.durability then
+			-- One warning as the tool crosses into its last hits.
+			local warnAt = max * LOW_DURABILITY
+			if slot.durability > warnAt and worn.durability <= warnAt then
+				Sync.notice(player, `Your {def.name} is about to break`, "warn")
+			end
 		end
 	end
 
