@@ -440,7 +440,13 @@ Art.fogMap = {
 		["loc.sunken_quarry"] = Vector2.new(0.5, 0.21),
 		["loc.ashfall_depot"] = Vector2.new(0.85, 0.33),
 	} :: { [string]: Vector2 },
-	art = {} :: { [string]: string },
+	-- Each location's panel and loading-screen art: its corner of the painted map
+	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin).
+	art = {
+		["loc.pine_hollow"] = "rbxassetid://80424846897012",
+		["loc.sunken_quarry"] = "rbxassetid://78393149598495",
+		["loc.ashfall_depot"] = "rbxassetid://114701602305172",
+	} :: { [string]: string },
 }
 
 -- The Hollow's animations (checklist 13.1): R15 clips made with Studio's animation
