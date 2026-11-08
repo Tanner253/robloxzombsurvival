@@ -223,6 +223,8 @@ local function scenes(): { Scene }
 		{ name = "inventory.inbox", ui = { panel = "inventory", inventoryTab = "inbox" } },
 		{ name = "crafting", ui = { panel = "crafting" } },
 		{ name = "settings", ui = { panel = "settings" } },
+		{ name = "shop", ui = { panel = "shop" } },
+		{ name = "shop.focus", ui = { panel = "shop", shopFocus = "product.resource_pack" } },
 		{ name = "project.hauler", ui = { panel = "project", projectId = "project.hauler" } },
 		{ name = "build", ui = { panel = "build", buildMode = "place" } },
 		{ name = "build.hint", ui = { panel = "build", buildMode = "place", buildHint = "Needs a Timber floor" } },
@@ -337,7 +339,7 @@ local function run()
 				rewards = {},
 				newItems = {},
 			})
-			State.clear("selected", "stationUid", "projectId", "buildHint", "pieceActions", "inventoryTab")
+			State.clear("selected", "stationUid", "projectId", "buildHint", "pieceActions", "inventoryTab", "shopFocus")
 			table.clear(Boundary.failures)
 			State.patch(scene.ui)
 			settle()
@@ -383,7 +385,7 @@ local function run()
 		questCollapsed = savedUi.questCollapsed,
 		hideUpperWalls = savedUi.hideUpperWalls,
 	})
-	State.clear("selected", "stationUid", "projectId", "buildHint", "pieceActions", "inventoryTab")
+	State.clear("selected", "stationUid", "projectId", "buildHint", "pieceActions", "inventoryTab", "shopFocus")
 	for name in touched do
 		State.set(name, savedSections[name])
 	end

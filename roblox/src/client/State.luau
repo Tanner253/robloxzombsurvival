@@ -18,7 +18,7 @@ local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local State = {}
 
-export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "project"
+export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "project" | "shop"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
@@ -59,6 +59,7 @@ export type Ui = {
 	projectId: string?, -- the project whose parts checklist is open (panel "project")
 	hideUpperWalls: boolean?, -- build mode's top-left toggle (LDOE_PARITY #25)
 	pieceActions: string?, -- build mode: the placed piece whose floating actions show (#27)
+	shopFocus: string?, -- the product a moment-of-need button opened the shop on
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
 	-- and safe-area insets instead of the real window.
 	gate: { width: number, height: number, top: number, left: number, right: number, bottom: number, touch: boolean }?,

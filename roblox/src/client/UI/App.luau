@@ -34,6 +34,7 @@ local CraftingScreen = require("./screens/CraftingScreen")
 local Panels = require("./screens/ldoe/Panels")
 local LdoeHud = require("./screens/ldoe/Hud")
 local LdoeBuild = require("./screens/ldoe/Build")
+local Shop = require("./screens/ldoe/Shop")
 local hooks = require("./hooks")
 
 local e = React.createElement
@@ -131,6 +132,7 @@ local function App(props: Props)
 		Build = e(Boundary, { name = "Build" }, { Screen = if ldoeBuild then e(LdoeBuild) else e(BuildMenu) }),
 		Settings = e(Boundary, { name = "Settings" }, { Screen = e(SettingsScreen) }),
 		Crafting = e(Boundary, { name = "Crafting" }, { Screen = e(CraftingScreen) }),
+		Shop = e(Boundary, { name = "Shop" }, { Screen = e(Shop) }),
 		KitPreview = RunService:IsStudio() and showKit and e(KitPreview),
 	})
 end

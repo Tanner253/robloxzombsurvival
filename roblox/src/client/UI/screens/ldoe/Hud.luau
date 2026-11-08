@@ -56,6 +56,7 @@ local FULL_SCREEN: { [string]: boolean } = {
 	project = true,
 	crafting = true,
 	settings = true,
+	shop = true,
 }
 
 -- Top left: name, HP and the food and water warnings --------------------------------------------------
@@ -587,6 +588,15 @@ local function MenuBar(props: { right: number })
 		position = UDim2.new(1, -props.right, 1, -(H.edge + 18)),
 		anchorPoint = Vector2.new(1, 1),
 		children = {
+			Shop = e(IconButton, {
+				glyph = "shop",
+				size = H.menuIcon,
+				square = true,
+				layoutOrder = 6,
+				onPress = function()
+					Actions.openShop()
+				end,
+			}),
 			Inventory = e(IconButton, {
 				glyph = "backpack",
 				size = H.menuIcon,

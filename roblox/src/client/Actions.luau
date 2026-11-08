@@ -97,6 +97,21 @@ function Actions.toggleCrafting()
 	Sfx.play(if State.ui().panel == "crafting" then "uiOpen" else "uiClose")
 end
 
+-- Opens the shop (the menu bar, the inventory's "+", a Fill up), optionally on a product.
+function Actions.openShop(focus: string?)
+	State.patch({ shopFocus = focus })
+	if State.ui().panel ~= "shop" then
+		State.toggle("shop")
+		Sfx.play("uiOpen")
+	end
+end
+
+-- Asks the server to prompt a product (it checks the offer first; Services/Shop).
+function Actions.buyProduct(productId: string)
+	Net.fire("ShopBuy", productId)
+	Sfx.play("uiClick")
+end
+
 function Actions.closePanel()
 	seenInventory()
 	seenRecipes()

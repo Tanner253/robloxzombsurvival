@@ -419,8 +419,10 @@ local function Panels()
 		inventory = inventory,
 		selected = selected,
 		newItems = ui.newItems,
-		balance = 0, -- premium currency arrives with the shop (S3)
-		shopOpen = false,
+		balance = nil, -- no premium currency in v0.1 (MVP_LAUNCH): the button opens the shop
+		onShop = function()
+			Actions.openShop()
+		end,
 		main = mainAction(),
 		onSelect = select,
 		onSecondary = secondary,

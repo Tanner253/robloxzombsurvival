@@ -1,8 +1,9 @@
 --!strict
 --[[
 	InventoryPane: the left half of LDoE's two-pane screen (LDOE_PARITY #13, rec2_04):
-	- header: the backpack glyph, "INVENTORY", and the premium balance (its "+" opens the
-	  shop once the shop ships, S3);
+	- header: the backpack glyph, "INVENTORY", and the premium balance with its "+" that
+	  opens the shop (LDoE). v0.1 has no premium currency yet, so the balance hides and
+	  the button carries the shop glyph;
 	- pockets 2 x 5 and the backpack 5 wide, each with its rotated side label;
 	- the action bar: the main action, SPLIT, sort and trash.
 
@@ -28,8 +29,8 @@ export type Props = {
 	inventory: any,
 	selected: { ref: string, index: number }?,
 	newItems: { [string]: boolean }?,
-	balance: number,
-	shopOpen: boolean, -- the "+" shows only once the shop ships
+	balance: number?, -- the premium balance; nil while the game has no premium currency
+	onShop: (() -> ())?, -- the "+" (or the shop button) opens the shop
 	main: Action, -- the context's main action for the selected slot
 	onSelect: (ref: string, index: number) -> (),
 	onSecondary: (ref: string, index: number) -> (),
@@ -60,8 +61,9 @@ local function InventoryPane(props: Props)
 				size = UDim2.fromOffset(0, 44),
 				autoSize = Enum.AutomaticSize.X,
 				children = {
-					Coin = e(Glyph, { name = "coin", size = UDim2.fromOffset(28, 28), layoutOrder = 1 }),
-					Amount = e("TextLabel", {
+					Coin = props.balance ~= nil
+						and e(Glyph, { name = "coin", size = UDim2.fromOffset(28, 28), layoutOrder = 1 }),
+					Amount = props.balance ~= nil and e("TextLabel", {
 						Size = UDim2.fromOffset(0, 28),
 						AutomaticSize = Enum.AutomaticSize.X,
 						BackgroundTransparency = 1,
@@ -71,10 +73,11 @@ local function InventoryPane(props: Props)
 						TextColor3 = Theme.colors.text,
 						LayoutOrder = 2,
 					}),
-					Plus = props.shopOpen and e(Parts.BarButton, {
-						glyph = "plus",
+					Plus = props.onShop and e(Parts.BarButton, {
+						glyph = if props.balance ~= nil then "plus" else "shop",
 						tone = "teal",
 						layoutOrder = 3,
+						onActivated = props.onShop,
 					}),
 				},
 			}),
