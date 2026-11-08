@@ -79,6 +79,30 @@ function Check.contentId(prefix: string): Check
 	end
 end
 
+-- One of a fixed set of strings, e.g. Check.oneOf({ "h", "v" }).
+function Check.oneOf(values: { string }): Check
+	local allowed: { [string]: boolean } = {}
+	for _, value in values do
+		allowed[value] = true
+	end
+	return function(value)
+		if type(value) ~= "string" or not allowed[value] then
+			return false, `expected one of: {table.concat(values, ", ")}`
+		end
+		return true, nil
+	end
+end
+
+-- A string of at most `maxLength` bytes that matches a Lua pattern (anchor it yourself).
+function Check.pattern(pattern: string, maxLength: number): Check
+	return function(value)
+		if type(value) ~= "string" or #value > maxLength or string.match(value, pattern) == nil then
+			return false, `expected a string matching {pattern}`
+		end
+		return true, nil
+	end
+end
+
 function Check.optional(inner: Check): Check
 	return function(value)
 		if value == nil then

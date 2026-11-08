@@ -1,6 +1,6 @@
 --!strict
 --[[
-	PlayerSchema: the saved player profile, schema version 1 (ARCHITECTURE.md §6).
+	PlayerSchema: the saved player profile, schema version 2 (ARCHITECTURE.md §6).
 
 	To change the schema:
 	1. Bump VERSION.
@@ -20,7 +20,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 1
+PlayerSchema.VERSION = 2
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -57,6 +57,15 @@ export type RaidLogEntry = {
 	itemsLost: { Types.ItemStack },
 }
 
+-- Health and the survival meters, saved so leaving and rejoining never refills them.
+-- Meters only drain in the world (Domain/Survival), so updatedAt is reset on join.
+export type SurvivalSave = {
+	health: number,
+	hunger: number,
+	thirst: number,
+	updatedAt: number,
+}
+
 export type PlayerData = {
 	version: number,
 	meta: { createdAt: number, lastLoginAt: number, loginCount: number },
@@ -71,11 +80,22 @@ export type PlayerData = {
 	crops: { [string]: CropState }, -- keyed by placed plot UID
 	progression: { level: number, xp: number },
 	energy: { value: number, updatedAt: number },
+	survival: SurvivalSave,
 	quests: { active: { [string]: QuestState }, completed: { [string]: number } },
 	unlocks: { recipes: { [string]: boolean }, blueprints: { [string]: boolean } },
 	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 }
+
+-- Full health and meters, for new profiles and the v1 -> v2 migration.
+function PlayerSchema.freshSurvival(): SurvivalSave
+	return {
+		health = Tuning.player.maxHealth,
+		hunger = Tuning.survival.hunger.max,
+		thirst = Tuning.survival.thirst.max,
+		updatedAt = 0,
+	}
+end
 
 -- A fresh profile. ProfileStore copies this for new players and uses it to fill
 -- missing keys (Reconcile) after migrations run.
@@ -102,6 +122,7 @@ function PlayerSchema.template(): PlayerData
 		crops = {},
 		progression = { level = 1, xp = 0 },
 		energy = { value = Tuning.energy.cap, updatedAt = 0 },
+		survival = PlayerSchema.freshSurvival(),
 		quests = { active = {}, completed = {} },
 		unlocks = { recipes = {}, blueprints = {} },
 		purchases = { receiptIds = {} },
@@ -109,14 +130,14 @@ function PlayerSchema.template(): PlayerData
 	}
 end
 
---[[
-	steps[n] upgrades version n to n + 1. Version 1 is the first schema, so there
-	are none yet. Example for a future v2:
-
+-- steps[n] upgrades version n to n + 1.
+PlayerSchema.migrations = {
+	-- v2: health, hunger and thirst are saved.
 	[1] = function(data)
-		data.progression.prestige = 0
+		if data.survival == nil then
+			data.survival = PlayerSchema.freshSurvival()
+		end
 	end,
-]]
-PlayerSchema.migrations = {} :: Migrations.Steps
+} :: Migrations.Steps
 
 return PlayerSchema

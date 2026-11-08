@@ -395,6 +395,7 @@ export type TuningDef = {
 		respawnHealth: number,
 		respawnHunger: number,
 		respawnThirst: number,
+		tickSeconds: number, -- how often the server applies drain, damage and regen
 	},
 	combat: {
 		armorConstant: number,
@@ -425,6 +426,17 @@ export type TuningDef = {
 	},
 	home: {
 		nodes: { LocationNode }, -- what grows on a fresh home plot; feeds the first quests
+	},
+	plots: {
+		count: number, -- plots per server (one per player)
+		columns: number, -- plots per row; rows face each other across a road
+		spacingStuds: number, -- between plot centres along a row
+		rowGapStuds: number, -- the road between the two rows
+		marginStuds: number, -- the gathering ring around the build grid
+	},
+	interaction: {
+		reachStuds: number, -- stations, crates and prompts
+		gatherReachStuds: number, -- resource nodes
 	},
 	newPlayer: {
 		items: { ItemStack },

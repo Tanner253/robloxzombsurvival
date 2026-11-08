@@ -66,6 +66,16 @@ return function(test: TestKit.Register)
 		TestKit.deepEqual(data.purchases.receiptIds, {}, "receipt log")
 	end)
 
+	test("v1 profiles migrate to v2 with full survival meters", function()
+		local data: { [string]: any } = { version = 1 }
+		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
+		TestKit.truthy(ok, reason)
+		TestKit.equal(data.version, 2, "version")
+		TestKit.equal(data.survival.health, Tuning.player.maxHealth, "health")
+		TestKit.equal(data.survival.hunger, Tuning.survival.hunger.max, "hunger")
+		TestKit.equal(data.survival.thirst, Tuning.survival.thirst.max, "thirst")
+	end)
+
 	test("template returns a fresh table each call", function()
 		local a = PlayerSchema.template()
 		a.inventory.pockets[1].count = 5

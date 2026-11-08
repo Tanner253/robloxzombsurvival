@@ -22,6 +22,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Loot", spec = require("./Loot.spec") },
 	{ name = "Crafting", spec = require("./Crafting.spec") },
 	{ name = "Grid", spec = require("./Grid.spec") },
+	{ name = "HomeLoop", spec = require("./HomeLoop.spec") },
 }
 
 local passed, failed = 0, 0

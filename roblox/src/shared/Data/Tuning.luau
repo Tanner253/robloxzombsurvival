@@ -57,6 +57,7 @@ local Tuning: Types.TuningDef = {
 		respawnHealth = 60,
 		respawnHunger = 60,
 		respawnThirst = 60,
+		tickSeconds = 1,
 	},
 	combat = {
 		armorConstant = 50 / 3, -- LDoE's damage reduction formula
@@ -96,6 +97,19 @@ local Tuning: Types.TuningDef = {
 			{ nodeId = "node.ember_bush", count = 2 },
 			{ nodeId = "node.spring_pool", count = 1 },
 		},
+	},
+	plots = {
+		-- 8 plots in two rows of 4 facing a shared road: the Neighbourhood.
+		-- A plot is the 10 x 10 cell build grid (120 studs) plus a gathering ring.
+		count = 8,
+		columns = 4,
+		spacingStuds = 184,
+		rowGapStuds = 36,
+		marginStuds = 28,
+	},
+	interaction = {
+		reachStuds = 10,
+		gatherReachStuds = 9,
 	},
 	newPlayer = {
 		items = {
