@@ -39,6 +39,7 @@ local State = require("../../../State")
 local Theme = require("../../theme")
 local hooks = require("../../hooks")
 local questText = require("../../questText")
+local mark = require("../../mark")
 local Glyph = require("../../components/Glyph")
 local IconButton = require("../../components/IconButton")
 local ItemIcon = require("../../components/ItemIcon")
@@ -271,6 +272,7 @@ local function SunMoon()
 		Size = UDim2.fromOffset(56, 32),
 		BackgroundTransparency = 1,
 		LayoutOrder = 1,
+		ref = mark.composite, -- the arc and its marker overlap on purpose
 	}, {
 		Arc = e("Frame", {
 			Size = UDim2.fromOffset(48, 48),
@@ -337,7 +339,7 @@ local function TopRight()
 						Size = UDim2.fromOffset(H.minimap, H.minimap),
 						BackgroundTransparency = 1,
 						LayoutOrder = 1,
-					}, { Map = e(Minimap) }),
+					}, { Map = e(Minimap, { position = UDim2.fromScale(0, 0), anchorPoint = Vector2.zero }) }),
 				},
 			}),
 			Buttons = e(Layout.Stack, {

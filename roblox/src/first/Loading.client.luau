@@ -28,7 +28,9 @@ local TIPS = {
 	"Branches give sticks by hand. Sticks and stone make your first hatchet.",
 	"Press Q for AUTO: your survivor walks from node to node and gathers for you.",
 	"Keep the campfire fed. Night is short, but it is not kind.",
-	"Stations keep working while you're away. Collect when you come back.",
+	"Stations keep converting while you're away. Drop a full stack in before you leave.",
+	"Follow the Ember Trail on the left: each quest unlocks the blueprints for the next.",
+	"What grows at home doesn't grow back. The Fog is where the real timber is.",
 	"A full bag drops the rest on the ground. Come back for it.",
 	"Furniture snaps flush against walls. Press R to turn it.",
 	"Upgrade walls in place: wood, then scrap, then reinforced.",
@@ -106,6 +108,20 @@ fillCorner.CornerRadius = UDim.new(1, 0)
 fillCorner.Parent = fill
 fill.Parent = track
 track.Parent = screen
+
+-- The build in the corner (LDOE_PARITY #58), so a capture or bug report names its version.
+local version = Instance.new("TextLabel")
+version.Size = UDim2.fromOffset(240, 20)
+version.Position = UDim2.new(1, -16, 1, -12)
+version.AnchorPoint = Vector2.new(1, 1)
+version.BackgroundTransparency = 1
+version.FontFace = BODY
+version.TextSize = 14
+version.TextColor3 = TEXT
+version.TextTransparency = 0.35
+version.TextXAlignment = Enum.TextXAlignment.Right
+version.Text = `M1 · build {game.PlaceVersion}`
+version.Parent = screen
 
 screen.Parent = playerGui
 

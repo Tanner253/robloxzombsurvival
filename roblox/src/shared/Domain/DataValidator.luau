@@ -960,6 +960,8 @@ local function checkTuning(errors: Errors, content: Types.Content)
 		push(errors, "Tuning.raid: lootFraction must be between 0 and 1")
 	end
 	checkStacks(errors, content, "Tuning.newPlayer.items", tuning.newPlayer.items)
+	checkStacks(errors, content, "Tuning.dailyGift.items", tuning.dailyGift.items)
+	checkLevel(errors, content, "Tuning.dailyGift.untilLevel", tuning.dailyGift.untilLevel)
 	checkLocationNodes(errors, content, "Tuning.home.nodes", tuning.home.nodes)
 	for index, nodeId in tuning.home.renewing do
 		local listed = false
@@ -1112,6 +1114,7 @@ local function checkUsage(errors: Errors, content: Types.Content)
 		addStacks(level.rewards)
 	end
 	addStacks(content.Tuning.newPlayer.items)
+	addStacks(content.Tuning.dailyGift.items)
 
 	for _, id in TableUtil.sortedKeys(content.Items) do
 		local item = content.Items[id]

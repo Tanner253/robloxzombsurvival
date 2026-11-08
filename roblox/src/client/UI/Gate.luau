@@ -10,7 +10,9 @@
 	- Decor = true: a shadow or backplate drawn behind its siblings on purpose;
 	- Overlay = true: meant to sit on top (badges, tooltips, toasts, the drag ghost);
 	- Glyph = "<name>": an icon from the glyph set (an empty image is flagged).
-	Both Decor and Overlay apply to the element's whole subtree.
+	- Composite = true: one graphic made of overlapping parts (the minimap, item slots,
+	  round buttons): checked as one element; its insides are skipped.
+	Decor and Overlay apply to the element's whole subtree.
 ]]
 
 local Players = game:GetService("Players")
@@ -132,6 +134,28 @@ function Gate.collect(screens: { ScreenGui }): { UiAudit.Node }
 					clip = if view then nil else clip,
 					missingGlyph = glyph ~= nil and child:IsA("ImageLabel") and child.Image == "",
 				})
+			end
+			if child:GetAttribute("Composite") == true then
+				-- Checked as one element; only its icons are still checked for missing glyphs.
+				for _, inner in child:GetDescendants() do
+					if
+						inner:IsA("ImageLabel")
+						and inner.Visible
+						and inner:GetAttribute("Glyph") ~= nil
+						and inner.Image == ""
+					then
+						nextId += 1
+						table.insert(nodes, {
+							id = nextId,
+							path = `{childPath}.{inner.Name}`,
+							rect = rectOf(inner),
+							ancestors = {},
+							draws = false,
+							missingGlyph = true,
+						})
+					end
+				end
+				continue
 			end
 			local below = table.clone(ancestors)
 			below[id] = true

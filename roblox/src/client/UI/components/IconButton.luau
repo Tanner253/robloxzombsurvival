@@ -17,6 +17,7 @@ local Badge = require("./Badge")
 local Glyph = require("./Glyph")
 local KeyChip = require("./KeyChip")
 local Sfx = require("../../Sfx")
+local mark = require("../mark")
 
 export type Props = {
 	glyph: string,
@@ -96,6 +97,7 @@ local function IconButton(props: Props)
 		BackgroundColor3 = if props.active then Theme.colors.panelRaised else Theme.colors.panel,
 		BackgroundTransparency = 0.12,
 		Text = "",
+		ref = mark.composite, -- the glyph, caption, badge and key chip sit on the disc
 		[React.Event.MouseButton1Down] = function()
 			if disabled then
 				return

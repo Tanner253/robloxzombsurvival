@@ -107,6 +107,10 @@ local function ItemSlot(props: Props)
 		[React.Event.Activated] = props.onActivated,
 		[React.Event.MouseButton2Click] = props.onSecondary,
 		ref = function(rbx: TextButton?)
+			if rbx then
+				-- The icon, count, durability bar and badges overlap on purpose (UI gate).
+				rbx:SetAttribute("Composite", true)
+			end
 			if rbx and props.slotRef then
 				rbx:SetAttribute("SlotRef", props.slotRef)
 				rbx:SetAttribute("SlotIndex", props.slotIndex)

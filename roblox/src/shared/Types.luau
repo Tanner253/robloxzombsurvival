@@ -508,6 +508,11 @@ export type TuningDef = {
 	newPlayer: {
 		items: { ItemStack },
 	},
+	-- LDOE_PARITY #58: a daily food and water gift into the inbox, below untilLevel.
+	dailyGift: {
+		items: { ItemStack },
+		untilLevel: number,
+	},
 	raid: { lootFraction: number },
 	shield: { afterRaidSeconds: number },
 }

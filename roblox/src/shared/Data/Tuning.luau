@@ -143,6 +143,15 @@ local Tuning: Types.TuningDef = {
 			{ itemId = "item.boiled_water", count = 2 },
 		},
 	},
+	-- LDOE_PARITY #58: until level 10, a daily food and water gift waits in the inbox (one
+	-- per UTC day, the first time the player is online that day).
+	dailyGift = {
+		items = {
+			{ itemId = "item.sealed_tin", count = 2 },
+			{ itemId = "item.boiled_water", count = 2 },
+		},
+		untilLevel = 10,
+	},
 	raid = {
 		lootFraction = 0.3,
 	},

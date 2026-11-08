@@ -93,6 +93,8 @@ export type PlayerData = {
 	-- The crafting catalogue (5.9): starred recipes, and recipes already looked at
 	-- (anything unlocked and not seen wears a NEW badge).
 	recipeMarks: { favourites: { [string]: boolean }, seen: { [string]: boolean } },
+	-- The UTC day number of the last daily food and water gift (LDOE_PARITY #58).
+	gifts: { lastDay: number },
 	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 	settings: Settings,
@@ -178,6 +180,7 @@ function PlayerSchema.template(): PlayerData
 		quests = { active = {}, completed = {} },
 		unlocks = { recipes = {}, blueprints = {} },
 		recipeMarks = { favourites = {}, seen = {} },
+		gifts = { lastDay = 0 },
 		purchases = { receiptIds = {} },
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
@@ -398,6 +401,9 @@ function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
 
 	if type(data.storageLabels) ~= "table" then
 		data.storageLabels = {}
+	end
+	if type(data.gifts) ~= "table" then
+		data.gifts = { lastDay = 0 }
 	end
 	data.homeNodes = nil
 	data.inboxSeq = seq

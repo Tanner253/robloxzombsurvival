@@ -64,6 +64,8 @@ local lastPaintKey = ""
 local touchPoint: Vector2? = nil
 local moving: string? = nil -- the uid of the object being moved
 local wallsFaded = false
+local furnitureGhosted = false
+local FURNITURE_GHOST = Color3.fromHex("7FE3F0") -- LDoE's translucent cyan (rec2_07)
 
 local cachedSaved: any = nil
 local cachedLayout: Grid.Layout? = nil
@@ -351,6 +353,40 @@ local function fadeWalls(hidden: boolean)
 	end
 end
 
+-- Furniture as translucent cyan ghosts while building (#28), so floors and walls read
+-- clearly and every object shows where it stands.
+local function ghostFurniture(on: boolean)
+	furnitureGhosted = on
+	local info = plot()
+	local pieces = Building.piecesFolder(if info then info.index else 0)
+	if pieces == nil then
+		return
+	end
+	for _, model in pieces:GetChildren() do
+		if model:GetAttribute("Layer") ~= "object" then
+			continue
+		end
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.LocalTransparencyModifier = if on then 0.55 else 0
+			end
+		end
+		local glow = model:FindFirstChild("EO_BuildGhost")
+		if on and glow == nil then
+			local made = Instance.new("Highlight")
+			made.Name = "EO_BuildGhost"
+			made.FillColor = FURNITURE_GHOST
+			made.OutlineColor = FURNITURE_GHOST
+			made.FillTransparency = 0.55
+			made.OutlineTransparency = 0.3
+			made.DepthMode = Enum.HighlightDepthMode.Occluded
+			made.Parent = model
+		elseif not on and glow then
+			glow:Destroy()
+		end
+	end
+end
+
 -- The model of a placed piece on my plot (the floating piece actions sit on it).
 function Building.pieceModel(uid: string): Model?
 	local info = plot()
@@ -391,6 +427,10 @@ local function step(dt: number)
 	local fade = ui.panel == "build" and ui.hideUpperWalls == true
 	if fade ~= wallsFaded then
 		fadeWalls(fade)
+	end
+	local ghosts = ui.panel == "build"
+	if ghosts ~= furnitureGhosted then
+		ghostFurniture(ghosts)
 	end
 	local info = plot()
 	local currentLayout = layout()

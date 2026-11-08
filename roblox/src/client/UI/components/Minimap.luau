@@ -11,8 +11,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local Converter = require(ReplicatedStorage.Shared.Domain.Converter)
 local Theme = require("../theme")
 local hooks = require("../hooks")
+local mark = require("../mark")
 
 local e = React.createElement
 
@@ -115,9 +117,15 @@ local function edgeTrees(): { Vector3 }
 	return spots
 end
 
-local function Minimap()
+export type Props = {
+	position: UDim2?, -- defaults to the slice-1 HUD's spot (top right)
+	anchorPoint: Vector2?,
+}
+
+local function Minimap(props: Props?)
 	local plot = hooks.useSection("plot")
 	local saved = hooks.useSection("layout")
+	local stations = hooks.useSection("stations")
 	hooks.useClock(0.25)
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -175,11 +183,17 @@ local function Minimap()
 			})
 		elseif piece.layer == "object" then
 			local cx, cz = Grid.objectCenter(def, piece :: any)
+			-- A station with output waiting shows LDoE's teal ready dot (LDOE_PARITY #7).
+			local record = if type(stations) == "table" then stations[uid] else nil
+			local ready = record ~= nil and Converter.ready(record) > 0
 			children[`O{uid}`] = e("Frame", {
-				Size = UDim2.fromOffset(4, 4),
+				Size = if ready then UDim2.fromOffset(7, 7) else UDim2.fromOffset(4, 4),
 				Position = at(origin + Vector3.new(cx, 0, cz)),
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundColor3 = if def.kind == "station" then Theme.colors.accent else Theme.colors.highlight,
+				BackgroundColor3 = if ready
+					then Theme.colors.badge
+					elseif def.kind == "station" then Theme.colors.accent
+					else Theme.colors.highlight,
 				ZIndex = 4,
 			}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 		end
@@ -252,11 +266,14 @@ local function Minimap()
 		ZIndex = 6,
 	}, { Left = bar(-1), Right = bar(1) })
 	-- A CanvasGroup clips its children to the round corner (a Frame clips only to its box).
+	local placement: Props = props or {}
 	return e("Frame", {
 		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
-		Position = UDim2.new(1, -16, 0, 80),
-		AnchorPoint = Vector2.new(1, 0),
+		Position = placement.position or UDim2.new(1, -16, 0, 80),
+		AnchorPoint = placement.anchorPoint or Vector2.new(1, 0),
 		BackgroundTransparency = 1,
+		-- One drawing for the UI gate: its tiles, walls and dots overlap on purpose.
+		ref = mark.composite,
 	}, {
 		Map = e("CanvasGroup", {
 			Size = UDim2.fromScale(1, 1),

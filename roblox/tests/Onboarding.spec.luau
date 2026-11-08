@@ -4,6 +4,7 @@
 -- (LDOE_PARITY #14-15, #18, #30, #56).
 local TestKit = require("./TestKit")
 local Content = require("../src/shared/Data")
+local Gifts = require("../src/shared/Domain/Gifts")
 local Grid = require("../src/shared/Domain/Grid")
 local Migrations = require("../src/shared/Domain/Migrations")
 local OutpostSchema = require("../src/shared/Domain/OutpostSchema")
@@ -189,5 +190,16 @@ return function(test: TestKit.Register)
 		TestKit.equal(finished.finishedAt, T0)
 		TestKit.equal(select(2, Project.finalize(def, finished, T0)), "finished")
 		TestKit.equal(select(2, Project.deliver(def, finished, "item.rivets", 1)), 0, "closed")
+	end)
+
+	-- Daily gift ----------------------------------------------------------------------------------
+	test("the daily food and water gift comes once a UTC day, until level 10", function()
+		local config = Content.Tuning.dailyGift
+		local due, today = Gifts.due(0, 1, config.untilLevel, T0)
+		TestKit.truthy(due, "first day")
+		TestKit.equal(select(1, Gifts.due(today, 1, config.untilLevel, T0 + 3600)), false, "same day")
+		TestKit.equal(select(1, Gifts.due(today, 1, config.untilLevel, T0 + 86400)), true, "next day")
+		TestKit.equal(select(1, Gifts.due(0, config.untilLevel, config.untilLevel, T0)), false, "level 10 and up")
+		TestKit.equal(select(1, Gifts.due(today + 5, 1, config.untilLevel, T0)), false, "a clock running behind")
 	end)
 end
