@@ -188,7 +188,11 @@ local function terrain(origin: Vector3, random: Random)
 		end
 		for _, centre in plots do
 			local dx, dz = math.abs(x - centre.x), math.abs(z - centre.z)
-			local padHalf = GRID_STUDS / 2 + 4
+			-- The pad's outline wanders (two octaves), so it never reads as a square.
+			local padHalf = GRID_STUDS / 2
+				+ 4
+				+ math.noise((x + seedX) / 26, (z + seedZ) / 26, 5.5) * 9
+				+ math.noise((x + seedX) / 9, (z + seedZ) / 9, 6.1) * 3
 			if dx < padHalf and dz < padHalf then
 				-- Trodden earth in patches, more worn toward the middle; never one flat colour.
 				local worn = math.noise((x + seedX) / 16, (z + seedZ) / 16, 9.1)

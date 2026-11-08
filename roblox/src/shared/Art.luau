@@ -54,9 +54,9 @@ Art.decks = {
 -- earth, leaf litter in the leafy ground. Sand is the dead grass: the grass tile, straw-tinted.
 Art.ground = {
 	[Enum.Material.Grass] = { variant = "EO_Ground_Grass", tint = Color3.fromRGB(150, 148, 122) },
-	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(196, 184, 166) },
+	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(166, 164, 138) }, -- clover litter: no saturated red leaves, no diagonal banding
 	[Enum.Material.Ground] = { variant = "EO_Ground_Earth", tint = Color3.fromRGB(132, 124, 112) },
-	[Enum.Material.Mud] = { variant = "EO_Ground_Mud", tint = Color3.fromRGB(138, 138, 128) },
+	[Enum.Material.Mud] = { variant = "EO_Ground_Mud", tint = Color3.fromRGB(160, 154, 140) }, -- ruts toned to the dirt, not stains
 	[Enum.Material.Sand] = { variant = "EO_Ground_DryGrass", tint = Color3.fromRGB(164, 156, 118) },
 } :: { [Enum.Material]: { variant: string, tint: Color3 } }
 
@@ -71,6 +71,8 @@ Art.tints = {
 	EO_PalisadeDoor = Color3.fromRGB(255, 226, 192),
 	EO_WindowTimber = Color3.fromRGB(255, 226, 192),
 	EO_DoorwayTimber = Color3.fromRGB(255, 212, 168), -- its grey-blue sat further off the walls
+	EO_BareBranches = Color3.fromRGB(150, 118, 92), -- weathered bark, not bleached bone
+	EO_RockCluster = Color3.fromRGB(168, 150, 128), -- warm brown-grey, darker (concept palette)
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
@@ -124,7 +126,7 @@ Art.approved = {
 	-- Family conversions graded A in the lineup (captures 95-101):
 	EO_LanternPost = true,
 	EO_BareBranches = true,
-	EO_RockCluster = true,
+	-- EO_RockCluster: C (orchestrator: light-grey popcorn lumps); gated until a re-conversion.
 	-- Batch 2 (captures 105-107):
 	EO_StorageCrate = true,
 	EO_RecyclerStation = true,
