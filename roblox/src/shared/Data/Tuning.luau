@@ -173,7 +173,7 @@ local Tuning: Types.TuningDef = {
 	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the
 	-- recipes, station and remotes tagged with it are left out of the game entirely.
 	features = {
-		fogRuns = true,
+		fogRuns = false,
 		aiRaiders = false, -- M2
 	},
 	lobby = {
