@@ -124,6 +124,9 @@ function DayNight.start()
 		local override = if studio then workspace:GetAttribute("ClockOverride") else nil
 		if type(override) == "number" then
 			hours = override % 24
+			apply(hours)
+			lastHours = hours
+			return -- a pinned clock fires no dusk/dawn cues
 		end
 		apply(hours)
 		for _, cue in cues do

@@ -8,7 +8,8 @@
 	- exposes ServerStorage.EO_Dev, a BindableFunction that tools and the command
 	  bar can invoke to drive the real services: ("place", pieceId, x, z, axis?, rot?),
 	  ("upgrade", uid), ("demolish", uid), ("give", itemId, count), ("xp", amount),
-	  ("learn", blueprintItemId), ("testbase") builds a furnished test base,
+	  ("learn", blueprintItemId), ("testbase") builds a furnished test base, ("rebuildworld") rebuilds
+	  the Neighbourhood from code,
 	  ("bag", slots) resizes the backpack. place/upgrade return "ok" or the refusal reason.
 	  ("clock", hours).
 ]]
@@ -26,6 +27,7 @@ local Building = require("./Building")
 local PlayerData = require("./PlayerData")
 local Inventory = require("./Inventory")
 local Progression = require("./Progression")
+local Scenery = require("./Scenery")
 local Sync = require("./Sync")
 
 local Diagnostics = {}
@@ -118,6 +120,18 @@ local function devCommand(command: string, ...: any): any
 			end
 		end
 		return if #failed > 0 then table.concat(failed, ", ") else "ok"
+	elseif command == "rebuildworld" then
+		-- The fresh-build test inside a playtest: drop everything Scenery makes and
+		-- let it build the Neighbourhood again from code.
+		workspace.Terrain:Clear()
+		local world = workspace:FindFirstChild("World")
+		for _, name in { "Dressing", "Trailhead", "FogWall", "Hearth" } do
+			local old = world and world:FindFirstChild(name)
+			if old then
+				old:Destroy()
+			end
+		end
+		Scenery.start()
 	elseif command == "xp" then
 		Progression.grantXp(player, args[1], "Dev")
 	elseif command == "clock" then

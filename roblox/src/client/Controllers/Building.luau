@@ -245,10 +245,10 @@ end
 -- wall, facing into the room (LDoE puts stations against walls); otherwise R rotates.
 local function objectTarget(def: Types.BuildPieceDef, px: number, pz: number): Grid.Target
 	local sub, quarter = Grid.SUB, Grid.SUB_STUDS
-	local current = layout()
-	if current then
+	local placed = layout()
+	if placed then
 		local axis, ex, ez = Grid.edgeNear(px, pz)
-		if Grid.pieceAt(current, "frame", ex, ez, axis :: Grid.Axis) then
+		if Grid.pieceAt(placed, "frame", ex, ez, axis :: Grid.Axis) then
 			local lineStuds = (if axis == "h" then ez else ex) * Grid.CELL_STUDS
 			local offset = (if axis == "h" then pz else px) - lineStuds
 			if math.abs(offset) <= WALL_SNAP_STUDS then

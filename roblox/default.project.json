@@ -38,6 +38,14 @@
 			"Loading": {
 				"$path": "src/first/Loading.client.luau"
 			}
+		},
+		"Workspace": {
+			"$className": "Workspace",
+			"Terrain": {
+				"$properties": {
+					"Decoration": false
+				}
+			}
 		}
 	}
 }
