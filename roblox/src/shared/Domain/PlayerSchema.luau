@@ -95,7 +95,9 @@ export type PlayerData = {
 	recipeMarks: { favourites: { [string]: boolean }, seen: { [string]: boolean } },
 	-- The UTC day number of the last daily food and water gift (LDOE_PARITY #58).
 	gifts: { lastDay: number },
-	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
+	-- Robux purchases (Domain/Receipts): the receipt log (most recent last, capped at
+	-- RECEIPT_LOG_SIZE), purchases per product for limits, and backpack slots bought.
+	purchases: { receiptIds: { string }, counts: { [string]: number }, backpackSlots: number },
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 	settings: Settings,
 }
@@ -181,7 +183,7 @@ function PlayerSchema.template(): PlayerData
 		unlocks = { recipes = {}, blueprints = {} },
 		recipeMarks = { favourites = {}, seen = {} },
 		gifts = { lastDay = 0 },
-		purchases = { receiptIds = {} },
+		purchases = { receiptIds = {}, counts = {}, backpackSlots = 0 },
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
 	}

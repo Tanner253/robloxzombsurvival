@@ -417,8 +417,10 @@ export type ProductGrant =
 export type ProductDef = {
 	id: ProductId,
 	name: string,
+	description: string, -- the shop card's line
 	kind: ProductKind,
 	robloxId: number, -- 0 until the product exists on the Creator Dashboard
+	icon: string?, -- the product icon image, also the shop card's art
 	-- Fallback display price only. The live price is read from MarketplaceService
 	-- so Roblox price tests and regional pricing work (GAME_DESIGN.md guardrails).
 	defaultPriceRobux: number,

@@ -142,6 +142,15 @@ Remotes.list = {
 		validate = Check.args(ref, slot),
 		description = "(ref, index) eats, drinks or reads the item in that slot",
 	},
+
+	-- Shop (MVP_LAUNCH v0.1) -------------------------------------------------------------
+	ShopBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("product")),
+		description = "(productId) asks the server to prompt that developer product, if it is on offer",
+	},
 	WeaponSelect = {
 		kind = "event",
 		clientCanSend = true,
