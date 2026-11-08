@@ -21,9 +21,7 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
 - Death: the backpack drops, re-entry while the lobby is open, extraction, the lobby-wide Fog meter.
 - **Architecture: one place, two server roles** (decided 2026-11-08). Lobbies are reserved servers of the **same** place. On start, a server reads its teleport data or private-server ID and builds either the Neighbourhood or a location map. No extra places to create, and one `rojo build` publishes everything.
 
-**Assets from the developer's Zona repo** (`C:\Users\perci\source\repos\Zona`, browserdayz). The developer's scope: trees, weapons and animations only. **No Zona zombies.**
-- **Trees:** EZ-Tree, MIT licence. Owned by S1b.
-- **Weapons and animations:** mostly CC-BY and CC0. Owned by S2B.
+**Assets from the developer's Zona repo** (`C:\Users\perci\source\repos\Zona`, browserdayz). The developer's scope: **weapons and animations ONLY**, owned by S2B. No Zona trees, props, buildings, rocks or zombies. Home keeps the original EO_PineTree, which the developer liked.
 - Every CC-BY asset we use goes into our `CREDITS.md`, and the game ships an in-game **Credits** panel (Settings → Credits). Launch requirement.
 
 **Platform**
