@@ -35,6 +35,7 @@ export type LobbyInfo = {
 	powerBand: number,
 	freeSeats: number,
 	joinable: boolean,
+	seated: { number }?, -- publish only: everyone the run server has seated
 }
 
 export type HomeData = {
@@ -57,7 +58,7 @@ export type Adapter = {
 	kind: "live" | "simulated",
 	listOpen: (locationId: string) -> { LobbyInfo },
 	create: (locationId: string, powerBand: number, seats: number, ttlSeconds: number) -> (string?, string?),
-	claimSeats: (lobbyId: string, locationId: string, count: number, ttlSeconds: number) -> boolean,
+	claimSeats: (lobbyId: string, locationId: string, userIds: { number }, ttlSeconds: number) -> boolean,
 	send: (players: { Player }, ticket: RunTicket.Ticket) -> (boolean, string?),
 	sendHome: (player: Player, homePlaceId: number, data: HomeData) -> (boolean, string?),
 	publish: (info: LobbyInfo, ttlSeconds: number) -> (),
@@ -122,7 +123,27 @@ type Entry = {
 	powerBand: number,
 	freeSeats: number,
 	joinable: boolean,
+	-- Seats claimed by world servers for players still teleporting in (user ID -> expiry,
+	-- UTC). The run server's own count can't see them, so it never overwrites them.
+	claims: { [string]: number }?,
 }
+
+-- How long a claimed seat waits for its player to arrive.
+local CLAIM_SECONDS = 90
+
+local function liveClaims(entry: any, stamp: number): number
+	local count = 0
+	if type(entry.claims) == "table" then
+		for userId, expiresAt in entry.claims do
+			if type(expiresAt) ~= "number" or expiresAt <= stamp then
+				entry.claims[userId] = nil
+			else
+				count += 1
+			end
+		end
+	end
+	return count
+end
 
 function Teleport.live(): Adapter
 	local failureCallbacks: { (Player, string) -> () } = {}
@@ -176,13 +197,18 @@ function Teleport.live(): Adapter
 			end
 			return serverId, nil
 		end,
-		claimSeats = function(lobbyId: string, locationId: string, count: number, ttlSeconds: number): boolean
+		claimSeats = function(lobbyId: string, locationId: string, userIds: { number }, ttlSeconds: number): boolean
+			local stamp = os.time()
 			local ok, result = pcall(function()
 				return sorted(locationId):UpdateAsync(lobbyId, function(old: any): any
-					if type(old) ~= "table" or not old.joinable or old.freeSeats < count then
+					if type(old) ~= "table" or not old.joinable or old.freeSeats < #userIds then
 						return nil -- leave it as it is
 					end
-					old.freeSeats -= count
+					old.claims = if type(old.claims) == "table" then old.claims else {}
+					for _, userId in userIds do
+						old.claims[tostring(userId)] = stamp + CLAIM_SECONDS
+					end
+					old.freeSeats -= #userIds
 					return old
 				end, ttlSeconds)
 			end)
@@ -221,7 +247,14 @@ function Teleport.live(): Adapter
 					if type(old) ~= "table" then
 						return nil -- only the reserving server writes the access code
 					end
-					old.freeSeats = info.freeSeats
+					-- Claims for players who have arrived are spent; the rest still hold seats.
+					local seated: { number } = info.seated or {}
+					if type(old.claims) == "table" then
+						for _, userId in seated do
+							old.claims[tostring(userId)] = nil
+						end
+					end
+					old.freeSeats = math.max(0, info.freeSeats - liveClaims(old, os.time()))
 					old.joinable = info.joinable
 					old.powerBand = info.powerBand
 					return old
@@ -264,12 +297,12 @@ function Teleport.simulated(host: Host): Adapter
 			host.host(id, locationId, powerBand)
 			return id, nil
 		end,
-		claimSeats = function(lobbyId: string, _locationId: string, count: number, _ttl: number): boolean
+		claimSeats = function(lobbyId: string, _locationId: string, userIds: { number }, _ttl: number): boolean
 			local info = lobbies[lobbyId]
-			if info == nil or not info.joinable or info.freeSeats < count then
+			if info == nil or not info.joinable or info.freeSeats < #userIds then
 				return false
 			end
-			info.freeSeats -= count
+			info.freeSeats -= #userIds
 			return true
 		end,
 		send = function(players: { Player }, ticket: RunTicket.Ticket): (boolean, string?)

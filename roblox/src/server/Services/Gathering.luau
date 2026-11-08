@@ -460,6 +460,10 @@ function Gathering.start()
 		clearNodes(plot)
 		lastSwing[player] = nil
 	end)
+	-- Run servers have no plots to release.
+	Players.PlayerRemoving:Connect(function(player: Player)
+		lastSwing[player] = nil
+	end)
 	task.spawn(function()
 		local sinceAnalytics = 0
 		while true do

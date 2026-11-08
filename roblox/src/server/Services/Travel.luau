@@ -41,6 +41,7 @@ local Lobby = require("./Lobby")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
 local Maps = require("../FogRuns/Maps")
+local Teleport = require("../FogRuns/Teleport")
 
 local Travel = {}
 
@@ -167,7 +168,7 @@ end
 
 local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	local location = Content.Locations[locationId]
-	if location == nil or trips[player] or Lobby.runOf(player) then
+	if location == nil or trips[player] or Lobby.busy(player) then
 		return
 	end
 	if not Maps.has(locationId) then
@@ -182,6 +183,10 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	-- Everyone checks out first; nobody pays unless everybody can go.
 	local plans: { [Player]: { trip: TravelMath.Trip, energy: EnergyMath.State, before: EnergyMath.State } } = {}
 	for _, member in members do
+		if member ~= player and (trips[member] or Lobby.busy(member)) then
+			Sync.notice(player, `{member.DisplayName} is already on their way somewhere`)
+			return
+		end
 		if not atDeparture(member) then
 			Sync.notice(
 				player,
@@ -244,7 +249,7 @@ end
 local function reenter(player: Player, locationId: string)
 	local entry = Lobby.reentryOf(player)
 	local location = Content.Locations[locationId]
-	if entry == nil or location == nil or entry.locationId ~= locationId or trips[player] or Lobby.runOf(player) then
+	if entry == nil or location == nil or entry.locationId ~= locationId or trips[player] or Lobby.busy(player) then
 		Sync.notice(player, "There's no bag of yours to go back for")
 		return
 	end
@@ -482,14 +487,32 @@ function Travel.start()
 	if not Features.on(tuning, "fogRuns") then
 		return
 	end
-	-- A trip in that never seated the player gives its Energy back once.
-	Lobby.failed:Connect(function(player: Player, reason: string)
+	-- A trip in that never seated the player gives its Energy back once: from the spend
+	-- this server recorded, or on a run server (where the spend happened elsewhere) the
+	-- price the ticket's trip costs, read from Content (never from the ticket itself).
+	local refundedTickets: { [string]: boolean } = {}
+	Lobby.failed:Connect(function(player: Player, reason: string, ticket: any)
 		local spend = lastSpend[player]
 		lastSpend[player] = nil
+		local amount = 0
 		if spend and now() - spend.at <= REFUND_WINDOW_SECONDS then
-			refund(player, spend.amount, "RunRefund")
+			amount = spend.amount
+		elseif type(ticket) == "table" and Teleport.role() == "run" then
+			local key = `{player.UserId}:{ticket.issuedAt}`
+			local location = Content.Locations[ticket.locationId]
+			if location and not refundedTickets[key] then
+				refundedTickets[key] = true
+				amount = if ticket.reentry
+					then TravelMath.reentryPlan(location :: any, travelConfig).energyCost
+					elseif ticket.mode == "run" then TravelMath.plan(location :: any, "run", travelConfig).energyCost
+					else 0
+			end
+		end
+		if amount > 0 then
+			refund(player, amount, "RunRefund")
 			Sync.notice(player, `Trip cancelled ({reason}); Energy refunded`, "info")
 		end
+		Sync.fx(player, "travelCancelled")
 	end)
 	Lobby.entered:Connect(function(player: Player, run: Lobby.Run)
 		lastSpend[player] = nil

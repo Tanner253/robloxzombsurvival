@@ -449,6 +449,23 @@ local function swapWeapon(player: Player)
 	Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "swap" })
 end
 
+-- Which weapon slot (1 or 2) is in hand.
+function Inventory.activeWeapon(player: Player): number
+	return activeWeapon[player] or 1
+end
+
+-- Puts slot `n` in hand without going through Combat (Combat calls this itself when a
+-- broken weapon switches hands on a run), keeping the held model in step.
+function Inventory.setActiveWeapon(player: Player, n: number)
+	if n ~= 1 and n ~= 2 then
+		return
+	end
+	activeWeapon[player] = n
+	actionRestore[player] = nil
+	Inventory.hold(player, weaponRef(player))
+	Sync.mark(player, "inventory")
+end
+
 -- The UID of the crate the player has open, if any.
 function Inventory.openStorage(player: Player): string?
 	return openStorage[player]
