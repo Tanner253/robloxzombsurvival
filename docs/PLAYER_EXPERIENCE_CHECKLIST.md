@@ -85,6 +85,7 @@ Nothing player-facing is done until it has all ten:
 | 4.11 | Inventory action bar: Equip/Use, Split, sort, and **destroy** (trash, with confirmation). Storage bar: Take all, sort, Put all. | rec8 | S1 |
 | 4.12 | **Storage upgrade in the panel:** the storage header has an upgrade button showing slot capacity now → next and the material cost (have/need). Upgrading happens in place without rebuilding. | rec8 "Storage upgrade" | S1 |
 | 4.13 | **In-world storage labels:** crates show an icon of their main contents (or a category the player picks), so a base reads at a glance | rec8 interior | S1 |
+| 4.15 | **Item inbox:** level-up rewards, quest rewards, purchases, event rewards and anything that doesn't fit go to an inbox instead of being lost or dropped. It has TAKE per row, Take all, use-in-place for consumables, a category filter and a badge with the unclaimed count on the HUD. It has no capacity limit, is raid-proof, and bought items never expire. | rec8 inbox | S1 |
 | 4.14 | Tooltips show stats as icon and value pairs (damage, speed, armor), plus installed mods and empty mod slots (mods arrive in M2) | rec8 | S1 (stats) |
 
 ## 5. Crafting and stations
@@ -102,6 +103,7 @@ Nothing player-facing is done until it has all ten:
 | 5.9 | **Crafting catalogue** (the hand-crafting screen, opened with C or a button): a grid of every recipe with art and names, and category tabs (All, Tools, Weapons, Clothing, Building, Furniture and decor, Favourites ★). NEW badges mark recipes unlocked since you last looked. Locked recipes are greyed, with the unlock condition in red ("Reach level 5", "Complete the 'Hold the Door' quest"). It replaces the short list currently in the inventory. | rec9 | S1 |
 | 5.10 | **Recipe detail card:** art on a blueprint-style card, stat icons, a description, and an ingredient grid with have/need (red when short). **Hover or tap an ingredient to see where it comes from** ("Chopped from pines with a hatchet", "Workbench: 4 timber → 4 planks"). A quantity slider with Max, then the Craft button. | rec9 | S1 |
 | 5.11 | Placement limits shown and enforced: "Placed 1/2" on stations, crates and decor | rec9 "Installed 0/3" | S1 |
+| 5.13 | **At home, building, crafting and station jobs draw materials from everywhere:** pockets, backpack, every home storage crate, and the inbox. Have/need counts include all of it, and costs say where they'll come from. A huge resource pack is usable straight away with no inventory shuffling. On Fog Runs, only what you carry counts. | — | S1 |
 | 5.12 | A count badge over a station in the world when output is ready (for example "3"), visible from the gameplay camera | rec8 | S1 |
 
 ## 6. Building

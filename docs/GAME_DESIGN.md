@@ -93,7 +93,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 | Durability on tools, weapons and armor | Kept, with repair at the workbench. |
 | Death drops your inventory at the location | Kept: your backpack drops where you fell and you can go back for it while the lobby is open. Equipped gear is kept, except in Black fog, which is full loot apart from the secure pouch. |
 | Long build goals (chopper, ATV, motorcycle from parts) | A **vehicle chain** (scooter, truck, then something bigger), each built from rare parts found deep in the fog. The parts are also sold. |
-| Companions (dog) | A companion animal that helps in combat and finds loot. |
+| Companions (dog): food to train and breed, % chances for quality and traits | **Companions:** dogs you raise, train and breed for traits and roles (fighter, scavenger, guard and more). The chances are shown, with bad-luck protection. See "Companions: raise, train, breed". |
 | Random "unknown box" chests | Loot crates **earned in play** (event and location rewards). If we ever sell them, the odds must be published (a Roblox rule). |
 | Season pass, events (Halloween season) | 6–8 week seasons with a free and a premium track, plus themed events. |
 | Clans | **Guilds:** guild districts on the map, a guild hall in Haven, defense calls, guild raids, co-op Vaults and territory control points. |
@@ -198,6 +198,55 @@ The usual guardrails still apply.
 **Rollout:**
 - **M1 slice 3:** crews.
 - **Already in M1:** Neighbourhood visits, Trailhead parties and the co-op Blood Moon.
+
+## Companions: raise, train, breed
+
+The developer flagged this as one of LDoE's strongest money engines:
+- Dogs need food to train and breed.
+- A pup only has a **% chance** of the quality and traits you want, so players keep feeding and breeding to get the perfect dog with the skill they need (fetching loot, fighting zombies).
+- There are no casino crates, but the chase never ends.
+
+Pets are also among Roblox's biggest genres, so companions are a major pillar for us.
+
+**Roles:** each dog has one active role, set by its best trait.
+
+| Role | What it does |
+|---|---|
+| **Fighter** | Attacks the Hollow, draws aggro, and can pin runners |
+| **Scavenger** | Picks up nearby drops and searches containers on Fog Runs; brings small finds home |
+| **Tracker** | Marks hidden caches, Hollow and players (in PvP fog) on the minimap |
+| **Guard** | Defends the outpost on nights and during offline raids (M2 synergy) |
+| **Hauler** | Carries extra slots (a pack harness) |
+
+**Quality and traits:**
+- Each dog has a quality tier (Common → Uncommon → Rare → Epic → Legendary) and **2–4 trait slots**, more at higher quality.
+- Traits come in tiers: Bite, Nose, Stamina, Courage, Loyalty, Pack.
+- Dogs level up by **training**: timed sessions at the **Kennel** that cost food.
+
+**Breeding:**
+- Pair two dogs at the Kennel. It costs food and takes a timer.
+- Each of the pup's trait slots inherits from either parent or **mutates** (a chance of a tier-up or a new trait). Its quality rolls from the parents' qualities.
+- **The odds are always shown before you confirm** (a Roblox rule for anything with a paid input, and the honest thing to do).
+- **Bad-luck protection:** every breed without a tier-up fills a visible **Lineage meter** that raises the next mutation chance. A full meter guarantees one.
+- Better food raises the odds. Common Kibble is craftable from hunted meat. Hunter's Feast is craftable from rarer ingredients. Prime Feast is earned from events and quests, and also sold.
+- **Every food is earnable in play.** Money only speeds things up.
+
+**Fairness rules:**
+- No permadeath. A downed dog limps home and rests on a timer.
+- A companion counts toward gear score, so power-band matchmaking includes it.
+- No trait is exclusive to paying players.
+- Trading dogs between players is later, and only with anti-scam safeguards.
+
+**Money levers:**
+- food bundles
+- Kennel capacity (how many dogs you keep)
+- breeding and training speed-ups
+- cosmetic breeds and coats, collars and dog armor
+- a starter pup in the starter offer
+
+**Social:** dogs follow you around the Neighbourhood, have names, and show their traits. Showing off a Legendary Tracker is identity.
+
+**Later species:** cats (base buffs), crows (scouting) and mules (hauling), each a new collection to chase.
 
 ## Fog Runs: shared lobbies and PvP
 
@@ -329,6 +378,17 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 - VIP servers
 - Cosmetics as a side line
 
+**Item desire is the engine** (the developer's point, 2026-11-08). LDoE has no casino crates. It makes the items themselves so desirable that people pay for the supplies, weapons, armor and backpacks to get them faster. We design for desire on purpose:
+1. **Each tier has a bottleneck material.** For example Rivets for the Scrap tier, Steel Plate for Reinforced, and gun parts for firearms. It's slow but possible to farm, and it's the star of that tier's packs.
+2. **Visible power:** gear, weapons and backpacks show on your character, and every tier is a clear jump in look and stats. People want what they can see.
+3. **Capacity pressure everywhere:** pockets, backpack, storage, Kennel slots and placement limits, each with a capacity product.
+4. **Long goals with visible checklists:** vehicles, Hearth levels and dog lineages, with part packs and "fill up".
+5. **Time:** station, training and breeding timers, with speed-ups.
+6. **Chance-based systems with honest odds:** breeding, and later weapon mod rolls. The inputs are earnable, the odds are shown and bad-luck protection is visible. We never sell a random box.
+7. **Social proof:** neighbours, crews and lobby-mates see your base, your dog and your gear.
+
+**Guardrail:** every paid shortcut also has an earnable path. Fair prices, not LDoE's.
+
 **Shop structure** (from the developer's 2026-11-08 recordings, rec8):
 - **Tabs:** Best, Season, Daily Deals, Outpost, Equipment, Building, Vehicles, Companions, Currency, plus a **Delivery inbox** and VIP.
 - **Daily free claim:** one free item every day. It's the cheapest daily return trigger there is.
@@ -336,7 +396,11 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 - **Room kits:** prefab material bundles ("Timber room 3×3", "Stone room 3×3") that let a player who pays build a whole room instantly. They land in the Delivery inbox.
 - **Capacity packs:** "+1 Campfire can be placed", "+1 Recycler". Placement limits ("Placed 1/2") make the value of these obvious.
 - **Cards:** contents shown exactly (no "possible reward" randomness), tag ribbons, purchase limits and timers. A struck-through "was" price appears only if the item really sold at that price.
-- **Delivery inbox:** everything bought, earned from events or mailed arrives here first. Players take it out when they have room. It's raid-proof, which is our "purchases go to the locked stash" rule as a screen. Bought items never expire.
+- **Item inbox (from M1 slice 1):** everything bought, earned (level-ups, quests, events) or mailed, and anything that overflows, arrives here first.
+  - Players take it out when they have room, but they rarely need to: **at home, building, crafting and station jobs draw from pockets, backpack, all home storage and the inbox.**
+  - So a big pack (for example an "Outpost Pack" with every material for Timber → Stone → Reinforced) is usable the moment it's bought, even though it could never fit in an inventory.
+  - It's raid-proof, which is our "purchases go to the locked stash" rule as a screen. Bought items never expire.
+- **Outpost packs:** tiered base packs with the materials to take a base from bare foundations up a full tier ladder. They're the big-ticket bundle, priced fairer than LDoE's.
 
 **Conversion levers seen in LDoE that we adopt** (detail in [reference/ldoe-recordings/NOTES.md](reference/ldoe-recordings/NOTES.md)):
 - Run vs Walk on Energy
@@ -352,7 +416,7 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 
 **Guardrails:**
 - More generous pacing and fair prices compared with LDoE.
-- No paid random boxes until we're ready to publish odds and handle regional restrictions.
+- No paid random boxes. Chance-based gameplay systems (breeding, mod rolls) are allowed only with earnable inputs, odds shown before every roll, and visible bad-luck protection.
 - Sell items directly instead.
 - Prices are read from script so Roblox's price testing works, and regional pricing is on.
 - **Raid-economy rules:**
@@ -395,8 +459,10 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 - Raids on offline bases, with raidable storage versus the locked stash
 - Shields, new-player protection and a raid log with revenge
 
-**Milestone 3:** guilds (districts, defense calls, control points), live defense, Vaults, advanced firearms and the full mod system.
+**Milestone 3:** guilds (districts, defense calls, control points), live defense, and **companions** (dogs, Kennel, training, breeding, the five roles).
 
-**Later:** vehicles, the companion, seasons.
+**Milestone 4:** Vaults, advanced firearms and the full mod system.
+
+**Later:** vehicles, more companion species, seasons.
 
 **How we judge it:** D1, D7 and D28 retention, session length and payer conversion.
