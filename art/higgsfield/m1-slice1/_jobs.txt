@@ -33,3 +33,4 @@ roblox EO_Scrapblade 72317369810952
 image sticks_icon 4d13e2bf-163b-4afb-adc0-7565925ebc07 (2.75)
 image branches_concept a384dba2-9dc7-4f29-9b36-ba74860d9e31 (2.75)
 roblox item.sticks icon 95801563445519
+roblox loading_keyart 118390976045902 (capture, not generated)

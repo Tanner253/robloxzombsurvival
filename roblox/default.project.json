@@ -32,6 +32,12 @@
 			"EO_Materials": {
 				"$path": "place/materials"
 			}
+		},
+		"ReplicatedFirst": {
+			"$className": "ReplicatedFirst",
+			"Loading": {
+				"$path": "src/first/Loading.client.luau"
+			}
 		}
 	}
 }
