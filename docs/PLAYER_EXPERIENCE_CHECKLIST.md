@@ -55,7 +55,7 @@ Nothing player-facing is done until it has all ten:
 | # | Requirement | LDoE reference | Owner |
 |---|---|---|---|
 | 2.1 | Fixed angled top-down camera (about 55°) with a smooth follow and slight movement lead | rec1 framing | S1 |
-| 2.2 | Zoom range with the wheel or pinch, clamped so the outpost reads at max and the character at min | — | S1 |
+| 2.2 | **Zoom actually works everywhere:** mouse wheel and pinch on touch, smoothed. The range runs from close (the survivor at about ¼ of screen height, for admiring gear) to far (a large part of the surrounding map in view, for scouting). The zoom level is remembered per session. It works in normal play and in build mode, where the range is separate. +/- keys too. | — | S1 |
 | 2.3 | **Occlusion:** walls, roofs and tall props between the camera and the player fade or cut away, so you can always see yourself inside buildings | Interiors stay visible | S1 |
 | 2.4 | Smooth transition into the build-mode camera and back | Build view (rec2) | S1 |
 | 2.5 | Subtle camera shake on heavy hits and tree falls, with a setting to turn it off | — | S1 / S2 |
