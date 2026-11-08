@@ -520,6 +520,8 @@ export type TuningDef = {
 		spacingStuds: number, -- between plot centres along a row
 		rowGapStuds: number, -- the road between the two rows
 		marginStuds: number, -- the gathering ring around the build grid
+		plazaHalfStuds: number, -- Haven Square: half its width (x)
+		plazaDepthStuds: number, -- Haven Square: half its depth (z)
 	},
 	interaction: {
 		reachStuds: number, -- arm's reach from an object's edge (nodes, pickups, crates, stations)
@@ -844,6 +846,37 @@ export type DeathRecoveryTuning = {
 }
 
 -- Everything in Data/, as one bundle (what the validator checks).
+-- Haven Square (Data/Haven) -----------------------------------------------------------------
+
+export type HavenNpc = {
+	id: string,
+	name: string,
+	title: string, -- shown on the talk panel under the name
+	role: "trader" | "quests" | "vip",
+	greeting: string, -- floats over the head when you are near (LDoE rec4_01)
+	lines: { string }, -- the talk panel picks one
+	jacket: string, -- hex tint on the survivor rig's torso and arms (Lune has no Color3)
+	pants: string, -- hex tint on the legs
+	keepsPack: boolean, -- whether the backpack accessory stays on
+}
+
+export type HavenPrice = { itemId: ItemId, coins: number }
+export type HavenContract = { id: string, itemId: ItemId, count: number, coins: number, xp: number }
+
+export type HavenDef = {
+	npcs: { [string]: HavenNpc },
+	trader: { buy: { HavenPrice }, sell: { HavenPrice }, reachStuds: number },
+	contracts: { perDay: number, pool: { HavenContract }, reachStuds: number },
+	chapterRewards: { [string]: { coins: number, items: { ItemStack } } },
+	vip: {
+		passId: number,
+		priceRobux: number,
+		icon: string,
+		energyCapBonus: number,
+		dailyCrate: { ItemStack },
+	},
+}
+
 export type Content = {
 	Items: { [ItemId]: ItemDef },
 	Recipes: { [RecipeId]: RecipeDef },
@@ -856,6 +889,7 @@ export type Content = {
 	Levels: { PlayerLevelDef }, -- index = level
 	Quests: { [QuestId]: QuestDef },
 	Products: { [ProductId]: ProductDef },
+	Haven: HavenDef,
 	Projects: { [string]: ProjectDef },
 	StarterShelter: { StarterPiece },
 	Tuning: TuningDef,

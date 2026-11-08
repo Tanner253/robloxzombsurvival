@@ -9,12 +9,15 @@
 	  day/night cycle then eases these on each client (Controllers/DayNight).
 	- Terrain (when the ground is empty): a grass slab with seeded patches of leafy
 	  grass, earth and mud (three ground layers, ART_DIRECTION §4), a mud road between
-	  the rows and an earth pad under every plot.
+	  the rows, an earth pad under every plot, the trodden ground of Haven Square in the
+	  middle (Domain/Neighbourhood) and the trail from it north to the Trailhead.
 	- Dressing (when World.Dressing is missing): lamps flanking each plot front, a
 	  couple of camp props, a ring of grass tufts, rocks and pebbles around each pad,
 	  pines along the edges and a wrecked car.
-	- The Trailhead at the road's west end (where Fog runs leave): lamps, crates and a
-	  lit sign. The fog wall: drifting fog banks around the Neighbourhood's edge.
+	- The Trailhead just off Haven Square's north side (where Fog runs leave): lamps, crates
+	  and a lit sign. The fog wall: drifting fog banks around the Neighbourhood's edge,
+	  open where the trail leaves.
+	- Haven Square itself is World/Haven's.
 	- The Hearth on the road between the rows: its light reaches far, and a warm glow
 	  on the ground marks its radius (9.4).
 ]]
@@ -26,6 +29,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local Neighbourhood = require(ReplicatedStorage.Shared.Domain.Neighbourhood)
+local Haven = require("../World/Haven")
 local Models = require("../World/Models")
 
 local Scenery = {}
@@ -37,8 +42,9 @@ local tuning = Content.Tuning.plots
 local GRID_STUDS = Content.Tuning.building.plotCells * Grid.CELL_STUDS
 
 -- Neighbourhood extents (studs from the world origin).
-local HALF_WIDTH = tuning.columns * tuning.spacingStuds / 2 + tuning.marginStuds
-local HALF_DEPTH = tuning.rowGapStuds / 2 + tuning.marginStuds * 2 + GRID_STUDS
+local HALF_WIDTH = Neighbourhood.halfWidth(tuning :: any, GRID_STUDS)
+local HALF_DEPTH = Neighbourhood.halfDepth(tuning :: any, GRID_STUDS)
+local TRAIL_X, TRAIL_Z = Neighbourhood.trailhead(tuning :: any, GRID_STUDS)
 
 local function worldFolder(): Instance
 	local world = workspace:FindFirstChild("World")
@@ -57,15 +63,12 @@ local function originOf(world: Instance): Vector3
 	return if typeof(origin) == "Vector3" then origin else DEFAULT_ORIGIN
 end
 
--- Plot centres (x, z offsets from the origin), matching Plots' default layout.
+-- Plot centres (x, z offsets from the origin), matching Plots' layout.
 local function plotCentres(): { { x: number, z: number, front: number } }
 	local list = {}
 	for index = 1, tuning.count do
-		local column = (index - 1) % tuning.columns
-		local row = (index - 1) // tuning.columns
-		local x = (column - (tuning.columns - 1) / 2) * tuning.spacingStuds
-		local offset = tuning.rowGapStuds / 2 + tuning.marginStuds + GRID_STUDS / 2
-		table.insert(list, { x = x, z = if row == 0 then -offset else offset, front = if row == 0 then 1 else -1 })
+		local x, z, front = Neighbourhood.plotCentre(tuning :: any, GRID_STUDS, index)
+		table.insert(list, { x = x, z = z, front = front })
 	end
 	return list
 end
@@ -174,8 +177,30 @@ local function terrain(origin: Vector3, random: Random)
 		if Art.approved.Hearth and fromHearth < 5 + math.noise(x / 4, z / 4, 6.6) * 1.5 then
 			return Enum.Material.Basalt -- ash and scorch under the Hearth's fire (with the Hearth only)
 		end
-		if fromHearth < 14 then
-			return Enum.Material.Ground -- the trodden plaza where the Hearth will stand
+		-- The VIP Lounge behind its fence: trodden earth with leafy islands.
+		if Neighbourhood.inLounge(x, z) then
+			return if grain > 0.3 then Enum.Material.LeafyGrass else Enum.Material.Ground
+		end
+		-- Haven Square: a ragged oval of trodden earth, worn into mud where feet gather (the
+		-- middle, the stalls) and breaking up into leafy islands toward its rim.
+		local oval = math.sqrt((x / tuning.plazaHalfStuds) ^ 2 + (z / tuning.plazaDepthStuds) ^ 2)
+			+ math.noise((x + seedX) / 20, (z + seedZ) / 20, 1.9) * 0.18
+		if oval < 1 then
+			local wear = math.noise((x + seedX) / 14, (z + seedZ) / 14, 8.3) + grain * 0.35 - oval * 0.45
+			if wear > 0.1 or fromHearth < 14 then
+				return Enum.Material.Mud
+			elseif oval > 0.68 and grain + math.noise((x + seedX) / 11, (z + seedZ) / 11, 2.4) > 0.35 then
+				return Enum.Material.LeafyGrass
+			end
+			return Enum.Material.Ground
+		end
+		-- The trail from the square north to the Trailhead.
+		if
+			z < -tuning.plazaDepthStuds
+			and z > TRAIL_Z - 20
+			and math.abs(x - TRAIL_X - math.noise(z / 20, 0, 5.5) * 4) < 4 + grain
+		then
+			return Enum.Material.Ground
 		end
 		-- The road: a compacted dirt track with a gravel crown down the middle, ragged verges.
 		local ragged = math.noise(x / 9, 0, 3.3) * 2.5 + math.noise(x / 27, 0, 8.1) * 4 + grain * 1.5
@@ -212,10 +237,7 @@ local function terrain(origin: Vector3, random: Random)
 				return Enum.Material.Ground -- a footpath about two survivors wide
 			end
 		end
-		-- Out to the Trailhead along the road's line.
-		if x < -HALF_WIDTH and x > -HALF_WIDTH - 66 and math.abs(z - math.noise(x / 20, 0, 5.5) * 4) < 3.5 then
-			return Enum.Material.Ground
-		end
+
 		local edge = outside(x, z)
 		local zones = math.noise((x + seedX) / 70, (z + seedZ) / 70, 0.31)
 		local patches = math.noise((x + seedX) / 22, (z + seedZ) / 22, 1.73)
@@ -297,20 +319,8 @@ local function placeFamily(folder: Instance, names: { string }, at: Vector3, yaw
 			descendant.CanTouch = false
 		end
 	end
-	local mesh = model:FindFirstChildWhichIsA("BasePart", true)
-	if model.Name == "EO_LanternPost" and mesh then
-		-- The lantern hangs from the arm about two thirds up: a warm glow from there.
-		local _, size = model:GetBoundingBox()
-		local glow = Instance.new("Attachment")
-		glow.Name = "Glow"
-		glow.WorldPosition = model:GetPivot().Position + Vector3.new(0, size.Y * 0.62, 0)
-		glow.Parent = mesh
-		local lamp = Instance.new("PointLight")
-		lamp.Range = 18
-		lamp.Brightness = 0.9
-		lamp.Color = Color3.fromRGB(255, 196, 140)
-		lamp.Shadows = false
-		lamp.Parent = glow
+	if model.Name == "EO_LanternPost" then
+		Models.lanternGlow(model)
 	end
 	model.Parent = folder
 	return true
@@ -442,14 +452,15 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 		local widthOut = HALF_WIDTH + 30 + row * 11
 		local step = 9 + row * 2
 		for x = -widthOut, widthOut, step do
-			tree(x + random:NextNumber(-3, 3), -depthOut + random:NextNumber(-3, 3))
+			-- Leave the trail north to the Trailhead open.
+			if math.abs(x - TRAIL_X) > 16 then
+				tree(x + random:NextNumber(-3, 3), -depthOut + random:NextNumber(-3, 3))
+			end
 			tree(x + random:NextNumber(-3, 3), depthOut + random:NextNumber(-3, 3))
 		end
 		for z = -depthOut, depthOut, step do
-			if math.abs(z) > tuning.rowGapStuds * 0.6 then -- leave the road open to the Trailhead
-				tree(-widthOut + random:NextNumber(-3, 3), z + random:NextNumber(-3, 3))
-				tree(widthOut + random:NextNumber(-3, 3), z + random:NextNumber(-3, 3))
-			end
+			tree(-widthOut + random:NextNumber(-3, 3), z + random:NextNumber(-3, 3))
+			tree(widthOut + random:NextNumber(-3, 3), z + random:NextNumber(-3, 3))
 		end
 	end
 	root.Parent = world
@@ -485,15 +496,16 @@ local function trailhead(world: Instance, origin: Vector3)
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = "Trailhead"
-	local at = origin + Vector3.new(-HALF_WIDTH - 60, 0, 0)
-	if not placeFamily(folder, { "EO_LanternPost" }, at + Vector3.new(0, 0, -12), 90, true) then
-		place(folder, { "Lamp" }, at + Vector3.new(0, 0, -12), 90, 12.5, true)
+	-- Just off Haven Square's north side, where the trail meets the fog (Domain/Neighbourhood).
+	local at = origin + Vector3.new(TRAIL_X, 0, TRAIL_Z)
+	if not placeFamily(folder, { "EO_LanternPost" }, at + Vector3.new(-12, 0, 0), 0, true) then
+		place(folder, { "Lamp" }, at + Vector3.new(-12, 0, 0), 0, 12.5, true)
 	end
-	if not placeFamily(folder, { "EO_LanternPost" }, at + Vector3.new(0, 0, 12), 270, true) then
-		place(folder, { "Lamp" }, at + Vector3.new(0, 0, 12), 90, 12.5, true)
+	if not placeFamily(folder, { "EO_LanternPost" }, at + Vector3.new(12, 0, 0), 180, true) then
+		place(folder, { "Lamp" }, at + Vector3.new(12, 0, 0), 180, 12.5, true)
 	end
-	place(folder, { "CrateStack" }, at + Vector3.new(6, 0, -20), 20, 5.5, true)
-	place(folder, { "Barrels" }, at + Vector3.new(4, 0, 19), -40, 5.17, true)
+	placeFamily(folder, { "EO_BarrelCluster" }, at + Vector3.new(-19, 0, 6), 20, true)
+	placeFamily(folder, { "EO_SupplySacksMesh" }, at + Vector3.new(18, 0, 5), -40, true)
 	local sign = anchorPart("Sign", at + Vector3.new(0, 9, 0), folder)
 	light(sign, 30, 1.2, Color3.fromRGB(255, 196, 140))
 	local gui = Instance.new("BillboardGui")
@@ -544,14 +556,14 @@ local function fogWall(world: Instance, origin: Vector3, random: Random)
 	end
 	local step = 60
 	for x = x0, x1, step do
-		bank(Vector3.new(x + random:NextNumber(-8, 8), 0, z0))
+		-- Leave the trail north from the Trailhead open: the Fog is entered there.
+		if math.abs(x - TRAIL_X) > 34 then
+			bank(Vector3.new(x + random:NextNumber(-8, 8), 0, z0))
+		end
 		bank(Vector3.new(x + random:NextNumber(-8, 8), 0, z1))
 	end
 	for z = z0 + step, z1 - step, step do
-		-- Leave the Trailhead road open to the west: the Fog is entered there.
-		if math.abs(z) > 30 then
-			bank(Vector3.new(x0, 0, z + random:NextNumber(-8, 8)))
-		end
+		bank(Vector3.new(x0, 0, z + random:NextNumber(-8, 8)))
 		bank(Vector3.new(x1, 0, z + random:NextNumber(-8, 8)))
 	end
 	folder.Parent = world
@@ -601,6 +613,7 @@ function Scenery.start()
 	trailhead(world, origin)
 	fogWall(world, origin, random)
 	hearth(world, origin)
+	Haven.build(world, origin)
 end
 
 return Scenery
