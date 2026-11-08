@@ -130,6 +130,37 @@ Every asset, animation, effect and UI element must pass this document. If someth
 - Streaming enabled. A target of 60 fps on PC, and never below 30 on mid-range phones.
 - Prefer MeshParts with LODs. Keep instance counts low per plot and per zone. Cap dynamic lights per screen (exact numbers set in the look test).
 
+## 10a. Consistency system (v2, 2026-11-08)
+
+**Why it exists:** the developer said "the visual quality of things is extremely inconsistent," citing the fieldstones, the old dead trees and the campfire. The root causes:
+1. Concepts were **photoreal** (moss, lichen, resin drips) while the world is stylized. That micro-detail turns to mush once it's in 3D and seen from the gameplay camera.
+2. Every asset was generated alone, so palette, detail density and lighting drifted between assets.
+3. Each 3D conversion baked its own textures, with no shared materials.
+4. Meshes went in unchecked, leaving floating fragments and blobby silhouettes.
+
+**The system** (mandatory for every new or redone world asset):
+1. **Master style sheet:** one image, approved by the orchestrator, with a lineup of representative props (boulder, stones, stump, dead tree, branches, campfire, crate) in the target look.
+   - **Look:** stylized game asset, chunky faceted forms, big readable planes, hand-painted PBR with **low micro-detail**, light tops and darker sides for top-down readability, palette-locked muted colors, rounded bevels, consistent top-left light.
+   - **Benchmark:** LDoE's props seen from the gameplay camera.
+   - Every later concept uses this sheet **as an image reference** plus the same prompt preamble.
+2. **Family sheets:** generate assets in families on one canvas, so a family shares lighting, palette and detail.
+   - **Nature:** rocks, stones, stumps, dead trees, branches, bushes, reeds.
+   - **Camp:** campfire, crates, Workbench, Recycler, spring, lantern post.
+   - **Structure trim.**
+   - Never generate a lone asset.
+3. **Conversion** with fixed settings for every asset.
+4. **Conform pass:**
+   - Delete floating fragments and internal faces, and plant the base on the ground.
+   - Normalize scale to the survivor.
+   - **Shared material library:** rock, bark, wood, metal and cloth surfaces are re-textured from the same set of MaterialVariants or SurfaceAppearance maps, or palette-tinted to them, so all rocks share one rock and all wood one wood.
+   - Set CollisionFidelity, strip scripts, and run the z-fighting check.
+5. **Lineup gate in Studio:**
+   - A fixed lineup scene holds each new asset next to the survivor and 3 approved exemplars (outpost kit pieces), under the same lighting.
+   - It's captured at gameplay zoom and close up, by day and by night.
+   - Assets are graded **A** (ships), **B** (fix) or **C** (redo). Only A ships.
+   - The orchestrator approves the lineup capture before anything enters the world.
+6. **When conversion can't hit A** for simple natural shapes (stones, small rocks): use a few good faceted meshes with the shared rock material, varied by scale, rotation and tint. That's consistent by construction.
+
 ## 10. Asset pipeline and consistency gate
 
 1. **Look test in Studio:** a small in-engine scene from the game's fixed angled top-down camera (LDoE-style framing; see `docs/reference/ldoe-recordings/`). It covers the outpost by day and by night, a fog-zone corner, the Hollow and the HUD. Once approved, it becomes the visual reference everything is checked against.
