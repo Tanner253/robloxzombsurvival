@@ -56,6 +56,11 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 - Use one MaterialVariant library, shared by everything: wood planks, scrap sheet metal, rusted steel, concrete, cloth, glass, asphalt, dirt, moss.
 - Keep **texel density** consistent across assets. Avoid photographic detail; use soft, hand-painted-looking surface detail, edge wear and grime.
+- **Ground and terrain: never a single tiled material.** The developer flagged flat, repetitive ground on 2026-11-08. Every area needs all three layers of variation:
+  1. **Macro:** Terrain with noise-blended material zones (mud, grass, leafy grass, rock, road), palette-locked MaterialVariants with color and value shifts, and gently rolling land outside the flat building plots.
+  2. **Mid:** wear that tells a story. Paths worn between points of use, cracked roads with puddles, scorched ash near fires, dead grey grass toward the Fog.
+  3. **Micro:** scatter (grass tufts, pebbles, leaves, roots, scrap, planks) plus decals (stains, cracks, tire tracks). Wind-animated grass via Terrain decoration.
+  - **Gate:** at the gameplay camera, a viewer can't spot a repeating pattern by day or by night.
 - **Building tiers must read instantly by silhouette and material:**
   - **Wood:** plank lattice and rope.
   - **Scrap metal:** patched corrugated sheets and bolts.
