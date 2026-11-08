@@ -32,6 +32,7 @@ local Net = require("../Net")
 local Sfx = require("../Sfx")
 local State = require("../State")
 local Camera = require("./Camera")
+local TeleportScreen = require("./TeleportScreen")
 
 local FogRun = {}
 
@@ -328,6 +329,9 @@ local function onFx(kind: string, payload: any)
 	if kind == "travel" then
 		State.set("travel", payload)
 		Sfx.play("uiOpen")
+		if type(payload) == "table" and type(payload.locationId) == "string" then
+			TeleportScreen.prepare(payload.locationId)
+		end
 	elseif kind == "travelCancelled" then
 		State.set("travel", false)
 	elseif kind == "matching" then
@@ -338,6 +342,7 @@ local function onFx(kind: string, payload: any)
 			State.set("travel", fresh)
 		end
 	elseif kind == "runEnter" then
+		TeleportScreen.prepare(nil) -- the way out of a run is a teleport home
 		State.set("travel", false)
 		State.set("death", false)
 		State.set("result", false)
