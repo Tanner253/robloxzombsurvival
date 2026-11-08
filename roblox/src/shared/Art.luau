@@ -87,8 +87,9 @@ Art.tints = {
 	EO_CampfireRing = Color3.fromRGB(150, 146, 140),
 	EO_SpringBasin = Color3.fromRGB(168, 150, 128),
 	EO_ReedStubbleMesh = Color3.fromRGB(176, 150, 100), -- straw, not pale blue
-	-- The fieldstones were the last bleached-white rock beside the warm boulders (B27).
-	EO_LooseStonesClean = Color3.fromRGB(190, 176, 158),
+	-- The fieldstones were the last bleached-white rock beside the warm boulders (B27): the
+	-- boulder's own palette, so the small pickup and the big node read as one stone.
+	EO_LooseStonesClean = Color3.fromRGB(168, 150, 128),
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
