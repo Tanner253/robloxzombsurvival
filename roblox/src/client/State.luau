@@ -61,7 +61,8 @@ export type Ui = {
 	pieceActions: string?, -- build mode: the placed piece whose floating actions show (#27)
 	shopFocus: string?, -- the product a moment-of-need button opened the shop on
 	settingsView: string?, -- the Settings sheet's page: nil (settings) or "credits"
-	guide: string?, -- the HUD button the first-session guide points at: "craft", "build", "inventory"
+	guide: string?, -- the HUD button the first-session guide points at: "craft", "build", "inventory", "map"
+	guideLocation: string?, -- the location the guide sends you to (the Fog map marks its pin and Run)
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
 	-- and safe-area insets instead of the real window.
 	gate: { width: number, height: number, top: number, left: number, right: number, bottom: number, touch: boolean }?,

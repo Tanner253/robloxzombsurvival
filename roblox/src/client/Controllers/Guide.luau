@@ -9,8 +9,12 @@
 	  or the Build button pulses while you have none;
 	- craft by hand: the Craft button pulses; build: the Build button pulses;
 	- eat, drink or equip: the Inventory button pulses;
-	- travel (quest 6, the hand-off to Fog Runs): the Trailhead, where Runs leave from, is
-	  outlined.
+	- travel (quest 6, the hand-off to Fog Runs; only with features.fogRuns, otherwise the
+	  quest waits): the Trailhead sign, where Runs leave from, is outlined. Once you are
+	  within the departure range (Tuning.travel.departureStuds, the same rule as
+	  Services/Travel), the Map button rings (ui.guide = "map") and the Fog map opens once
+	  (Actions.toggleFogMap, S2B); ui.guideLocation names the location for the map to mark
+	  its pin and Run button.
 	It steps aside while a panel is open or AUTO is gathering for you. The HUD reads the
 	button from ui.guide.
 ]]
@@ -20,6 +24,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local Features = require(ReplicatedStorage.Shared.Features)
+local Actions = require("../Actions")
 local State = require("../State")
 local questText = require("../UI/questText")
 
@@ -84,21 +90,39 @@ local function nearestNode(itemId: string): Model?
 	end)
 end
 
--- Where Fog Runs leave from: every model in the Trailhead (Services/Scenery builds it at
--- the road's west end: its lantern posts today, and whatever S2B puts there to start a Run).
-local function trailhead(): { Instance }
+-- Where Fog Runs leave from: the Trailhead's Sign (Services/Travel measures departures
+-- from it), and the Trailhead's models around it so the spot reads from afar.
+local function trailhead(): ({ Instance }, BasePart?)
 	local world = workspace:FindFirstChild("World")
 	local found = world and world:FindFirstChild("Trailhead")
-	local models: { Instance } = {}
+	local targets: { Instance } = {}
+	local sign: BasePart? = nil
 	if found then
 		for _, child in found:GetChildren() do
 			if child:IsA("Model") then
-				table.insert(models, child)
+				table.insert(targets, child)
+			elseif child.Name == "Sign" and child:IsA("BasePart") then
+				sign = child
+				table.insert(targets, child)
 			end
 		end
 	end
-	return models
+	return targets, sign
 end
+
+-- Whether the survivor is within the departure range of the Trailhead sign.
+local function atTrailhead(sign: BasePart?): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if sign == nil or root == nil then
+		return false
+	end
+	local flat = (root.Position - sign.Position) * Vector3.new(1, 0, 1)
+	return flat.Magnitude <= Content.Tuning.travel.departureStuds
+end
+
+-- The Fog map opens by itself once per travel objective, the first time you arrive.
+local openedFor: string? = nil
 
 -- What the guide points at for an objective: models to outline, or a HUD button.
 local function pointFor(objective: any): ({ Instance }, string?)
@@ -119,7 +143,19 @@ local function pointFor(objective: any): ({ Instance }, string?)
 	elseif kind == "consume" or kind == "equip" then
 		return {}, "inventory"
 	elseif kind == "travel" then
-		return trailhead(), nil
+		if not Features.on(Content.Tuning, "fogRuns") then
+			return {}, nil
+		end
+		local targets, sign = trailhead()
+		if atTrailhead(sign) then
+			local toggleFogMap: any = (Actions :: any).toggleFogMap
+			if openedFor ~= objective.locationId and type(toggleFogMap) == "function" then
+				openedFor = objective.locationId;
+				(toggleFogMap :: () -> ())()
+			end
+			return {}, "map"
+		end
+		return targets, nil
 	end
 	return {}, nil
 end
@@ -164,8 +200,9 @@ function Guide.start()
 				targets, button = pointFor(objective)
 			end
 			point(targets)
-			if button ~= ui.guide then
-				State.patch({ guide = button })
+			local location = if objective and objective.kind == "travel" then objective.locationId else nil
+			if button ~= ui.guide or location ~= ui.guideLocation then
+				State.patch({ guide = button, guideLocation = location })
 			end
 		end
 	end)
