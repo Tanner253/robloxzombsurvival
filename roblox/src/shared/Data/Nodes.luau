@@ -11,7 +11,7 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		id = "node.fallen_branches",
 		name = "Fallen Branches",
 		hits = 1,
-		yields = { { itemId = "item.timber", perHit = 2 } },
+		yields = { { itemId = "item.sticks", perHit = 2 } },
 		xpPerHit = 20,
 		respawnSeconds = 3 * 60,
 	},

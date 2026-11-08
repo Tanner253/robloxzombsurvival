@@ -250,4 +250,26 @@ return function(test: TestKit.Register)
 		TestKit.equal((lit :: any).fuelEndsAt, T0 + 2 * 6 * 60, "fatwood burns 6 minutes")
 		TestKit.equal(Crafting.burnSeconds(campfire, "item.timber"), campfire.fuel.secondsPerUnit, "default")
 	end)
+
+	test("the progression ladder: hands -> sticks + stone -> hatchet -> timber -> planks", function()
+		local nodes, recipes = Content.Nodes, Content.Recipes
+		TestKit.equal(nodes["node.fallen_branches"].yields[1].itemId, "item.sticks", "branches give sticks")
+		TestKit.equal(nodes["node.fallen_branches"].tool, nil, "by hand")
+		for _, id in { "recipe.stone_hatchet", "recipe.stone_pick" } do
+			local uses = {}
+			for _, stack in recipes[id].inputs do
+				uses[stack.itemId] = true
+			end
+			TestKit.truthy(uses["item.sticks"] and uses["item.stone"] and not uses["item.timber"], id)
+		end
+		-- Timber only from nodes that need a hatchet.
+		for id, def in nodes do
+			for _, yield in def.yields do
+				if yield.itemId == "item.timber" then
+					TestKit.truthy(def.tool and def.tool.kind == "hatchet", `{id} gives timber without a hatchet`)
+				end
+			end
+		end
+		TestKit.equal(recipes["recipe.plank"].inputs[1].itemId, "item.timber", "planks from timber")
+	end)
 end

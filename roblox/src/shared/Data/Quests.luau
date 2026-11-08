@@ -15,7 +15,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		name = "First Light",
 		description = "The fog thins at dawn. Pick up fallen branches and loose stones around your outpost.",
 		objectives = {
-			{ kind = "gather", itemId = "item.timber", count = 6 },
+			{ kind = "gather", itemId = "item.sticks", count = 6 },
 			{ kind = "gather", itemId = "item.stone", count = 6 },
 		},
 		rewards = { xp = 150, items = { { itemId = "item.sealed_tin", count = 2 } } },

@@ -590,7 +590,7 @@ local function frame(look: Vector3, up: Vector3): CFrame
 	local back = -look.Unit
 	local right = up:Cross(back)
 	if right.Magnitude < 1e-4 then
-		right = Vector3.xAxis:Cross(back)
+		right = Vector3.new(1, 0, 0):Cross(back)
 	end
 	right = right.Unit
 	return CFrame.fromMatrix(Vector3.zero, right, back:Cross(right).Unit, back)

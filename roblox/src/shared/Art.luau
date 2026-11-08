@@ -133,6 +133,7 @@ Art.sounds = {
 -- Fallback icon glyphs (emoji) for items with no rendered icon model yet. Placeholder
 -- until every item has a 3D icon; kept to emoji Roblox renders everywhere.
 Art.glyphs = {
+	["item.sticks"] = "🥢",
 	["item.timber"] = "🌲",
 	["item.stone"] = "🗿",
 	["item.scrap"] = "🔧",

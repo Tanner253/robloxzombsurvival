@@ -263,7 +263,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 1,
 		hp = 200,
 		cost = {
-			{ itemId = "item.timber", count = 5 },
+			{ itemId = "item.sticks", count = 6 },
 			{ itemId = "item.stone", count = 5 },
 			{ itemId = "item.fiber", count = 2 },
 		},

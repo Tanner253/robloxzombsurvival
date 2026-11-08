@@ -5,6 +5,16 @@ local Types = require("../Types")
 
 local Items: { [Types.ItemId]: Types.ItemDef } = {
 	-- Raw resources ---------------------------------------------------------
+	-- Sticks are the bare-handed start (fallen branches); timber is logs, from a hatchet.
+	["item.sticks"] = {
+		id = "item.sticks",
+		name = "Sticks",
+		category = "resource",
+		tier = 1,
+		rarity = "common",
+		stackSize = 40,
+		icon = "",
+	},
 	["item.timber"] = {
 		id = "item.timber",
 		name = "Timber",

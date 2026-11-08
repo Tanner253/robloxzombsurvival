@@ -52,9 +52,10 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 			},
 		},
 		fuel = {
-			itemIds = { "item.timber", "item.plank", "item.fatwood" },
+			itemIds = { "item.sticks", "item.timber", "item.plank", "item.fatwood" },
 			secondsPerUnit = 2 * 60,
 			burnSeconds = {
+				["item.sticks"] = 60,
 				["item.plank"] = 3 * 60,
 				["item.fatwood"] = 6 * 60,
 			},

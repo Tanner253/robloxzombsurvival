@@ -360,8 +360,7 @@ local function autoStep()
 	walkTarget = goal
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local here = root()
-	if humanoid and here then
+	if humanoid then
 		local at = goal:GetPivot().Position
 		local away = Vector3.new(here.Position.X - at.X, 0, here.Position.Z - at.Z)
 		local size = goal:GetExtentsSize()
