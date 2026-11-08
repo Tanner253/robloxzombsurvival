@@ -3,13 +3,19 @@
 	SettingsScreen (the gear button, or O): audio volumes, camera shake, UI size and
 	the key list (PLAYER_EXPERIENCE_CHECKLIST 8.6). Changes apply at once
 	(Controllers/Preferences) and are saved to the player's profile.
+
+	Its CREDITS button turns the sheet to the Credits page (MVP_LAUNCH): every work we use
+	and its author, licence and source, read from Data/Credits, which tools/credits.luau
+	writes from CREDITS.md. BACK returns to the settings.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local PlayerSchema = require(ReplicatedStorage.Shared.Domain.PlayerSchema)
+local Credits = require(ReplicatedStorage.Shared.Data.Credits)
 local Actions = require("../../Actions")
+local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
 local Button = require("../components/Button")
@@ -109,6 +115,57 @@ local function Volume(props: { value: number, onChange: (number) -> () })
 	})
 end
 
+-- The Credits page: each section's title, then one entry per work.
+local function CreditsPage()
+	local entries: { [string]: any } = {
+		Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+		Intro = e(Label, {
+			text = "Ember Outpost uses these works. Thank you to their authors.",
+			style = "body",
+			tone = "muted",
+			wrap = true,
+			size = UDim2.new(1, -12, 0, 26),
+			layoutOrder = 0,
+		}),
+	}
+	local order = 0
+	for sectionIndex, section in Credits do
+		order += 1
+		entries[`S{sectionIndex}`] = e(Label, {
+			text = string.upper(section.title),
+			style = "section",
+			tone = "accent",
+			size = UDim2.new(1, -12, 0, 26),
+			layoutOrder = order,
+		})
+		for rowIndex, row in section.rows do
+			order += 1
+			entries[`S{sectionIndex}R{rowIndex}`] = e("Frame", {
+				Size = UDim2.new(1, -12, 0, 44),
+				BackgroundTransparency = 1,
+				LayoutOrder = order,
+			}, {
+				Work = e(Label, { text = row.work, style = "body", tone = "highlight", size = UDim2.new(1, 0, 0, 22) }),
+				Detail = e(Label, {
+					text = `by {row.by}, {row.license}, {row.source}`,
+					style = "caption",
+					tone = "muted",
+					size = UDim2.new(1, 0, 0, 20),
+					position = UDim2.fromOffset(0, 22),
+				}),
+			})
+		end
+	end
+	return e("ScrollingFrame", {
+		Size = UDim2.new(1, 0, 1, -56),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 4,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+	}, entries)
+end
+
 local function SettingsScreen()
 	local ui = hooks.useUi()
 	local saved = hooks.useSection("settings")
@@ -167,6 +224,16 @@ local function SettingsScreen()
 		})
 	end
 	left.Scale = e(Row, { label = "Interface size", layoutOrder = 12 }, scaleButtons)
+	left.Credits = e(Row, { label = "Credits", layoutOrder = 13 }, {
+		Open = e(Button, {
+			text = "View",
+			variant = "secondary",
+			size = UDim2.fromOffset(120, 44),
+			onActivated = function()
+				State.patch({ settingsView = "credits" })
+			end,
+		}),
+	})
 
 	local keys: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -189,21 +256,37 @@ local function SettingsScreen()
 		})
 	end
 
+	local credits = ui.settingsView == "credits"
 	return e(Sheet, {
 		open = open,
-		title = "Settings",
-		subtitle = "Saved to your profile",
+		title = if credits then "Credits" else "Settings",
+		subtitle = if credits then "The works this game uses" else "Saved to your profile",
 		closeKey = "O",
-		onClose = Actions.closePanel,
+		onClose = function()
+			State.clear("settingsView")
+			Actions.closePanel()
+		end,
 		size = UDim2.fromOffset(900, 560),
 	}, {
-		Left = e("Frame", { Size = UDim2.new(0.55, -12, 1, 0), BackgroundTransparency = 1 }, left),
-		Right = e("Frame", {
+		Left = not credits and e("Frame", { Size = UDim2.new(0.55, -12, 1, 0), BackgroundTransparency = 1 }, left),
+		Right = not credits and e("Frame", {
 			Size = UDim2.new(0.45, -12, 1, 0),
 			Position = UDim2.fromScale(1, 0),
 			AnchorPoint = Vector2.new(1, 0),
 			BackgroundTransparency = 1,
 		}, keys),
+		Page = credits and e(CreditsPage),
+		-- Back to the settings, under the credits list.
+		Back = credits and e(Button, {
+			text = "Back",
+			variant = "secondary",
+			size = UDim2.fromOffset(140, 44),
+			position = UDim2.fromScale(1, 1),
+			anchorPoint = Vector2.new(1, 1),
+			onActivated = function()
+				State.clear("settingsView")
+			end,
+		}),
 	})
 end
 

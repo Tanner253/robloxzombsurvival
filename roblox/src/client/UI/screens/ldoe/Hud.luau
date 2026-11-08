@@ -304,6 +304,7 @@ local function SunMoon()
 end
 
 local function TopRight()
+	local ui = hooks.useUi()
 	return e(Layout.Stack, {
 		gap = Theme.spacing.sm,
 		alignX = Enum.HorizontalAlignment.Right,
@@ -349,10 +350,14 @@ local function TopRight()
 				size = UDim2.new(1, 0, 0, Theme.tapTarget * 2 + 24),
 				layoutOrder = 3,
 				children = {
+					-- The first-session guide (Controllers/Guide) rings the button the next
+					-- Ember Trail step needs.
 					Craft = e(IconButton, {
 						glyph = "craft",
 						size = 52,
 						key = "C",
+						active = ui.guide == "craft",
+						ring = Theme.colors.accentSoft,
 						layoutOrder = 1,
 						onPress = Actions.toggleCrafting,
 					}),
@@ -360,6 +365,8 @@ local function TopRight()
 						glyph = "build",
 						size = 52,
 						key = "B",
+						active = ui.guide == "build",
+						ring = Theme.colors.accentSoft,
 						layoutOrder = 2,
 						onPress = Actions.toggleBuild,
 					}),
@@ -604,8 +611,8 @@ local function MenuBar(props: { right: number })
 				key = "Tab",
 				badge = inboxCount,
 				new = anyNew and inboxCount == 0,
-				active = flashing,
-				ring = Theme.colors.danger,
+				active = flashing or ui.guide == "inventory",
+				ring = if flashing then Theme.colors.danger else Theme.colors.accentSoft,
 				layoutOrder = 7,
 				onPress = if inboxCount > 0 and not anyNew then Actions.openInbox else Actions.toggleInventory,
 			}),

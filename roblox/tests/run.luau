@@ -34,6 +34,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Chapter1", spec = require("./Chapter1.spec") },
 	{ name = "Shop", spec = require("./Shop.spec") },
 	{ name = "DataSafety", spec = require("./DataSafety.spec") },
+	{ name = "Credits", spec = require("./Credits.spec") },
 	{ name = "UiAudit", spec = require("./UiAudit.spec") },
 	-- Fog Runs (slice 2)
 	{ name = "Features", spec = require("./Features.spec") },

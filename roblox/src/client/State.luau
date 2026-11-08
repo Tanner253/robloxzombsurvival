@@ -60,6 +60,8 @@ export type Ui = {
 	hideUpperWalls: boolean?, -- build mode's top-left toggle (LDOE_PARITY #25)
 	pieceActions: string?, -- build mode: the placed piece whose floating actions show (#27)
 	shopFocus: string?, -- the product a moment-of-need button opened the shop on
+	settingsView: string?, -- the Settings sheet's page: nil (settings) or "credits"
+	guide: string?, -- the HUD button the first-session guide points at: "craft", "build", "inventory"
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
 	-- and safe-area insets instead of the real window.
 	gate: { width: number, height: number, top: number, left: number, right: number, bottom: number, touch: boolean }?,
