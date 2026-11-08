@@ -636,13 +636,65 @@ local function updateDoors()
 end
 
 -- Canopy fade ---------------------------------------------------------------------------------------
--- Tall things (trees) between the camera and the survivor fade out, so the
--- player is never hidden under a canopy (LDoE does the same).
+-- Tall things (tree nodes and the edge pines) whose canopy covers the survivor or stands
+-- between them and the camera fade out, so the player is never hidden under a canopy
+-- (LDoE does the same).
 
-local CANOPY_RADIUS = 9
 local CANOPY_MIN_HEIGHT = 7
-local CANOPY_ALPHA = 0.7
+local CANOPY_ALPHA = 0.85
 local faded: { [Model]: boolean } = {}
+
+-- True when a canopy (base, top, radius) hides the survivor at `root` from the camera:
+-- it covers them, or stands toward the camera where the sight line is still below its top.
+local function hides(root: Vector3, toCamera: Vector3, base: Vector3, top: number, radius: number): boolean
+	local flat = Vector3.new(toCamera.X, 0, toCamera.Z)
+	local reach = flat.Magnitude
+	if reach < 0.01 or top - root.Y < CANOPY_MIN_HEIGHT then
+		return false
+	end
+	local dir = flat / reach
+	local offset = Vector3.new(base.X - root.X, 0, base.Z - root.Z)
+	local along = offset:Dot(dir)
+	if along < -radius then
+		return false -- behind the survivor
+	end
+	if (offset - dir * along).Magnitude > radius + 1 then
+		return false
+	end
+	local nearest = math.max(along - radius, 0)
+	return root.Y + toCamera.Y * nearest / reach < top
+end
+
+-- The edge pines (World.Dressing.Edges) never move: their canopies are read once, and
+-- again when more of them arrive.
+local edgeTrees: { { model: Model, base: Vector3, top: number, radius: number } } = {}
+local edgeCount = -1
+
+local function readEdgeTrees()
+	local world = workspace:FindFirstChild("World")
+	local dressing = world and world:FindFirstChild("Dressing")
+	local edges = dressing and dressing:FindFirstChild("Edges")
+	if edges == nil then
+		return
+	end
+	local children = edges:GetChildren()
+	if #children == edgeCount then
+		return
+	end
+	edgeCount = #children
+	table.clear(edgeTrees)
+	for _, model in children do
+		if model:IsA("Model") then
+			local box, size = model:GetBoundingBox()
+			table.insert(edgeTrees, {
+				model = model,
+				base = model:GetPivot().Position,
+				top = box.Position.Y + size.Y / 2,
+				radius = math.max(size.X, size.Z) / 2,
+			})
+		end
+	end
+end
 
 local function setFade(model: Model, amount: number)
 	for _, descendant in model:GetDescendants() do
@@ -657,15 +709,21 @@ local function updateCanopy()
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local near: { [Model]: boolean } = {}
 	if root then
+		readEdgeTrees()
+		local at = root.Position
+		local toCamera = workspace.CurrentCamera.CFrame.Position - at
 		for model, info in nodeFx do
 			if info.standing then
-				local offset = model:GetPivot().Position - root.Position
-				if
-					Vector2.new(offset.X, offset.Z).Magnitude < CANOPY_RADIUS
-					and model:GetExtentsSize().Y > CANOPY_MIN_HEIGHT
-				then
+				local box, size = model:GetBoundingBox()
+				local top = box.Position.Y + size.Y / 2
+				if hides(at, toCamera, model:GetPivot().Position, top, math.max(size.X, size.Z) / 2) then
 					near[model] = true
 				end
+			end
+		end
+		for _, tree in edgeTrees do
+			if tree.model.Parent and hides(at, toCamera, tree.base, tree.top, tree.radius) then
+				near[tree.model] = true
 			end
 		end
 	end
@@ -836,9 +894,9 @@ function WorldFx.start()
 	RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
 		updateDoors()
-		updateCanopy()
 		if elapsed >= 0.1 then
 			elapsed = 0
+			updateCanopy()
 			updateStations(State.now())
 			updateOcclusion()
 		end

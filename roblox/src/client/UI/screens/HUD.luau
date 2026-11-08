@@ -362,7 +362,7 @@ local function LevelBar()
 	if not progression then
 		return nil
 	end
-	local into, span, fraction = Progression.progress(progression, Content.Levels)
+	local _, _, fraction = Progression.progress(progression, Content.Levels)
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 0, 8),
 		Position = UDim2.fromScale(0, 1),
@@ -376,17 +376,6 @@ local function LevelBar()
 			BackgroundColor3 = Theme.meters.xp,
 			BorderSizePixel = 0,
 		}),
-		Level = e("TextLabel", {
-			Size = UDim2.fromOffset(0, 22),
-			AutomaticSize = Enum.AutomaticSize.X,
-			Position = UDim2.fromOffset(12, -4),
-			AnchorPoint = Vector2.new(0, 1),
-			BackgroundColor3 = Theme.colors.panel,
-			FontFace = Theme.fonts.header,
-			Text = ` Lv {progression.level}  ·  {into}/{span} XP `,
-			TextSize = Theme.textSize.caption,
-			TextColor3 = Theme.colors.text,
-		}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
 	})
 end
 
@@ -668,13 +657,16 @@ local function ActionButton(
 			accent = props.primary,
 		}),
 		Badge = (props.badge or 0) > 0 and e("TextLabel", {
-			Size = UDim2.fromOffset(24, 24),
-			Position = UDim2.fromOffset(6, -12), -- above the icon, clear of the neighbour's key chip and the label
-			BackgroundColor3 = Theme.colors.locked,
+			Size = UDim2.fromOffset(22, 22),
+			-- On the left edge below the key-chip line: clear of this button's chip, the
+			-- neighbour's chip and the label (QA: badges crowded the key chips).
+			Position = UDim2.fromOffset(-6, 20),
+			-- A solid red count with light digits: dark digits on salmon read as a blot.
+			BackgroundColor3 = Color3.fromHex("C8473A"),
 			FontFace = Theme.fonts.header,
 			Text = if (props.badge or 0) > 99 then "99+" else tostring(props.badge),
 			TextSize = Theme.textSize.caption,
-			TextColor3 = Theme.colors.textOnAccent,
+			TextColor3 = Theme.colors.text,
 			ZIndex = 4,
 		}, {
 			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
