@@ -64,7 +64,7 @@ local TEST_BASE: { { any } } = {
 	{ "build.window_wood", 5, 3, "h" },
 	{ "build.wall_wood", 3, 3, "v" },
 	{ "build.wall_wood", 3, 4, "v" },
-	{ "build.workbench", 12, 18, nil, 1 },
+	{ "build.workbench", 12, 18, nil, 3 }, -- back to the west wall, working side to the room
 	{ "build.campfire", 17, 17, nil, 0 },
 }
 local TEST_STOCK = {
