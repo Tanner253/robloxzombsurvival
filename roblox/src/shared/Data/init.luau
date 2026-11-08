@@ -14,9 +14,13 @@ local Content: Types.Content = {
 	Items = require("@self/Items"),
 	Recipes = require("@self/Recipes"),
 	Stations = require("@self/Stations"),
+	Nodes = require("@self/Nodes"),
 	LootTables = require("@self/LootTables"),
+	Enemies = require("@self/Enemies"),
 	Locations = require("@self/Locations"),
 	BuildPieces = require("@self/BuildPieces"),
+	Levels = require("@self/Levels"),
+	Quests = require("@self/Quests"),
 	Products = require("@self/Products"),
 	Tuning = require("@self/Tuning"),
 }

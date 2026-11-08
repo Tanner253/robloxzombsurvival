@@ -1,18 +1,97 @@
 --!strict
--- Global tuning numbers. Services read these instead of hard-coding values (ARCHITECTURE.md §5).
+--[[
+	Global tuning numbers. Services read these instead of hard-coding values (ARCHITECTURE.md §5).
+	Every number here is one that no single content definition owns.
+	MVP values; the reasoning and the LDoE comparison are in docs/CONTENT_MVP.md.
+]]
 
 local Types = require("../Types")
 
 local Tuning: Types.TuningDef = {
 	energy = {
-		cap = 20,
-		secondsPerPoint = 6 * 60,
+		-- LDoE: cap 200 at 1 per 5 min. Same regen here, half the cap, and runs cost
+		-- about two thirds as much, so a run pays back in two thirds of the time.
+		cap = 100,
+		secondsPerPoint = 5 * 60,
+		overfillCap = 200,
+		levelUpRestore = 20,
+		foodDailyCap = 40,
 	},
 	inventory = {
-		pocketSlots = 6,
-		backpackSlots = 8,
-		maxBackpackSlots = 32,
-		lockedStashSlots = 24,
+		pocketSlots = 10,
+		backpackSlots = 0,
+		maxBackpackSlots = 18, -- Scrap Pack Frame (12) + Pack Expansion (6)
+		lockedStashSlots = 30,
+	},
+	player = {
+		maxHealth = 100,
+		walkSpeed = 16,
+		sprintSpeed = 22,
+		fistDamage = 6,
+		fistAttacksPerSecond = 1.8,
+		fistRange = 4,
+	},
+	survival = {
+		-- LDoE drains 1 point per 10 s for both meters (about 17 min from full).
+		maxHunger = 100,
+		maxThirst = 100,
+		hungerDrainSeconds = 14,
+		thirstDrainSeconds = 11,
+		starvingDamagePerSecond = 1,
+		dehydratedDamagePerSecond = 1,
+		regenThreshold = 60,
+		regenPerSecond = 0.1,
+		respawnHealth = 60,
+		respawnHunger = 60,
+		respawnThirst = 60,
+	},
+	combat = {
+		armorConstant = 50 / 3, -- LDoE's damage reduction formula
+		weaponDurabilityPerHit = 1,
+		armorDurabilityPerHitTaken = 1,
+	},
+	gathering = {
+		swingSeconds = 0.8,
+		durabilityPerHit = 1,
+	},
+	travel = {
+		runSeconds = 3,
+		fogTierNames = { "Light", "Dense", "Black" },
+	},
+	death = {
+		dropLifetimeSeconds = 2 * 60 * 60,
+		dropsPockets = true,
+		dropsBackpack = true,
+		keepsEquipped = true,
+		keepsLatestDropOnly = true,
+	},
+	building = {
+		gridStuds = 12,
+		wallHeightStuds = 12,
+		plotCells = 10,
+		freeRefundSeconds = 30,
+		demolishRefundFraction = 0.5,
+	},
+	salvage = {
+		durabilityScalesChance = true,
+	},
+	home = {
+		-- Enough for quests 1-5 (about 60 timber and 20 stone) with respawns.
+		nodes = {
+			{ nodeId = "node.fallen_branches", count = 6 },
+			{ nodeId = "node.loose_stones", count = 6 },
+			{ nodeId = "node.pine_tree", count = 10 },
+			{ nodeId = "node.boulder", count = 6 },
+			{ nodeId = "node.reed_patch", count = 4 },
+			{ nodeId = "node.ember_bush", count = 2 },
+			{ nodeId = "node.spring_pool", count = 1 },
+		},
+	},
+	newPlayer = {
+		items = {
+			{ itemId = "item.sealed_tin", count = 2 },
+			{ itemId = "item.boiled_water", count = 2 },
+		},
 	},
 	raid = {
 		lootFraction = 0.3,

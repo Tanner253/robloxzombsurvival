@@ -16,6 +16,14 @@ local function brokenCopy(mutate: (content: any) -> ()): { string }
 	return DataValidator.validate(copy)
 end
 
+local function count(dict: { [string]: any }): number
+	local total = 0
+	for _ in dict do
+		total += 1
+	end
+	return total
+end
+
 return function(test: TestKit.Register)
 	test("all content in src/shared/Data is valid", function()
 		local errors = DataValidator.validate(Content)
@@ -25,14 +33,47 @@ return function(test: TestKit.Register)
 	end)
 
 	test("content is frozen at load", function()
-		TestKit.truthy(table.isfrozen(Content.Items["item.wood"]), "Items entry frozen")
+		TestKit.truthy(table.isfrozen(Content.Items["item.timber"]), "Items entry frozen")
+		TestKit.truthy(table.isfrozen(Content.Levels), "Levels frozen")
+	end)
+
+	test("MVP content covers the GAME_DESIGN scope", function()
+		local tiers: { [number]: number } = {}
+		local rotating = 0
+		for _, location in Content.Locations do
+			if location.availability.kind == "rotating" then
+				rotating += 1
+			else
+				tiers[location.fogTier] = (tiers[location.fogTier] or 0) + 1
+			end
+		end
+		TestKit.equal(tiers[1], 1, "Light locations")
+		TestKit.equal(tiers[2], 1, "Dense locations")
+		TestKit.equal(tiers[3], 1, "Black locations")
+		TestKit.equal(rotating, 1, "rotating event locations")
+		TestKit.equal(count(Content.Enemies), 3, "Hollow types")
+		TestKit.equal(#Content.Levels, 20, "player levels")
+		TestKit.truthy(count(Content.Quests) >= 8 and count(Content.Quests) <= 10, "8-10 starter quests")
+		TestKit.equal(count(Content.Products), 4, "shop products")
+
+		local structural: { [string]: { [number]: boolean } } = {}
+		for _, piece in Content.BuildPieces do
+			if piece.kind ~= "station" and piece.kind ~= "storage" then
+				structural[piece.kind] = structural[piece.kind] or {}
+				structural[piece.kind][piece.tier] = true
+			end
+		end
+		for _, kind in { "foundation", "wall", "doorway", "door", "window" } do
+			local byTier = structural[kind] or {}
+			TestKit.truthy(byTier[1] and byTier[2] and byTier[3], `{kind} in all 3 tiers`)
+		end
 	end)
 
 	test("catches an unknown item in a recipe input", function()
 		local errors = brokenCopy(function(c)
-			c.Recipes["recipe.hatchet"].inputs[1].itemId = "item.does_not_exist"
+			c.Recipes["recipe.stone_hatchet"].inputs[1].itemId = "item.does_not_exist"
 		end)
-		TestKit.anyContains(errors, "Recipes['recipe.hatchet'].inputs[1]: unknown item 'item.does_not_exist'")
+		TestKit.anyContains(errors, "Recipes['recipe.stone_hatchet'].inputs[1]: unknown item 'item.does_not_exist'")
 	end)
 
 	test("catches an unknown station on a recipe", function()
@@ -44,21 +85,32 @@ return function(test: TestKit.Register)
 
 	test("catches an unknown item in a loot entry", function()
 		local errors = brokenCopy(function(c)
-			c.LootTables["loot.pine_grove_crate"].entries[2].itemId = "item.ghost"
+			c.LootTables["loot.pine_crate"].entries[2].itemId = "item.ghost"
 		end)
-		TestKit.anyContains(errors, "LootTables['loot.pine_grove_crate'].entries[2]: unknown item 'item.ghost'")
+		TestKit.anyContains(errors, "LootTables['loot.pine_crate'].entries[2]: unknown item 'item.ghost'")
 	end)
 
-	test("catches an unknown loot table on a location", function()
+	test("catches an unknown loot table on a location container", function()
 		local errors = brokenCopy(function(c)
-			c.Locations["loc.pine_grove"].lootTableIds[1] = "loot.nowhere"
+			c.Locations["loc.pine_hollow"].containers[1].lootTableId = "loot.nowhere"
 		end)
 		TestKit.anyContains(errors, "unknown loot table 'loot.nowhere'")
 	end)
 
+	test("catches broken node, enemy and enemy loot references", function()
+		local errors = brokenCopy(function(c)
+			c.Locations["loc.pine_hollow"].nodes[1].nodeId = "node.ghost"
+			c.Locations["loc.sunken_quarry"].enemySpawns[1].enemyId = "enemy.ghost"
+			c.Enemies["enemy.brute"].lootTableId = "loot.ghost"
+		end)
+		TestKit.anyContains(errors, "unknown node 'node.ghost'")
+		TestKit.anyContains(errors, "unknown enemy 'enemy.ghost'")
+		TestKit.anyContains(errors, "Enemies['enemy.brute']: unknown loot table 'loot.ghost'")
+	end)
+
 	test("catches an unknown item in a product grant", function()
 		local errors = brokenCopy(function(c)
-			c.Products["product.resource_pack_small"].grants[1].itemId = "item.free_robux"
+			c.Products["product.resource_pack"].grants[1].itemId = "item.free_robux"
 		end)
 		TestKit.anyContains(errors, "unknown item 'item.free_robux'")
 	end)
@@ -72,31 +124,132 @@ return function(test: TestKit.Register)
 		TestKit.anyContains(errors, "station pieces need a stationId")
 	end)
 
-	test("catches unknown items in station costs and fuel", function()
+	test("catches unknown items in station costs, fuel and salvage", function()
 		local errors = brokenCopy(function(c)
 			c.Stations["station.workbench"].levels[2].upgradeCost[1].itemId = "item.nope"
 			c.Stations["station.campfire"].fuel.itemIds[1] = "item.also_nope"
+			c.Stations["station.recycler"].salvage[1].outputs[1].itemId = "item.still_nope"
 		end)
 		TestKit.anyContains(errors, "unknown item 'item.nope'")
 		TestKit.anyContains(errors, "unknown item 'item.also_nope'")
+		TestKit.anyContains(errors, "unknown item 'item.still_nope'")
 	end)
 
 	test("catches a key that does not match its id or prefix", function()
 		local errors = brokenCopy(function(c)
-			c.Items["item.wood"].id = "item.timber"
+			c.Items["item.timber"].id = "item.wood"
 			c.Items["wood_no_prefix"] = TableUtil.deepCopy(c.Items["item.stone"])
 			c.Items["wood_no_prefix"].id = "wood_no_prefix"
 		end)
-		TestKit.anyContains(errors, "id field is 'item.timber', expected 'item.wood'")
+		TestKit.anyContains(errors, "id field is 'item.wood', expected 'item.timber'")
 		TestKit.anyContains(errors, "Items['wood_no_prefix']: ID must look like 'item.snake_case'")
 	end)
 
 	test("catches bad values", function()
 		local errors = brokenCopy(function(c)
-			c.Items["item.wood"].stackSize = 0
-			c.LootTables["loot.quarry_cache"].entries[1].min = 9
+			c.Items["item.timber"].stackSize = 0
+			c.LootTables["loot.quarry_toolbox"].entries[1].min = 9
 		end)
 		TestKit.anyContains(errors, "stackSize must be a positive integer")
 		TestKit.anyContains(errors, "need 1 <= min <= max")
+	end)
+
+	test("catches item fields that don't match the category", function()
+		local errors = brokenCopy(function(c)
+			c.Items["item.shortbow"].weapon.ammoItemId = "item.timber"
+			c.Items["item.padded_vest"].equipSlot = "weapon"
+			c.Items["item.stone_pick"].tool = nil
+		end)
+		TestKit.anyContains(errors, "'item.timber' is not an ammo item")
+		TestKit.anyContains(errors, "Items['item.padded_vest']: armor needs equipSlot")
+		TestKit.anyContains(errors, "Items['item.stone_pick']: tool stats are required on tools")
+	end)
+
+	test("catches a node that no tool can harvest", function()
+		local errors = brokenCopy(function(c)
+			c.Nodes["node.boulder"].tool.tier = 2
+		end)
+		TestKit.anyContains(errors, "Nodes['node.boulder']: no item is a tier 2+ pick")
+	end)
+
+	test("catches a loot preview that never drops at the location", function()
+		local errors = brokenCopy(function(c)
+			table.insert(c.Locations["loc.pine_hollow"].mainLoot, "item.brass_gear")
+		end)
+		TestKit.anyContains(errors, "'item.brass_gear' is previewed but never drops here")
+	end)
+
+	test("catches build tiers that don't chain", function()
+		local errors = brokenCopy(function(c)
+			c.BuildPieces["build.wall_scrap"].cost[1].count = 9
+			c.BuildPieces["build.door_scrap"].minFoundationTier = 1
+			c.BuildPieces["build.window_wood"].upgradesTo = "build.wall_scrap"
+		end)
+		TestKit.anyContains(errors, "BuildPieces['build.wall_wood']: 'build.wall_scrap' cost must equal")
+		TestKit.anyContains(errors, "door tier can't exceed its foundation tier")
+		TestKit.anyContains(errors, "BuildPieces['build.window_wood']: upgradesTo must be the same kind, one tier up")
+	end)
+
+	test("catches blueprint gates on non-blueprints and blueprints that unlock nothing", function()
+		local errors = brokenCopy(function(c)
+			c.Recipes["recipe.pack_frame"].unlock.itemId = "item.timber"
+		end)
+		TestKit.anyContains(errors, "'item.timber' is not a blueprint item")
+		TestKit.anyContains(errors, "Items['item.bp_pack_frame']: blueprint doesn't unlock any recipe or build piece")
+	end)
+
+	test("catches bad quest references and prerequisite loops", function()
+		local errors = brokenCopy(function(c)
+			c.Quests["quest.first_light"].prerequisite = "quest.the_dense_fog"
+			c.Quests["quest.scavenger"].objectives[1].locationId = "loc.nowhere"
+			c.Quests["quest.tools_of_survival"].objectives[1].recipeId = "recipe.ghost"
+		end)
+		TestKit.anyContains(errors, "prerequisite chain loops back on itself")
+		TestKit.anyContains(errors, "Quests: at least one quest must have no prerequisite")
+		TestKit.anyContains(errors, "unknown location 'loc.nowhere'")
+		TestKit.anyContains(errors, "unknown recipe 'recipe.ghost'")
+	end)
+
+	test("catches orphaned tables and items that can only be bought", function()
+		local errors = brokenCopy(function(c)
+			table.remove(c.Locations["loc.stranded_caravan"].containers, 2)
+			c.Items["item.gold_crown"] = TableUtil.deepCopy(c.Items["item.sealed_tin"])
+			c.Items["item.gold_crown"].id = "item.gold_crown"
+			table.insert(
+				c.Products["product.resource_pack"].grants,
+				{ kind = "item", itemId = "item.gold_crown", count = 1 }
+			)
+		end)
+		TestKit.anyContains(errors, "LootTables['loot.caravan_strongbox']: not used by any location container or enemy")
+		TestKit.anyContains(errors, "Items['item.gold_crown']: can't be earned in play")
+	end)
+
+	test("catches level curve and level gate problems", function()
+		local errors = brokenCopy(function(c)
+			c.Levels[3].xp = 100
+			c.Locations["loc.sunken_quarry"].levelGate = 99
+		end)
+		TestKit.anyContains(errors, "Levels[3]: xp must be higher than the previous level's")
+		TestKit.anyContains(errors, "level 99 must be an integer from 1 to 20")
+	end)
+
+	test("catches rotating availability and reset mismatches", function()
+		local errors = brokenCopy(function(c)
+			local caravan = c.Locations["loc.stranded_caravan"]
+			caravan.availability.activeSeconds = caravan.availability.periodSeconds
+			c.Locations["loc.ashfall_depot"].reset = { kind = "perAppearance" }
+		end)
+		TestKit.anyContains(errors, "need 0 < activeSeconds < periodSeconds")
+		TestKit.anyContains(
+			errors,
+			"Locations['loc.ashfall_depot']: perAppearance resets go with rotating availability"
+		)
+	end)
+
+	test("catches a backpack cap below what bags and upgrades reach", function()
+		local errors = brokenCopy(function(c)
+			c.Tuning.inventory.maxBackpackSlots = 10
+		end)
+		TestKit.anyContains(errors, "maxBackpackSlots is 10 but bags and upgrades reach 18")
 	end)
 end

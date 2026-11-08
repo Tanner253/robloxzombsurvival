@@ -1,47 +1,402 @@
 --!strict
--- Outpost build piece definitions, keyed by permanent ID. M0 placeholders.
--- Tiers follow DECISIONS.md: each tier roughly doubles HP, nothing is unbreachable.
+--[[
+	Outpost build piece definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
+
+	Three tiers: Wood (1), Scrap Metal (2), Reinforced (3). Each tier doubles HP and
+	nothing is unbreachable (DECISIONS.md). Pieces upgrade in place: `upgradeCost`
+	pays for the step to `upgradesTo`, and a higher-tier piece's `cost` (placing it
+	directly) is always the lower tier's cost plus that upgradeCost. The validator
+	checks this. Edge pieces set minFoundationTier to their own tier, which is the
+	"wall tier can't exceed foundation tier" rule.
+]]
 
 local Types = require("../Types")
 
+local SCRAP_TIER: Types.UnlockGate = { kind = "level", level = 6 }
+local REINFORCED_TIER: Types.UnlockGate = { kind = "blueprint", itemId = "item.bp_reinforced" }
+
 local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
+	-- Wood (tier 1) -----------------------------------------------------------------
 	["build.foundation_wood"] = {
 		id = "build.foundation_wood",
-		name = "Wooden Foundation",
+		name = "Timber Foundation",
 		kind = "foundation",
 		tier = 1,
-		hp = 500,
-		cost = { { itemId = "item.wood", count = 10 } },
+		hp = 600,
+		cost = { { itemId = "item.timber", count = 10 } },
 		breachCost = 2,
+		upgradesTo = "build.foundation_scrap",
+		upgradeCost = {
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
+		},
 	},
 	["build.wall_wood"] = {
 		id = "build.wall_wood",
-		name = "Wooden Wall",
+		name = "Timber Wall",
 		kind = "wall",
 		tier = 1,
-		hp = 300,
-		cost = { { itemId = "item.wood", count = 6 } },
+		hp = 400,
+		cost = {
+			{ itemId = "item.timber", count = 8 },
+			{ itemId = "item.rope", count = 1 },
+		},
 		breachCost = 1,
-		upgradesTo = "build.wall_stone",
+		minFoundationTier = 1,
+		upgradesTo = "build.wall_scrap",
+		upgradeCost = {
+			{ itemId = "item.plank", count = 4 },
+			{ itemId = "item.scrap_plate", count = 3 },
+		},
 	},
-	["build.wall_stone"] = {
-		id = "build.wall_stone",
-		name = "Stone Wall",
+	["build.doorway_wood"] = {
+		id = "build.doorway_wood",
+		name = "Timber Doorway",
+		kind = "doorway",
+		tier = 1,
+		hp = 350,
+		cost = {
+			{ itemId = "item.timber", count = 6 },
+			{ itemId = "item.rope", count = 1 },
+		},
+		breachCost = 1,
+		minFoundationTier = 1,
+		upgradesTo = "build.doorway_scrap",
+		upgradeCost = {
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.scrap_plate", count = 3 },
+		},
+	},
+	["build.door_wood"] = {
+		id = "build.door_wood",
+		name = "Timber Door",
+		kind = "door",
+		tier = 1,
+		hp = 300,
+		cost = {
+			{ itemId = "item.timber", count = 5 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		breachCost = 1,
+		minFoundationTier = 1,
+		upgradesTo = "build.door_scrap",
+		upgradeCost = {
+			{ itemId = "item.plank", count = 2 },
+			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.rivets", count = 1 },
+		},
+	},
+	["build.window_wood"] = {
+		id = "build.window_wood",
+		name = "Timber Window Wall",
+		kind = "window",
+		tier = 1,
+		hp = 350,
+		cost = {
+			{ itemId = "item.timber", count = 7 },
+			{ itemId = "item.rope", count = 1 },
+		},
+		breachCost = 1,
+		minFoundationTier = 1,
+		upgradesTo = "build.window_scrap",
+		upgradeCost = {
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.scrap_plate", count = 3 },
+		},
+	},
+
+	-- Scrap Metal (tier 2) ------------------------------------------------------------
+	["build.foundation_scrap"] = {
+		id = "build.foundation_scrap",
+		name = "Scrap Metal Foundation",
+		kind = "foundation",
+		tier = 2,
+		hp = 1200,
+		cost = {
+			{ itemId = "item.timber", count = 10 },
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
+		},
+		breachCost = 4,
+		unlock = SCRAP_TIER,
+		upgradesTo = "build.foundation_reinforced",
+		upgradeCost = {
+			{ itemId = "item.stone_block", count = 10 },
+			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+	},
+	["build.wall_scrap"] = {
+		id = "build.wall_scrap",
+		name = "Scrap Metal Wall",
 		kind = "wall",
 		tier = 2,
-		hp = 600,
-		cost = { { itemId = "item.stone", count = 10 } },
+		hp = 800,
+		cost = {
+			{ itemId = "item.timber", count = 8 },
+			{ itemId = "item.rope", count = 1 },
+			{ itemId = "item.plank", count = 4 },
+			{ itemId = "item.scrap_plate", count = 3 },
+		},
 		breachCost = 2,
+		minFoundationTier = 2,
+		unlock = SCRAP_TIER,
+		upgradesTo = "build.wall_reinforced",
+		upgradeCost = {
+			{ itemId = "item.stone_block", count = 8 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.rivets", count = 2 },
+		},
 	},
+	["build.doorway_scrap"] = {
+		id = "build.doorway_scrap",
+		name = "Scrap Metal Doorway",
+		kind = "doorway",
+		tier = 2,
+		hp = 700,
+		cost = {
+			{ itemId = "item.timber", count = 6 },
+			{ itemId = "item.rope", count = 1 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.scrap_plate", count = 3 },
+		},
+		breachCost = 2,
+		minFoundationTier = 2,
+		unlock = SCRAP_TIER,
+		upgradesTo = "build.doorway_reinforced",
+		upgradeCost = {
+			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+	},
+	["build.door_scrap"] = {
+		id = "build.door_scrap",
+		name = "Scrap Metal Door",
+		kind = "door",
+		tier = 2,
+		hp = 600,
+		cost = {
+			{ itemId = "item.timber", count = 5 },
+			{ itemId = "item.rope", count = 2 },
+			{ itemId = "item.plank", count = 2 },
+			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.rivets", count = 1 },
+		},
+		breachCost = 2,
+		minFoundationTier = 2,
+		unlock = SCRAP_TIER,
+		upgradesTo = "build.door_reinforced",
+		upgradeCost = {
+			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.rivets", count = 3 },
+			{ itemId = "item.coil_spring", count = 1 },
+		},
+	},
+	["build.window_scrap"] = {
+		id = "build.window_scrap",
+		name = "Scrap Metal Window Wall",
+		kind = "window",
+		tier = 2,
+		hp = 700,
+		cost = {
+			{ itemId = "item.timber", count = 7 },
+			{ itemId = "item.rope", count = 1 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.scrap_plate", count = 3 },
+		},
+		breachCost = 2,
+		minFoundationTier = 2,
+		unlock = SCRAP_TIER,
+		upgradesTo = "build.window_reinforced",
+		upgradeCost = {
+			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+	},
+
+	-- Reinforced (tier 3) ----------------------------------------------------------------
+	["build.foundation_reinforced"] = {
+		id = "build.foundation_reinforced",
+		name = "Reinforced Foundation",
+		kind = "foundation",
+		tier = 3,
+		hp = 2400,
+		cost = {
+			{ itemId = "item.timber", count = 10 },
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.scrap_plate", count = 10 },
+			{ itemId = "item.stone_block", count = 10 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+		breachCost = 8,
+		unlock = REINFORCED_TIER,
+	},
+	["build.wall_reinforced"] = {
+		id = "build.wall_reinforced",
+		name = "Reinforced Wall",
+		kind = "wall",
+		tier = 3,
+		hp = 1600,
+		cost = {
+			{ itemId = "item.timber", count = 8 },
+			{ itemId = "item.rope", count = 1 },
+			{ itemId = "item.plank", count = 4 },
+			{ itemId = "item.scrap_plate", count = 7 },
+			{ itemId = "item.stone_block", count = 8 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+		breachCost = 4,
+		minFoundationTier = 3,
+		unlock = REINFORCED_TIER,
+	},
+	["build.doorway_reinforced"] = {
+		id = "build.doorway_reinforced",
+		name = "Reinforced Doorway",
+		kind = "doorway",
+		tier = 3,
+		hp = 1400,
+		cost = {
+			{ itemId = "item.timber", count = 6 },
+			{ itemId = "item.rope", count = 1 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.scrap_plate", count = 7 },
+			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+		breachCost = 4,
+		minFoundationTier = 3,
+		unlock = REINFORCED_TIER,
+	},
+	["build.door_reinforced"] = {
+		id = "build.door_reinforced",
+		name = "Reinforced Door",
+		kind = "door",
+		tier = 3,
+		hp = 1200,
+		cost = {
+			{ itemId = "item.timber", count = 5 },
+			{ itemId = "item.rope", count = 2 },
+			{ itemId = "item.plank", count = 2 },
+			{ itemId = "item.scrap_plate", count = 9 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.coil_spring", count = 1 },
+		},
+		breachCost = 3,
+		minFoundationTier = 3,
+		unlock = REINFORCED_TIER,
+	},
+	["build.window_reinforced"] = {
+		id = "build.window_reinforced",
+		name = "Reinforced Window Wall",
+		kind = "window",
+		tier = 3,
+		hp = 1400,
+		cost = {
+			{ itemId = "item.timber", count = 7 },
+			{ itemId = "item.rope", count = 1 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.scrap_plate", count = 7 },
+			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+		breachCost = 3,
+		minFoundationTier = 3,
+		unlock = REINFORCED_TIER,
+	},
+
+	-- Stations -----------------------------------------------------------------------------
 	["build.workbench"] = {
 		id = "build.workbench",
 		name = "Workbench",
 		kind = "station",
 		tier = 1,
-		hp = 200,
-		cost = { { itemId = "item.plank", count = 5 } },
+		hp = 300,
+		cost = {
+			{ itemId = "item.timber", count = 10 },
+			{ itemId = "item.stone", count = 6 },
+			{ itemId = "item.rope", count = 2 },
+		},
 		breachCost = 1,
 		stationId = "station.workbench",
+		minFoundationTier = 1,
+		maxPerPlot = 2,
+	},
+	["build.campfire"] = {
+		id = "build.campfire",
+		name = "Campfire",
+		kind = "station",
+		tier = 1,
+		hp = 200,
+		cost = {
+			{ itemId = "item.timber", count = 5 },
+			{ itemId = "item.stone", count = 5 },
+			{ itemId = "item.fiber", count = 2 },
+		},
+		breachCost = 1,
+		stationId = "station.campfire",
+		maxPerPlot = 2,
+	},
+	["build.recycler"] = {
+		id = "build.recycler",
+		name = "Recycler",
+		kind = "station",
+		tier = 2,
+		hp = 500,
+		cost = {
+			{ itemId = "item.plank", count = 15 },
+			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.rivets", count = 6 },
+			{ itemId = "item.coil_spring", count = 2 },
+		},
+		breachCost = 2,
+		stationId = "station.recycler",
+		minFoundationTier = 2,
+		maxPerPlot = 1,
+		unlock = { kind = "level", level = 7 },
+	},
+
+	-- Storage --------------------------------------------------------------------------------
+	["build.crate_wood"] = {
+		id = "build.crate_wood",
+		name = "Timber Crate",
+		kind = "storage",
+		tier = 1,
+		hp = 250,
+		cost = {
+			{ itemId = "item.timber", count = 8 },
+			{ itemId = "item.rope", count = 4 },
+		},
+		breachCost = 1,
+		storageSlots = 16,
+		minFoundationTier = 1,
+		maxPerPlot = 20,
+		upgradesTo = "build.crate_banded",
+		upgradeCost = {
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+	},
+	["build.crate_banded"] = {
+		id = "build.crate_banded",
+		name = "Banded Crate",
+		kind = "storage",
+		tier = 2,
+		hp = 500,
+		cost = {
+			{ itemId = "item.timber", count = 8 },
+			{ itemId = "item.rope", count = 4 },
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.rivets", count = 2 },
+		},
+		breachCost = 2,
+		storageSlots = 28,
+		minFoundationTier = 1,
+		maxPerPlot = 20,
+		unlock = { kind = "level", level = 9 },
 	},
 }
 

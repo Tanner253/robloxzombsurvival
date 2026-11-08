@@ -30,8 +30,8 @@ local function row(order: number, children: { [string]: any })
 end
 
 local function KitPreview()
-	local hatchet = Items["item.hatchet"]
-	local wood = Items["item.wood"]
+	local hatchet = Items["item.stone_hatchet"]
+	local wood = Items["item.timber"]
 
 	local slots: { [string]: any } = {}
 	for index, rarity in RARITIES do
