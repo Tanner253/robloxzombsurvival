@@ -278,6 +278,17 @@ The developer asked for this: a run should feel like a Tarkov lobby. Strangers m
 - **Downed state** (in PvP tiers): at zero HP you're downed and can crawl. A teammate can revive you, or an enemy can finish you.
 - **Bounties:** killing non-hostile players while Hostile posts a bounty on you, and anyone who kills you in a Dense or Black run claims it. This is the same revenge and bounty system raids use.
 
+**PvP is the fast lane** (the developer, 2026-11-08: kill someone, take their loot, snowball):
+- The free grind is days per tier, but a good PvP player can shortcut it. Dense and Black fog have richer loot, and every kill hands you everything that player carried in. Winning snowballs, and that's intended, because it's the high-risk, high-reward path that makes PvP fog worth entering.
+- **Snowball limits** stop it from becoming a stomp:
+  - power-band matchmaking by gear score
+  - the Hostile mark and bounties on serial killers
+  - gunfire drawing the Hollow, so a fight gets third-partied
+  - you can only take what someone carried in, never their base
+- **It works at any player count:** when a lobby is short of real players, **AI raiders** fill it. They're hostile survivor bands with real loadouts that loot, extract and fight like players, so the PvP lane and the "feels real and random" vibe hold up even in quiet hours. As player counts grow, real players replace them.
+- Every gear loss creates demand for gear, which drives the gear packs.
+- **The pacing simulation models both lanes:** PvE grinding, and PvP at assumed win rates. A 50% PvP player should progress faster than a PvE-only player, but not skip tiers outright.
+
 **Lobby rules** (these keep the healthy, balanced feel the developer asked for):
 - **Light fog is always PvE.** PvP tiers are faster and richer.
 - **You only risk what you carry in.** Your base, storage and locked stash are never at stake on a run. Before a Dense or Black run, the loadout screen shows what's at risk.
@@ -490,7 +501,7 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 - The full UI kit and HUD
 
 **Milestone 2 (raids and PvP, straight after the MVP):**
-- Fog Run PvP in Dense and Black fog: Hostile marks, truces and betrayal, downed and finishing, bounties, the secure pouch
+- Fog Run PvP in Dense and Black fog: Hostile marks, truces and betrayal, downed and finishing, bounties, the secure pouch, and AI raiders filling low-population lobbies
 - Neighbour markers on the Fog map (level, defense, loot tier, shield)
 - Raid tools and breach costs
 - The standard firearms and the suppressor mod
