@@ -146,7 +146,8 @@ A feature is done only when all of these hold:
 4. It has been playtested in Studio through MCP, with screenshots at phone framing that meet ART_DIRECTION.md.
 5. Analytics events for the feature are logged.
 6. **Every row its slice owns in [PLAYER_EXPERIENCE_CHECKLIST.md](PLAYER_EXPERIENCE_CHECKLIST.md) is audited** (✅/⚠️/❌), and the feature-feel rule (§0 there) holds. The audit table goes in the report.
-7. The orchestrator has reviewed the diff and the screenshots, and re-checked the checklist rows.
+7. An **adversarial QA subagent** has graded every visible object and screen, and nothing below A is visible (checklist §0).
+8. The orchestrator has reviewed the diff and a **complete capture census** (every distinct world object close up and at gameplay zoom, and every UI screen), and re-checked the checklist rows. The orchestrator grades too, defaulting to C, and blocks anything that wouldn't hold up next to LDoE, whether or not anyone flagged it.
 
 ## 11. Worker workflow
 

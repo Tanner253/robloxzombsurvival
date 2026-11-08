@@ -30,7 +30,7 @@ The orchestrator wrote this on 2026-11-07. It's ready to hand to a fresh worker 
   - **Plots:** 6–8 per server, claimed on join, saved and restored.
 - **Client:**
   - Controllers: the camera (fixed angled top-down, zoom), PC-first input (WASD, mouse aim, LMB, E, Shift, 1–9, Tab, B) with a touch fallback, interaction prompts, and build mode with a ghost preview that uses the same Grid rules.
-  - **React UI:** HUD (bars, XP, energy, quest-tracker placeholder, hotbar), Inventory (pockets, backpack, equipment, a storage panel with Take all/Put all), station screens (recipes, queue, timers, collect), and the build menu (Foundations, Walls, Doors, Windows, Stations, Storage). All with keybind hints.
+  - **React UI:** HUD (superseded on 2026-11-08: see docs/LDOE_PARITY.md; no hotbar), Inventory (pockets, backpack, equipment, a storage panel with Take all/Put all), station screens (recipes, queue, timers, collect), and the build menu (Foundations, Walls, Doors, Windows, Stations, Storage). All with keybind hints.
 - **World:** `Workspace.World` holds the plots, ground and nodes. Reuse the art masters in `ServerStorage.EO_Kit` and the dressing assets by name. **Don't modify `Workspace.LookTest`.**
 
 ## Studio coordination
