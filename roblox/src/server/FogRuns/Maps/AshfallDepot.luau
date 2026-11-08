@@ -335,7 +335,7 @@ local function scrubland(ctx: Builder.Ctx)
 		local inYard = z > 18 and z < DOCK_Z + 40 and math.abs(x) < 170
 		local inPit = (V2(x, z) - PIT).Magnitude < PIT_RADIUS + 6
 		if edge > 156 and not inYard and not inPit then
-			local names = if rng:NextNumber() < 0.6 then DEAD else { "EO_PineConifer" }
+			local names = if rng:NextNumber() < 0.6 then DEAD else { "EO_PineTree" }
 			Builder.kit(ctx, names, x, z, rng:NextNumber() * 360, { height = 16 + rng:NextNumber() * 8, canopy = true })
 		end
 	end
@@ -414,12 +414,27 @@ local function markers(ctx: Builder.Ctx)
 end
 
 function AshfallDepot.build(ctx: Builder.Ctx)
-	Builder.terrain(ctx, { extent = 250, height = height, surface = surface, water = water })
+	Builder.terrain(ctx, { extent = AshfallDepot.half + 140, height = height, surface = surface, water = water })
 	railYard(ctx)
 	depot(ctx)
 	signalTower(ctx)
 	quarry(ctx)
 	scrubland(ctx)
+	-- Past the edge: burnt woods (mostly dead), the rails kept open, and the Black fog's
+	-- dark bank, so no zoom shows the map's end.
+	Builder.treeWall(ctx, {
+		half = AshfallDepot.half,
+		names = { "EO_PineTree" },
+		dead = DEAD,
+		deadShare = 0.65,
+		depth = 80,
+		spacing = 9,
+		height = 19,
+		clear = function(_x: number, z: number): boolean
+			return z > 26 and z < 84
+		end,
+	})
+	Builder.fogBank(ctx, AshfallDepot.half, Color3.fromRGB(88, 90, 96), 2)
 	gatherables(ctx)
 	markers(ctx)
 end

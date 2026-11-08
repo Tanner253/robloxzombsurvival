@@ -500,7 +500,7 @@ local function edges(ctx: Builder.Ctx)
 		local edge = math.max(math.abs(x), math.abs(z))
 		local road = math.abs(x) < 14 or math.abs(z - HIGHWAY_Z) < 16 or (math.abs(z - CROSS_Z) < 12 and x > -150)
 		if edge > 158 and not road and creekDistance(x, z) > 12 then
-			local names = if rng:NextNumber() < 0.7 then { "EO_PineConifer" } else { "EO_DeadTree" }
+			local names = if rng:NextNumber() < 0.7 then { "EO_PineTree" } else { "EO_DeadTree" }
 			Builder.kit(ctx, names, x, z, rng:NextNumber() * 360, { height = 18 + rng:NextNumber() * 8, canopy = true })
 		end
 	end
@@ -584,17 +584,19 @@ local function roads(ctx: Builder.Ctx)
 	local bridgeX = CREEK_X + math.noise(CROSS_Z / 50, 0, 3.7) * 10
 	-- The highway along the south (no sidewalks: gravel shoulders), then Main Street north
 	-- and Cross Street east and west, their sidewalks broken at the junctions.
-	Builder.road(ctx, { V2(-175, HIGHWAY_Z), V2(175, HIGHWAY_Z) }, 15, nil, 0)
+	-- Roads run on past the edge into the woods and fog, so their ends never show.
+	Builder.road(ctx, { V2(-300, HIGHWAY_Z), V2(300, HIGHWAY_Z) }, 15, nil, 0)
 	Builder.road(ctx, { V2(0, HIGHWAY_Z - 7.5), V2(0, CROSS_Z + 8.5) }, 11, 3, 0.12)
 	Builder.road(ctx, { V2(0, CROSS_Z - 8.5), V2(0, -172) }, 11, 3, 0.12)
+	Builder.road(ctx, { V2(0, -172), V2(0, -300) }, 11, nil, 0.12)
 	Builder.road(ctx, { V2(0, CROSS_Z + 5), V2(0, CROSS_Z - 5) }, 11, nil, 0.12)
 	Builder.road(ctx, { V2(9, CROSS_Z), V2(bridgeX - 17, CROSS_Z) }, 10, 3, 0.06)
 	Builder.road(ctx, { V2(-152, CROSS_Z), V2(-9, CROSS_Z) }, 10, 3, 0.06)
-	Builder.road(ctx, { V2(bridgeX + 17, CROSS_Z), V2(175, CROSS_Z) }, 10, nil, 0.06)
+	Builder.road(ctx, { V2(bridgeX + 17, CROSS_Z), V2(300, CROSS_Z) }, 10, nil, 0.06)
 end
 
 function Rustwater.build(ctx: Builder.Ctx)
-	Builder.terrain(ctx, { extent = 250, height = height, surface = surface, water = water })
+	Builder.terrain(ctx, { extent = Rustwater.half + 140, height = height, surface = surface, water = water })
 	roads(ctx)
 	westShops(ctx)
 	eastShops(ctx)
@@ -603,6 +605,21 @@ function Rustwater.build(ctx: Builder.Ctx)
 	street(ctx)
 	bridge(ctx)
 	edges(ctx)
+	-- Past the edge: a deep wall of pines and dead trees, roads and the creek kept open,
+	-- and the Dense fog's grey bank, so no zoom shows the map's end.
+	Builder.treeWall(ctx, {
+		half = Rustwater.half,
+		names = { "EO_PineTree" },
+		dead = { "EO_DeadTree" },
+		deadShare = 0.3,
+		depth = 80,
+		spacing = 9,
+		height = 21,
+		clear = function(x: number, z: number): boolean
+			return math.abs(x) < 14 or math.abs(z - HIGHWAY_Z) < 16 or creekDistance(x, z) < 12
+		end,
+	})
+	Builder.fogBank(ctx, Rustwater.half, Color3.fromRGB(150, 158, 164), 1.6)
 	gatherables(ctx)
 	markers(ctx)
 end

@@ -480,16 +480,17 @@ function Builder.road(ctx: Ctx, path: { Vector2 }, width: number, sidewalk: numb
 		local a, b = path[index], path[index + 1]
 		local length = (b - a).Magnitude
 		local pieces = math.max(1, math.ceil(length / 16))
-		local dir = (b - a).Unit
-		local yaw = math.atan2(-dir.Y, dir.X)
 		for step = 0, pieces - 1 do
 			local p = a:Lerp(b, step / pieces)
 			local q = a:Lerp(b, (step + 1) / pieces)
-			local mid = (p + q) / 2
-			-- Crossing roads sit a little apart in height, so overlaps never z-fight (6.11).
-			local y = (ctx.groundHeight(p.X, p.Y) + ctx.groundHeight(q.X, q.Y)) / 2 + (lift or 0)
-			local span = (q - p).Magnitude + 0.3
-			local frame = CFrame.new(ctx.origin + Vector3.new(mid.X, y, mid.Y)) * CFrame.Angles(0, yaw, 0)
+			-- Each piece runs from ground to ground along the slope, so neighbours meet without
+			-- a step. Crossing roads sit a little apart in height, so overlaps never z-fight (6.11).
+			local p3 = Vector3.new(p.X, ctx.groundHeight(p.X, p.Y) + (lift or 0), p.Y)
+			local q3 = Vector3.new(q.X, ctx.groundHeight(q.X, q.Y) + (lift or 0), q.Y)
+			local along = (q3 - p3).Unit
+			local up = (Vector3.yAxis - along * along.Y).Unit
+			local span = (q3 - p3).Magnitude + 0.3
+			local frame = CFrame.fromMatrix(ctx.origin + (p3 + q3) / 2, along, up, along:Cross(up))
 			Builder.part(holder, Vector3.new(span, 1, width), frame * CFrame.new(0, -0.3, 0), "asphalt", "Asphalt")
 			-- Faded dashes down the middle, a few long gone.
 			if ctx.rng:NextNumber() > 0.25 then
@@ -666,26 +667,48 @@ function Builder.exit(ctx: Ctx, pointId: string, name: string, x: number, z: num
 	holder:SetAttribute("ExitName", name)
 	holder:SetAttribute("Radius", radius)
 	local centre = Builder.at(ctx, x, z, 0.12)
-	-- The overlay: a soft green disc that hugs the ground, brighter at the rim.
+	-- The overlay: a soft translucent green disc just over the highest ground under it (so
+	-- slopes never cut it), and a thin glowing rim laid segment by segment on the ground.
+	local top = ctx.groundHeight(x, z)
+	for step = 0, 11 do
+		local angle = step / 12 * math.pi * 2
+		top = math.max(top, ctx.groundHeight(x + math.cos(angle) * radius, z + math.sin(angle) * radius))
+	end
+	-- Just clear of a road surface too (Builder.road pieces stand 0.2 + lift above ground).
+	local discCentre = ctx.origin + Vector3.new(x, top + 0.45, z)
 	local disc = Instance.new("Part")
 	disc.Name = "Overlay"
 	disc.Shape = Enum.PartType.Cylinder
-	disc.Size = Vector3.new(0.12, radius * 2, radius * 2)
-	disc.CFrame = CFrame.new(centre) * CFrame.Angles(0, 0, math.rad(90))
+	disc.Size = Vector3.new(0.1, radius * 2, radius * 2)
+	disc.CFrame = CFrame.new(discCentre) * CFrame.Angles(0, 0, math.rad(90))
 	disc.Anchored = true
 	disc.CanCollide = false
 	disc.CanQuery = false
 	disc.CanTouch = false
 	disc.CastShadow = false
 	Builder.paint(disc, "exitGlow")
-	disc.Transparency = 0.82
+	disc.Material = Enum.Material.SmoothPlastic
+	disc.Transparency = 0.7
 	disc.Parent = holder
-	local rim = disc:Clone()
-	rim.Name = "Rim"
-	rim.Size = Vector3.new(0.14, radius * 2 + 0.6, radius * 2 + 0.6)
-	rim.Transparency = 0.6
-	rim.CFrame = disc.CFrame * CFrame.new(-0.02, 0, 0)
-	rim.Parent = holder
+	local segments = 28
+	for step = 0, segments - 1 do
+		local a0 = step / segments * math.pi * 2
+		local a1 = (step + 1) / segments * math.pi * 2
+		local p0 = Builder.at(ctx, x + math.cos(a0) * radius, z + math.sin(a0) * radius, 0.2)
+		local p1 = Builder.at(ctx, x + math.cos(a1) * radius, z + math.sin(a1) * radius, 0.2)
+		local seg = Instance.new("Part")
+		seg.Name = "Rim"
+		seg.Size = Vector3.new(0.35, 0.12, (p1 - p0).Magnitude + 0.1)
+		seg.CFrame = CFrame.lookAt((p0 + p1) / 2, p1)
+		seg.Anchored = true
+		seg.CanCollide = false
+		seg.CanQuery = false
+		seg.CanTouch = false
+		seg.CastShadow = false
+		Builder.paint(seg, "exitGlow")
+		seg.Transparency = 0.2
+		seg.Parent = holder
+	end
 	-- A pole with a green lantern, so the point reads from afar and at night.
 	local pole = Builder.part(
 		holder,
@@ -1664,6 +1687,113 @@ function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: bool
 	light.Brightness = if warm then 1.1 else 0.6
 	light.Shadows = false
 	light.Parent = part
+end
+
+-- Edges -------------------------------------------------------------------------------------------
+
+export type EdgeSpec = {
+	half: number, -- the playable half-size
+	names: { string }, -- the trees of the wall
+	depth: number?, -- how far past the edge the dense wall runs (default 70)
+	spacing: number?, -- tree spacing in the wall (default 9)
+	gaps: { Vector2 }?, -- trail ends kept open (the Light fog's marked exits)
+	height: number?, -- tree height (default 20, varied)
+	dead: { string }?, -- a share of dead trees mixed in
+	deadShare: number?, -- how many of them are dead (default 0.12)
+	clear: ((x: number, z: number) -> boolean)?, -- roads, rails and water kept free
+}
+
+-- A deep wall of trees all round the playable area, so no zoom shows the map's end:
+-- dense from just inside the edge to `depth` past it, then thinning out further.
+-- Trail ends in `gaps` stay open.
+function Builder.treeWall(ctx: Ctx, spec: EdgeSpec)
+	local rng = ctx.rng
+	local half = spec.half
+	local depth = spec.depth or 70
+	local spacing = spec.spacing or 9
+	local height = spec.height or 20
+	local gaps: { Vector2 } = spec.gaps or {}
+	local placed = 0
+	local function open(x: number, z: number): boolean
+		for _, gap in gaps do
+			if (Vector2.new(x, z) - gap).Magnitude < 16 then
+				return true
+			end
+		end
+		return false
+	end
+	local reach = half + depth + 40
+	for gx = -reach, reach, spacing do
+		for gz = -reach, reach, spacing do
+			local x = gx + (rng:NextNumber() - 0.5) * spacing * 0.9
+			local z = gz + (rng:NextNumber() - 0.5) * spacing * 0.9
+			local edge = math.max(math.abs(x), math.abs(z))
+			local inner = edge > half - 6 and edge < half + depth
+			local outer = edge >= half + depth and rng:NextNumber() < 0.45
+			local kept = spec.clear and (spec.clear :: (number, number) -> boolean)(x, z)
+			if (inner or outer) and not open(x, z) and not kept then
+				local dead = spec.dead and rng:NextNumber() < (spec.deadShare or 0.12)
+				local names = if dead then spec.dead :: { string } else spec.names
+				Builder.kit(ctx, names, x, z, rng:NextNumber() * 360, {
+					height = height * (0.8 + rng:NextNumber() * 0.5),
+					canopy = edge < half + 12,
+				})
+				placed += 1
+				if placed % 60 == 0 then
+					task.wait()
+				end
+			end
+		end
+	end
+end
+
+-- A low fog bank drifting along the edge: big soft puffs that hide the wall's far side
+-- (the Fog itself, at the location's tier colour).
+function Builder.fogBank(ctx: Ctx, half: number, color: Color3, density: number?)
+	local folder = Builder.folder(ctx, "FogBank")
+	local step = 36
+	local rate = density or 1.4
+	for side = 1, 4 do
+		for t = -half - step, half + step, step do
+			local x, z
+			if side == 1 then
+				x, z = t, -half - 14
+			elseif side == 2 then
+				x, z = t, half + 14
+			elseif side == 3 then
+				x, z = -half - 14, t
+			else
+				x, z = half + 14, t
+			end
+			local anchor = Builder.part(folder, Vector3.new(1, 1, 1), Builder.frame(ctx, x, z, 0, 5), "void", "Bank")
+			anchor.Transparency = 1
+			anchor.CanCollide = false
+			anchor.CanQuery = false
+			anchor.CanTouch = false
+			local puffs = Instance.new("ParticleEmitter")
+			puffs.Texture = "rbxasset://textures/particles/smoke_main.dds"
+			puffs.Color = ColorSequence.new(color)
+			puffs.LightEmission = 0.05
+			puffs.LightInfluence = 0.8
+			puffs.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.25, 0.72),
+				NumberSequenceKeypoint.new(0.75, 0.78),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			puffs.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 26), NumberSequenceKeypoint.new(1, 44) })
+			puffs.Lifetime = NumberRange.new(14, 20)
+			puffs.Rate = rate
+			puffs.Speed = NumberRange.new(0.3, 1.2)
+			puffs.SpreadAngle = Vector2.new(180, 20)
+			puffs.Rotation = NumberRange.new(0, 360)
+			puffs.RotSpeed = NumberRange.new(-4, 4)
+			puffs.Shape = Enum.ParticleEmitterShape.Box
+			puffs.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+			puffs.Parent = anchor
+			anchor.Size = Vector3.new(step, 6, 18)
+		end
+	end
 end
 
 return Builder
