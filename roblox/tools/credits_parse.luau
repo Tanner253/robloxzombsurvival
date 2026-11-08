@@ -46,7 +46,10 @@ return function(text: string): { Section }
 			local isHeader = first == "Work"
 			local isRule = string.match(first, "^:?%-+:?$") ~= nil
 			if not isHeader and not isRule and first ~= "" then
-				table.insert((current :: Section).rows, { work = row[1], by = row[2], license = row[3], source = row[4] })
+				table.insert(
+					(current :: Section).rows,
+					{ work = row[1], by = row[2], license = row[3], source = row[4] }
+				)
 			end
 		end
 	end
