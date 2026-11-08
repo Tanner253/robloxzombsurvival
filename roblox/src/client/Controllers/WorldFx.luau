@@ -260,8 +260,14 @@ local function watchNode(instance: Instance)
 		standing = model:GetAttribute("Standing") ~= false,
 	}
 	nodeFx[model] = info
+	-- A well (Drains) keeps its basin while it refills; only its water goes.
+	local water = if model:GetAttribute("Drains") then model:FindFirstChild("Water", true) :: BasePart? else nil
 	if not info.standing then
-		setLocalVisible(model, false)
+		if water then
+			water.LocalTransparencyModifier = 1
+		else
+			setLocalVisible(model, false)
+		end
 	end
 	model:GetAttributeChangedSignal("Standing"):Connect(function()
 		local standing = model:GetAttribute("Standing") ~= false
@@ -269,7 +275,9 @@ local function watchNode(instance: Instance)
 			return
 		end
 		info.standing = standing
-		if standing then
+		if water then
+			water.LocalTransparencyModifier = if standing then 0 else 1
+		elseif standing then
 			regrow(model, info)
 		else
 			fell(model, info)

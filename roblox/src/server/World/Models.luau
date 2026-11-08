@@ -78,12 +78,23 @@ end
 -- Loads an uploaded family model (Art.uploaded) into EO_Kit when the place lacks it, and
 -- conforms it: turned by yaw, scaled so its world axis measures `size`, pivot at the base
 -- centre. Yields once per model per server; nil if the asset can't load.
+-- A lookup made while another thread is loading the same model waits for that load (S1b:
+-- the starter shelter's campfire rendered mid-load, found nothing and stayed invisible).
+local LOAD_WAIT_SECONDS = 20
 local loading: { [string]: boolean } = {}
+local failed: { [string]: boolean } = {}
 local function loadUploaded(name: string): Model?
 	local entry = Art.uploaded[name]
 	local kit = ServerStorage:FindFirstChild("EO_Kit")
-	if entry == nil or kit == nil or loading[name] then
+	if entry == nil or kit == nil or failed[name] then
 		return nil
+	end
+	if loading[name] then
+		local waited = 0
+		while loading[name] and waited < LOAD_WAIT_SECONDS do
+			waited += task.wait(0.1)
+		end
+		return nil -- the caller finds the loaded model in EO_Kit
 	end
 	loading[name] = true
 	local ok, container = pcall(function()
@@ -92,6 +103,8 @@ local function loadUploaded(name: string): Model?
 	local model = if ok then container:FindFirstChildWhichIsA("Model") else nil
 	if model == nil then
 		warn(`[Models] couldn't load {name} ({entry.id})`)
+		failed[name] = true
+		loading[name] = nil
 		return nil
 	end
 	local box = model:GetBoundingBox()
@@ -112,6 +125,7 @@ local function loadUploaded(name: string): Model?
 	model.Name = name
 	model.Parent = kit
 	container:Destroy()
+	loading[name] = nil
 	return model
 end
 
@@ -406,6 +420,7 @@ local COLLIDER_FRACTION: { [string]: number } = {
 	["node.boulder"] = 0.75,
 	["node.fatwood_stump"] = 0.6,
 	["node.scrap_heap"] = 0.7,
+	["node.spring_pool"] = 0.8, -- the stone well
 }
 
 local function addCollider(model: Model, nodeId: string)
@@ -434,6 +449,49 @@ local function addCollider(model: Model, nodeId: string)
 	collider.Parent = model
 end
 
+-- `count` stems of a thin plant grown as one bush (Art.CLUMP). Gathering turns the whole
+-- node at random when it places it.
+local function clump(stem: Model, count: number): Model
+	local bush = Instance.new("Model")
+	bush.Name = stem.Name
+	local width = math.max(stem:GetExtentsSize().X, stem:GetExtentsSize().Z)
+	local origin = stem:GetPivot()
+	for index = 1, math.min(count, #Art.CLUMP) do
+		local spec = Art.CLUMP[index]
+		local copy = if index == 1 then stem else stem:Clone()
+		copy:ScaleTo(copy:GetScale() * spec[4])
+		copy:PivotTo(origin * CFrame.new(spec[1] * width, 0, spec[2] * width) * CFrame.Angles(0, math.rad(spec[3]), 0))
+		for _, child in copy:GetChildren() do
+			child.Parent = bush
+		end
+		copy:Destroy()
+	end
+	bush.WorldPivot = origin
+	bush.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	return bush
+end
+
+-- The well's water disc (Art.springWater), added in the conformed basin's frame before
+-- the node is scaled. The model is marked Drains: a drained well keeps its basin and only
+-- the water goes (WorldFx).
+local function addWater(model: Model)
+	local spec = Art.springWater
+	local water = Instance.new("Part")
+	water.Name = "Water"
+	water.Shape = Enum.PartType.Cylinder
+	water.Anchored = true
+	water.CanCollide = false
+	water.CanTouch = false
+	water.CastShadow = false
+	water.Material = Enum.Material.Glass
+	water.Color = spec.color
+	water.Reflectance = spec.reflectance
+	water.Size = Vector3.new(0.1, spec.diameter, spec.diameter)
+	water.CFrame = model:GetPivot() * CFrame.new(spec.offset) * CFrame.Angles(0, 0, math.rad(90))
+	water.Parent = model
+	model:SetAttribute("Drains", true)
+end
+
 -- The model for a resource node, scaled to Art.nodes[id].height, or nil when the
 -- node has no approved model yet (it then doesn't appear; no stand-ins).
 function Models.node(def: Types.ResourceNodeDef, _rng: Random): Model?
@@ -442,10 +500,19 @@ function Models.node(def: Types.ResourceNodeDef, _rng: Random): Model?
 	if model == nil or art == nil then
 		return nil
 	end
+	if def.id == "node.spring_pool" then
+		addWater(model)
+	end
+	if art.clump and art.clump > 1 then
+		model = clump(model, art.clump)
+	end
 	model.Name = def.id
 	local height = model:GetExtentsSize().Y
 	if height > 0.01 then
 		model:ScaleTo(model:GetScale() * art.height / height)
+	end
+	if art.sink then
+		model.WorldPivot = model.WorldPivot * CFrame.new(0, art.sink, 0)
 	end
 	addCollider(model, def.id)
 	return model

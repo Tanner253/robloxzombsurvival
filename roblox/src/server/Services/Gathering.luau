@@ -89,9 +89,10 @@ local function setStanding(node: Node, standing: boolean)
 	node.model:SetAttribute("HitsLeft", if standing then node.state.hitsLeft else 0)
 	for _, descendant in node.model:GetDescendants() do
 		if descendant:IsA("BasePart") then
-			-- Only the footprint collider blocks movement (World/Models).
+			-- Only the footprint collider blocks movement (World/Models). A drained well
+			-- (Drains) keeps its basin, so it keeps blocking.
 			if descendant.Name == "Collider" then
-				descendant.CanCollide = standing
+				descendant.CanCollide = standing or node.model:GetAttribute("Drains") == true
 			else
 				descendant.CanQuery = standing
 			end
