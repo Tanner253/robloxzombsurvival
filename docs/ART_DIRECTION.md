@@ -33,6 +33,11 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 **Test for every milestone:** a 15-second clip plus a screenshot set that would make a strong Roblox thumbnail or trailer shot. If it wouldn't, it isn't done.
 
+**LDoE side-by-side gate:** every UI screen and world shot is placed next to the matching frame in `docs/reference/ldoe-recordings/`. Each visible gap is listed and fixed before reporting: crispness, contrast, readability, density, iconography and juice. UI must render pixel-crisp:
+- no content left inside CanvasGroups at rest
+- no fractional scaling
+- near-opaque panels over the 3D scene
+
 ## 2. Shape language
 
 - **Friendly / safe** (survivors, outposts, the Hearth): rounded-square shapes, sturdy, slightly oversized props (chunky lanterns, fat bolts, thick planks).
