@@ -14,6 +14,24 @@ Written by the orchestrator on 2026-11-08. A fresh worker session in its own wor
 3. `docs/ART_DIRECTION.md` §8 (UI kit, glyph set in `art/ui/glyphs/`, no emoji) and §10a (art consistency).
 4. `docs/ARCHITECTURE.md` (definition of done).
 
+## First: leftovers from slice 1 (do these before the parity work; the developer is waiting on them)
+
+1. **Revert the pines** to exactly what they were before commit `3ebece2` ("Pines redone as conifers"): the developer liked the old ones. Keep the conifer GLBs unused, and don't touch trees again.
+2. **Tree and wall occlusion fade:** fade only when the canopy or wall actually sits between the camera and the survivor (a raycast, not a proximity radius). Fade the canopy only, partially (about 0.5–0.6, tweened over about 0.2 s); the trunk is always solid. The tree you're targeting or chopping never fades.
+3. **Night readability** (LDOE_PARITY #32): blue moonlight ambient, a survivor rim light and warm lantern pools, checked beside rec6_04.
+4. **Finite home nodes** (#30): an LDoE-size set per plot, saved per outpost, **never respawning**. This supersedes slice 1's slow regrow.
+5. **Q AUTO free everywhere** (#31).
+6. **Gated models:** fix and grade the rock cluster (warm brown-grey, faceted, mossy, sunk into the ground), campfire, torch, spring basin and reed stubble, then ungate each one only when it grades A. Do the same for anything still gated after batch 2.
+7. **Glyph swap:** if slice 1's handoff says it's incomplete, finish replacing every emoji and Unicode symbol with `art/ui/glyphs/`.
+8. **Respect Roblox's own UI.** The developer's screenshot shows our top-left panel sitting under Roblox's menu, chat and emote buttons.
+   - Every ScreenGui uses `ScreenInsets = CoreUISafeInsets` (or offsets by `GuiService:GetGuiInset()` and the top-bar height).
+   - Nothing may overlap Roblox core buttons, chat, the leaderboard or the mobile thumbstick or jump zones.
+   - Verify on PC and with the mobile emulator.
+9. **The current action buttons** (Auto/Craft/Build/Bag/Use as big round emoji buttons) and the **level-ring vitals panel** are both replaced by the LDoE HUD in rulings #1–#12. Rebuild them; don't restyle them. Until the rebuild lands, they must at least use the glyphs and not overlap.
+10. **Read slice 1's handoff note** (the orchestrator pastes it into your first message) for the Studio state, asset methods, `tools/` scripts and known bugs.
+
+**Review rule (the developer, 2026-11-08):** don't redo an asset the developer hasn't flagged unless it has an objective defect (floaters, smeared texture, blobs, wrong scale or orientation, z-fighting, a stand-in, emoji). Restyling acceptable assets is over-engineering.
+
 ## Scope (LDOE_PARITY rulings)
 
 - **HUD (#1–#12):**
