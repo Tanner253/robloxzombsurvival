@@ -2,7 +2,7 @@
 
 Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-94 this pass).
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-109 this pass).
 
 Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
 solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
@@ -31,6 +31,31 @@ re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
   lamp, tool rack, shelf, cot, planter and car are soft generated meshes), so nothing was added. It
   lands with the Camp family once uploads work.
 - **Generation:** this pass 2.75 (timber sheet) + 12 (timber wall); the pool is about 375 of 500.
+
+### Family models uploaded (the worktrees folder is approved now)
+
+Twenty models are on Roblox and in EO_Kit (`art/higgsfield/m1-slice1/_roblox_assets.json`). Each was conformed:
+base-centre pivot, wall-layer length along X, game size. `Art.uploaded` lets a Rojo-only build load and conform them by asset id.
+The lineup is 95-100 (batch 1, day and night, gameplay and close zoom) and 105-107 (batch 2).
+
+| Model | Grade | Use |
+|---|---|---|
+| Bare branches | A | Fallen-branches node, 7 studs long: Gather Sticks is reachable again (100) |
+| Rock cluster | A | Boulder node: stone is reachable again |
+| Timber wall | A | Timber Wall (101) |
+| Timber window | A | Wood window in plank rooms (106) |
+| Timber doorway | B | Wood doorway. Its texture is smoother than the wall's; it ships because rooms need a doorway, and a regen is queued |
+| Palisade doorway / window | A | Fallback wood doorway and window |
+| Lantern post | A | Lit; flanks each plot front and the Trailhead (108, 109) |
+| Storage crate | A | Wood crate, footprint 3x2 quarters (107) |
+| Recycler station | A | Recycler model; the piece still has its tier gate |
+| Barrels, supply sacks | A | Plot-front dressing; the sacks are the ground drop, so Drop is back |
+| Dead pine | A | About one edge tree in seven |
+| Palisade door | A model | Gated until its hinge is fitted to the opening |
+| Rain collector | B+ | Gated |
+| Signpost | B | Gated: reads edge-on |
+| Campfire ring, torch, dry spring | B | Gated (no embers, thin, no water) |
+| Reed stubble | C | Gated (pale blue) |
 
 ### Adversarial QA on this pass (two fresh reviewers, default C)
 
