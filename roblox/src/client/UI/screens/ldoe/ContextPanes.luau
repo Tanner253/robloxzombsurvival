@@ -81,7 +81,7 @@ function ContextPanes.Storage(
 		BorderSizePixel = 0,
 	}, {
 		Grid = e(Parts.Slots, {
-			ref = "storage",
+			place = "storage",
 			slots = slots,
 			selected = props.selected,
 			onSlot = function(index: number)
@@ -324,7 +324,7 @@ function ContextPanes.Project(props: { projectId: string, state: any, pooled: an
 	local body = e(Layout.Stack, {
 		gap = Theme.spacing.sm,
 		children = {
-			Description = e(Parts.Line, { text = def.description, layoutOrder = 0 }),
+			Description = e(Parts.Line, { text = def.description, wrap = true, layoutOrder = 0 }),
 			Rows = e(Layout.Stack, {
 				gap = Theme.spacing.xs,
 				size = UDim2.new(1, 0, 0, #def.parts * 56),

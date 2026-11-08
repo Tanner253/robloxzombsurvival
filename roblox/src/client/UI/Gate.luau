@@ -8,6 +8,7 @@
 
 	Components declare intent with attributes:
 	- Decor = true: a shadow or backplate drawn behind its siblings on purpose;
+	- Backdrop = true: a full-screen dim behind a panel; it may run under Roblox's top bar;
 	- Overlay = true: meant to sit on top (badges, tooltips, toasts, the drag ghost);
 	- Glyph = "<name>": an icon from the glyph set (an empty image is flagged).
 	- Composite = true: one graphic made of overlapping parts (the minimap, item slots,
@@ -130,6 +131,7 @@ function Gate.collect(screens: { ScreenGui }): { UiAudit.Node }
 					draws = draws(child),
 					decor = isDecor,
 					overlay = isOverlay,
+					backdrop = child:GetAttribute("Backdrop") == true,
 					textFits = textFits(child),
 					clip = if view then nil else clip,
 					missingGlyph = glyph ~= nil and child:IsA("ImageLabel") and child.Image == "",

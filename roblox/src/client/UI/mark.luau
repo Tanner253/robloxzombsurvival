@@ -12,6 +12,7 @@
 local cache: { [any]: (Instance?) -> () } = setmetatable({}, { __mode = "k" }) :: any
 
 local DECOR = { Decor = true }
+local BACKDROP = { Decor = true, Backdrop = true }
 local OVERLAY = { Overlay = true }
 local COMPOSITE = { Composite = true }
 
@@ -34,6 +35,8 @@ end
 return {
 	attributes = mark,
 	decor = mark(DECOR),
+	-- A full-screen dim behind a panel, reaching under Roblox's top bar.
+	backdrop = mark(BACKDROP),
 	overlay = mark(OVERLAY),
 	-- One graphic made of overlapping parts (the minimap, an item slot, a round button):
 	-- the gate checks it as a single element and skips its insides.

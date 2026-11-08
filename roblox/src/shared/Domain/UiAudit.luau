@@ -28,6 +28,9 @@ export type Node = {
 	draws: boolean, -- has visible text, an image or a background
 	decor: boolean?, -- a shadow or backplate behind its siblings
 	overlay: boolean?, -- meant to sit on top of others (badges, tooltips, toasts)
+	-- A full-screen translucent backdrop behind a panel: it may run under Roblox's top bar
+	-- and reserved zones (they draw above it), so only those two checks skip it.
+	backdrop: boolean?,
 	textFits: boolean?, -- nil for non-text
 	clip: Rect?, -- the nearest clipping ancestor's rect (not a scrolling frame)
 	missingGlyph: boolean?,
@@ -69,6 +72,8 @@ local function addFlag(flags: { Flag }, kind: Kind, path: string, other: string?
 	table.insert(flags, { kind = kind, path = path, other = other, detail = detail })
 end
 
+local NO_ZONES: { Zone } = {}
+
 -- Every flag for one screen state. `safe` is the safe area; `zones` the reserved zones.
 function UiAudit.audit(nodes: { Node }, safe: Rect, zones: { Zone }): { Flag }
 	local flags: { Flag } = {}
@@ -88,10 +93,11 @@ function UiAudit.audit(nodes: { Node }, safe: Rect, zones: { Zone }): { Flag }
 			addFlag(flags, "clipped", node.path, nil, "cut off by a clipping parent")
 		end
 		if node.draws then
-			if not inside(node.rect, safe, tolerance) then
+			if not node.backdrop and not inside(node.rect, safe, tolerance) then
 				addFlag(flags, "outside", node.path, nil, "outside the safe area")
 			end
-			for _, zone in zones do
+			local checked: { Zone } = if node.backdrop then NO_ZONES else zones
+			for _, zone in checked do
 				if intersects(node.rect, zone.rect, tolerance) then
 					addFlag(flags, "zone", node.path, zone.name)
 				end

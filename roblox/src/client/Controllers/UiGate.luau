@@ -37,6 +37,7 @@ local UiAudit = require(ReplicatedStorage.Shared.Domain.UiAudit)
 local Inventory = require(ReplicatedStorage.Shared.Domain.Inventory)
 local State = require("../State")
 local Gate = require("../UI/Gate")
+local Boundary = require("../UI/components/Boundary")
 local Theme = require("../UI/theme")
 
 local UiGate = {}
@@ -337,6 +338,7 @@ local function run()
 				newItems = {},
 			})
 			State.clear("selected", "stationUid", "projectId", "buildHint", "pieceActions", "inventoryTab")
+			table.clear(Boundary.failures)
 			State.patch(scene.ui)
 			settle()
 			-- The emulated screen's origin: the App frame sits at the safe area's corner.
@@ -351,7 +353,20 @@ local function run()
 			}
 			local flags, count = Gate.audit(safe, zones(profile, origin, scale, State.ui().panel))
 			report.elements += count
-			report.counts[`{profile.name} | {scene.name}`] = #flags
+			local failed = 0
+			-- A screen that crashed draws nothing, so it has nothing to overlap: fail it.
+			local broken = table.clone(Boundary.down)
+			for name, err in Boundary.failures do
+				broken[name] = err
+			end
+			for name, err in broken do
+				failed += 1
+				table.insert(
+					report.flags,
+					`{profile.name} | {scene.name} | failed: screen '{name}' ({string.sub(err, 1, 160)})`
+				)
+			end
+			report.counts[`{profile.name} | {scene.name}`] = #flags + failed
 			for _, flag in flags do
 				table.insert(report.flags, `{profile.name} | {scene.name} | {UiAudit.describe(flag)}`)
 			end

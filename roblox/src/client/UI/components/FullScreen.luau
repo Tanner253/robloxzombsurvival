@@ -28,16 +28,28 @@ export type Props = {
 	rightWidth: number?, -- the right pane's width (defaults to Theme.panel.pane)
 }
 
+-- How far (design pixels) the dim reaches above the safe area, under the top bar.
+local DIM_REACH = 120
+
 local function CloseStrip(props: { onClose: () -> () })
 	return e("TextButton", {
 		Size = UDim2.new(0, Theme.hud.closeStrip, 1, 0),
 		LayoutOrder = 9,
 		AutoButtonColor = false,
-		BackgroundColor3 = Theme.colors.panel,
-		BackgroundTransparency = 0.25,
+		BackgroundTransparency = 1,
 		Text = "",
 		[React.Event.Activated] = props.onClose,
 	}, {
+		-- Its backing runs up under the top bar, full height like LDoE's strip.
+		Back = e("Frame", {
+			ref = mark.backdrop,
+			Size = UDim2.new(1, 0, 1, DIM_REACH),
+			Position = UDim2.fromOffset(0, -DIM_REACH),
+			BackgroundColor3 = Theme.colors.panel,
+			BackgroundTransparency = 0.25,
+			BorderSizePixel = 0,
+			ZIndex = 0,
+		}),
 		X = e(Glyph, {
 			name = "close",
 			size = UDim2.fromOffset(32, 32),
@@ -72,14 +84,16 @@ local function FullScreen(props: Props)
 		BackgroundTransparency = 1,
 		ZIndex = Theme.layers.panel,
 	}, {
-		-- The dim covers the world behind; it is drawn on purpose under everything.
+		-- The dim covers the world behind; it is drawn on purpose under everything, and runs
+		-- up under Roblox's top bar so no bright band is left above it.
 		Dim = e("Frame", {
-			Size = UDim2.fromScale(1, 1),
+			Size = UDim2.new(1, 0, 1, DIM_REACH),
+			Position = UDim2.fromOffset(0, -DIM_REACH),
 			BackgroundColor3 = Theme.colors.dim,
 			BackgroundTransparency = alpha:map(function(a: number)
 				return 1 - (1 - Theme.colors.dimTransparency) * a
 			end),
-			ref = mark.decor,
+			ref = mark.backdrop,
 		}),
 		Row = e(Layout.Stack, {
 			direction = "row",

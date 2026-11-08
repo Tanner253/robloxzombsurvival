@@ -219,6 +219,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(Flags.resolve("fogRuns", false, true), false, "live ignores overrides")
 		TestKit.equal(Flags.resolve("fogRuns", true, true), true, "Studio override")
 		TestKit.equal(Flags.resolve("ldoeStations", true, nil), true, "default on")
-		TestKit.equal(Flags.on("ldoeHud"), false, "Lune runs the defaults")
+		TestKit.equal(Flags.on("ldoeHud"), Flags.DEFAULTS.ldoeHud, "Lune runs the defaults")
+		TestKit.equal(Flags.on("vehicleFrame"), false, "the hauler is cut from v0.1")
 	end)
 end

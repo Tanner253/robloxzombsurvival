@@ -48,6 +48,9 @@ function Parts.Pane(props: { header: any, body: any, bar: any? })
 end
 
 -- The header: an icon, the title (plain or on a teal chip) and controls at the right.
+-- Header titles longer than this many characters use the smaller section size.
+local LONG_TITLE = 18
+
 function Parts.Header(props: { glyph: string, title: string, chip: boolean?, right: { [string]: any }? })
 	local children: { [string]: any } = {
 		Icon = e(Glyph, {
@@ -69,7 +72,10 @@ function Parts.Header(props: { glyph: string, title: string, chip: boolean?, rig
 					BackgroundTransparency = if props.chip then 0 else 1,
 					FontFace = Theme.fonts.header,
 					Text = string.upper(props.title),
-					TextSize = Theme.textSize.title,
+					-- A long name ("WOODWORKING BENCH LVL 1") steps down a size to fit the chip.
+					TextSize = if props.chip and #props.title > LONG_TITLE
+						then Theme.textSize.section
+						else Theme.textSize.title,
 					TextColor3 = Theme.colors.text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextTruncate = Enum.TextTruncate.AtEnd,
@@ -132,7 +138,9 @@ function Parts.Section(props: { label: string, height: number, layoutOrder: numb
 end
 
 export type SlotsProps = {
-	ref: string, -- "pockets", "backpack", "storage", "stationOutput"...
+	-- Where the slots live: "pockets", "backpack", "storage", "stationOutput"... (not `ref`,
+	-- which React reserves: a string there crashed the whole Panels screen).
+	place: string,
 	slots: { any },
 	selected: { ref: string, index: number }?,
 	newItems: { [string]: boolean }?,
@@ -152,9 +160,9 @@ function Parts.Slots(props: SlotsProps)
 			count = slot.count,
 			durability = durability,
 			size = P.slot,
-			selected = props.selected ~= nil and props.selected.ref == props.ref and props.selected.index == index,
+			selected = props.selected ~= nil and props.selected.ref == props.place and props.selected.index == index,
 			isNew = props.newItems ~= nil and slot.count > 0 and props.newItems[slot.itemId] == true,
-			slotRef = props.ref,
+			slotRef = props.place,
 			slotIndex = index,
 			layoutOrder = index,
 			onActivated = props.onSlot and function()
@@ -247,17 +255,27 @@ function Parts.Bar(props: { children: { [string]: any }, alignX: Enum.Horizontal
 end
 
 -- A plain line of text that fills its row (status lines, hints).
-function Parts.Line(props: { text: string, tone: Color3?, size: number?, layoutOrder: number?, center: boolean? })
+-- One line of text, truncated; `wrap` lets a longer text (a description) run onto more lines.
+function Parts.Line(props: {
+	text: string,
+	tone: Color3?,
+	size: number?,
+	layoutOrder: number?,
+	center: boolean?,
+	wrap: boolean?,
+})
 	local textSize = props.size or Theme.textSize.body
 	return e("TextLabel", {
-		Size = UDim2.new(1, 0, 0, textSize + 6),
+		Size = UDim2.new(1, 0, 0, if props.wrap then 0 else textSize + 6),
+		AutomaticSize = if props.wrap then Enum.AutomaticSize.Y else nil,
+		TextWrapped = props.wrap == true,
 		BackgroundTransparency = 1,
 		FontFace = Theme.fonts.body,
 		Text = props.text,
 		TextSize = textSize,
 		TextColor3 = props.tone or Theme.colors.textMuted,
 		TextXAlignment = if props.center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextTruncate = if props.wrap then nil else Enum.TextTruncate.AtEnd,
 		LayoutOrder = props.layoutOrder,
 	})
 end

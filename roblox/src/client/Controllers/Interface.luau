@@ -10,7 +10,8 @@
 	#10), in the gap the HUD leaves for it. Opening any panel or build mode hides the HUD
 	(#11, #25), and the chat with it: Roblox draws chat above our panels. A panel also hides
 	Roblox's touch thumbstick and jump button, as LDoE hides its joystick; build mode keeps
-	them, since you still walk while building.
+	them, since you still walk while building. Behind a full-screen panel the whole world
+	blurs, as in LDoE (rec1_02), top inset included, which the App's dim can't reach.
 ]]
 
 local GuiService = game:GetService("GuiService")
@@ -18,6 +19,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local TextChatService = game:GetService("TextChatService")
+local TweenService = game:GetService("TweenService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
@@ -43,13 +45,40 @@ local function dockChat()
 	end)
 end
 
+-- The full-screen panels (screens/ldoe/Hud's FULL_SCREEN): the world blurs behind them.
+local FULL_SCREEN: { [string]: boolean } =
+	{ inventory = true, station = true, project = true, crafting = true, settings = true }
+local BLUR_SIZE = 18
+
+local blur: BlurEffect? = nil
+local function setBackdrop(on: boolean)
+	local camera = workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	if blur == nil or blur.Parent ~= camera then
+		local made = Instance.new("BlurEffect")
+		made.Name = "EO_PanelBlur"
+		made.Size = 0
+		made.Parent = camera
+		blur = made
+	end
+	TweenService:Create(blur :: BlurEffect, TweenInfo.new(0.2), { Size = if on then BLUR_SIZE else 0 }):Play()
+end
+
 -- Chat shows only while playing (no panel open); a panel or build mode hides it. Touch
 -- controls show while playing and building.
 local function followPanels()
 	local shown: boolean? = nil
 	local controls: boolean? = nil
+	local blurred: boolean? = nil
 	local function apply()
 		local panel = State.ui().panel
+		local wantBlur = FULL_SCREEN[panel] == true
+		if wantBlur ~= blurred then
+			blurred = wantBlur
+			setBackdrop(wantBlur)
+		end
 		local wantControls = panel == "none" or panel == "build"
 		if wantControls ~= controls then
 			controls = wantControls

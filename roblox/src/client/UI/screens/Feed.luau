@@ -125,6 +125,7 @@ local function Toasts()
 	-- With the LDoE HUD the top centre holds the target bar (LDOE_PARITY #8): toasts sit below it.
 	local top = if Flags.on("ldoeHud") then 18 + 56 else 18
 	return e("Frame", {
+		ref = mark.overlay, -- notices sit over whatever is open, panels included
 		ZIndex = 30,
 		Size = UDim2.fromOffset(600, 200),
 		Position = UDim2.new(0.5, 0, 0, top),

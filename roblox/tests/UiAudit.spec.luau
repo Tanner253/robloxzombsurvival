@@ -80,6 +80,17 @@ return function(test: TestKit.Register)
 		TestKit.equal(found.zone, 2)
 	end)
 
+	test("a full-screen backdrop may run under the top bar and the reserved zones", function()
+		local zones = UiAudit.touchZones(844, 390)
+		local flags = UiAudit.audit({
+			node(1, 0, -60, 844, 450, { decor = true, backdrop = true }),
+			node(2, 0, -60, 844, 450, { decor = true }), -- a plain decor frame is still checked
+		}, SAFE, zones)
+		local found = kinds(flags)
+		TestKit.equal(found.outside, 1)
+		TestKit.equal(found.zone, 2)
+	end)
+
 	test("an icon with no image is flagged as a missing glyph", function()
 		local flags = UiAudit.audit({ node(1, 100, 100, 20, 20, { missingGlyph = true, draws = false }) }, SAFE, {})
 		TestKit.equal(kinds(flags).missingGlyph, 1)

@@ -28,8 +28,10 @@ local Flags = {}
 export type Name = "ldoeHud" | "ldoeInventory" | "ldoeStations" | "ldoeBuild" | "vehicleFrame" | "fogRuns"
 
 Flags.DEFAULTS = {
-	ldoeHud = false,
-	ldoeInventory = false,
+	-- On since Phase B (b): the UI gate passes at zero on all four profiles with them, and
+	-- their screens were checked beside rec1_02 and rec6_04.
+	ldoeHud = true,
+	ldoeInventory = true,
 	-- The converter screen is the only one that matches the converter stations, so it
 	-- is on; Phase B verifies it beside rec4_05.
 	ldoeStations = true,

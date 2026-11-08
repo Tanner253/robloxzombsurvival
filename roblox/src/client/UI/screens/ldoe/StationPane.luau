@@ -34,6 +34,7 @@ local Parts = require("./Parts")
 local e = React.createElement
 
 local BIG = 104 -- the converter's input and output slots
+local HINT_HEIGHT = 34 -- two caption lines under the input slot
 
 export type Props = {
 	uid: string,
@@ -59,7 +60,7 @@ local function DropSlot(props: {
 	local filled = slot ~= nil and slot.count > 0
 	local def = if filled then Content.Items[slot.itemId] else nil
 	return e("Frame", {
-		Size = UDim2.fromOffset(BIG, BIG + 22),
+		Size = UDim2.fromOffset(BIG, BIG + HINT_HEIGHT + 4),
 		BackgroundTransparency = 1,
 		LayoutOrder = props.layoutOrder,
 	}, {
@@ -82,10 +83,12 @@ local function DropSlot(props: {
 					onActivated = props.onActivated,
 				}),
 				Hint = e("TextLabel", {
-					Size = UDim2.new(1, 0, 0, 18),
+					Size = UDim2.new(1, 0, 0, HINT_HEIGHT),
 					BackgroundTransparency = 1,
 					FontFace = Theme.fonts.body,
 					Text = props.hint,
+					TextWrapped = true, -- two lines for a long input name
+					TextYAlignment = Enum.TextYAlignment.Top,
 					TextSize = Theme.textSize.caption,
 					TextColor3 = Theme.colors.textMuted,
 					LayoutOrder = 2,
@@ -338,6 +341,33 @@ local function StationPane(props: Props)
 		})
 	end
 
+	-- Several outputs (the recycler's four) sit two by two beside the arrow, so the row
+	-- stays inside the pane.
+	local multi = #state.output > 1
+	local gridSide = 2 * Theme.panel.slot + Theme.panel.slotGap
+	local outputBlock = if multi
+		then e("Frame", {
+			Size = UDim2.fromOffset(gridSide, gridSide),
+			BackgroundTransparency = 1,
+			LayoutOrder = 3,
+		}, {
+			Grid = e("UIGridLayout", {
+				CellSize = UDim2.fromOffset(Theme.panel.slot, Theme.panel.slot),
+				CellPadding = UDim2.fromOffset(Theme.panel.slotGap, Theme.panel.slotGap),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+			}),
+			Slots = e(React.Fragment, nil, outputs),
+		})
+		else e(Layout.Stack, {
+			direction = "row",
+			gap = Theme.panel.slotGap,
+			alignY = Enum.VerticalAlignment.Center,
+			size = UDim2.fromOffset(0, BIG),
+			autoSize = Enum.AutomaticSize.X,
+			layoutOrder = 3,
+			children = outputs,
+		})
+
 	local converter = e(Layout.Stack, {
 		gap = Theme.spacing.md,
 		alignX = Enum.HorizontalAlignment.Center,
@@ -357,7 +387,7 @@ local function StationPane(props: Props)
 				gap = Theme.spacing.sm,
 				alignX = Enum.HorizontalAlignment.Center,
 				alignY = Enum.VerticalAlignment.Center,
-				size = UDim2.new(1, 0, 0, BIG + 24),
+				size = UDim2.new(1, 0, 0, math.max(BIG + HINT_HEIGHT + 6, if multi then gridSide else 0)),
 				layoutOrder = 2,
 				children = {
 					Input = e(DropSlot, {
@@ -374,15 +404,7 @@ local function StationPane(props: Props)
 						working = status.activity == "working",
 						layoutOrder = 2,
 					}),
-					Output = e(Layout.Stack, {
-						direction = "row",
-						gap = Theme.panel.slotGap,
-						alignY = Enum.VerticalAlignment.Center,
-						size = UDim2.fromOffset(0, BIG),
-						autoSize = Enum.AutomaticSize.X,
-						layoutOrder = 3,
-						children = outputs,
-					}),
+					Output = outputBlock,
 				},
 			}),
 			Status = e(Parts.Line, {

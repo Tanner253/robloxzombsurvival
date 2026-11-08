@@ -90,7 +90,7 @@ local function InventoryPane(props: Props)
 				layoutOrder = 1,
 				children = {
 					Grid = e(Parts.Slots, {
-						ref = "pockets",
+						place = "pockets",
 						slots = pockets,
 						selected = selected,
 						newItems = props.newItems,
@@ -117,7 +117,7 @@ local function InventoryPane(props: Props)
 					layoutOrder = 3,
 					children = {
 						Grid = e(Parts.Slots, {
-							ref = "backpack",
+							place = "backpack",
 							slots = backpack,
 							selected = selected,
 							newItems = props.newItems,
