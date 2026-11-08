@@ -101,15 +101,22 @@ roblox/
   - purchase receipts (idempotency)
   - shield and raid log
 - **The outpost layout** (grid pieces) is stored as compact, versioned data, saved **separately** from the profile so a big base can't hit the profile size limit.
+  - **Outposts are their own entity,** keyed by `outpostId` and holding `ownerId`, `members[]` (crews of up to 4) and per-member roles.
+  - Plots are assigned per outpost, not per player.
+  - An outpost is **session-locked to one server** at a time. A crewmate who joins elsewhere is offered a teleport to the server holding it.
+  - Each member's locked stash stays in their own profile.
 - **Purchases:** `ProcessReceipt` grants each purchase exactly once. The receipt ID is recorded in the profile before the grant is confirmed. Purchased goods go into the **locked stash**.
 
 ## 7. World and places
 
-- **World place:**
+- **World place (the Neighbourhood):**
+  - 6–8 outpost plots (crews share one)
   - the Haven hub
-  - 6–8 player plots
-  - location zones streamed in as separate areas
-  - Travel uses a Fog map UI with Run or Walk, then teleports within the server or streams the zone in.
+  - the Trailhead
+- **Location places (Fog Runs):** each location is its own place, played in **reserved-server lobbies of 8–12 players** from across servers.
+  - A MemoryStore queue per location and power band forms the lobbies, and parties teleport together.
+  - The player's ProfileStore session moves with them.
+  - Travel uses the Fog map UI (Run or Walk), then teleports into the lobby. This replaces the earlier plan of streaming zones into the world server; see GAME_DESIGN "Fog Runs: shared lobbies and PvP".
 - **Raid place (M2):** a reserved server that loads the target's outpost and storage snapshot. The target is locked while the raid runs, and loot is applied in one transaction afterwards.
 - **Vault place (M3):** reserved servers for party dungeon runs.
 - **MemoryStore (M2):**

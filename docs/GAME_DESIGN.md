@@ -26,8 +26,9 @@ This is the source of truth that worker sessions build against. Reference materi
 3. **Survivors you rescue.**
    - Survivors are found on runs as escort events, never sold as a gacha. They move into your outpost and **staff stations, producing while you're offline.**
    - Each has traits and levels, and there's a collection log. This is the idle and collection layer that keeps people checking in.
-4. **The Neighbourhood.**
+4. **The Neighbourhood and Crews.**
    - Plots sit side by side, so players see, visit and help each other.
+   - **Crews:** up to 4 friends share one outpost and build it together. See "Crews: build together".
    - A **server-wide Blood Moon** each week has everyone defending at once, with a leaderboard.
    - Then raids (M2) and guilds holding radio towers for server buffs (M3).
 
@@ -105,13 +106,19 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 **PC controls:**
 - WASD to move, the mouse to aim, left click to attack or gather, E to interact, Shift to sprint
 - Q to auto-gather: free on the home plot, a Shop lever on Fog Runs
-- Space for a **dodge roll** (combat, slice 2)
+- Space to **jump** (a short hop), C for a **dodge roll** (combat, slice 2)
 - a 1–9 hotbar
 - Tab for inventory, B for build mode, M for the Fog map
 
-**No jumping or climbing.** Walls must hold, so nobody hops a fence or climbs a crate into a base. This is how LDoE works too. Space is used for the dodge roll instead.
+**Jumping yes, climbing no.** The developer wants to keep jumping, which Roblox players expect. Walls still have to hold, so nobody gets over a wall, onto a rock or up a tree:
+- **A short hop:** jump height is tuned well below the lowest wall, with a brief cooldown so nobody bunny-hops in fights.
+- **No climbing:** the Humanoid's Climbing state is off, and the steepest walkable slope is limited, so rock faces and tree trunks can't be scaled.
+- **Collision:** tree canopies don't collide, and rocks and props use simple shapes that can't be stood on.
+- **Building rule:** every wall and gate is taller than the highest point a player can reach, standing on anything that can be placed outside a base. Raiders can't place objects, only raid tools.
+- **Parkour where we want it:** Fog Run locations have hand-placed **vault ledges, rooftops and gaps** that you mantle with Space. They make shortcuts, hidden loot spots and escape routes. Bases never get them.
+- **Server checks:** raids also validate on the server that nobody is inside an enclosed base without a breach, because exploiters can ignore client movement rules.
 
-**Mobile controls:** a virtual joystick on the left, and action, attack, dodge, sprint and auto buttons on the right.
+**Mobile controls:** a virtual joystick on the left, and action, attack, jump, dodge, sprint and auto buttons on the right.
 
 **Gamepad:** later.
 
@@ -153,6 +160,44 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - Outposts are saved to DataStores, and a MemoryStore index lists bases by region and power band to drive the map and matchmaking.
 - A raid locks the target base in MemoryStore, runs in a reserved server, and applies loot changes in one transaction.
 - That works whether the defender is online or offline, which solves the "nobody raids, nobody gets raided" problem.
+
+## Crews: build together
+
+Roblox is built around playing with friends, and the big Roblox building and survival games let friends build together. LDoE never had shared bases; we do. That's a "better than LDoE" multiplayer win, and friend invites are free growth.
+
+**How it works:**
+- A **Crew** is 2–4 players sharing **one outpost**: one Hearth, one plot, shared storage crates and stations. Anyone in the crew can queue station jobs and collect them.
+- **Joining** is an invite from the outpost owner. Your own outpost is packed into storage crates that you take with you, so nothing is lost.
+- **Each member keeps a personal locked stash.** Purchases still go there.
+- Crews always play in the same Neighbourhood server. Joining sends you to the server where your crew's outpost is loaded.
+
+**Roles (anti-grief):**
+- The **owner** can invite, kick and promote.
+- **Builders** can place and upgrade.
+- **Demolish** is limited to the owner and whoever placed the piece.
+- **Shared storage** keeps an access log.
+
+**Leaving:**
+- You keep your personal stash and start a fresh outpost with a starter kit.
+- The outpost and its shared storage stay with the crew.
+
+**Raids:**
+- A crew outpost is matched by its combined power.
+- Online crewmates all get the defense alert.
+- The share of raidable loot is the same as for anyone else.
+
+**Without a crew:** you can still team up while living in separate bases. Party up at the Trailhead for co-op Fog Runs, defend the Blood Moon together, trade, and visit or help neighbours. Guilds (M3) are the large-group layer, with 20–50 players and districts.
+
+**Monetization:**
+- **gifting** packs to crewmates and friends, a major Roblox lever
+- crew cosmetics (banner, Hearth flame)
+- crew-wide storage expansions that any member can buy
+
+The usual guardrails still apply.
+
+**Rollout:**
+- **M1 slice 3:** crews.
+- **Already in M1:** Neighbourhood visits, Trailhead parties and the co-op Blood Moon.
 
 ## Fog Runs: shared lobbies and PvP
 
@@ -325,6 +370,7 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 - Hunger and thirst
 - 3 Hollow types
 - Death drop
+- **Crews:** 2–4 friends share one outpost and build together
 - Quest tracker with a starter questline
 - DataStore saving
 - A shop with 3–4 products (resource pack, Energy refill, backpack upgrade, starter offer)
