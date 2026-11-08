@@ -177,6 +177,9 @@ local function checkWeaponStats(errors: Errors, where: string, weapon: Types.Wea
 	if weapon.critChance ~= nil and not isChance(weapon.critChance) then
 		push(errors, `{where}: critChance must be between 0 and 1`)
 	end
+	if weapon.swapSeconds ~= nil and weapon.swapSeconds < 0 then
+		push(errors, `{where}: swapSeconds must not be negative`)
+	end
 	local melee = weapon.melee
 	if melee then
 		if weapon.kind ~= "melee" then
@@ -1072,6 +1075,9 @@ local function checkFogRunTuning(errors: Errors, content: Types.Content)
 	allPositive(errors, "Tuning.noise", tuning.noise :: any)
 	allPositive(errors, "Tuning.dodge", tuning.dodge :: any)
 	allPositive(errors, "Tuning.melee", tuning.melee :: any)
+	if tuning.hands.slots ~= 2 or tuning.hands.swapSeconds < 0 then
+		push(errors, "Tuning.hands: two weapon slots (GAME_DESIGN PC controls) and swapSeconds >= 0")
+	end
 	allPositive(errors, "Tuning.hollow", tuning.hollow :: any)
 	checkRange(errors, "Tuning.hollow.idleSeconds", tuning.hollow.idleSeconds)
 	local stamina = tuning.stamina

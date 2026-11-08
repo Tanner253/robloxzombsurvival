@@ -63,6 +63,7 @@ export type WeaponStats = {
 	ammoItemId: ItemId?, -- ranged only: consumed one per shot
 	-- Fog Runs (slice 2): exactly one of firearm and bow on ranged weapons; melee may override Tuning.melee.
 	critChance: number?, -- overrides Tuning.combat.critChance
+	swapSeconds: number?, -- raising it into the active hand; overrides Tuning.hands.swapSeconds
 	melee: MeleeStats?,
 	firearm: FirearmStats?,
 	bow: BowStats?,
@@ -493,6 +494,7 @@ export type TuningDef = {
 	stamina: StaminaTuning,
 	dodge: DodgeTuning,
 	melee: MeleeTuning,
+	hands: HandsTuning,
 	hollow: HollowTuning,
 }
 
@@ -668,6 +670,12 @@ export type MeleeTuning = {
 	heavyHitStopSeconds: number,
 	knockbackStuds: number,
 	heavyKnockbackStuds: number,
+}
+
+-- The two weapon slots, LDoE-style (GAME_DESIGN PC controls; checklist 4.9; Domain/Hands).
+export type HandsTuning = {
+	slots: number, -- 2: primary and secondary from the equipment paper-doll
+	swapSeconds: number, -- default time to raise the other weapon; no attacking meanwhile
 }
 
 export type HollowTuning = {

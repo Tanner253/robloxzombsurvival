@@ -29,6 +29,18 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "DevSpeed", spec = require("./DevSpeed.spec") },
 	-- Fog Runs (slice 2)
 	{ name = "Features", spec = require("./Features.spec") },
+	{ name = "Plane", spec = require("./Plane.spec") },
+	{ name = "Lobby", spec = require("./Lobby.spec") },
+	{ name = "Extraction", spec = require("./Extraction.spec") },
+	{ name = "Matchmaking", spec = require("./Matchmaking.spec") },
+	{ name = "Combat", spec = require("./Combat.spec") },
+	{ name = "Hands", spec = require("./Hands.spec") },
+	{ name = "Noise", spec = require("./Noise.spec") },
+	{ name = "Flare", spec = require("./Flare.spec") },
+	{ name = "HollowAI", spec = require("./HollowAI.spec") },
+	{ name = "Containers", spec = require("./Containers.spec") },
+	{ name = "TravelBonus", spec = require("./TravelBonus.spec") },
+	{ name = "FogTravel", spec = require("./FogTravel.spec") },
 }
 
 local passed, failed = 0, 0

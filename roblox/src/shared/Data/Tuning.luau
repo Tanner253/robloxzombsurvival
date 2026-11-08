@@ -238,6 +238,12 @@ local Tuning: Types.TuningDef = {
 		knockbackStuds = 1.5,
 		heavyKnockbackStuds = 4,
 	},
+	hands = {
+		-- LDoE-style: two weapon slots, 1 and 2 select, F swaps (no hotbar). A swap takes a
+		-- beat and cancels a reload, so switching guns mid-fight is a choice, not a free action.
+		slots = 2,
+		swapSeconds = 0.45,
+	},
 	hollow = {
 		tickSeconds = 0.2,
 		syncSeconds = 0.2, -- 5 snapshots a second; clients interpolate between them

@@ -571,7 +571,8 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 			damage = 36,
 			attacksPerSecond = 0.9,
 			range = 7,
-			melee = { arcDegrees = 80, heavyMultiplier = 2, knockbackStuds = 2.5 },
+			swapSeconds = 0.6,
+			melee = { arcDegrees = 80, knockbackStuds = 2.5 }, -- heavy crit 36 x 1.8 x 1.5 = 97: still no one-shot
 		},
 	},
 	-- Guns: loud (Domain/Noise), so every shot is a push-your-luck call.
@@ -622,6 +623,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 			attacksPerSecond = 2 / (0.35 + 2.6), -- sustained: both barrels, then reload
 			range = 28,
 			ammoItemId = "item.shells",
+			swapSeconds = 0.7, -- a long gun comes up slower
 			firearm = {
 				fireInterval = 0.35,
 				magazine = 2,
