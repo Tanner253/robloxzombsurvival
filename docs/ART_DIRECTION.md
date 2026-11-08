@@ -66,6 +66,9 @@ Every asset, animation, effect and UI element must pass this document. If someth
   2. **Mid:** wear that tells a story. Paths worn between points of use, cracked roads with puddles, scorched ash near fires, dead grey grass toward the Fog.
   3. **Micro:** scatter (grass tufts, pebbles, leaves, roots, scrap, planks) plus decals (stains, cracks, tire tracks). Wind-animated grass via Terrain decoration.
   - **Gate:** at the gameplay camera, a viewer can't spot a repeating pattern by day or by night.
+- **One material per building tier, shared by every structure piece** (the developer, 2026-11-08: "keep it simple stupid").
+  - Foundation, floor, wall, doorway, door, window and roof of the same tier all use the **same** MaterialVariant. For the Timber tier, that's the deck's plank material.
+  - Structure pieces are exact-geometry bodies with that material plus minimal shared trim. They aren't one-off generated meshes.
 - **Building tiers must read instantly by silhouette and material:**
   - **Wood:** plank lattice and rope.
   - **Scrap metal:** patched corrugated sheets and bolts.
