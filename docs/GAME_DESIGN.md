@@ -104,14 +104,26 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 
 **PC controls:**
 - WASD to move, the mouse to aim, left click to attack or gather, E to interact, Shift to sprint
+- Q to auto-gather: free on the home plot, a Shop lever on Fog Runs
+- Space for a **dodge roll** (combat, slice 2)
 - a 1–9 hotbar
 - Tab for inventory, B for build mode, M for the Fog map
 
-**Mobile controls:** a virtual joystick on the left, and action, attack, sprint and auto buttons on the right.
+**No jumping or climbing.** Walls must hold, so nobody hops a fence or climbs a crate into a base. This is how LDoE works too. Space is used for the dodge roll instead.
+
+**Mobile controls:** a virtual joystick on the left, and action, attack, dodge, sprint and auto buttons on the right.
 
 **Gamepad:** later.
 
 ## The Fog map: neighbours, raids, guilds
+
+**Leaving home: walk off the edge into the Fog.** This is the LDoE feel, and the developer asked for it.
+- The Neighbourhood (6–8 plots in one server) is ringed by a wall of Fog.
+- Walking into that edge anywhere starts a short fog-in: the screen fogs, footsteps and ambience change, and after about 1.5 s the **Fog map** opens. Backing out during the fog-in cancels it.
+- The **Trailhead** at the end of the Neighbourhood road is the main exit. It's a lit signpost and gate, and the natural place to group up for co-op runs.
+- Closing the map leaves you standing at the edge, so a separate confirmation dialog isn't needed.
+- M opens the map anywhere **to plan** (timers, loot previews, neighbours). Travel starts only from the edge or the Trailhead.
+- Locations work the same way: walk out of a location's edge to return to the map or go home.
 
 **What the map shows:**
 - Your outpost, loot locations, rotating events and Vaults.
@@ -159,6 +171,42 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - **Blueprints and parts** from deep locations and Vaults: vehicles and advanced stations.
 - **Material tiers** for weapons, armor and building pieces: Wood → Scrap Metal → Reinforced.
 - **Pacing:** grindy by design, but each tier should land in hours to days, not weeks. Tune with retention data.
+
+## Combat and the arsenal
+
+LDoE is the standard here: a long weapon ladder, from improvised melee to modded firearms, is the backbone of progression and of the shop. We match its breadth and add three things it lacks:
+- **Noise.** Every gunshot has a noise radius that pulls the Hollow toward you. Guns are a push-your-luck choice, not a straight upgrade.
+- **Light.** Flares and fire are weapons, because the Hollow fear light.
+- **A dodge roll.**
+
+**Weapon classes:**
+
+| Class | Role | Ladder (our own names, no real-world brands) |
+|---|---|---|
+| **Melee** | Silent, costs no ammo, durability only | Club → Scrapblade → Fire Axe / Machete → Rebar Maul (heavy, staggers) → Reinforced variants |
+| **Bows** | Silent ranged; cheap craftable arrows | Reed Shortbow → Recurve Bow → Crossbow |
+| **Firearms: improvised** | First guns, loud and unreliable | Pipe Pistol (single shot), Scrap Shotgun (two barrels) |
+| **Firearms: standard** | The mid-game workhorses | Service Revolver, Semi-auto Pistol, Pump Shotgun, Hunting Rifle, SMG |
+| **Firearms: advanced** | Late game, from Vaults and blueprints | Carbine (assault rifle), Marksman Rifle, Drum Shotgun |
+| **Light weapons** | Signature: burn and repel the Hollow, light the area for a while | Flare Pistol, Ember Thrower (burns Hearth fuel), incendiary rounds |
+| **Throwables** | Crowd control and breaching | Molotov, flashbang, breach charge (raids) |
+
+**Supporting systems:**
+- **Ammo Press:** crafts 4 ammo types (Light rounds, Shells, Rifle rounds, Flares) from Rusted Scrap plus Blackpowder. Ammo is the steady resource sink.
+- **Weapon parts and blueprints:** guns are crafted at Workbench tier 2–3 from parts found deep in the Fog and in Vaults. Firearms are also found in high-tier containers.
+- **Durability and repair:** at the Workbench.
+- **Mods** (M2–M3): suppressor (cuts noise, which matters a lot on Fog Runs), scope, extended magazine, stock. The rarest mod blueprints are Vault drops.
+- **Rating:** guns are fine at Mild. The Hollow dissolve into ash with no blood, and downed players collapse without gore.
+
+**Monetization:**
+- weapon-part packs, ammo bundles and weapon skins
+- **Guardrail:** paid packs only contain guns at or below the buyer's unlocked tier, so money speeds up the ladder but never skips it. That keeps power-band raids fair.
+
+**Rollout:**
+1. **M1 slice 2:** melee, bows, Pipe Pistol, Scrap Shotgun and Flare Pistol; the Ammo Press with Light rounds, Shells and Flares; noise; dodge roll.
+2. **M2 (raids):** the standard firearms, the suppressor mod and breach charges.
+3. **M3:** advanced firearms, the Ember Thrower, the full mod system and Vault-exclusive weapons.
+4. **Seasons:** each one adds 1–2 weapons.
 
 ## Building
 
@@ -220,8 +268,8 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 - The Fog map with Run/Walk and Energy
 - 3 locations (one per fog tier) plus 1 rotating event location
 - 5–6 resources
-- About 15 craftables
-- Workbench, Campfire and Recycler with timers
+- About 15 craftables, plus the first weapons: melee, bows, Pipe Pistol, Scrap Shotgun and Flare Pistol (see "Combat and the arsenal")
+- Workbench, Campfire, Recycler and Ammo Press with timers
 - Pockets/backpack inventory and storage crates
 - Hunger and thirst
 - 3 Hollow types
@@ -234,10 +282,11 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 **Milestone 2 (raids, straight after the MVP):**
 - Neighbour markers on the Fog map (level, defense, loot tier, shield)
 - Raid tools and breach costs
+- The standard firearms and the suppressor mod
 - Raids on offline bases, with raidable storage versus the locked stash
 - Shields, new-player protection and a raid log with revenge
 
-**Milestone 3:** guilds (districts, defense calls, control points), live defense, Vaults.
+**Milestone 3:** guilds (districts, defense calls, control points), live defense, Vaults, advanced firearms and the full mod system.
 
 **Later:** vehicles, the companion, seasons.
 

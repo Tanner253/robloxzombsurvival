@@ -32,6 +32,11 @@
 
 | 2026-11-07 | **Standing 300-credit Higgsfield budget for M1 art** | Spent without per-batch approval and reported at milestones. The balance was 1,165 when approved. |
 
+| 2026-11-07 | **A full arsenal, with guns** | The LDoE-scale ladder: melee, bows, improvised, standard and advanced firearms, light weapons (Flare Pistol, Ember Thrower) and throwables; the Ammo Press with 4 ammo types; parts and blueprints; mods. Noise makes guns a risk choice. Paid packs never go beyond the buyer's unlocked tier. First guns arrive in M1 slice 2. See GAME_DESIGN "Combat and the arsenal". |
+| 2026-11-07 | **Leave home by walking off the edge into the Fog** | Requested by the developer, and it's how LDoE works. The Neighbourhood edge and the Trailhead start travel. M opens the map anywhere to plan. |
+| 2026-11-07 | **No jumping or climbing; Space is a dodge roll** | Walls must hold. Matches LDoE. |
+| 2026-11-07 | **Painted, realistic-leaning item icons and modelled nodes** | Requested by the developer: no emoji or symbolic icons. Paid from the 300-credit pool, with a 3-sample style gate before batching. |
+
 ## ZombieLab (parked) (Unity 6000.3.27f2, built-in render pipeline)
 
 `ZombieLab/` is a greybox prototype. Open it in Unity Hub and press **Play** in any scene: `World.cs` builds everything at runtime. It tests the core loop:

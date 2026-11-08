@@ -63,7 +63,7 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 ## 5. Lighting and atmosphere
 
-- `Lighting.Technology = Future`, with Atmosphere and custom sky.
+- `Lighting.LightingStyle = Realistic` with `PrioritizeLightingQuality` on (this replaced `Technology = Future` in current Studio), plus Atmosphere and a custom sky. Exposure must stay stable: no jarring brightness shifts when the camera moves.
 - **Day:** hazy overcast, low warm sun, light fog at the edges.
 - **Night:** deep blue ambient, heavy fog. Pools of warm light are the only safety, and gameplay depends on this.
 - **Post-processing:** ColorCorrection (slightly desaturated, cool shadows, warm highlights), subtle Bloom (light sources only), SunRays by day. Use depth of field only in menus.
@@ -102,7 +102,10 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - 2 px stroke in warm gray, with an ember accent for primary actions
   - a soft drop shadow
 - **Font:** Builder Sans (ExtraBold for headers, Medium for body). Use no other fonts.
-- **Icons:** one style, chunky with soft shading, a 2 px dark outline and a consistent light direction (top-left).
+- **Icons:** painted, realistic-leaning item renders in one style, with no emoji, flat symbols or default glyphs.
+  - Same 3/4 angle, light from the top-left, soft shading, a subtle dark outline and a transparent background.
+  - Weathered materials that match the toon-PBR world.
+  - Lock the style with 3 sample icons before generating a batch.
 - **PC first, mobile supported:**
   - Design layouts for 16:9 desktop, with keybind hints on buttons and hover states.
   - Every screen also needs a touch layout: tap targets at least 44 pt, thumb zones respected, HUD in the corners, and no hover-only information.
