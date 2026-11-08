@@ -48,7 +48,7 @@ This is the source of truth that worker sessions build against. Reference materi
 4. Rescue your first survivor.
 5. The starter offer appears **only after that first win**.
 
-**The money engine** (LDoE-proven levers, priced fairly):
+**The money engine** (LDoE-proven levers at LDoE-level grind and prices; LDoE runs about 100k daily players on a hard-grind, pay-to-win model):
 
 | Lever | What we sell |
 |---|---|
@@ -58,7 +58,7 @@ This is the source of truth that worker sessions build against. Reference materi
 | **Identity** | Outfits, base themes, Hearth flames, weapon skins, emotes |
 | **Recurring** | Survivor Club subscription, season pass, VIP servers |
 
-The guardrails below still apply.
+Only the platform rules and raid rules under Monetization apply.
 
 ## Pitch
 
@@ -73,7 +73,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 3. **Raids actually happen.** Every real player's outpost appears on the Fog map with its level, defense and loot tier. You always have targets in your power band, and you will be raided too. This is the part LDoE got wrong and we get right.
 4. **Guilds are war parties.** Guild districts on the map, defending each other, guild raids and territory.
 5. **Always something cooking.** Craft timers, offline production, location timers, and 2–3 reasons a day to come back.
-6. **Sell progress and convenience, the LDoE way,** but more generously paced and fairly priced than LDoE (the developer's main complaint about it).
+6. **Sell progress, power and convenience, the LDoE way.** A hard grind with strong reasons to pay is proven (the developer's call, 2026-11-08). Don't soften it. Tune it with data.
 7. **Cohesive and polished.** One art bible, one animation set, one UI kit. See [ART_DIRECTION.md](ART_DIRECTION.md).
 
 ## Structure (mapped from LDoE)
@@ -93,7 +93,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 | Durability on tools, weapons and armor | Kept, with repair at the workbench. |
 | Death drops your inventory at the location | Kept: your backpack drops where you fell and you can go back for it while the lobby is open. Equipped gear is kept, except in Black fog, which is full loot apart from the secure pouch. |
 | Long build goals (chopper, ATV, motorcycle from parts) | A **vehicle chain** (scooter, truck, then something bigger), each built from rare parts found deep in the fog. The parts are also sold. |
-| Companions (dog): food to train and breed, % chances for quality and traits | **Companions:** dogs you raise, train and breed for traits and roles (fighter, scavenger, guard and more). The chances are shown, with bad-luck protection. See "Companions: raise, train, breed". |
+| Companions (dog): food to train and breed, % chances for quality and traits | **Companions:** dogs you raise, train and breed for traits and roles (fighter, scavenger, guard and more). Better food means better odds. See "Companions: raise, train, breed". |
 | Random "unknown box" chests | Loot crates **earned in play** (event and location rewards). If we ever sell them, the odds must be published (a Roblox rule). |
 | Season pass, events (Halloween season) | 6–8 week seasons with a free and a premium track, plus themed events. |
 | Clans | **Guilds:** guild districts on the map, a guild hall in Haven, defense calls, guild raids, co-op Vaults and territory control points. |
@@ -151,7 +151,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
    - If the defender is offline, their turrets, traps and Hollow-proof walls defend.
    - If the defender is online, they get an alert and can **join and defend live**, and so can guildmates (a "defense call").
 
-**Fairness rules:**
+**Raid ecosystem rules** (so new players stick around long enough to become targets and spenders):
 - New players are protected until Hearth level 3 or for 3 days.
 - After being raided you get a shield (about 8–12 hours). Raiding someone else ends your own shield.
 - Every raid is logged. The attacker is always revealed, and you can take revenge on them or put a bounty on them.
@@ -193,7 +193,7 @@ Roblox is built around playing with friends, and the big Roblox building and sur
 - crew cosmetics (banner, Hearth flame)
 - crew-wide storage expansions that any member can buy
 
-The usual guardrails still apply.
+The platform rules under Monetization apply.
 
 **Rollout:**
 - **M1 slice 3:** crews.
@@ -226,22 +226,23 @@ Pets are also among Roblox's biggest genres, so companions are a major pillar fo
 **Breeding:**
 - Pair two dogs at the Kennel. It costs food and takes a timer.
 - Each of the pup's trait slots inherits from either parent or **mutates** (a chance of a tier-up or a new trait). Its quality rolls from the parents' qualities.
-- **The odds are always shown before you confirm** (a Roblox rule for anything with a paid input, and the honest thing to do).
-- **Bad-luck protection:** every breed without a tier-up fills a visible **Lineage meter** that raises the next mutation chance. A full meter guarantees one.
-- Better food raises the odds. Common Kibble is craftable from hunted meat. Hunter's Feast is craftable from rarer ingredients. Prime Feast is earned from events and quests, and also sold.
-- **Every food is earnable in play.** Money only speeds things up.
+- **Better food raises the odds,** and that's the chase:
+  - **Common Kibble** is craftable from hunted meat, with low odds.
+  - **Hunter's Feast** is craftable from rare ingredients, slowly.
+  - **Prime Feast** gives the best odds and is mainly sold, with a trickle from events.
+- **Odds are shown in the breeding panel** when paid food can feed a roll. Roblox requires it for paid random outcomes. Gate it with PolicyService in regions that restrict paid random items.
 
-**Fairness rules:**
-- No permadeath. A downed dog limps home and rests on a timer.
-- A companion counts toward gear score, so power-band matchmaking includes it.
-- No trait is exclusive to paying players.
-- Trading dogs between players is later, and only with anti-scam safeguards.
+**Rules:**
+- A downed dog limps home and rests on a timer, with no permadeath, because losing a pet makes Roblox players quit.
+- A companion counts toward gear score in matchmaking.
+- Trading dogs between players is later.
 
 **Money levers:**
-- food bundles
+- food bundles, with Prime Feast as the star
+- premium breeds (Legendary-quality bloodlines) in packs
 - Kennel capacity (how many dogs you keep)
 - breeding and training speed-ups
-- cosmetic breeds and coats, collars and dog armor
+- cosmetic coats, collars and dog armor
 - a starter pup in the starter offer
 
 **Social:** dogs follow you around the Neighbourhood, have names, and show their traits. Showing off a Legendary Tracker is identity.
@@ -277,17 +278,17 @@ The developer asked for this: a run should feel like a Tarkov lobby. Strangers m
 - **Downed state** (in PvP tiers): at zero HP you're downed and can crawl. A teammate can revive you, or an enemy can finish you.
 - **Bounties:** killing non-hostile players while Hostile posts a bounty on you, and anyone who kills you in a Dense or Black run claims it. This is the same revenge and bounty system raids use.
 
-**Fairness rules:**
-- **Light fog is always PvE and fully viable.** Every item has a PvE route (Light runs, quests, Vaults). PvP tiers are faster and richer, but never required.
-- **Losses are bounded:** you only risk what you carry in. Your base, storage and locked stash are never at stake on a run. Before a Dense or Black run, the loadout screen shows exactly what's at risk.
-- **Secure pouch:** 2 slots, rising to 4 through progression. It's **never sold**.
+**Lobby rules** (these keep the healthy, balanced feel the developer asked for):
+- **Light fog is always PvE.** PvP tiers are faster and richer.
+- **You only risk what you carry in.** Your base, storage and locked stash are never at stake on a run. Before a Dense or Black run, the loadout screen shows what's at risk.
+- **Secure pouch:** 2 slots to start. Bigger pouches come from progression and **from the shop**, which is a strong Tarkov-proven lever.
 - **Spawn protection:** 10 s, and players spawn spread apart.
 - **Power-band matchmaking:** a veteran can't drop into a lobby of newcomers.
 - **Cross-platform fairness:** touch players get aim assist in PvP, tuned with telemetry so neither PC nor mobile dominates. Time-to-kill is longer than Tarkov's, with no one-shots from full HP, so a fight is a fight and not a coin flip.
 
 **Monetization:**
-- PvP losses create real demand for gear, ammo and weapon-part bundles. These are tier-capped, as with all paid weapons.
-- **Never sold:** PvP protection, secure-pouch size, extraction or matchmaking advantages.
+- PvP losses create constant demand for gear, ammo, weapon and armor packs, and secure-pouch upgrades.
+- **Never sold:** PvP immunity. Players in a lobby must be killable, or PvP fog dies.
 
 **Roblox implementation:**
 - Each location is its own place in the universe, and lobbies are reserved servers.
@@ -344,7 +345,7 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 
 **Monetization:**
 - weapon-part packs, ammo bundles and weapon skins
-- **Guardrail:** paid packs only contain guns at or below the buyer's unlocked tier, so money speeds up the ladder but never skips it. That keeps power-band raids fair.
+- **Weapon packs** (like LDoE's "Genesis" or "Special Forces" packs) sell strong guns directly. Pay-to-win is accepted. Power-band matchmaking counts gear score, so buyers face similarly geared players.
 
 **Rollout:**
 1. **M1 slice 2:** melee, bows, Pipe Pistol, Scrap Shotgun and Flare Pistol; the Ammo Press with Light rounds, Shells and Flares; noise; dodge roll.
@@ -384,10 +385,10 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 3. **Capacity pressure everywhere:** pockets, backpack, storage, Kennel slots and placement limits, each with a capacity product.
 4. **Long goals with visible checklists:** vehicles, Hearth levels and dog lineages, with part packs and "fill up".
 5. **Time:** station, training and breeding timers, with speed-ups.
-6. **Chance-based systems with honest odds:** breeding, and later weapon mod rolls. The inputs are earnable, the odds are shown and bad-luck protection is visible. We never sell a random box.
+6. **Chance-based chases:** dog breeding with food, and later weapon mod rolls. Better paid inputs mean better odds.
 7. **Social proof:** neighbours, crews and lobby-mates see your base, your dog and your gear.
 
-**Guardrail:** every paid shortcut also has an earnable path. Fair prices, not LDoE's.
+LDoE-level grind and prices, tuned with live data. Don't pre-soften them.
 
 **Shop structure** (from the developer's 2026-11-08 recordings, rec8):
 - **Tabs:** Best, Season, Daily Deals, Outpost, Equipment, Building, Vehicles, Companions, Currency, plus a **Delivery inbox** and VIP.
@@ -395,12 +396,12 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 - **Daily Deals:** a rotating stock of 12 items bought with soft currency. One refresh a day is free, further refreshes come from a rewarded ad (13+), and one deal a day is free with an ad.
 - **Room kits:** prefab material bundles ("Timber room 3×3", "Stone room 3×3") that let a player who pays build a whole room instantly. They land in the Delivery inbox.
 - **Capacity packs:** "+1 Campfire can be placed", "+1 Recycler". Placement limits ("Placed 1/2") make the value of these obvious.
-- **Cards:** contents shown exactly (no "possible reward" randomness), tag ribbons, purchase limits and timers. A struck-through "was" price appears only if the item really sold at that price.
+- **Cards:** contents, tag ribbons (Popular, Limited, Hot), discount badges, purchase limits and countdown timers, as in LDoE. "Possible reward" packs are allowed, with the odds shown (a Roblox rule).
 - **Item inbox (from M1 slice 1):** everything bought, earned (level-ups, quests, events) or mailed, and anything that overflows, arrives here first.
   - Players take it out when they have room, but they rarely need to: **at home, building, crafting and station jobs draw from pockets, backpack, all home storage and the inbox.**
   - So a big pack (for example an "Outpost Pack" with every material for Timber → Stone → Reinforced) is usable the moment it's bought, even though it could never fit in an inventory.
   - It's raid-proof, which is our "purchases go to the locked stash" rule as a screen. Bought items never expire.
-- **Outpost packs:** tiered base packs with the materials to take a base from bare foundations up a full tier ladder. They're the big-ticket bundle, priced fairer than LDoE's.
+- **Outpost packs:** tiered base packs with the materials to take a base from bare foundations up a full tier ladder. They're the big-ticket bundle, like LDoE's $99.99 metal room.
 
 **Conversion levers seen in LDoE that we adopt** (detail in [reference/ldoe-recordings/NOTES.md](reference/ldoe-recordings/NOTES.md)):
 - Run vs Walk on Energy
@@ -414,16 +415,16 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 
 Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 
-**Guardrails:**
-- More generous pacing and fair prices compared with LDoE.
-- No paid random boxes. Chance-based gameplay systems (breeding, mod rolls) are allowed only with earnable inputs, odds shown before every roll, and visible bad-luck protection.
-- Sell items directly instead.
-- Prices are read from script so Roblox's price testing works, and regional pricing is on.
-- **Raid-economy rules:**
-  - Purchased resources and items go into the **locked stash**, so nobody pays and then gets robbed.
-  - **Never sell shields or raid immunity.** Otherwise heavy spenders hide forever and the raid ecosystem dies.
-  - Likewise, never sell PvP protection, secure-pouch size, or extraction or matchmaking advantages on Fog Runs.
-  - Matchmaking by power band keeps paid power from steamrolling weaker players.
+**Stance** (the developer, 2026-11-08): LDoE has about 100k daily players on a hard grind with pay-to-win. Copy that model. Don't soften the grind or the prices up front; tune them with live data.
+
+**Platform rules** (Roblox requirements, not choices):
+- Any paid random outcome (packs, or breeding with paid food) shows its odds, and is hidden where PolicyService restricts paid random items.
+- Rewarded ads are for 13+ only.
+- Prices are read from script so price testing and regional pricing work.
+
+**Raid rules** (these protect revenue, not fairness):
+- Purchased items go to the raid-proof inbox or locked stash, so payers never get robbed of what they bought and keep buying.
+- **Never sell shields, raid immunity or PvP immunity.** If spenders can hide forever, nobody has targets, and raids and PvP fog die.
 
 ## Platform requirements
 
