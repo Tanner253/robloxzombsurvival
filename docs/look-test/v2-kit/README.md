@@ -52,7 +52,7 @@ Every texture is 3 × 2048² (base, metal-rough, normal); Roblox downsamples to 
 - **Hollow:** facing is auto-detected (the shambler was flipped), and each has neon cyan eyes, a small cyan light and ash wisps.
 
 ## Manual steps for the developer
-1. **Lighting → Technology = Future.** The MCP can't read or write it, so the night balance was tuned blind and may need a 10-minute re-tune afterwards.
+1. **Lighting:** *Superseded.* This Studio build has no `Technology` property; the unified system uses `LightingStyle`. It is now set to **Realistic** with `PrioritizeLightingQuality = true` by script (see v3), so no manual step is needed.
 2. **CollisionFidelity** can't be set from script. Set it on the masters in `ServerStorage.EO_Kit` and on the placed copies in `Workspace.LookTest` (OutpostV2, Props, FogZone, KitLineup):
 
    | Setting | Assets |
@@ -98,7 +98,7 @@ Side by side: `07_vs_ldoe_reference.jpg`, which pairs our night shots with the d
 | HUD | **At par** | Ours is cleaner and more consistent. LDoE's has more functional density (chat, icon bar, XP bar), which we'll add with the systems. |
 
 **To reach LDoE's polish level:**
-1. **Night re-light** (free, after Technology=Future):
+1. **Night re-light** (free; done in v3 under LightingStyle Realistic):
    - a cold blue key and rim on the walls
    - Hearth range about 16 and lamps about 14, so the warm light becomes pools
    - a slightly lighter blue grade outside

@@ -1,0 +1,11 @@
+shelf d90c04de-c2cb-46cf-929f-9b92f5458beb
+barrels aa5a883c-bc2b-48fc-9040-705fcfb963e1
+sacks 6bbe9f21-21ed-4934-93da-da45f46c9e91
+crate_stack 5fdb2678-13a9-42b8-b472-0cc97c56a4e4
+cot 27dc6a96-fbd0-40e4-9591-325c831b846e
+tool_rack 84715749-547b-4c03-9721-5441269e4331
+generator d8157b4a-5c11-4abd-8422-e4b37f5a6baa
+water_collector 499d5f53-6be0-41e8-b0ca-10db911dc1b8
+planter 6e93beae-0398-46c8-9291-6814b6caa18a
+grass_clump fd5681b4-ee42-4f46-ac7b-4f61c096632c
+rock_clump 252befe3-a1a1-4d24-96cc-a286c3b8cf9e
