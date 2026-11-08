@@ -1,0 +1,468 @@
+--!strict
+--[[
+	FogRun: the client side of a Fog Run (M1 slice 2; checklist 11-13).
+
+	State it keeps for the screens (State sections, set here, read by UI/screens):
+	- "run": the lobby's RunState (phase, Fog meter, band, exits, drops, search,
+	  extraction, stamina), refreshed every second while on a run; false off a run.
+	- "travel": a trip in progress (the loading screen for a Run, the Walk bar).
+	- "arrival": the arrival title card; "travelBonus": the "found on the way" panel.
+	- "loot": the open container, pile or bag (the inventory's right pane, #45).
+	- "death": the death screen; "result": the results card (also from "homecoming").
+	- "hands": the two weapon slots with magazines (ammo on the weapon circle).
+	- "hurtAt": the last hit (red vignette and direction).
+
+	The world it dresses on the client:
+	- per fog tier, the fog thickens as the lobby's meter rises (12.3) and lifts again
+	  at home;
+	- the roof of the building you stand in lifts away (2.3);
+	- searched containers open their lids and doors; unstocked ones stand open;
+	- tall map foliage fades when it hides you.
+]]
+
+local CollectionService = game:GetService("CollectionService")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local Content = require(ReplicatedStorage.Shared.Data)
+local Net = require("../Net")
+local Sfx = require("../Sfx")
+local State = require("../State")
+local Camera = require("./Camera")
+
+local FogRun = {}
+
+local player = Players.LocalPlayer
+local STALE_SECONDS = 3
+local CONTAINER_TAG = "EO_RunContainer"
+local CANOPY_TAG = "EO_Canopy"
+local ROOF_TAG = "EO_Roof"
+
+-- Fog by tier (Light, Dense, Black): density and haze at the meter's start and at its end.
+type Look = { density: { number }, haze: { number }, offset: number, saturation: number, contrast: number }
+local LOOKS: { [number]: Look } = {
+	{ density = { 0.36, 0.5 }, haze = { 1.8, 2.6 }, offset = 0.18, saturation = -0.16, contrast = 0.1 },
+	{ density = { 0.46, 0.6 }, haze = { 2.3, 3.2 }, offset = 0.14, saturation = -0.24, contrast = 0.12 },
+	{ density = { 0.56, 0.7 }, haze = { 2.8, 3.8 }, offset = 0.1, saturation = -0.32, contrast = 0.16 },
+}
+
+local lastRunAt = 0
+local homeLook: { [string]: any }? = nil
+
+function FogRun.active(): boolean
+	local run = State.get("run")
+	return type(run) == "table"
+end
+
+-- The current run's state, or nil.
+function FogRun.state(): any
+	local run = State.get("run")
+	return if type(run) == "table" then run else nil
+end
+
+-- Atmosphere -----------------------------------------------------------------------------------------
+
+local function atmosphere(): Atmosphere?
+	return Lighting:FindFirstChildOfClass("Atmosphere")
+end
+
+local function grade(): ColorCorrectionEffect?
+	return Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+end
+
+local function rememberHome()
+	if homeLook then
+		return
+	end
+	local a, g = atmosphere(), grade()
+	homeLook = {
+		density = if a then a.Density else nil,
+		haze = if a then a.Haze else nil,
+		offset = if a then a.Offset else nil,
+		saturation = if g then g.Saturation else nil,
+		contrast = if g then g.Contrast else nil,
+	}
+end
+
+local function applyLook(run: any, dt: number)
+	local a, g = atmosphere(), grade()
+	local look = LOOKS[run.fogTier or 1] or LOOKS[1]
+	local meter = math.clamp(run.meter or 0, 0, 1)
+	local blend = 1 - math.exp(-dt * 1.5)
+	if a then
+		local density = look.density[1] + (look.density[2] - look.density[1]) * meter
+		local haze = look.haze[1] + (look.haze[2] - look.haze[1]) * meter
+		a.Density += (density - a.Density) * blend
+		a.Haze += (haze - a.Haze) * blend
+		a.Offset += (look.offset - a.Offset) * blend
+	end
+	if g then
+		g.Saturation += (look.saturation - g.Saturation) * blend
+		g.Contrast += (look.contrast - g.Contrast) * blend
+	end
+end
+
+local function restoreHome()
+	local saved = homeLook
+	if saved == nil then
+		return
+	end
+	homeLook = nil
+	local a, g = atmosphere(), grade()
+	if a and saved.density then
+		a.Density = saved.density
+		a.Haze = saved.haze
+		a.Offset = saved.offset
+	end
+	if g and saved.saturation then
+		g.Saturation = saved.saturation
+		g.Contrast = saved.contrast
+	end
+end
+
+-- Roofs: the building you're in loses its roof (and walls fade via WorldFx) --------------------------
+
+local liftedRoofs: { [Instance]: boolean } = {}
+
+local function setRoof(roof: Instance, lifted: boolean)
+	for _, descendant in roof:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.LocalTransparencyModifier = if lifted then 1 else 0
+		end
+	end
+end
+
+local function updateRoofs()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local inside: { [Instance]: boolean } = {}
+	if root then
+		for _, roof in CollectionService:GetTagged(ROOF_TAG) do
+			local building = roof.Parent
+			local box = building and building:GetAttribute("Interior")
+			local frame = building and building:GetAttribute("InteriorCFrame")
+			if typeof(box) == "Vector3" and typeof(frame) == "CFrame" then
+				local here = frame:PointToObjectSpace(root.Position)
+				local half = box / 2 + Vector3.new(0.6, 2, 0.6)
+				if math.abs(here.X) < half.X and math.abs(here.Z) < half.Z and math.abs(here.Y) < half.Y then
+					inside[roof] = true
+				end
+			end
+		end
+	end
+	for roof in inside do
+		if not liftedRoofs[roof] then
+			liftedRoofs[roof] = true
+			setRoof(roof, true)
+		end
+	end
+	for roof in liftedRoofs do
+		if not inside[roof] then
+			liftedRoofs[roof] = nil
+			if roof.Parent then
+				setRoof(roof, false)
+			end
+		end
+	end
+end
+
+-- Containers: lids and doors -------------------------------------------------------------------------
+
+local openContainers: { [Model]: boolean } = {}
+
+local function hingeOf(holder: Instance, name: string): (Instance?, CFrame?, number, string)
+	local moving = holder:FindFirstChild(name)
+	local hinge = moving and moving:GetAttribute("Hinge")
+	local angle = moving and moving:GetAttribute("OpenAngle")
+	local axis = moving and moving:GetAttribute("Axis")
+	return moving,
+		if typeof(hinge) == "CFrame" then hinge else nil,
+		if type(angle) == "number" then angle else 100,
+		if type(axis) == "string" then axis else "X"
+end
+
+local function swing(moving: Instance, hinge: CFrame, angle: number, axis: string, animate: boolean)
+	local turn = if axis == "Y" then CFrame.Angles(0, math.rad(angle), 0) else CFrame.Angles(math.rad(-angle), 0, 0)
+	for _, part in moving:GetDescendants() do
+		if part:IsA("BasePart") then
+			local target = hinge * turn * hinge:Inverse() * part.CFrame
+			if animate then
+				TweenService:Create(part, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+					CFrame = target,
+				}):Play()
+			else
+				part.CFrame = target
+			end
+		end
+	end
+end
+
+-- A container's look: open once searched (or never stocked this lobby).
+local function showOpen(holder: Model, animate: boolean)
+	if openContainers[holder] then
+		return
+	end
+	openContainers[holder] = true
+	for _, name in { "Lid", "Door" } do
+		local moving, hinge, angle, axis = hingeOf(holder, name)
+		if moving and hinge then
+			swing(moving, hinge, angle, axis, animate)
+		end
+	end
+	if holder:GetAttribute("Sags") or holder:GetAttribute("Empties") then
+		-- A searched sack slumps: emptied.
+		for _, part in holder:GetDescendants() do
+			if part:IsA("BasePart") and part.Name ~= "Body" then
+				part.LocalTransparencyModifier = if holder:GetAttribute("Empties") then 1 else 0
+			end
+		end
+	end
+	if animate then
+		local body = holder.PrimaryPart
+		local kind = holder:GetAttribute("Kind")
+		local metal = kind == "locker" or kind == "cabinet" or kind == "strongbox"
+		Sfx.play(if metal then "lockerOpen" else "crateOpen", if body then body.Position else nil)
+	end
+end
+
+local function marker(holder: Model): BasePart?
+	return holder.PrimaryPart or holder:FindFirstChild("Body", true) :: BasePart?
+end
+
+local function watchContainer(instance: Instance)
+	if not instance:IsA("Model") or instance:GetAttribute("Kind") == "pile" then
+		return
+	end
+	local holder = instance :: Model
+	local body = marker(holder)
+	if body == nil then
+		return
+	end
+	local function refresh(animate: boolean)
+		local run = FogRun.state()
+		local stocked = body:GetAttribute("ContainerId") ~= nil
+		local opened = body:GetAttribute("Opened") == true
+		-- Only once the lobby has laid its containers out does "unstocked" mean empty.
+		if opened or (run and not stocked) then
+			showOpen(holder, animate)
+		end
+	end
+	body:GetAttributeChangedSignal("Opened"):Connect(function()
+		refresh(true)
+	end)
+	body:GetAttributeChangedSignal("ContainerId"):Connect(function()
+		refresh(false)
+	end)
+	task.delay(1.5, refresh, false)
+end
+
+-- Canopy fade for map foliage (WorldFx fades home trees) -----------------------------------------------
+
+local faded: { [Model]: boolean } = {}
+
+local function updateCanopy()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local camera = workspace.CurrentCamera
+	local near: { [Model]: boolean } = {}
+	if root and camera then
+		local at = root.Position
+		local toCamera = camera.CFrame.Position - at
+		local flat = Vector3.new(toCamera.X, 0, toCamera.Z)
+		local reach = flat.Magnitude
+		local dir = if reach > 0.01 then flat / reach else Vector3.zAxis
+		for _, tree in CollectionService:GetTagged(CANOPY_TAG) do
+			if tree:IsA("Model") then
+				local base = tree:GetPivot().Position
+				local offset = Vector3.new(base.X - at.X, 0, base.Z - at.Z)
+				if offset.Magnitude < 40 then
+					local box, size = tree:GetBoundingBox()
+					local radius = math.max(size.X, size.Z) / 2
+					local top = box.Position.Y + size.Y / 2
+					local along = offset:Dot(dir)
+					if along >= -radius and (offset - dir * along).Magnitude <= radius + 1 then
+						local nearest = math.max(along - radius, 0)
+						if at.Y + toCamera.Y * nearest / math.max(reach, 0.01) < top then
+							near[tree] = true
+						end
+					end
+				end
+			end
+		end
+	end
+	for tree in near do
+		if not faded[tree] then
+			faded[tree] = true
+			for _, part in tree:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.LocalTransparencyModifier = 0.9
+				end
+			end
+		end
+	end
+	for tree in faded do
+		if not near[tree] then
+			faded[tree] = nil
+			for _, part in tree:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.LocalTransparencyModifier = 0
+				end
+			end
+		end
+	end
+end
+
+-- Server effects ---------------------------------------------------------------------------------------
+
+local function onFx(kind: string, payload: any)
+	if kind == "travel" then
+		State.set("travel", payload)
+		Sfx.play("uiOpen")
+	elseif kind == "travelCancelled" then
+		State.set("travel", false)
+	elseif kind == "matching" then
+		local travel = State.get("travel")
+		if type(travel) == "table" then
+			local fresh = table.clone(travel)
+			fresh.matching = true
+			State.set("travel", fresh)
+		end
+	elseif kind == "runEnter" then
+		State.set("travel", false)
+		State.set("death", false)
+		State.set("result", false)
+		if not payload.reentry then
+			State.set("arrival", { locationId = payload.locationId, at = os.clock() })
+		end
+		Sfx.play("questComplete", nil, 0.5)
+	elseif kind == "travelBonus" then
+		State.set("travelBonus", payload or false)
+	elseif kind == "container" then
+		State.set("loot", { kind = "container", id = payload.id, items = payload.items or {} })
+		State.set("search", false)
+		if State.ui().panel ~= "inventory" then
+			State.toggle("inventory")
+		end
+	elseif kind == "search" then
+		State.set("search", { id = payload.id, endsAt = payload.endsAt, startedAt = State.now(), kind = payload.kind })
+		Sfx.play("searchRummage")
+	elseif kind == "searchCancelled" then
+		State.set("search", false)
+		if payload and payload.reason == "hit" then
+			State.notify("Search interrupted")
+		end
+	elseif kind == "extracting" then
+		State.set("extracting", {
+			pointId = payload.pointId,
+			kind = payload.kind,
+			endsAt = payload.endsAt,
+			startedAt = State.now(),
+		})
+		Sfx.play("extractStart")
+	elseif kind == "extractCancelled" then
+		State.set("extracting", false)
+		State.notify(if payload and payload.reason == "hit" then "Extraction interrupted" else "Extraction stopped")
+	elseif kind == "runDeath" then
+		State.set("death", { info = payload, at = os.clock() })
+		State.set("search", false)
+		State.set("extracting", false)
+		State.set("loot", false)
+		Sfx.play("lowMeter", nil, 1)
+	elseif kind == "runResult" then
+		State.set("result", { info = payload, at = os.clock() })
+	elseif kind == "fogWarning" then
+		State.notify("The Fog closes in 60 seconds. Get to an exit.", "warn")
+		Sfx.play("fogWarning")
+	elseif kind == "hands" then
+		State.set("hands", payload)
+	elseif kind == "hurt" then
+		State.set("hurtAt", { at = os.clock(), from = payload.from, amount = payload.amount })
+		Camera.shake(math.clamp((payload.amount or 5) / 30, 0.08, 0.45))
+	elseif kind == "dodged" then
+		State.notify("Dodged", "good")
+	elseif kind == "dryClick" then
+		Sfx.play("dryClick")
+	elseif kind == "dud" then
+		State.notify("Draw the bow further")
+	end
+end
+
+-- Homecoming: the results card or death screen from a run hosted elsewhere (a reserved server).
+local lastHomecoming = 0
+local function onHomecoming()
+	local home = State.get("homecoming")
+	if type(home) ~= "table" or home.at == nil or home.at == lastHomecoming then
+		return
+	end
+	lastHomecoming = home.at
+	if home.death then
+		State.set("death", { info = home.death, at = os.clock(), reentry = home.reentry })
+	elseif home.result then
+		State.set("result", { info = home.result, at = os.clock() })
+	end
+end
+
+function FogRun.start()
+	if not Content.Tuning.features.fogRuns then
+		return
+	end
+	Net.on("RunState", function(state: any)
+		lastRunAt = os.clock()
+		if not FogRun.active() then
+			rememberHome()
+			Camera.setLobbyClamp(true)
+		end
+		State.set("run", state)
+		-- The open loot panel closes once its container is out of reach (the server checks too).
+	end)
+	State.fx:Connect(onFx)
+	State.changed:Connect(function(key: string)
+		if key == "homecoming" then
+			onHomecoming()
+		elseif key == "ui" then
+			-- Closing the inventory closes the loot pane with it.
+			if State.ui().panel ~= "inventory" and State.get("loot") then
+				State.set("loot", false)
+			end
+		end
+	end)
+	for _, instance in CollectionService:GetTagged(CONTAINER_TAG) do
+		task.spawn(watchContainer, instance)
+	end
+	CollectionService:GetInstanceAddedSignal(CONTAINER_TAG):Connect(watchContainer)
+
+	local roofClock, canopyClock = 0, 0
+	RunService.RenderStepped:Connect(function(dt: number)
+		local run = FogRun.state()
+		if run and os.clock() - lastRunAt > STALE_SECONDS then
+			-- Left the run (home, or teleported): the world goes back to the Neighbourhood's.
+			State.set("run", false)
+			State.set("loot", false)
+			State.set("search", false)
+			State.set("extracting", false)
+			State.set("hands", false)
+			Camera.setLobbyClamp(false)
+			restoreHome()
+			table.clear(openContainers)
+			return
+		end
+		if run then
+			applyLook(run, dt)
+		end
+		roofClock += dt
+		if roofClock > 0.2 then
+			roofClock = 0
+			updateRoofs()
+		end
+		canopyClock += dt
+		if run and canopyClock > 0.15 then
+			canopyClock = 0
+			updateCanopy()
+		end
+	end)
+end
+
+return FogRun

@@ -15,6 +15,7 @@ local State = require("./State")
 local Building = require("./Controllers/Building")
 local Interaction = require("./Controllers/Interaction")
 local Animations = require("./Controllers/Animations")
+local CombatControl = require("./Controllers/CombatControl")
 
 local Actions = {}
 
@@ -47,6 +48,45 @@ end
 function Actions.toggleQuests()
 	State.patch({ questCollapsed = not State.ui().questCollapsed })
 	Sfx.play("uiClick")
+end
+
+-- The big weapon circle on a run: one attack (a tap is a light swing or one shot).
+function Actions.attack()
+	CombatControl.press()
+	task.delay(0.05, CombatControl.release)
+end
+
+-- The Fog map (M, the HUD's Map button, or the Trailhead): plan and set out (11.1, 11.2).
+function Actions.toggleFogMap()
+	State.toggle("fogmap")
+	Sfx.play(if State.ui().panel == "fogmap" then "uiOpen" else "uiClose")
+end
+
+-- Run or Walk to a location (the Fog map's buttons). The server checks the Trailhead,
+-- level, Energy and party.
+function Actions.travel(locationId: string, mode: "run" | "walk")
+	Net.fire("TravelStart", locationId, mode)
+	Sfx.play("uiClick")
+end
+
+-- Takes one stack (or all) from the open container, pile or death bag (#45).
+function Actions.takeLoot(index: number?)
+	local loot = State.get("loot")
+	if type(loot) ~= "table" then
+		return
+	end
+	if loot.kind == "bag" then
+		if index then
+			Net.fire("BagTake", loot.id, loot.section or "backpack", index)
+		else
+			Net.fire("BagTakeAll", loot.id)
+		end
+	elseif index then
+		Net.fire("ContainerTake", loot.id, index)
+	else
+		Net.fire("ContainerTakeAll", loot.id)
+	end
+	Sfx.play("pickup")
 end
 
 function Actions.toggleSettings()
@@ -123,7 +163,13 @@ end
 -- AUTO: gather nearby nodes hands-free until the bag is full or none are left.
 -- Free on the home plot; on Fog Runs this is a Shop lever (rewarded ad or pass), M1 step 11.
 function Actions.toggleAuto()
-	Interaction.setAuto(not State.ui().auto)
+	local on = not State.ui().auto
+	Interaction.setAuto(on)
+	-- On a run AUTO also fights the nearest Hollow (#31).
+	local run = State.get("run")
+	if type(run) == "table" then
+		Net.fire("CombatAuto", on)
+	end
 	Sfx.play("uiClick")
 end
 
@@ -162,7 +208,11 @@ function Actions.setSprint(on: boolean)
 end
 
 function Actions.transfer(mode: "takeAll" | "putAll")
-	if State.get("storage") then
+	if type(State.get("loot")) == "table" then
+		if mode == "takeAll" then
+			Actions.takeLoot(nil)
+		end
+	elseif State.get("storage") then
 		Net.fire("InventoryTransfer", mode)
 	end
 end

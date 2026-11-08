@@ -18,12 +18,12 @@ local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local State = {}
 
-export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting"
+export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "fogmap"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
 export type Target = {
-	kind: "node" | "station" | "storage" | "drop",
+	kind: "node" | "station" | "storage" | "drop" | "container" | "bag" | "exit",
 	key: string, -- node key, piece UID or drop id
 	label: string,
 	verb: string, -- "Chop", "Open", ...

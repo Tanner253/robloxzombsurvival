@@ -20,6 +20,8 @@ local KitPreview = require("./screens/KitPreview")
 local StationScreen = require("./screens/StationScreen")
 local SettingsScreen = require("./screens/SettingsScreen")
 local CraftingScreen = require("./screens/CraftingScreen")
+local FogMap = require("./screens/FogMap")
+local RunHud = require("./screens/RunHud")
 local hooks = require("./hooks")
 
 local e = React.createElement
@@ -88,6 +90,9 @@ local function App()
 		Build = e(Boundary, { name = "Build" }, { Screen = e(BuildMenu) }),
 		Settings = e(Boundary, { name = "Settings" }, { Screen = e(SettingsScreen) }),
 		Crafting = e(Boundary, { name = "Crafting" }, { Screen = e(CraftingScreen) }),
+		-- Fog Runs (M1 slice 2): the travel map, and everything a run adds to the screen.
+		FogMap = e(Boundary, { name = "FogMap" }, { Screen = e(FogMap) }),
+		Run = e(Boundary, { name = "Run" }, { Screen = e(RunHud.Screen) }),
 		KitPreview = RunService:IsStudio() and showKit and e(KitPreview),
 	})
 end

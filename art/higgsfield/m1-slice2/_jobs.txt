@@ -28,3 +28,4 @@ image weapons_guns_sheet_v1 6557efe3-a05d-407f-bb5c-8f83add53df4 (2.75)
 3d shortbow 6016ccd6-0e04-42e3-ba29-c028fb74ac96 (12) media 77089127-3b31-46a3-8275-a6270dd1f25f
 3d pipe_pistol 3db0707a-3269-4c3e-b664-25c9e8807c2d (12) media b86f1608-ac33-479d-9509-d002c9ed6269
 3d scrap_shotgun 6f3ce37c-4bfe-4245-83b8-45776cb14189 (12) media a7b095c9-cd61-4dae-8746-e8aa00789810
+image fog_map_v1 c157368b-5b3d-4c4e-b072-1441b4ee41f5 (2.75)

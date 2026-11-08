@@ -41,6 +41,7 @@ local RunTicket = require(Domain.RunTicket)
 local Net = require("../Net")
 local Map = require("../FogRuns/Map")
 local Payments = require("../FogRuns/Payments")
+local Props = require("../FogRuns/Props")
 local Teleport = require("../FogRuns/Teleport")
 local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
@@ -121,6 +122,7 @@ local providers: { [string]: (Player, Run) -> any } = {}
 -- What a player brought home from their last run (results card, death screen, re-entry),
 -- shown once by the client from the "homecoming" section.
 local homecomings: { [Player]: { [string]: any } } = {}
+local bagModels: { [string]: Model } = {} -- death bags in the world, by drop ID
 local seq = 0
 
 local function now(): number
@@ -397,6 +399,19 @@ local function onDied(player: Player, run: Run)
 	end
 	local result = applyDeath(player, run, false)
 	local drop = result and result.drop
+	if drop and drop.position then
+		local root = rootOf(player)
+		local y = if root then root.Position.Y - 2 else 0
+		local model = Props.bag(
+			run.hosted.map or workspace,
+			Vector3.new(drop.position.x, y, drop.position.z),
+			drop.id,
+			player.UserId
+		)
+		if model then
+			bagModels[drop.id] = model
+		end
+	end
 	local death = {
 		cause = lastCause[player] or "hollow",
 		lost = if drop then { backpack = drop.backpack, equipment = drop.equipment } else nil,
@@ -590,6 +605,13 @@ local function closeHosted(hosted: Hosted, lost: { number })
 		end
 	end
 	hostedLobbies[hosted.id] = nil
+	for dropId in hosted.state.drops do
+		local model = bagModels[dropId]
+		if model then
+			model:Destroy()
+			bagModels[dropId] = nil
+		end
+	end
 	local transport = adapter
 	if transport then
 		transport.unpublish(hosted.id, hosted.location.id)
@@ -657,6 +679,9 @@ local function runState(player: Player, run: Run): any
 			at = if drop.position then { drop.position.x, drop.position.z } else nil,
 			canOpen = canOpen,
 			mine = drop.ownerUserId == player.UserId,
+			-- What's inside, for the bag's loot pane (only to those allowed to open it).
+			backpack = if canOpen then drop.backpack else nil,
+			equipment = if canOpen then drop.equipment else nil,
 		})
 	end
 	local payload: { [string]: any } = {
@@ -713,6 +738,10 @@ local function takeFromBag(player: Player, bagId: string, section: LobbyMath.Sec
 	local given, leftover = Inventory.giveSlots(player, { slot })
 	for _, rest in leftover do
 		LobbyMath.returnToDrop(state, bagId, section, rest, now(), drop.ownerUserId)
+	end
+	if state.drops[bagId] == nil and bagModels[bagId] then
+		bagModels[bagId]:Destroy() -- emptied
+		bagModels[bagId] = nil
 	end
 	if #given == 0 then
 		Sync.notice(player, "Your bag is full")

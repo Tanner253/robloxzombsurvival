@@ -601,11 +601,12 @@ local function hearth(world: Instance, origin: Vector3)
 end
 
 function Scenery.start()
-	-- A Fog Run lobby server (same place, reserved) builds its location instead (RunWorld).
+	lighting()
+	-- A Fog Run lobby server (same place, reserved) builds its location instead (RunWorld);
+	-- it keeps the lighting rig, which the client tunes per fog tier.
 	if Teleport.role() == "run" then
 		return
 	end
-	lighting()
 	local world = worldFolder()
 	local origin = originOf(world)
 	local random = Random.new(SEED)

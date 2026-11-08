@@ -478,7 +478,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 40,
-		icon = "",
+		icon = "rbxassetid://80428196242848",
 	},
 	["item.blackpowder"] = {
 		id = "item.blackpowder",
@@ -488,7 +488,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 50,
-		icon = "",
+		icon = "rbxassetid://92308823000142",
 	},
 	["item.steel_pipe"] = {
 		id = "item.steel_pipe",
@@ -498,7 +498,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://72156251315237",
 	},
 	["item.trigger_group"] = {
 		id = "item.trigger_group",
@@ -508,7 +508,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "rare",
 		stackSize = 5,
-		icon = "",
+		icon = "rbxassetid://124143273069872",
 	},
 	["item.light_rounds"] = {
 		id = "item.light_rounds",
@@ -518,7 +518,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "common",
 		stackSize = 60,
-		icon = "",
+		icon = "rbxassetid://93144209713385",
 	},
 	["item.shells"] = {
 		id = "item.shells",
@@ -528,7 +528,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://101704009207819",
 	},
 	["item.flare"] = {
 		id = "item.flare",
@@ -538,7 +538,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://134545820926313",
 		-- Checklist 13.8: lights an area for 20 s, burns what it hits, the Hollow flee it.
 		flare = { lightRadius = 24, seconds = 20, burnDps = 6, burnSeconds = 5, fleeRadius = 18 },
 	},
@@ -551,7 +551,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 130,
-		icon = "",
+		icon = "rbxassetid://117878839108158",
 		equipSlot = "weapon",
 		weapon = { kind = "melee", damage = 22, attacksPerSecond = 1.6, range = 6.5, critChance = 0.12 },
 	},
@@ -564,7 +564,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "rare",
 		stackSize = 1,
 		durability = 150,
-		icon = "",
+		icon = "rbxassetid://110838805297214",
 		equipSlot = "weapon",
 		weapon = {
 			kind = "melee",
@@ -585,7 +585,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 140,
-		icon = "",
+		icon = "rbxassetid://79417077588504",
 		equipSlot = "weapon",
 		weapon = {
 			kind = "ranged",
@@ -615,7 +615,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "rare",
 		stackSize = 1,
 		durability = 120,
-		icon = "",
+		icon = "rbxassetid://109179071587052",
 		equipSlot = "weapon",
 		weapon = {
 			kind = "ranged",
@@ -647,7 +647,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 100,
-		icon = "",
+		icon = "rbxassetid://106575499729767",
 		equipSlot = "weapon",
 		weapon = {
 			kind = "ranged",
@@ -677,7 +677,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://89988945563872",
 		flags = { ignoresFoodEnergyCap = true },
 		consume = { energy = 60 },
 	},
@@ -690,7 +690,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "epic",
 		stackSize = 3,
-		icon = "",
+		icon = "rbxassetid://107210408612375",
 		flags = { reanimator = true },
 	},
 	-- #46: placed at home, you respawn there (slice 1b wires the respawn point).
@@ -702,7 +702,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 1,
-		icon = "",
+		icon = "rbxassetid://131644675988808",
 		flags = { respawnPoint = true },
 		feature = "fogRuns",
 	},
@@ -715,7 +715,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://109001681213314",
 		consume = { hunger = 6 },
 	},
 	["item.cooked_meat"] = {
@@ -726,7 +726,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://94155123618788",
 		consume = { health = 10, hunger = 40 },
 		feature = "fogRuns",
 	},
@@ -738,7 +738,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://96254239432526",
 	},
 	["item.leather"] = {
 		id = "item.leather",
@@ -748,7 +748,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://126927438693240",
 		feature = "fogRuns",
 	},
 }

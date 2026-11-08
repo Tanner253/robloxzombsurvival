@@ -341,6 +341,35 @@ Art.sounds = {
 	eerieBed = snd(9112795463, 0.35, { group = "ambience" }), -- PSE "Hollow Rumble 1"
 	musicDay = snd(9040514823, 0.3, { group = "music" }), -- APM "Campfire Embers 60"
 	musicNight = snd(1843721367, 0.35, { group = "music" }), -- APM "Low Drone 19"
+	-- Fog Runs (S2): Pro Sound Effects and APM library sounds, trimmed to one event.
+	pistolShot = snd(
+		9117396996,
+		1.1,
+		{ region = { 0, 0.9 }, variants = { snd(9117398114, 1.1, { region = { 0, 0.9 } }) } }
+	), -- PSE "Pistol Single Shots 1/11"
+	shotgunShot = snd(9112912106, 1.2, { region = { 0, 1.1 } }), -- PSE "12 Gauge Shotgun 1", the first blast only
+	flareLaunch = snd(9118591402, 1, { region = { 0, 1.4 } }), -- PSE "Rocket Flare Out 1"
+	reload = snd(9113104516, 1, { region = { 0, 1.4 } }), -- PSE "Ammo Magazine 4"
+	dryClick = snd(9117396530, 1, { region = { 0, 0.3 } }), -- PSE "Pistol Handling 1", one click
+	meleeSwing = snd(9120972321, 0.9, { variants = { snd(9120728815, 0.8, { region = { 0, 0.6 } }) } }), -- PSE whooshes
+	hitThud = snd(
+		9117969687,
+		0.9,
+		{ region = { 0, 0.6 }, variants = { snd(9117969717, 0.9, { region = { 0, 0.6 } }) } }
+	), -- PSE "Punch Kit Beefy Hit 2/3"
+	hollowAlert = snd(9125467848, 0.8, { variants = { snd(9113973128, 0.8) } }), -- PSE creature growls
+	hollowAttack = snd(9125475729, 0.8, { variants = { snd(9113985445, 0.7, { region = { 0, 1.2 } }) } }), -- PSE snarls
+	hollowDeath = snd(9113989919, 0.9, { variants = { snd(9113970887, 0.7, { region = { 0, 1.6 } }) } }), -- PSE hiss and dying breath
+	bloaterBurst = snd(9120628323, 1, { variants = { snd(9125640290, 0.9) } }), -- PSE wet splat, wheezy burst
+	bowDraw = snd(9125407496, 0.9), -- PSE "Bow Stretches Wood Creaking"
+	bowRelease = snd(9113166206, 0.9, { region = { 0, 1 } }), -- PSE "Arrow Out Whooshing Pass By 1"
+	arrowHit = snd(9113160887, 0.9, { region = { 0, 0.8 } }), -- PSE "Arrow In And Hit 14"
+	crateOpen = snd(9120881979, 1), -- PSE "Wood Groan Creak Opening Wood Chest"
+	lockerOpen = snd(9116646197, 0.9, { region = { 0, 1.2 } }), -- PSE "Metal Hinge Open Locker"
+	searchRummage = snd(9120189795, 0.8), -- PSE "Tool Box Rummage Searching Through 8"
+	extractStart = snd(9118027586, 0.8), -- PSE "Radio Static 9"
+	fogWarning = snd(9119077419, 0.6, { region = { 0, 3.5 } }), -- PSE "Ship Horn" (the Fog closing)
+	combatTension = snd(1835935180, 0.3, { group = "music" }), -- APM "Pulse Of Fear"
 } :: { [string]: SoundSpec }
 
 -- Empty equipment slots show a silhouette of what goes there (checklist 4.1): one
@@ -395,6 +424,24 @@ Art.glyphs = {
 	storage = "rbxassetid://104605090820806",
 	campfire = "rbxassetid://139250651894110",
 } :: { [string]: string }
+
+-- The Fog map (checklist 11.2): the painted region (art/higgsfield/m1-slice2/ui/fog_map_v1.png,
+-- uploaded as 3 x 2 tiles so it stays sharp full-screen), where each location's pin sits on
+-- it (fractions of the map), your outpost, and each location's panel art.
+Art.fogMap = {
+	tiles = {
+		{ "rbxassetid://100697167837572", "rbxassetid://109243108154135", "rbxassetid://128468143265460" },
+		{ "rbxassetid://93101795837085", "rbxassetid://107435254637858", "rbxassetid://94283961070765" },
+	},
+	aspect = 2688 / 1520,
+	home = Vector2.new(0.485, 0.735),
+	pins = {
+		["loc.pine_hollow"] = Vector2.new(0.17, 0.27),
+		["loc.sunken_quarry"] = Vector2.new(0.5, 0.21),
+		["loc.ashfall_depot"] = Vector2.new(0.85, 0.33),
+	} :: { [string]: Vector2 },
+	art = {} :: { [string]: string },
+}
 
 -- The HUD meters' glyph names.
 Art.meterGlyphs = {
