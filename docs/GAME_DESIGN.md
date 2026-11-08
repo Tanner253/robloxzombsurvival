@@ -253,6 +253,27 @@ Pets are also among Roblox's biggest genres, so companions are a major pillar fo
 
 **Later species:** cats (base buffs), crows (scouting) and mules (hauling), each a new collection to chase.
 
+## Procedural Fog Run maps (decided 2026-11-08)
+
+The developer: "we wanna make it procedurally generated so we can expand the map or change it on the fly or produce map world events."
+
+**How a map is made:** seeded assembly, so handcrafted quality with endless variety. Every lobby gets a seed, and the same seed always builds the same map.
+1. **Biome per fog tier:** Light is farmland and forest, Dense is a roadside town, Black is a quarry and rail yard. Each biome sets the terrain noise, ground layers, vegetation mix, palette and fog density.
+2. **Terrain from noise:** gentle hills, a river or pond chance, and three-layer ground variation (ART_DIRECTION §4).
+3. **Handcrafted POI stamps:** prefab clusters authored as data, such as a farmhouse compound, gas station, hunter camp, crashed convoy, rail depot or quarry office. 3–5 are placed per map by rules (spacing, terrain fit, tier tags), so every POI is dense and good-looking.
+4. **Connectors:** paths and roads between POIs, fences and debris along them.
+5. **Fill:** forest, undergrowth, rocks and wrecks scattered by density maps. No empty lawns.
+6. **Edges:** a dense tree wall plus a fog bank, with the terrain continuing beyond, so no edge is ever visible.
+7. **Gameplay placement by rules:** containers (in POIs, weighted by the loot tier), Hollow spawn zones, extraction points (2–3, kept apart), the player entry and the exit zones.
+
+**World events:** event modules that spawn into a live map.
+- **v0.1:**
+  - a **Supply Drop**: a crate parachutes in with a flare plume and draws the Hollow
+  - a **Horde Surge**: when the Fog meter passes 70%, a pack converges on noise
+- **Later:** a burning building, a trader convoy, a fog storm, a boss Hollow, and a Blood Moon map variant.
+
+**Expanding the world means adding data:** new POI stamps, new biomes, new events, and new map sizes for later regions. The Fog map can also rotate which biomes and modifiers are offered each day.
+
 ## Fog Runs: shared lobbies and PvP
 
 The developer asked for this: a run should feel like a Tarkov lobby. Strangers meet, and each can team up and loot in peace or turn on the other for their loot. It has to be "healthy and balanced, so it feels real and random." The **fog tier sets the rules**, so every player picks their own risk.
