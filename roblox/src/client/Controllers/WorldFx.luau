@@ -452,15 +452,16 @@ end
 local function readyBadge(model: Model): BillboardGui
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "ReadyBadge"
-	gui.Size = UDim2.fromOffset(44, 44)
+	gui.Size = UDim2.fromOffset(48, 48)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y + 1.5, 0)
-	gui.AlwaysOnTop = true
+	gui.AlwaysOnTop = false -- above the station, clear of walls from the gameplay camera
 	gui.LightInfluence = 0
 	gui.MaxDistance = 80
 	local badge = Instance.new("TextLabel")
 	badge.Size = UDim2.fromScale(1, 1)
 	badge.BackgroundColor3 = Theme.colors.accent
 	badge.FontFace = Theme.fonts.header
+	badge.Name = "Count"
 	badge.Text = "✓"
 	badge.TextSize = Theme.textSize.title
 	badge.TextColor3 = Theme.colors.textOnAccent
@@ -509,6 +510,12 @@ local function updateStations(now: number)
 			badges[model] = nil
 		end
 		if badge then
+			-- How many are ready, e.g. "3" (checklist 5.12).
+			local count = model:GetAttribute("ReadyCount")
+			local label = badge:FindFirstChild("Count") :: TextLabel?
+			if label then
+				label.Text = if type(count) == "number" and count > 0 then tostring(count) else "✓"
+			end
 			badge.StudsOffsetWorldSpace =
 				Vector3.new(0, model:GetExtentsSize().Y + 1.5 + math.sin(os.clock() * 3) * 0.3, 0)
 		end
@@ -532,6 +539,57 @@ local function updateStations(now: number)
 			progressBars[model] = nil
 		end
 	end
+end
+
+-- Crates show the icon of what they hold most of (checklist 4.13) -----------------------------------
+
+local function crateIcon(model: Model)
+	local old = model:FindFirstChild("EO_CrateIcon")
+	if old then
+		old:Destroy()
+	end
+	local itemId = model:GetAttribute("MainItem")
+	local def = if type(itemId) == "string" then Content.Items[itemId] else nil
+	if def == nil or def.icon == "" then
+		return
+	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "EO_CrateIcon"
+	gui.Size = UDim2.fromOffset(48, 48)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y + 0.9, 0)
+	gui.LightInfluence = 0
+	gui.MaxDistance = 70
+	local back = Instance.new("Frame")
+	back.Size = UDim2.fromScale(1, 1)
+	back.BackgroundColor3 = Theme.colors.panel
+	back.BackgroundTransparency = 0.15
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = back
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.colors.strokeWarm
+	stroke.Thickness = 1.5
+	stroke.Parent = back
+	local image = Instance.new("ImageLabel")
+	image.Size = UDim2.fromScale(0.8, 0.8)
+	image.Position = UDim2.fromScale(0.5, 0.5)
+	image.AnchorPoint = Vector2.new(0.5, 0.5)
+	image.BackgroundTransparency = 1
+	image.Image = def.icon
+	image.Parent = back
+	back.Parent = gui
+	gui.Adornee = (model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)) :: any
+	gui.Parent = model
+end
+
+local function watchCrate(instance: Instance)
+	if not instance:IsA("Model") or instance:GetAttribute("OwnerUserId") ~= player.UserId then
+		return
+	end
+	crateIcon(instance)
+	instance:GetAttributeChangedSignal("MainItem"):Connect(function()
+		crateIcon(instance)
+	end)
 end
 
 -- Doors -----------------------------------------------------------------------------------------------
@@ -758,6 +816,7 @@ function WorldFx.start()
 		end
 	end)
 	eachTagged("EO_Door", watchDoor)
+	eachTagged("EO_Storage", watchCrate)
 
 	State.fx:Connect(function(kind: any, payload: any)
 		if kind == "gather" then

@@ -96,11 +96,14 @@ local function updateModel(player: Player, uid: string)
 	local def = Content.Stations[station.stationId]
 	local now = os.time()
 	local ready = false
+	local readyCount = 0 -- output units waiting to be collected (the count badge, 5.12)
 	local workingUntil = 0
 	local current: any = nil -- the job running now, for the progress bar above the station
 	for _, job in Crafting.status(station, def, now) do
 		if job.done then
 			ready = true
+			local recipe = Recipes[job.recipeId]
+			readyCount += if recipe and recipe.outputs[1] then recipe.outputs[1].count else 1
 		elseif not job.stalled then
 			workingUntil = math.max(workingUntil, station.queue[job.index].endsAt)
 			if current == nil then
@@ -111,6 +114,7 @@ local function updateModel(player: Player, uid: string)
 	model:SetAttribute("Level", station.level)
 	model:SetAttribute("FuelEndsAt", station.fuelEndsAt)
 	model:SetAttribute("Ready", ready)
+	model:SetAttribute("ReadyCount", readyCount)
 	-- When the queue's running jobs finish, so clients can animate and sound the station meanwhile.
 	model:SetAttribute("WorkingUntil", workingUntil)
 	model:SetAttribute("JobProgress", if current then current.progress else nil)
@@ -374,6 +378,30 @@ local function handCraft(player: Player, recipeId: string, count: number)
 	Sync.fx(player, "items", { items = made, source = "craft" })
 end
 
+-- The crafting catalogue's favourites and NEW marks (5.9).
+local function favourite(player: Player, recipeId: string, on: boolean)
+	local data = PlayerData.get(player)
+	if data == nil or Recipes[recipeId] == nil then
+		return
+	end
+	(data.recipeMarks.favourites :: any)[recipeId] = if on then true else nil
+	Sync.mark(player, "recipeMarks")
+end
+
+local function seen(player: Player)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return
+	end
+	local progress = progressOf(data)
+	for id, recipe in Recipes do
+		if Crafting.isUnlocked(recipe, progress) then
+			data.recipeMarks.seen[id] = true
+		end
+	end
+	Sync.mark(player, "recipeMarks")
+end
+
 -- Lifecycle -------------------------------------------------------------------------------------------
 
 function Stations.init()
@@ -384,6 +412,12 @@ function Stations.init()
 	Net.onEvent("StationFuel", fuel)
 	Net.onEvent("StationUpgrade", upgrade)
 	Net.onEvent("HandCraft", handCraft)
+	Net.onEvent("RecipeFavourite", favourite)
+	Net.onEvent("RecipesSeen", seen)
+	Sync.provide("recipeMarks", function(player: Player)
+		local data = PlayerData.get(player)
+		return if data then data.recipeMarks else false
+	end)
 end
 
 function Stations.start()

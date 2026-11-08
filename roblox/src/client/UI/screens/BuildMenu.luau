@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
+local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Actions = require("../../Actions")
 local Theme = require("../theme")
 local hooks = require("../hooks")
@@ -21,6 +22,7 @@ local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
+local LockGlyph = require("../components/LockGlyph")
 local ModelView = require("../components/ModelView")
 local Sheet = require("../components/Sheet")
 
@@ -60,6 +62,8 @@ local function Card(props: {
 	selected: boolean,
 	inventory: any,
 	progress: BuildRules.Progress,
+	placed: number,
+	limit: number?,
 	layoutOrder: number,
 })
 	local def = props.def
@@ -143,10 +147,11 @@ local function Card(props: {
 			position = UDim2.fromOffset(6, 74),
 			alignX = Enum.TextXAlignment.Center,
 		}),
+		-- Placement limits are shown where they apply (5.11): "Placed 1/2".
 		Hp = e(Label, {
-			text = `{def.hp} HP · Tier {def.tier}`,
+			text = if props.limit then `Placed {props.placed}/{props.limit}` else `{def.hp} HP · Tier {def.tier}`,
 			style = "caption",
-			tone = "muted",
+			tone = if props.limit and props.placed >= props.limit then "locked" else "muted",
 			size = UDim2.new(1, -12, 0, 16),
 			position = UDim2.fromOffset(6, 92),
 			alignX = Enum.TextXAlignment.Center,
@@ -163,12 +168,22 @@ local function Card(props: {
 			ZIndex = 5,
 		}, {
 			Corner = e("UICorner", { CornerRadius = Theme.radius }),
+			Glyph = e(LockGlyph, {
+				size = 22,
+				position = UDim2.new(0.5, 0, 0.5, -18),
+				anchorPoint = Vector2.new(0.5, 0.5),
+				zIndex = 6,
+			}),
 			Text = e(Label, {
-				text = `🔒 {locked}`,
-				style = "body",
-				tone = "highlight",
-				size = UDim2.fromScale(1, 1),
+				text = locked,
+				style = "caption",
+				tone = "locked",
+				wrap = true,
+				size = UDim2.new(1, -10, 0, 40),
+				position = UDim2.new(0.5, 0, 0.5, 6),
+				anchorPoint = Vector2.new(0.5, 0),
 				alignX = Enum.TextXAlignment.Center,
+				alignY = Enum.TextYAlignment.Top,
 				zIndex = 6,
 			}),
 		}),
@@ -205,6 +220,10 @@ end
 local function BuildMenu()
 	local ui = hooks.useUi()
 	local inventory = hooks.usePooled() -- costs count the whole home pool (5.13)
+	local saved = hooks.useSection("layout")
+	local layout = React.useMemo(function()
+		return if saved then Grid.deserialize(saved, Content.BuildPieces :: any) else nil
+	end, { saved })
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
 	local tab, setTab = React.useState("foundation")
@@ -265,6 +284,8 @@ local function BuildMenu()
 				def = def,
 				selected = ui.buildPiece == def.id and ui.buildMode == "place",
 				inventory = inventory,
+				placed = if layout then BuildRules.countChain(layout, def.id, Content.BuildPieces :: any) else 0,
+				limit = BuildRules.limitOf(def.id, Content.BuildPieces :: any),
 				progress = progress,
 				layoutOrder = index,
 			})

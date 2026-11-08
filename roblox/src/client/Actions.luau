@@ -75,8 +75,24 @@ function Actions.toggleBuild()
 	Sfx.play(if State.ui().panel == "build" then "uiOpen" else "uiClose")
 end
 
+-- Closing the crafting catalogue clears its NEW badges (5.9).
+local function seenRecipes()
+	if State.ui().panel == "crafting" then
+		Net.fire("RecipesSeen")
+	end
+end
+
+-- The crafting catalogue (C, 5.9).
+function Actions.toggleCrafting()
+	seenInventory()
+	seenRecipes()
+	State.toggle("crafting")
+	Sfx.play(if State.ui().panel == "crafting" then "uiOpen" else "uiClose")
+end
+
 function Actions.closePanel()
 	seenInventory()
+	seenRecipes()
 	if State.ui().panel ~= "none" then
 		State.toggle(State.ui().panel, State.ui().stationUid)
 		Sfx.play("uiClose")

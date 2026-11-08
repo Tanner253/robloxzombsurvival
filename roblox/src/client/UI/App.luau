@@ -19,6 +19,7 @@ local InventoryScreen = require("./screens/InventoryScreen")
 local KitPreview = require("./screens/KitPreview")
 local StationScreen = require("./screens/StationScreen")
 local SettingsScreen = require("./screens/SettingsScreen")
+local CraftingScreen = require("./screens/CraftingScreen")
 local hooks = require("./hooks")
 
 local e = React.createElement
@@ -86,6 +87,7 @@ local function App()
 		Station = e(Boundary, { name = "Station" }, { Screen = e(StationScreen) }),
 		Build = e(Boundary, { name = "Build" }, { Screen = e(BuildMenu) }),
 		Settings = e(Boundary, { name = "Settings" }, { Screen = e(SettingsScreen) }),
+		Crafting = e(Boundary, { name = "Crafting" }, { Screen = e(CraftingScreen) }),
 		KitPreview = RunService:IsStudio() and showKit and e(KitPreview),
 	})
 end

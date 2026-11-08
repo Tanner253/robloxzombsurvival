@@ -18,8 +18,8 @@ local UserInputService = game:GetService("UserInputService")
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
+local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
-local CraftingMath = require(ReplicatedStorage.Shared.Domain.Crafting)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
 local Sfx = require("../../Sfx")
@@ -32,8 +32,8 @@ local ItemIcon = require("../components/ItemIcon")
 local ItemSlot = require("../components/ItemSlot")
 local KeyChip = require("../components/KeyChip")
 local TrashGlyph = require("../components/TrashGlyph")
+local StatPairs = require("../components/StatPairs")
 local Label = require("../components/Label")
-local LockGlyph = require("../components/LockGlyph")
 local Sheet = require("../components/Sheet")
 
 local e = React.createElement
@@ -423,163 +423,11 @@ end
 
 -- Right column: crafting -----------------------------------------------------------------------------------
 
-local function handRecipes(): { any }
-	local list = {}
-	for _, recipe in Content.Recipes do
-		if recipe.stationId == nil then
-			table.insert(list, recipe)
-		end
-	end
-	table.sort(list, function(a: any, b: any)
-		return format.itemName(a.outputs[1].itemId) < format.itemName(b.outputs[1].itemId)
-	end)
-	return list
-end
-
-local function CraftRow(props: { recipe: any, inventory: any, progress: any, layoutOrder: number })
-	local recipe = props.recipe
-	local unlocked = CraftingMath.isUnlocked(recipe, props.progress)
-	local canAfford = true
-	local inputs = {}
-	for _, stack in recipe.inputs do
-		local have = format.count(props.inventory, stack.itemId)
-		canAfford = canAfford and have >= stack.count
-		local color = if have >= stack.count then Theme.colors.text else Theme.colors.accent
-		table.insert(inputs, `<font color="#{color:ToHex()}">{stack.count} {format.itemName(stack.itemId)}</font>`)
-	end
-	local output = recipe.outputs[1]
-	local gate = recipe.unlock
-	local lockText = if gate.kind == "level" then `Level {gate.level}` else "Blueprint"
-	return e("Frame", {
-		Size = UDim2.new(1, -8, 0, 58),
-		BackgroundColor3 = if unlocked then Theme.colors.panelRaised else Theme.colors.disabled,
-		BackgroundTransparency = 0.1,
-		LayoutOrder = props.layoutOrder,
-	}, {
-		Corner = e("UICorner", { CornerRadius = Theme.radius }),
-		Icon = e(
-			"Frame",
-			{ Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(6, 6), BackgroundTransparency = 1 },
-			{
-				Inner = e(ItemIcon, { itemId = output.itemId, size = UDim2.fromScale(1, 1) }),
-				Dim = not unlocked and e("Frame", {
-					Size = UDim2.fromScale(1, 1),
-					BackgroundColor3 = Theme.colors.shadow,
-					BackgroundTransparency = 0.45,
-					ZIndex = 3,
-				}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
-				Lock = not unlocked and e(LockGlyph, {
-					size = 18,
-					position = UDim2.fromScale(0.5, 0.5),
-					anchorPoint = Vector2.new(0.5, 0.5),
-					zIndex = 4,
-				}),
-			}
-		),
-		Name = e(Label, {
-			text = if output.count > 1
-				then format.stack(output.itemId, output.count)
-				else format.itemName(output.itemId),
-			style = "body",
-			tone = if unlocked then "text" else "muted",
-			size = UDim2.new(1, -150, 0, 22),
-			position = UDim2.fromOffset(58, 6),
-		}),
-		Inputs = e(Label, {
-			text = if unlocked then table.concat(inputs, "  ·  ") else `Unlocks at {lockText}`,
-			style = "caption",
-			tone = if unlocked then "muted" else "locked",
-			richText = true,
-			size = UDim2.new(1, -150, 0, 18),
-			position = UDim2.fromOffset(58, 30),
-		}),
-		Craft = unlocked and e(Button, {
-			text = "Craft",
-			variant = if canAfford then "primary" else "secondary",
-			disabled = not canAfford,
-			size = UDim2.fromOffset(84, 44),
-			position = UDim2.new(1, -6, 0.5, 0),
-			anchorPoint = Vector2.new(1, 0.5),
-			onActivated = function()
-				Net.fire("HandCraft", recipe.id, 1)
-			end,
-		}),
-	})
-end
-
-local function CraftingList(_props: { inventory: any })
-	-- Costs count the whole home pool (5.13).
-	local pooled = hooks.usePooled()
-	local progression = hooks.useSection("progression")
-	local unlocks = hooks.useSection("unlocks")
-	local progress = {
-		level = if progression then progression.level else 1,
-		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
-	}
-	local rows: { [string]: any } = {
-		Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-	}
-	-- Available first (what you can afford, then the rest), locked recipes last (5.1).
-	local recipes = handRecipes()
-	local rank: { [any]: number } = {}
-	for _, recipe in recipes do
-		local affordable = true
-		for _, stack in recipe.inputs do
-			affordable = affordable and format.count(pooled, stack.itemId) >= stack.count
-		end
-		rank[recipe] = if not CraftingMath.isUnlocked(recipe, progress) then 2 elseif affordable then 0 else 1
-	end
-	table.sort(recipes, function(a: any, b: any)
-		if rank[a] ~= rank[b] then
-			return rank[a] < rank[b]
-		end
-		return format.itemName(a.outputs[1].itemId) < format.itemName(b.outputs[1].itemId)
-	end)
-	for index, recipe in recipes do
-		rows[recipe.id] = e(CraftRow, { recipe = recipe, inventory = pooled, progress = progress, layoutOrder = index })
-	end
-	return e("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, -28),
-		Position = UDim2.fromOffset(0, 28),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 4,
-		ScrollBarImageColor3 = Theme.colors.strokeWarm,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-	}, rows)
-end
-
 -- Item details ------------------------------------------------------------------------------------------
 
-local function describe(def: any, slot: any): string
-	local lines = { `{string.upper(def.category)} · Tier {def.tier}` }
-	if def.tool then
-		table.insert(lines, `Harvest tool · tier {def.tool.tier} {def.tool.kind}`)
-	end
-	if def.weapon then
-		table.insert(lines, `{def.weapon.damage} damage · {def.weapon.attacksPerSecond}/s`)
-	end
-	if def.armor then
-		table.insert(lines, `{def.armor.defense} defense`)
-	end
-	if def.bagSlots then
-		table.insert(lines, `+{def.bagSlots} backpack slots when worn`)
-	end
-	if def.consume then
-		local parts = {}
-		for _, key in { "health", "hunger", "thirst", "energy" } do
-			local value = def.consume[key]
-			if value and value ~= 0 then
-				table.insert(parts, `{if value > 0 then "+" else ""}{value} {key}`)
-			end
-		end
-		table.insert(lines, table.concat(parts, "  "))
-	end
-	if def.durability and slot.durability then
-		table.insert(lines, `Durability {slot.durability} / {def.durability}`)
-	end
-	return table.concat(lines, "\n")
+local function describe(def: any): string
+	local head = `{string.upper(def.category)} · Tier {def.tier}`
+	return if def.description then `{head}  —  {def.description}` else head
 end
 
 -- Destroy a slot for good: the first press arms it (red, "Sure?"), a second press
@@ -659,14 +507,19 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 			size = UDim2.new(0.5, 0, 0, 26),
 			position = UDim2.fromOffset(84, 0),
 		}),
+		-- Stats as icon + value chips (4.14), then the item's line of description.
+		Stats = e(StatPairs, {
+			itemId = def.id,
+			durability = slot.durability,
+			size = UDim2.new(0.5, 0, 0, 30),
+			position = UDim2.fromOffset(84, 28),
+		}),
 		Info = e(Label, {
-			text = describe(def, slot),
+			text = describe(def),
 			style = "caption",
 			tone = "muted",
-			wrap = true,
-			size = UDim2.new(0.55, 0, 0, 52),
-			position = UDim2.fromOffset(84, 26),
-			alignY = Enum.TextYAlignment.Top,
+			size = UDim2.new(0.55, 0, 0, 20),
+			position = UDim2.fromOffset(84, 62),
 		}),
 		-- The action bar (checklist 4.11): real buttons, right-aligned, no gaps.
 		Actions = e("Frame", {
@@ -715,6 +568,77 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 	})
 end
 
+-- Storage upgrade in the crate's header (checklist 4.12): capacity now -> next, the
+-- cost with have/need (home pool, 5.13), and Upgrade in place.
+local function CrateUpgrade(props: { uid: string, pieceId: string })
+	local pooled = hooks.usePooled()
+	local progression = hooks.useSection("progression")
+	local unlocks = hooks.useSection("unlocks")
+	local def = Content.BuildPieces[props.pieceId]
+	local nextDef = def and def.upgradesTo and Content.BuildPieces[def.upgradesTo]
+	if def == nil or nextDef == nil then
+		return e(Label, {
+			text = `{if def then def.storageSlots or 0 else 0} slots · fully upgraded`,
+			style = "caption",
+			tone = "muted",
+			size = UDim2.new(1, 0, 0, 44),
+		})
+	end
+	local progress = {
+		level = if progression then progression.level else 1,
+		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
+	}
+	local unlocked = BuildRules.isUnlocked(nextDef, progress)
+	local affordable = true
+	local parts = {}
+	for _, stack in nextDef.cost do
+		local have = format.count(pooled, stack.itemId)
+		affordable = affordable and have >= stack.count
+		local color = if have >= stack.count then Theme.colors.text else Theme.colors.locked
+		table.insert(
+			parts,
+			`<font color="#{color:ToHex()}">{have}/{stack.count} {format.itemName(stack.itemId)}</font>`
+		)
+	end
+	local gate = nextDef.unlock
+	local lockText = if gate and gate.kind == "level"
+		then `Unlocks at level {gate.level}`
+		elseif gate and gate.kind == "blueprint" then "Needs its blueprint"
+		else ""
+	return e("Frame", {
+		Size = UDim2.new(1, 0, 0, 44),
+		BackgroundColor3 = Theme.colors.panelRaised,
+		BackgroundTransparency = 0.2,
+	}, {
+		Corner = e("UICorner", { CornerRadius = Theme.radius }),
+		Capacity = e(Label, {
+			text = `{def.storageSlots or 0} → {nextDef.storageSlots or 0} slots`,
+			style = "section",
+			size = UDim2.new(1, -120, 0, 22),
+			position = UDim2.fromOffset(10, 1),
+		}),
+		Cost = e(Label, {
+			text = if unlocked then table.concat(parts, "  ·  ") else lockText,
+			style = "caption",
+			tone = if unlocked then "muted" else "locked",
+			richText = true,
+			size = UDim2.new(1, -120, 0, 18),
+			position = UDim2.fromOffset(10, 23),
+		}),
+		Upgrade = e(Button, {
+			text = "Upgrade",
+			disabled = not (unlocked and affordable),
+			size = UDim2.fromOffset(104, 40),
+			position = UDim2.new(1, -2, 0.5, 0),
+			anchorPoint = Vector2.new(1, 0.5),
+			onActivated = function()
+				Net.fire("BuildUpgrade", props.uid)
+				Sfx.play("uiClick")
+			end,
+		}),
+	})
+end
+
 -- Item inbox (checklist 4.15) ---------------------------------------------------------------------------
 
 local SOURCE_TEXT: { [string]: string } = {
@@ -725,17 +649,33 @@ local SOURCE_TEXT: { [string]: string } = {
 	Overflow = "Didn't fit your bag",
 	Stash = "From the old stash",
 }
-local FILTERS = { "all", "resource", "material", "tool", "weapon", "armor", "food", "medical", "blueprint" }
+local FILTERS = {
+	"all",
+	"resource",
+	"material",
+	"part",
+	"tool",
+	"weapon",
+	"ammo",
+	"armor",
+	"bag",
+	"consumable",
+	"blueprint",
+	"junk",
+}
 local FILTER_TEXT: { [string]: string } = {
 	all = "All",
 	resource = "Resources",
 	material = "Materials",
 	tool = "Tools",
 	weapon = "Weapons",
+	part = "Parts",
+	ammo = "Ammo",
 	armor = "Gear",
-	food = "Food",
-	medical = "Medical",
+	bag = "Bags",
+	consumable = "Supplies",
 	blueprint = "Blueprints",
+	junk = "Junk",
 }
 
 local function InboxRow(props: { row: any, layoutOrder: number })
@@ -885,11 +825,6 @@ local function InventoryScreen()
 	local storage = hooks.useSection("storage")
 	local stash = nil -- the locked stash became the item inbox (4.15)
 	local inbox = hooks.useSection("inbox")
-	-- The right pane's tab lives in the UI state so the Bag badge can open the inbox.
-	local tab = ui.inventoryTab or "crafting"
-	local function setTab(name: string)
-		State.patch({ inventoryTab = name })
-	end
 	local open = ui.panel == "inventory" and inventory ~= nil and inventory ~= false
 	local crate = if storage then storage else nil
 
@@ -1010,9 +945,16 @@ local function InventoryScreen()
 								end,
 							},
 						}),
-						Scroll = e("ScrollingFrame", {
-							Size = UDim2.new(1, 0, 1, -84),
+						Upgrade = e("Frame", {
+							Size = UDim2.new(1, 0, 0, 44),
 							Position = UDim2.fromOffset(0, 28),
+							BackgroundTransparency = 1,
+						}, {
+							Inner = e(CrateUpgrade, { uid = crate.uid, pieceId = crate.pieceId }),
+						}),
+						Scroll = e("ScrollingFrame", {
+							Size = UDim2.new(1, 0, 1, -134),
+							Position = UDim2.fromOffset(0, 78),
 							BackgroundTransparency = 1,
 							BorderSizePixel = 0,
 							ScrollBarThickness = 4,
@@ -1061,37 +1003,30 @@ local function InventoryScreen()
 								FillDirection = Enum.FillDirection.Horizontal,
 								Padding = UDim.new(0, 16),
 							}),
-							Crafting = e("TextButton", {
-								Size = UDim2.fromOffset(90, 24),
-								BackgroundTransparency = 1,
-								FontFace = Theme.fonts.header,
-								Text = "CRAFTING",
-								TextSize = Theme.textSize.caption,
-								TextColor3 = if tab == "crafting" then Theme.colors.accent else Theme.colors.textMuted,
-								TextXAlignment = Enum.TextXAlignment.Left,
-								[React.Event.Activated] = function()
-									setTab("crafting")
-								end,
-							}),
 							Inbox = e("TextButton", {
 								Size = UDim2.fromOffset(120, 24),
 								BackgroundTransparency = 1,
 								FontFace = Theme.fonts.header,
 								Text = if inboxCount > 0 then `INBOX ({inboxCount})` else "INBOX",
 								TextSize = Theme.textSize.caption,
-								TextColor3 = if tab == "inbox"
-									then Theme.colors.accent
-									elseif inboxCount > 0 then Theme.colors.text
-									else Theme.colors.textMuted,
+								TextColor3 = Theme.colors.accent,
 								TextXAlignment = Enum.TextXAlignment.Left,
-								[React.Event.Activated] = function()
-									setTab("inbox")
-								end,
 							}),
 						}),
-						Body = if tab == "crafting"
-							then e(CraftingList, { inventory = inventory })
-							else e(InboxList, { rows = if type(inbox) == "table" then inbox else {} }),
+						-- The full catalogue replaced the short craft list here (5.9).
+						OpenCrafting = e(Button, {
+							text = "Crafting",
+							variant = "secondary",
+							size = UDim2.fromOffset(130, 34),
+							position = UDim2.new(1, -30, 0, -6),
+							anchorPoint = Vector2.new(1, 0),
+							onActivated = Actions.toggleCrafting,
+						}),
+						CraftKey = e(
+							KeyChip,
+							{ text = "C", position = UDim2.new(1, 0, 0, -2), anchorPoint = Vector2.new(1, 0) }
+						),
+						Body = e(InboxList, { rows = if type(inbox) == "table" then inbox else {} }),
 					}
 			),
 			Divider = e("Frame", {

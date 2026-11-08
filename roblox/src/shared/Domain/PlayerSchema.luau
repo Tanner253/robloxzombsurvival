@@ -87,6 +87,9 @@ export type PlayerData = {
 	survival: SurvivalSave,
 	quests: { active: { [string]: QuestState }, completed: { [string]: number } },
 	unlocks: { recipes: { [string]: boolean }, blueprints: { [string]: boolean } },
+	-- The crafting catalogue (5.9): starred recipes, and recipes already looked at
+	-- (anything unlocked and not seen wears a NEW badge).
+	recipeMarks: { favourites: { [string]: boolean }, seen: { [string]: boolean } },
 	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 	settings: Settings,
@@ -168,6 +171,7 @@ function PlayerSchema.template(): PlayerData
 		survival = PlayerSchema.freshSurvival(),
 		quests = { active = {}, completed = {} },
 		unlocks = { recipes = {}, blueprints = {} },
+		recipeMarks = { favourites = {}, seen = {} },
 		purchases = { receiptIds = {} },
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
@@ -192,7 +196,8 @@ PlayerSchema.migrations = {
 			data.settings = PlayerSchema.defaultSettings()
 		end
 	end,
-	-- v4: the locked stash becomes the unlimited item inbox; its items move over.
+	-- v4: the locked stash becomes the unlimited item inbox (its items move over), and
+	-- the crafting catalogue's favourites and seen marks start empty.
 	[3] = function(data)
 		local entries, seq = {}, 0
 		for _, slot in (if type(data.lockedStash) == "table" then data.lockedStash else {}) do
@@ -211,6 +216,7 @@ PlayerSchema.migrations = {
 		data.inbox = entries
 		data.inboxSeq = seq
 		data.lockedStash = nil
+		data.recipeMarks = { favourites = {}, seen = {} }
 	end,
 } :: Migrations.Steps
 

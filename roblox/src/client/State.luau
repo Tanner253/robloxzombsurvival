@@ -18,7 +18,7 @@ local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local State = {}
 
-export type Panel = "none" | "inventory" | "station" | "build" | "settings"
+export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 

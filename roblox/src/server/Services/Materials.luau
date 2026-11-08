@@ -16,6 +16,7 @@ local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local PlayerData = require("./PlayerData")
+local Plots = require("./Plots")
 local Sync = require("./Sync")
 
 local Materials = {}
@@ -121,6 +122,7 @@ function Materials.take(player: Player, stacks: { Types.ItemStack }, sink: strin
 	for key, slots in changed do
 		if string.sub(key, 1, 6) == "crate:" then
 			data.storage[string.sub(key, 7)] = slots
+			Plots.setCrateIcon(player, string.sub(key, 7), slots)
 			cratesChanged = true
 		end
 	end

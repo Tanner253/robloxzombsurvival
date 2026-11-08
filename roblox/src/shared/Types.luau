@@ -78,6 +78,7 @@ export type ConsumeEffect = {
 export type ItemDef = {
 	id: ItemId,
 	name: string,
+	description: string?, -- one line for tooltips and the recipe card (5.10)
 	category: ItemCategory,
 	tier: number,
 	rarity: Rarity,

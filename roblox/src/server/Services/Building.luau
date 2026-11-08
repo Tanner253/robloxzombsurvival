@@ -95,6 +95,10 @@ local function render(plot: Plots.Plot, piece: Grid.Piece, fresh: boolean)
 	end
 	model.Parent = plot.pieces
 	plot.pieceModels[piece.uid] = model
+	if def.kind == "storage" and plot.owner then
+		local data = PlayerData.get(plot.owner)
+		Plots.setCrateIcon(plot.owner, piece.uid, data and data.storage[piece.uid])
+	end
 end
 
 -- Objects stand on their foundations and off the walls behind them; re-seat every

@@ -26,6 +26,7 @@ local InventoryMath = require(ReplicatedStorage.Shared.Domain.Inventory)
 local Net = require("../Net")
 local Building = require("./Building")
 local PlayerData = require("./PlayerData")
+local Plots = require("./Plots")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Materials = require("./Materials")
@@ -146,6 +147,18 @@ local function devCommand(command: string, ...: any): any
 			end
 		end
 		return table.concat(parts, " ")
+	elseif command == "stock" then
+		-- ("stock", uid, itemId, count) fills a placed crate directly, for captures.
+		local data = PlayerData.get(player)
+		local crate = data and data.storage[args[1]]
+		if crate == nil then
+			return "no crate"
+		end
+		local fresh = table.clone(crate)
+		fresh[1] = { itemId = args[2], count = args[3] or 1 }
+		data.storage[args[1]] = fresh
+		Plots.setCrateIcon(player, args[1], fresh)
+		Sync.mark(player, "pool")
 	elseif command == "inboxgrant" then
 		Inbox.grant(player, { { itemId = args[1], count = args[2] or 1 } }, args[3] or "Event")
 	elseif command == "xp" then

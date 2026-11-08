@@ -519,12 +519,20 @@ local function ActionBar()
 			layoutOrder = 0,
 			onPress = Actions.toggleAuto,
 		}),
+		Craft = e(ActionButton, {
+			label = "Craft",
+			keyName = "C",
+			glyph = "⚒",
+			size = 64,
+			layoutOrder = 2,
+			onPress = Actions.toggleCrafting,
+		}),
 		Build = e(ActionButton, {
 			label = "Build",
 			keyName = "B",
 			glyph = "🔨",
 			size = 64,
-			layoutOrder = 2,
+			layoutOrder = 3,
 			onPress = Actions.toggleBuild,
 		}),
 		Bag = e(ActionButton, {
@@ -532,7 +540,7 @@ local function ActionBar()
 			keyName = "Tab",
 			glyph = "🎒",
 			size = 64,
-			layoutOrder = 3,
+			layoutOrder = 4,
 			onPress = if type(inbox) == "table"
 					and #inbox > 0
 					and ui.panel ~= "inventory"
@@ -548,7 +556,7 @@ local function ActionBar()
 			glyph = glyph,
 			primary = target ~= nil or ui.panel == "build",
 			size = 96,
-			layoutOrder = 4,
+			layoutOrder = 5,
 			onPress = function()
 				Actions.interact()
 				if ui.panel == "none" then

@@ -423,6 +423,28 @@ function Plots.piecePosition(player: Player, uid: string): Vector3?
 	return if model then model:GetPivot().Position else nil
 end
 
+-- Marks a storage crate's model with the item it holds most of (MainItem), so the
+-- client can show that icon over it (checklist 4.13); empty crates show nothing.
+function Plots.setCrateIcon(player: Player, uid: string, slots: { any }?)
+	local plot = byPlayer[player]
+	local model: Model? = if plot then plot.pieceModels[uid] else nil
+	if not model then
+		return
+	end
+	local totals: { [string]: number } = {}
+	local best: string?, bestCount = nil, 0
+	local list: { any } = slots or {}
+	for _, slot in list do
+		if slot.count > 0 then
+			totals[slot.itemId] = (totals[slot.itemId] or 0) + slot.count
+			if totals[slot.itemId] > bestCount then
+				best, bestCount = slot.itemId, totals[slot.itemId]
+			end
+		end
+	end
+	model:SetAttribute("MainItem", best)
+end
+
 -- Whether the player's character stands within `reach` studs (flat) of `position`.
 function Plots.inReach(player: Player, position: Vector3, reach: number): boolean
 	local character = player.Character

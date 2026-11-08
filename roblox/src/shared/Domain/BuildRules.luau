@@ -121,6 +121,11 @@ local function chainLimit(pieceId: Types.BuildPieceId, defs: Grid.Defs): number?
 	return limit
 end
 
+-- The plot limit for `pieceId`'s upgrade chain, or nil (shown as "Placed 1/2", 5.11).
+function BuildRules.limitOf(pieceId: Types.BuildPieceId, defs: Grid.Defs): number?
+	return chainLimit(pieceId, defs)
+end
+
 -- Whether every foundation under an object meets its minFoundationTier.
 local function foundationOk(
 	layout: Grid.Layout,

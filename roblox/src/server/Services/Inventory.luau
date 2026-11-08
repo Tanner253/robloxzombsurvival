@@ -409,6 +409,7 @@ local function write(player: Player, data: PlayerData, ref: string, container: C
 			data.storage[uid] = container
 			Sync.mark(player, "storage")
 			Sync.mark(player, "pool") -- crates count toward home have/need (Services/Materials)
+			Plots.setCrateIcon(player, uid, container)
 		end
 	end
 end

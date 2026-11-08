@@ -177,6 +177,20 @@ Remotes.list = {
 		validate = Check.args(ref, slot),
 		description = "(ref, index) destroys a whole slot for good (the trash button, after a confirm)",
 	},
+	RecipeFavourite = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("recipe"), Check.boolean()),
+		description = "(recipeId, on) stars or unstars a recipe in the crafting catalogue",
+	},
+	RecipesSeen = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(),
+		description = "() marks every unlocked recipe as seen (clears NEW badges)",
+	},
 	InboxTake = {
 		kind = "event",
 		clientCanSend = true,
