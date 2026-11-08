@@ -27,6 +27,13 @@ Nothing player-facing is done until it has all ten:
 9. **LDoE side-by-side:** each capture sits next to the matching reference frame, with the gaps fixed.
 10. **Performance:** no frame drop at 60 fps on PC, and the instance budget is respected.
 
+**Never visible below grade A** (the developer, 2026-11-08: "I shouldn't have to micromanage quality like this, it should be apparent and obvious to you this quality is unacceptable"):
+- No stand-in, primitive build, or unreviewed generated model is ever visible in the place the developer plays.
+- If a feature's art isn't grade A yet, the feature stays **hidden behind a flag** until it is. It never ships with a placeholder.
+- "Rough" is not a reportable state for anything visible.
+
+**Adversarial QA before every report:** the worker spawns a fresh subagent with no stake in the work. Its brief is to act as a harsh art director and QA lead comparing against LDoE. It walks the live place at the gameplay camera and close up, by day and by night, and grades every distinct object, effect and UI screen A/B/C. The default is C unless it would hold up next to LDoE. The worker fixes every B and C before reporting, and the QA table goes in the report.
+
 ## 1. Character and movement
 
 | # | Requirement | LDoE reference | Owner |
