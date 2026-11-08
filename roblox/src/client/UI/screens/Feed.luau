@@ -18,6 +18,7 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Flags = require(ReplicatedStorage.Shared.Flags)
 local Layout = require("../components/Layout")
+local mark = require("../mark")
 local State = require("../../State")
 local Theme = require("../theme")
 local offers = require("../offers")
@@ -464,6 +465,7 @@ local function QuestDone()
 		BackgroundColor3 = Theme.colors.panel,
 		BackgroundTransparency = 0.08,
 		ZIndex = Theme.layers.toast,
+		ref = mark.overlay, -- a short celebration over the world, like the level-up banner
 	}, {
 		Corner = e("UICorner", { CornerRadius = Theme.radius }),
 		Stroke = e("UIStroke", { Color = Theme.colors.accentSoft, Thickness = 2 }),
