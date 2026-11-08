@@ -67,7 +67,7 @@ function Pool.sourcesText(inventory: any, itemId: string): string
 	if (inbox[itemId] or 0) > 0 then
 		table.insert(parts, `Inbox {inbox[itemId]}`)
 	end
-	return table.concat(parts, " · ")
+	return table.concat(parts, ", ")
 end
 
 return Pool

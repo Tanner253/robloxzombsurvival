@@ -2,14 +2,45 @@
 
 Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-120 this pass).
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-120 earlier passes, 121-134 the developer round).
 
-Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
+Checks at the head of the branch: 193 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
 solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
 test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapping pairs, **0 hits**;
 re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
 
-## Orchestrator review of b1ebba8: scale, walls, ground (this pass)
+## Developer round: weapons, reach, economy, UI (this pass, 2d70314..2c9d892)
+
+| Row | Status | What and where |
+|---|---|---|
+| 4.9 Two weapon slots, meds, no hotbar | ✅ | The 1-9 hotbar and every "1-9" reference are gone. Two weapon slots come from the paper-doll (`weapon`, `weapon2`; schema v6 migrates old saves). The active weapon sits big on the HUD right with its name and durability; the other is small beside it. 1 and 2 select; F or the button swaps, with an arm animation and a sound. The meds button (H) shows the count, greys out at zero and uses the strongest healing item. Tools never take a slot: gathering wears the best tool from pockets or bag. The wheel only zooms. Captures 123-125, 132. Ammo counts are S2. |
+| 3.11 Arm's reach | ✅ | `Tuning.interaction.reachStuds` = 5 from the object's edge; the server adds 1.5 for latency and rejects anything farther (nodes, pickups, crates, stations). The prompt and highlight only show in range. E or a click on something farther walks there along a path, then uses it; WASD cancels; it gives up after 12 s. Auto-gather stops at arm's reach. Playtest: no prompt at 10 studs (121); a click walks over and picks up 2 sticks (122). |
+| Economy (developer: too many resources) | ✅ | DevSpeed compresses timers only, defaults to 1 and is opt-in (a Studio workspace attribute); the HUD DEV tag shows only above 1. Home nodes are saved per outpost and regrow on real-time timestamps: branches and stones 1-2 h, pines 8-12 h, boulders 12-24 h, reeds and berries 4-6 h. Starter counts: 8 branches, 6 stones, 12 pines, 2 boulders, 5 reeds, 3 berry bushes, 1 spring. About 1 per hit (reeds and berries 2). Lune: a day of home timber (192) stays below one Timber-tier base (213); depleted and half-chopped nodes survive save and load; v4 profiles migrate. Real cross-session persistence can't be shown in Studio (DataStore access is off), so the specs cover it. |
+| 4.17 Glyphs only | ✅ | The 30-icon set (art/ui/glyphs) is uploaded; `Art.glyphs` holds the ids and the `Glyph` component draws one, tinted. Meters, HUD action buttons, the settings gear, quest fold, energy pill, sheet and queue close buttons, steppers, favourites, lock, trash and the level-up rays use glyphs. Text symbols went too: counts use x, recipe sources say "into", finished jobs say "Ready", the clock has no sun or moon, and the minimap marker is a drawn chevron. The emoji item fallback table is deleted. Middle-dot and em-dash separators in UI text became commas, colons and periods, so no string carries a non-ASCII character. World particle textures are not UI. Captures 126-128, 131. |
+| 4.16 Pictures match the real thing | ✅ | Every rendered picture shares one camera and one light (`ModelView`: key light from the upper left like the painted set; box-fitted framing). Item slots and recipe cards render the item's in-game model when it has one: the hatchet, pick, club and scrapblade are the very models held in the hand, laid on the icon diagonal from their `Art.held` axis. Build cards render the real piece, and station headers render the station (130, 133). Items with no model in the game (materials, parts, food, clothing, bags) keep their painted icon, which is the only form they have. Rendered pictures are live, so a changed model re-renders by itself. Captures 129, 130, 132-134. |
+
+Fixes the playtest turned up on the way:
+- The inventory's Crafting shortcut sat over the inbox's Take all. It now sits under the gear grid.
+- The inbox category chips ran under Take all. They now scroll sideways (up to 12 categories).
+- The 125% interface-size button overlapped the keys list. The buttons are narrower now (128).
+- The Studio test base lent a 60-slot backpack that any gear change took away, so equipping failed with "Empty the bag's slots". The lent size now survives gear changes. This was dev-only; real backpacks follow the bag.
+
+Next on main, not in this pass: 4.18 (CoreUI safe area) and 4.19 (automated overlap gate at four resolutions) are S1b. HUD layout polish waits for the HUD spec.
+
+### UI objects, graded (this pass)
+
+| Object | Grade | Notes |
+|---|---|---|
+| Glyph set (meters, action buttons, close, steppers, lock, trash, favourites) | A- | One cream set, tinted per use (126-128) |
+| Painted item icons (materials, parts, food, clothing, bags) | A- | Unchanged |
+| Rendered tool icons (hatchet, pick, club, scrapblade) | A- | The held models themselves; the club and blade are thinner than the painted set beside them (129, 134) |
+| Build cards | A- | Real piece, shared camera (133) |
+| Station header picture | A- | Real workbench (130) |
+| Weapon panel and meds button | A- | Real club, count badge (132) |
+| Minimap marker | B+ | Chevron drawn from two bars (131) |
+| Inventory, crafting, station and settings sheets | B+ | No overlaps seen at 1920x1080; layout waits for the HUD spec |
+
+## Orchestrator review of b1ebba8: scale, walls, ground
 
 - **Scale:** the cell is 8 studs (Tuning.building.gridStuds); 2-stud sub-grid; wall-layer kit models
   fit one cell (Models.fitEdge); trim and posts scaled down; layouts from the 12-stud grid reset
@@ -32,7 +63,7 @@ re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
   lands with the Camp family once uploads work.
 - **Generation:** this pass 2.75 (timber sheet) + 12 (timber wall); the pool is about 375 of 500.
 
-### Every visible object, graded (my grade, default C; orchestrator grades noted)
+### Every visible object, graded (my grade, default C; orchestrator grades noted; updated this pass)
 
 | Object | Grade | Notes |
 |---|---|---|
@@ -53,14 +84,15 @@ re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
 | Pine tree (node and edge) | A- | Conifer from the new sheet (Tripo P2): tiered needles, dark green, trunk (119, 120); one model, sizes 20-36 and girth 0.82-1.15 for variety |
 | Fatwood stump (pine remnant) | B | Resin colour |
 | Bare branches (Gather Sticks) | A- | Bark-brown now (118) |
-| Rock cluster (boulder) | C | Gated; re-conversion queued (stone unreachable meanwhile) |
+| Loose stones (Gather Fieldstone) | A- | Clean re-conversion (EO_LooseStonesClean); the stone source now |
+| Rock cluster (boulder) | C | Gated; re-conversion queued |
 | Grass, gravel earth, paths | A- | Orchestrator: near A |
 | Leaf litter (clover) | B | No banding at max zoom (113) |
 | Dirt road | B | Ruts toned to the dirt |
 | Dry grass | B | Grass tile, straw tint |
 | Material borders | B | 4-stud voxel lobes |
 | Minimap | B+ | Terrain, base, trees, nodes (114) |
-| HUD layout, hotbar icons | A | Orchestrator: keep |
+| HUD layout | A | Orchestrator: keep; the hotbar is gone (4.9); polish waits for the HUD spec |
 | Canopy fade | B+ | |
 | Day lighting | B+ | Exposure +0.3 |
 | Night lighting | B | Readable; lantern pools (109) |

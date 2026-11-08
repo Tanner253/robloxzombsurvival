@@ -648,7 +648,7 @@ local function StationScreen()
 				{ Size = UDim2.new(1, 0, 0, 112), Position = UDim2.new(0, 0, 1, -112), BackgroundTransparency = 1 },
 				{
 					Title = e(Label, {
-						text = if remaining > 0 then `FIRE · burns {format.duration(remaining)}` else "FIRE · out",
+						text = if remaining > 0 then `FIRE: burns {format.duration(remaining)}` else "FIRE: out",
 						style = "caption",
 						tone = if remaining > 0 then "accent" else "threat",
 					}),
@@ -693,14 +693,14 @@ local function StationScreen()
 					View = e(ModelView, { model = model, margin = 1.02 }),
 				}),
 				Level = e(Label, {
-					text = `Level {station.level} · {level.queueSlots} queue slots · speed x{level.speedMultiplier}`,
+					text = `Level {station.level}, {level.queueSlots} queue slots, speed x{level.speedMultiplier}`,
 					style = "caption",
 					tone = "muted",
 					size = UDim2.new(0.5, -96, 1, 0),
 					position = UDim2.fromOffset(96, 0),
 				}),
 				Cost = nextLevel and e(Label, {
-					text = table.concat(upgradeCost, " · "),
+					text = table.concat(upgradeCost, ", "),
 					style = "caption",
 					tone = "muted",
 					size = UDim2.new(0.5, -200, 1, 0),

@@ -298,8 +298,8 @@ local function LevelUp()
 		Sub = e(Label, {
 			-- Rewards always wait in the inbox (4.15), so the card says where they are.
 			text = if #(info.rewards or {}) > 0
-				then "Energy restored · fully healed · rewards are in your inbox"
-				else "Energy restored · fully healed",
+				then "Energy restored, fully healed, rewards are in your inbox"
+				else "Energy restored, fully healed",
 			style = "caption",
 			tone = "muted",
 			size = UDim2.new(1, 0, 0, 20),
@@ -312,7 +312,7 @@ local function LevelUp()
 			rewards
 		),
 		Unlocks = #unlocked > 0 and e(Label, {
-			text = `Unlocked: {table.concat(unlocked, " · ")}`,
+			text = `Unlocked: {table.concat(unlocked, ", ")}`,
 			style = "body",
 			tone = "highlight",
 			wrap = true,
