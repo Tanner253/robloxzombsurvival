@@ -25,6 +25,7 @@ local Sfx = require("../Sfx")
 local flyIcon = require("../UI/flyIcon")
 local State = require("../State")
 local Theme = require("../UI/theme")
+local format = require("../UI/format")
 local Camera = require("./Camera")
 
 local WorldFx = {}
@@ -391,6 +392,54 @@ end
 
 local stations: { [Model]: boolean } = {}
 local badges: { [Model]: BillboardGui } = {}
+local progressBars: { [Model]: BillboardGui } = {}
+
+-- A small bar with the time left above a station that is working (checklist 5.4).
+local function progressBar(model: Model): BillboardGui
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "JobProgress"
+	gui.Size = UDim2.fromOffset(120, 30)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y + 1.2, 0)
+	gui.AlwaysOnTop = true
+	gui.LightInfluence = 0
+	gui.MaxDistance = 90
+	local track = Instance.new("Frame")
+	track.Name = "Track"
+	track.Size = UDim2.new(1, 0, 0, 10)
+	track.Position = UDim2.fromOffset(0, 18)
+	track.BackgroundColor3 = Theme.colors.track
+	track.BorderSizePixel = 0
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = track
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.colors.shadow
+	stroke.Thickness = 1.5
+	stroke.Parent = track
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.Size = UDim2.fromScale(0, 1)
+	fill.BackgroundColor3 = Theme.colors.accent
+	fill.BorderSizePixel = 0
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.Parent = fill
+	fill.Parent = track
+	track.Parent = gui
+	local label = Instance.new("TextLabel")
+	label.Name = "Time"
+	label.Size = UDim2.new(1, 0, 0, 16)
+	label.BackgroundTransparency = 1
+	label.FontFace = Theme.fonts.header
+	label.TextSize = Theme.textSize.caption
+	label.TextColor3 = Theme.colors.text
+	label.TextStrokeColor3 = Theme.colors.shadow
+	label.TextStrokeTransparency = 0.3
+	label.Parent = gui
+	gui.Adornee = (model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)) :: any
+	gui.Parent = model
+	return gui
+end
 
 local function readyBadge(model: Model): BillboardGui
 	local gui = Instance.new("BillboardGui")
@@ -425,6 +474,7 @@ local function updateStations(now: number)
 		if not model:IsDescendantOf(workspace) then
 			stations[model] = nil
 			badges[model] = nil
+			progressBars[model] = nil
 			continue
 		end
 		local fuelEndsAt = model:GetAttribute("FuelEndsAt")
@@ -453,6 +503,25 @@ local function updateStations(now: number)
 		if badge then
 			badge.StudsOffsetWorldSpace =
 				Vector3.new(0, model:GetExtentsSize().Y + 1.5 + math.sin(os.clock() * 3) * 0.3, 0)
+		end
+		local progress = model:GetAttribute("JobProgress")
+		local remaining = model:GetAttribute("JobRemaining")
+		local bar: BillboardGui? = progressBars[model]
+		if mine and type(progress) == "number" and type(remaining) == "number" and not ready then
+			local shown = bar or progressBar(model)
+			progressBars[model] = shown
+			local track = shown:FindFirstChild("Track")
+			local fill = track and track:FindFirstChild("Fill") :: Frame?
+			if fill then
+				fill.Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1)
+			end
+			local label = shown:FindFirstChild("Time") :: TextLabel?
+			if label then
+				label.Text = format.duration(remaining)
+			end
+		elseif bar then
+			bar:Destroy()
+			progressBars[model] = nil
 		end
 	end
 end

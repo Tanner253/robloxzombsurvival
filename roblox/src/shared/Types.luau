@@ -444,6 +444,15 @@ export type TuningDef = {
 	drops: {
 		lifetimeSeconds: number, -- how long a bag on the ground lasts
 	},
+	movement: {
+		hopHeight: number, -- studs a jump lifts the survivor
+		hopCooldownSeconds: number, -- seconds between hops
+	},
+	dayNight: {
+		cycleSeconds: number, -- real seconds per day and night
+		dayFraction: number, -- share of the cycle that is day (06:00-19:30)
+		offset: number, -- cycle phase at server time 0
+	},
 	newPlayer: {
 		items: { ItemStack },
 	},

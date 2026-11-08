@@ -13,6 +13,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Art = require(ReplicatedStorage.Shared.Art)
 local EnergyMath = require(ReplicatedStorage.Shared.Domain.Energy)
+local Clock = require(ReplicatedStorage.Shared.Clock)
 local Progression = require(ReplicatedStorage.Shared.Domain.Progression)
 local Actions = require("../../Actions")
 local Theme = require("../theme")
@@ -107,6 +108,7 @@ local function Status()
 	local progression = hooks.useSection("progression")
 	local energy = hooks.useSection("energy")
 	local now = hooks.useClock(1)
+	local hours = Clock.hoursAt(now)
 
 	local level = if progression then progression.level else 1
 	local into, span, fraction = 0, 0, 0
@@ -184,6 +186,22 @@ local function Status()
 				tone = "muted",
 				size = UDim2.fromOffset(150, 16),
 				position = UDim2.new(0, 0, 1, -16),
+			}),
+			Clock = e("Frame", {
+				Size = UDim2.fromOffset(96, 28),
+				Position = UDim2.new(1, 12, 0, 4),
+				BackgroundColor3 = Theme.colors.panel,
+				BackgroundTransparency = Theme.colors.panelTransparency,
+			}, {
+				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+				Stroke = e("UIStroke", { Color = Theme.colors.strokeWarm, Thickness = 1, Transparency = 0.4 }),
+				Text = e(Label, {
+					text = `{if Clock.daylight(hours) > 0.5 then "☀" else "☾"}  {Clock.label(hours)}`,
+					style = "caption",
+					tone = if Clock.daylight(hours) > 0.5 then "highlight" else "muted",
+					size = UDim2.fromScale(1, 1),
+					alignX = Enum.TextXAlignment.Center,
+				}),
 			}),
 			Energy = e("Frame", {
 				Size = UDim2.fromOffset(170, 22),

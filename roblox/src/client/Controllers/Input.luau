@@ -10,8 +10,10 @@
 	world to aim the build ghost.
 ]]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
+local Content = require(ReplicatedStorage.Shared.Data)
 local Actions = require("../Actions")
 local State = require("../State")
 local Building = require("./Building")
@@ -72,12 +74,21 @@ local function onKey(key: Enum.KeyCode)
 	end
 end
 
--- Walls must hold: the local character can't climb or jump (the server also sets JumpHeight 0).
+-- No climbing, and jumps are short hops with a cooldown (the server sets the hop height).
 local function grounded(character: Model)
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if humanoid and humanoid:IsA("Humanoid") then
 		humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+		humanoid.StateChanged:Connect(function(_old, new)
+			if new == Enum.HumanoidStateType.Jumping then
+				humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+				task.delay(Content.Tuning.movement.hopCooldownSeconds, function()
+					if humanoid.Parent then
+						humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+					end
+				end)
+			end
+		end)
 	end
 end
 

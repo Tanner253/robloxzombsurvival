@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+local Content = require(ReplicatedStorage.Shared.Data)
 local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
@@ -167,6 +168,27 @@ local function Rewards()
 	}, children)
 end
 
+-- Names of everything a level unlocks: build pieces, recipes and station levels.
+local function unlockedAt(level: number): { string }
+	local names: { string } = {}
+	local function gate(unlock: any): boolean
+		return unlock ~= nil and unlock.kind == "level" and unlock.level == level
+	end
+	for _, piece in Content.BuildPieces do
+		if gate(piece.unlock) then
+			table.insert(names, piece.name)
+		end
+	end
+	for _, recipe in Content.Recipes :: any do
+		if gate(recipe.unlock) then
+			local output = recipe.outputs and recipe.outputs[1]
+			table.insert(names, if output then format.itemName(output.itemId) else recipe.id)
+		end
+	end
+	table.sort(names)
+	return names
+end
+
 local function LevelUp()
 	local ui = hooks.useUi()
 	local spin, setSpin = React.useBinding(0)
@@ -211,9 +233,10 @@ local function LevelUp()
 			}
 		)
 	end
+	local unlocked = unlockedAt(info.level)
 	-- A plain Frame (no CanvasGroup) so the banner text stays crisp (4.1).
 	return e("Frame", {
-		Size = UDim2.fromOffset(520, 220),
+		Size = UDim2.fromOffset(520, if #unlocked > 0 then 262 else 220),
 		Position = UDim2.new(0.5, 0, 0, 120),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
@@ -269,6 +292,16 @@ local function LevelUp()
 			{ Size = UDim2.new(1, 0, 0, 40), Position = UDim2.fromOffset(0, 160), BackgroundTransparency = 1 },
 			rewards
 		),
+		Unlocks = #unlocked > 0 and e(Label, {
+			text = `Unlocked: {table.concat(unlocked, " · ")}`,
+			style = "body",
+			tone = "highlight",
+			wrap = true,
+			size = UDim2.new(1, 0, 0, 44),
+			position = UDim2.fromOffset(0, 210),
+			alignX = Enum.TextXAlignment.Center,
+			stroke = true,
+		}),
 	})
 end
 

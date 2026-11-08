@@ -95,11 +95,15 @@ local function updateModel(player: Player, uid: string)
 	local now = os.time()
 	local ready = false
 	local workingUntil = 0
+	local current: any = nil -- the job running now, for the progress bar above the station
 	for _, job in Crafting.status(station, def, now) do
 		if job.done then
 			ready = true
 		elseif not job.stalled then
 			workingUntil = math.max(workingUntil, station.queue[job.index].endsAt)
+			if current == nil then
+				current = job
+			end
 		end
 	end
 	model:SetAttribute("Level", station.level)
@@ -107,6 +111,9 @@ local function updateModel(player: Player, uid: string)
 	model:SetAttribute("Ready", ready)
 	-- When the queue's running jobs finish, so clients can animate and sound the station meanwhile.
 	model:SetAttribute("WorkingUntil", workingUntil)
+	model:SetAttribute("JobProgress", if current then current.progress else nil)
+	model:SetAttribute("JobRemaining", if current then current.remaining else nil)
+	model:SetAttribute("JobRecipe", if current then current.recipeId else nil)
 end
 
 -- Refreshes a station's model attributes and the player's synced stations.

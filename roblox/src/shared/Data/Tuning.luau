@@ -114,6 +114,17 @@ local Tuning: Types.TuningDef = {
 	drops = {
 		lifetimeSeconds = 600, -- a bag on the ground lasts 10 minutes
 	},
+	movement = {
+		-- A short hop (PLAYER_EXPERIENCE_CHECKLIST 1.4): feels like Roblox, but can't
+		-- clear a wall (8.6+ studs), a crate or a node's collider.
+		hopHeight = 2.2,
+		hopCooldownSeconds = 1.2,
+	},
+	dayNight = {
+		cycleSeconds = 24 * 60, -- one day and night in 24 real minutes
+		dayFraction = 0.72, -- about 17 minutes of day, 7 of night
+		offset = 0.1, -- where in the cycle server time 0 falls
+	},
 	newPlayer = {
 		items = {
 			{ itemId = "item.sealed_tin", count = 2 },

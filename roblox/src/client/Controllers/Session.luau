@@ -12,6 +12,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local CraftingMath = require(ReplicatedStorage.Shared.Domain.Crafting)
 local Players = game:GetService("Players")
 local Net = require("../Net")
 local Animations = require("./Animations")
@@ -64,9 +65,42 @@ local function onFx(kind: string, payload: any)
 	State.fx:Fire(kind, payload)
 end
 
+-- On the first stations sync of a session: say what finished while the player was
+-- away (checklist 5.6), e.g. "Ready while you were away: Workbench (2), Campfire".
+local announcedAway = false
+local function announceAway(stations: any)
+	if announcedAway or type(stations) ~= "table" then
+		return
+	end
+	announcedAway = true
+	local now = State.now()
+	local parts: { string } = {}
+	for _, station in stations do
+		local def = Content.Stations[station.stationId]
+		if def then
+			local done = 0
+			for _, job in CraftingMath.status(station, def, now) do
+				if job.done then
+					done += 1
+				end
+			end
+			if done > 0 then
+				table.insert(parts, if done > 1 then `{def.name} ({done})` else def.name)
+			end
+		end
+	end
+	if #parts > 0 then
+		State.notify(`Ready while you were away: {table.concat(parts, ", ")}`, "good")
+		Sfx.play("reward")
+	end
+end
+
 function Session.start()
 	Net.on("Sync", function(section: string, value: any)
 		State.set(section, value)
+		if section == "stations" then
+			announceAway(value)
+		end
 	end)
 	Net.on("Fx", onFx)
 	task.spawn(function()
@@ -77,6 +111,7 @@ function Session.start()
 				for section, value in snapshot do
 					State.set(section, value)
 				end
+				announceAway(snapshot.stations)
 				return
 			end
 			task.wait(5)

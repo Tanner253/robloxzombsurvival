@@ -19,6 +19,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Clock = require(ReplicatedStorage.Shared.Clock)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Sfx = require("../Sfx")
 local State = require("../State")
@@ -66,17 +67,9 @@ local function layer(name: string): Layer?
 	return made
 end
 
--- 1 in full day, 0 at night, easing through dawn (5-7) and dusk (17.5-19.5).
+-- 1 in full day, 0 at night, easing through dawn and dusk (Shared/Clock).
 local function daylight(): number
-	local t = Lighting.ClockTime
-	if t >= 7 and t <= 17.5 then
-		return 1
-	elseif t <= 5 or t >= 19.5 then
-		return 0
-	elseif t < 12 then
-		return (t - 5) / 2
-	end
-	return (19.5 - t) / 2
+	return Clock.daylight(Lighting.ClockTime)
 end
 
 local function fadeLayer(name: string, target: number, dt: number)
