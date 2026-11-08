@@ -1,13 +1,5 @@
-# --- Parked Unity prototype (ZombieLab) ---
-ZombieLab/[Ll]ibrary/
-ZombieLab/[Tt]emp/
-ZombieLab/[Ll]ogs/
-ZombieLab/[Oo]bj/
-ZombieLab/[Uu]ser[Ss]ettings/
-ZombieLab/[Bb]uild*/
-ZombieLab/*.csproj
-ZombieLab/*.sln
-ZombieLab/.vs/
+# --- Parked Unity prototype (ZombieLab): kept out of the repo ---
+ZombieLab/
 
 # --- Roblox / Rojo / Wally ---
 roblox/Packages/
