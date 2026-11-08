@@ -35,6 +35,7 @@
 | 2026-11-07 | **A full arsenal, with guns** | The LDoE-scale ladder: melee, bows, improvised, standard and advanced firearms, light weapons (Flare Pistol, Ember Thrower) and throwables; the Ammo Press with 4 ammo types; parts and blueprints; mods. Noise makes guns a risk choice. Paid packs never go beyond the buyer's unlocked tier. First guns arrive in M1 slice 2. See GAME_DESIGN "Combat and the arsenal". |
 | 2026-11-07 | **Leave home by walking off the edge into the Fog** | Requested by the developer, and it's how LDoE works. The Neighbourhood edge and the Trailhead start travel. M opens the map anywhere to plan. |
 | 2026-11-07 | **No jumping or climbing; Space is a dodge roll** | Walls must hold. Matches LDoE. |
+| 2026-11-07 | **Fog Runs are cross-server shared lobbies; the fog tier sets the PvP rules** | Requested by the developer ("like a tarkov lobby"). Light is PvE with personal loot. Dense is PvP with Hostile marks and contested loot. Black is full loot except the secure pouch, with a flare extract. Truce and betrayal, downed state, bounties, power-band matchmaking. Light is always fully viable; protection is never sold. Lobbies are built in M1 (PvE), and PvP lands in M2 with raids and the standard firearms. |
 | 2026-11-07 | **Painted, realistic-leaning item icons and modelled nodes** | Requested by the developer: no emoji or symbolic icons. Paid from the 300-credit pool, with a 3-sample style gate before batching. |
 
 ## ZombieLab (parked) (Unity 6000.3.27f2, built-in render pipeline)
