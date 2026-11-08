@@ -153,6 +153,14 @@ A feature is done only when all of these hold:
 - One feature per ticket, specified from GAME_DESIGN.md and the systems catalog.
 - **Code-only work** (Domain, Data, tests) can run in parallel, each in its own git worktree or branch.
 - **Anything that touches the Studio place** (Rojo sync, world building, playtests) runs **one worker at a time**.
+- **Zero developer maintenance** (the developer's rule, 2026-11-08):
+  - Workers **never** ask the developer questions (no AskUserQuestion). They send anything they truly can't resolve to the orchestrator.
+  - Workers start and stop playtests themselves (`start_stop_play`). If the developer's playtest is running, stop it, work, then restart it.
+  - Workers judge visuals themselves from captures.
+- **The repo is the master copy of the whole place (world-as-code):**
+  - World layout, dressing placement and procedural Terrain are built by Rojo-synced builder code from repo data.
+  - Kit models live in the repo as `.rbxmx` files synced into ServerStorage.
+  - Nothing may exist only in an unsaved Studio window, so Ctrl+S is never needed. A fresh `rojo build` must reproduce the full game.
 - **Repo:** https://github.com/Tanner253/robloxzombsurvival (`origin`). **Commit often**, in small logical commits, and push each one to the feature branch on origin.
 - Merging into `main` happens after the orchestrator reviews and the developer approves.
 - Workers sharing this folder never check out another branch. Parallel code work uses its own git worktree.
