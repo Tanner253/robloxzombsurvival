@@ -183,10 +183,10 @@ local function Tracker()
 	local collapsed = ui.questCollapsed == true
 	local entries: { [string]: any } = {}
 	for index, row in rows do
-		local next = if row.nextIndex then row.objectives[1] else nil
+		local upcoming = if row.nextIndex then row.objectives[1] else nil
 		for _, entry in row.objectives do
 			if entry.index == row.nextIndex then
-				next = entry
+				upcoming = entry
 			end
 		end
 		entries[`Q{index}`] = e(Layout.Stack, {
@@ -205,11 +205,11 @@ local function Tracker()
 					TextTruncate = Enum.TextTruncate.AtEnd,
 					LayoutOrder = 1,
 				}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1, Transparency = 0.4 }) }),
-				Step = not collapsed and next and e("TextLabel", {
+				Step = not collapsed and upcoming and e("TextLabel", {
 					Size = UDim2.new(1, -12, 0, 20),
 					BackgroundTransparency = 1,
 					FontFace = Theme.fonts.body,
-					Text = `{questText.objective(next.objective)}  {next.have}/{next.need}`,
+					Text = `{questText.objective(upcoming.objective)}  {upcoming.have}/{upcoming.need}`,
 					TextSize = Theme.textSize.caption + 2,
 					TextColor3 = Theme.colors.text,
 					TextXAlignment = Enum.TextXAlignment.Left,
