@@ -3,19 +3,19 @@
 	Teleport: how LobbyService moves players in and out of Fog Run lobbies, behind
 	one interface with two implementations (ARCHITECTURE.md §7).
 
-	- live: each lobby is a reserved server of the location's place. A MemoryStore
-	  sorted map per location ("FogLobbies_<locationId>") lists the open lobbies
-	  with their access code, power band and free seats, so world servers anywhere
-	  can match parties into them. Seats are claimed atomically with UpdateAsync.
-	- simulated (Studio, where teleports don't work, and any place whose locations
-	  aren't published yet): lobbies are hosted in this same server. "Sending" a
-	  player calls the host's arrive callback; "sending home" calls its home one.
+	One place, two server roles (MVP_LAUNCH, decided 2026-11-08): every lobby is a
+	reserved server of this same place. A public server is the Neighbourhood (the
+	"world" role); a reserved server is one location's lobby (the "run" role). The
+	run server learns its location from the lobby directory below, or from the
+	first arrival's ticket (FogRuns/RunWorld), and builds that map from code.
 
-	The role of this server comes from `Teleport.role()`: a reserved server of a
-	published location's place hosts that one lobby ("run"); everything else is a
-	world server.
-
-	Not playtested until Phase B (docs/briefs/m1-slice2-fog-runs.md).
+	- live: each lobby is a reserved server. A MemoryStore sorted map per location
+	  ("FogLobbies_<locationId>") lists the open lobbies with their access code,
+	  power band and free seats, so world servers anywhere can match parties into
+	  them. Seats are claimed atomically with UpdateAsync.
+	- simulated (Studio, where teleports don't work): lobbies are hosted in this
+	  same server, each map built beside the Neighbourhood. "Sending" a player calls
+	  the host's arrive callback; "sending home" calls its home one.
 ]]
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
@@ -42,6 +42,8 @@ export type HomeData = {
 	lobbyId: string?, -- set when the player died there and may re-enter
 	locationId: string?,
 	reentryUntil: number?, -- the lobby's re-entry cutoff (UTC seconds)
+	result: { [string]: any }?, -- the run's results card, shown once they're home
+	death: { [string]: any }?, -- the death screen (cause, what was lost), shown once they're home
 }
 
 -- What the simulated adapter needs from LobbyService.
@@ -65,39 +67,52 @@ export type Adapter = {
 
 export type Role = "world" | "run"
 
--- The location whose place this server is, if any (placeId 0 means unpublished).
-function Teleport.locationForPlace(): Types.LocationId?
-	for id, location in Content.Locations do
-		if location.run.placeId ~= 0 and location.run.placeId == game.PlaceId then
-			return id
-		end
-	end
-	return nil
+-- The place a location's lobbies run in: this same place, unless the location names
+-- its own (run.placeId, kept for a later split into separate places).
+function Teleport.placeOf(location: Types.LocationDef): number
+	return if location.run.placeId ~= 0 then location.run.placeId else game.PlaceId
 end
 
+-- A reserved server of this place hosts one Fog Run lobby; anything else is the Neighbourhood.
 function Teleport.role(): Role
-	if game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0 and Teleport.locationForPlace() ~= nil then
+	if game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0 then
 		return "run"
 	end
 	return "world"
 end
 
--- Whether lobbies can be real reserved servers here: live servers with every
--- location published. Otherwise the simulation runs.
+-- Whether lobbies can be real reserved servers here (live servers). Studio simulates them.
 function Teleport.canGoLive(): boolean
-	if RunService:IsStudio() then
-		return false
-	end
-	for _, location in Content.Locations do
-		if location.run.placeId == 0 then
-			return false
-		end
-	end
-	return true
+	return not RunService:IsStudio() and game.PlaceId ~= 0
 end
 
 local function mapName(locationId: string): string
 	return `FogLobbies_{locationId}`
+end
+
+local function sorted(locationId: string): MemoryStoreSortedMap
+	return MemoryStoreService:GetSortedMap(mapName(locationId))
+end
+
+--[[
+	The location this reserved server hosts, from the lobby directory the world server
+	wrote when it reserved it (keyed by this server's private ID). nil when it can't
+	be read; the first arrival's ticket names it then.
+]]
+function Teleport.locationForServer(): Types.LocationId?
+	local serverId = game.PrivateServerId
+	if serverId == "" then
+		return nil
+	end
+	for id in Content.Locations do
+		local ok, entry = pcall(function()
+			return sorted(id):GetAsync(serverId)
+		end)
+		if ok and type(entry) == "table" then
+			return id
+		end
+	end
+	return nil
 end
 
 -- Live -------------------------------------------------------------------------------------
@@ -116,10 +131,6 @@ function Teleport.live(): Adapter
 			task.spawn(callback, player, message)
 		end
 	end)
-
-	local function sorted(locationId: string): MemoryStoreSortedMap
-		return MemoryStoreService:GetSortedMap(mapName(locationId))
-	end
 
 	local adapter: Adapter = {
 		kind = "live",
@@ -147,11 +158,11 @@ function Teleport.live(): Adapter
 		end,
 		create = function(locationId: string, powerBand: number, seats: number, ttlSeconds: number): (string?, string?)
 			local location = Content.Locations[locationId]
-			if location == nil or location.run.placeId == 0 then
-				return nil, "unpublished location"
+			if location == nil then
+				return nil, "unknown location"
 			end
 			local ok, code, serverId = pcall(function()
-				return TeleportService:ReserveServer(location.run.placeId)
+				return TeleportService:ReserveServer(Teleport.placeOf(location))
 			end)
 			if not ok or type(code) ~= "string" or type(serverId) ~= "string" then
 				return nil, tostring(code)
@@ -192,7 +203,7 @@ function Teleport.live(): Adapter
 			options.ReservedServerAccessCode = entry.accessCode
 			options:SetTeleportData(ticket :: any)
 			local sent, err = pcall(function()
-				TeleportService:TeleportAsync(location.run.placeId, players, options)
+				TeleportService:TeleportAsync(Teleport.placeOf(location), players, options)
 			end)
 			return sent, if sent then nil else tostring(err)
 		end,

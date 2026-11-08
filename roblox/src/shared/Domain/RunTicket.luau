@@ -21,6 +21,7 @@ export type Ticket = {
 	reentry: boolean,
 	homePlaceId: number, -- where to send the player back to
 	issuedAt: number,
+	mode: ("run" | "walk")?, -- how they travelled (the "found on the way" roll); nil for a re-entry
 }
 
 local MAX_ID = 64
@@ -40,9 +41,11 @@ function RunTicket.new(
 	partyId: string?,
 	reentry: boolean,
 	homePlaceId: number,
-	now: number
+	now: number,
+	mode: ("run" | "walk")?
 ): Ticket
 	return {
+		mode = mode,
 		v = RunTicket.VERSION,
 		lobbyId = lobbyId,
 		locationId = locationId,
@@ -86,6 +89,9 @@ function RunTicket.parse(data: any, now: number, maxAgeSeconds: number): (Ticket
 	if data.issuedAt > now + 5 or now - data.issuedAt > maxAgeSeconds then
 		return nil, "stale"
 	end
+	if data.mode ~= nil and data.mode ~= "run" and data.mode ~= "walk" then
+		return nil, "bad mode"
+	end
 	for key in data do
 		if
 			key ~= "v"
@@ -96,6 +102,7 @@ function RunTicket.parse(data: any, now: number, maxAgeSeconds: number): (Ticket
 			and key ~= "reentry"
 			and key ~= "homePlaceId"
 			and key ~= "issuedAt"
+			and key ~= "mode"
 		then
 			return nil, "unknown field"
 		end
@@ -109,6 +116,7 @@ function RunTicket.parse(data: any, now: number, maxAgeSeconds: number): (Ticket
 		reentry = data.reentry,
 		homePlaceId = data.homePlaceId,
 		issuedAt = data.issuedAt,
+		mode = data.mode,
 	},
 		nil
 end
