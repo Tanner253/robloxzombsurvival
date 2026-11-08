@@ -7,7 +7,7 @@
 
 	- Look: the rig's own painted skin, a cold cyan glow at the eyes and a few fog
 	  wisps trailing off it (ART_DIRECTION §6).
-	- Animations (the rig's Animations folder: Idle, Walk, Run, Attack, Hit, Death):
+	- Animations (Art.hollowAnimations: idle, walk, run, attack, hit, death):
 	  idle and wander walk, chase runs, attack and hit-react play on their cues.
 	- Cues: "!" over a Hollow that notices you, floating damage numbers (crits
 	  larger), a dissolve into ash and embers on death (no blood: Mild), the
@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local TableUtil = require(ReplicatedStorage.Shared.Util.Table)
 local Net = require("../Net")
@@ -142,27 +143,37 @@ local function dress(model: Model)
 	end
 end
 
+local animations: { [string]: Animation } = {}
+
+local function animationFor(id: string): Animation
+	local existing = animations[id]
+	if existing then
+		return existing
+	end
+	local made = Instance.new("Animation")
+	made.AnimationId = id
+	animations[id] = made
+	return made
+end
+
 local function loadTracks(view: View)
 	local model = view.model
-	if model == nil then
+	local set = Art.hollowAnimations[view.enemyId]
+	if model == nil or set == nil then
 		return
 	end
 	local animator = animatorOf(model)
-	local source = model:FindFirstChild("Animations")
-	if animator == nil or source == nil then
+	if animator == nil then
 		return
 	end
-	for _, animation in source:GetChildren() do
-		if animation:IsA("Animation") then
-			local ok, track = pcall(function()
-				return (animator :: Animator):LoadAnimation(animation)
-			end)
-			if ok and track then
-				local name = string.lower(animation.Name)
-				track.Looped = name == "idle" or name == "walk" or name == "run"
-				track.Priority = if track.Looped then Enum.AnimationPriority.Movement else Enum.AnimationPriority.Action
-				view.tracks[name] = track
-			end
+	for name, id in set do
+		local ok, track = pcall(function()
+			return (animator :: Animator):LoadAnimation(animationFor(id))
+		end)
+		if ok and track then
+			track.Looped = name == "idle" or name == "walk" or name == "run"
+			track.Priority = if track.Looped then Enum.AnimationPriority.Movement else Enum.AnimationPriority.Action
+			view.tracks[name] = track
 		end
 	end
 end

@@ -443,6 +443,44 @@ Art.fogMap = {
 	art = {} :: { [string]: string },
 }
 
+-- The Hollow's animations (checklist 13.1): R15 clips made with Studio's animation
+-- generator and published as the creator's own assets, played on each kind's rig
+-- (ReplicatedStorage.EO_Hollow.<enemyId>) by Controllers/HollowView.
+local SHAMBLE_IDLE = "rbxassetid://134064488942538" -- swaying, head lolling
+local SHAMBLE_WALK = "rbxassetid://95035190574951" -- hunched, dragging its feet
+local LUNGE = "rbxassetid://128684712386159" -- a two-armed downward claw
+local HIT = "rbxassetid://92048533093046" -- staggers back from a blow
+local COLLAPSE = "rbxassetid://78846833571776" -- knees buckle, face down
+local SPRINT = "rbxassetid://125564840299614" -- low, frantic
+local WADDLE = "rbxassetid://116620273303279" -- the bloater's heavy sway
+
+Art.hollowAnimations = {
+	["enemy.shambler"] = {
+		idle = SHAMBLE_IDLE,
+		walk = SHAMBLE_WALK,
+		run = SHAMBLE_WALK,
+		attack = LUNGE,
+		hit = HIT,
+		death = COLLAPSE,
+	},
+	["enemy.runner"] = {
+		idle = SHAMBLE_IDLE,
+		walk = SHAMBLE_WALK,
+		run = SPRINT,
+		attack = LUNGE,
+		hit = HIT,
+		death = COLLAPSE,
+	},
+	["enemy.bloater"] = {
+		idle = SHAMBLE_IDLE,
+		walk = WADDLE,
+		run = WADDLE,
+		attack = LUNGE,
+		hit = HIT,
+		death = COLLAPSE,
+	},
+} :: { [string]: { [string]: string } }
+
 -- The HUD meters' glyph names.
 Art.meterGlyphs = {
 	health = "health",
