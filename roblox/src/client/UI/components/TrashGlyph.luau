@@ -21,7 +21,7 @@ local function TrashGlyph(props: Props)
 	for index = 1, 3 do
 		slots[`Slot{index}`] = e("Frame", {
 			Size = UDim2.fromOffset(2, h - 6),
-			Position = UDim2.new(index / 4, 0, 0.5, 0),
+			Position = UDim2.fromScale(index / 4, 0.5),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundColor3 = Color3.new(0, 0, 0),
 			BackgroundTransparency = 0.55,

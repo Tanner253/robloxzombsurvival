@@ -23,6 +23,7 @@ local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Net = require("../Net")
 local Sfx = require("../Sfx")
+local Pool = require("../Pool")
 local State = require("../State")
 local Theme = require("../UI/theme")
 
@@ -102,9 +103,9 @@ local function progress(): BuildRules.Progress
 	}
 end
 
+-- What costs are checked against: carried items plus the home pool (5.13).
 local function inventory(): any
-	local inv = State.get("inventory")
-	return if inv then { pockets = inv.pockets, backpack = inv.backpack } else nil
+	return Pool.inventory(State.get("inventory"))
 end
 
 -- The hint text for the cursor: why it is invalid, or what it costs.

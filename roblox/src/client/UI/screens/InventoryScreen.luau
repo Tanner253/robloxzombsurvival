@@ -1,7 +1,7 @@
 --!strict
 --[[
 	InventoryScreen (Tab): gear, pockets, backpack, and on the right either the
-	open crate (Take all / Put all) or hand crafting and the locked stash.
+	open crate (Take all / Put all) or hand crafting and the item inbox.
 
 	Moving items: drag a slot onto another (merge, swap or move), or click to pick
 	it up and click to put it down; Shift-drag moves half a stack; drag it out of
@@ -507,7 +507,9 @@ local function CraftRow(props: { recipe: any, inventory: any, progress: any, lay
 	})
 end
 
-local function CraftingList(props: { inventory: any })
+local function CraftingList(_props: { inventory: any })
+	-- Costs count the whole home pool (5.13).
+	local pooled = hooks.usePooled()
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
 	local progress = {
@@ -523,7 +525,7 @@ local function CraftingList(props: { inventory: any })
 	for _, recipe in recipes do
 		local affordable = true
 		for _, stack in recipe.inputs do
-			affordable = affordable and format.count(props.inventory, stack.itemId) >= stack.count
+			affordable = affordable and format.count(pooled, stack.itemId) >= stack.count
 		end
 		rank[recipe] = if not CraftingMath.isUnlocked(recipe, progress) then 2 elseif affordable then 0 else 1
 	end
@@ -534,8 +536,7 @@ local function CraftingList(props: { inventory: any })
 		return format.itemName(a.outputs[1].itemId) < format.itemName(b.outputs[1].itemId)
 	end)
 	for index, recipe in recipes do
-		rows[recipe.id] =
-			e(CraftRow, { recipe = recipe, inventory = props.inventory, progress = progress, layoutOrder = index })
+		rows[recipe.id] = e(CraftRow, { recipe = recipe, inventory = pooled, progress = progress, layoutOrder = index })
 	end
 	return e("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, -28),
@@ -669,7 +670,7 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 		}),
 		-- The action bar (checklist 4.11): real buttons, right-aligned, no gaps.
 		Actions = e("Frame", {
-			Size = UDim2.new(0, 440, 0, 44),
+			Size = UDim2.fromOffset(440, 44),
 			Position = UDim2.fromScale(1, 0.5),
 			AnchorPoint = Vector2.new(1, 0.5),
 			BackgroundTransparency = 1,
@@ -714,14 +715,181 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 	})
 end
 
+-- Item inbox (checklist 4.15) ---------------------------------------------------------------------------
+
+local SOURCE_TEXT: { [string]: string } = {
+	LevelUp = "Level-up reward",
+	Quest = "Quest reward",
+	Purchase = "Purchase",
+	Event = "Event reward",
+	Overflow = "Didn't fit your bag",
+	Stash = "From the old stash",
+}
+local FILTERS = { "all", "resource", "material", "tool", "weapon", "armor", "food", "medical", "blueprint" }
+local FILTER_TEXT: { [string]: string } = {
+	all = "All",
+	resource = "Resources",
+	material = "Materials",
+	tool = "Tools",
+	weapon = "Weapons",
+	armor = "Gear",
+	food = "Food",
+	medical = "Medical",
+	blueprint = "Blueprints",
+}
+
+local function InboxRow(props: { row: any, layoutOrder: number })
+	local row = props.row
+	local def = Content.Items[row.itemId]
+	local usable = def and def.consume ~= nil
+	return e("Frame", {
+		Size = UDim2.new(1, -8, 0, 58),
+		BackgroundColor3 = Theme.colors.panelRaised,
+		BackgroundTransparency = 0.1,
+		LayoutOrder = props.layoutOrder,
+	}, {
+		Corner = e("UICorner", { CornerRadius = Theme.radius }),
+		Icon = e("Frame", {
+			Size = UDim2.fromOffset(46, 46),
+			Position = UDim2.fromOffset(6, 6),
+			BackgroundTransparency = 1,
+		}, { Inner = e(ItemIcon, { itemId = row.itemId, size = UDim2.fromScale(1, 1) }) }),
+		Name = e(Label, {
+			text = if row.count > 1 then format.stack(row.itemId, row.count) else format.itemName(row.itemId),
+			style = "body",
+			size = UDim2.new(1, -230, 0, 22),
+			position = UDim2.fromOffset(58, 6),
+		}),
+		Source = e(Label, {
+			text = SOURCE_TEXT[row.source] or row.source,
+			style = "caption",
+			tone = "muted",
+			size = UDim2.new(1, -230, 0, 18),
+			position = UDim2.fromOffset(58, 30),
+		}),
+		Use = usable and e(Button, {
+			text = "Use",
+			variant = "secondary",
+			size = UDim2.fromOffset(70, 44),
+			position = UDim2.new(1, -96, 0.5, 0),
+			anchorPoint = Vector2.new(1, 0.5),
+			onActivated = function()
+				Net.fire("InboxUse", row.id)
+			end,
+		}),
+		Take = e(Button, {
+			text = "Take",
+			size = UDim2.fromOffset(84, 44),
+			position = UDim2.new(1, -6, 0.5, 0),
+			anchorPoint = Vector2.new(1, 0.5),
+			onActivated = function()
+				Net.fire("InboxTake", row.id)
+				Sfx.play("pickup")
+			end,
+		}),
+	})
+end
+
+local function InboxList(props: { rows: { any } })
+	local filter, setFilter = React.useState("all")
+	local present: { [string]: boolean } = { all = true }
+	for _, row in props.rows do
+		local def = Content.Items[row.itemId]
+		if def then
+			present[def.category] = true
+		end
+	end
+	local chips: { [string]: any } = {
+		Layout = e("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	}
+	for index, key in FILTERS do
+		if present[key] then
+			chips[key] = e("TextButton", {
+				Size = UDim2.fromOffset(0, 28),
+				AutomaticSize = Enum.AutomaticSize.X,
+				LayoutOrder = index,
+				AutoButtonColor = false,
+				BackgroundColor3 = if filter == key then Theme.colors.accent else Theme.colors.panelRaised,
+				FontFace = Theme.fonts.header,
+				Text = FILTER_TEXT[key],
+				TextSize = Theme.textSize.caption,
+				TextColor3 = if filter == key then Theme.colors.textOnAccent else Theme.colors.text,
+				[React.Event.Activated] = function()
+					setFilter(key)
+				end,
+			}, {
+				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+				Pad = e("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }),
+			})
+		end
+	end
+	local rows: { [string]: any } = {
+		Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+	}
+	local shown = 0
+	for index = #props.rows, 1, -1 do -- newest first
+		local row = props.rows[index]
+		local def = Content.Items[row.itemId]
+		if filter == "all" or (def and def.category == filter) then
+			shown += 1
+			rows[row.id] = e(InboxRow, { row = row, layoutOrder = shown })
+		end
+	end
+	return e("Frame", {
+		Size = UDim2.new(1, 0, 1, -28),
+		Position = UDim2.fromOffset(0, 28),
+		BackgroundTransparency = 1,
+	}, {
+		Chips = e("Frame", { Size = UDim2.new(1, -120, 0, 28), BackgroundTransparency = 1 }, chips),
+		TakeAll = e(Button, {
+			text = "Take all",
+			disabled = shown == 0,
+			size = UDim2.fromOffset(110, 44),
+			position = UDim2.new(1, 0, 0, -8),
+			anchorPoint = Vector2.new(1, 0),
+			onActivated = function()
+				Net.fire("InboxTakeAll", filter)
+				Sfx.play("pickup")
+			end,
+		}),
+		Empty = shown == 0
+			and e(Label, {
+				text = "Rewards, purchases and anything that doesn't fit your bag wait here. No limit, never raided, never expires.",
+				style = "caption",
+				tone = "muted",
+				wrap = true,
+				size = UDim2.new(1, 0, 0, 40),
+				position = UDim2.fromOffset(0, 44),
+			}),
+		Scroll = e("ScrollingFrame", {
+			Size = UDim2.new(1, 0, 1, -44),
+			Position = UDim2.fromOffset(0, 44),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 4,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			CanvasSize = UDim2.new(),
+		}, rows),
+	})
+end
+
 -- Screen ---------------------------------------------------------------------------------------------------
 
 local function InventoryScreen()
 	local ui = hooks.useUi()
 	local inventory = hooks.useSection("inventory")
 	local storage = hooks.useSection("storage")
-	local stash = hooks.useSection("stash")
-	local tab, setTab = React.useState("crafting")
+	local stash = nil -- the locked stash became the item inbox (4.15)
+	local inbox = hooks.useSection("inbox")
+	-- The right pane's tab lives in the UI state so the Bag badge can open the inbox.
+	local tab = ui.inventoryTab or "crafting"
+	local function setTab(name: string)
+		State.patch({ inventoryTab = name })
+	end
 	local open = ui.panel == "inventory" and inventory ~= nil and inventory ~= false
 	local crate = if storage then storage else nil
 
@@ -730,10 +898,7 @@ local function InventoryScreen()
 		local equipment = Slots.fromEquipment(inventory.equipment)
 		-- Each equip slot draws the silhouette of what goes there.
 		local placeholders = table.clone(Slots.EQUIP_ORDER) :: { any }
-		local stashCount = 0
-		for _, slot in stash or {} do
-			stashCount += if slot.count > 0 then 1 else 0
-		end
+		local inboxCount = if type(inbox) == "table" then #inbox else 0
 		local crateDef = crate and Content.BuildPieces[crate.pieceId]
 		local used = 0
 		for _, slot in (crate and crate.slots) or {} do
@@ -908,52 +1073,25 @@ local function InventoryScreen()
 									setTab("crafting")
 								end,
 							}),
-							Stash = e("TextButton", {
+							Inbox = e("TextButton", {
 								Size = UDim2.fromOffset(120, 24),
 								BackgroundTransparency = 1,
 								FontFace = Theme.fonts.header,
-								Text = if stashCount > 0 then `LOCKED STASH ({stashCount})` else "LOCKED STASH",
+								Text = if inboxCount > 0 then `INBOX ({inboxCount})` else "INBOX",
 								TextSize = Theme.textSize.caption,
-								TextColor3 = if tab == "stash" then Theme.colors.accent else Theme.colors.textMuted,
+								TextColor3 = if tab == "inbox"
+									then Theme.colors.accent
+									elseif inboxCount > 0 then Theme.colors.text
+									else Theme.colors.textMuted,
 								TextXAlignment = Enum.TextXAlignment.Left,
 								[React.Event.Activated] = function()
-									setTab("stash")
+									setTab("inbox")
 								end,
 							}),
 						}),
 						Body = if tab == "crafting"
 							then e(CraftingList, { inventory = inventory })
-							else e("Frame", {
-								Size = UDim2.new(1, 0, 1, -28),
-								Position = UDim2.fromOffset(0, 28),
-								BackgroundTransparency = 1,
-							}, {
-								Note = e(Label, {
-									text = "Purchases and overflow rewards wait here. Nothing in the stash can be raided.",
-									style = "caption",
-									tone = "muted",
-									wrap = true,
-									size = UDim2.new(1, 0, 0, 34),
-								}),
-								Scroll = e("ScrollingFrame", {
-									Size = UDim2.new(1, 0, 1, -40),
-									Position = UDim2.fromOffset(0, 40),
-									BackgroundTransparency = 1,
-									BorderSizePixel = 0,
-									ScrollBarThickness = 4,
-									AutomaticCanvasSize = Enum.AutomaticSize.Y,
-									CanvasSize = UDim2.new(),
-								}, {
-									Grid = e(Grid, {
-										source = "stash",
-										slots = stash or {},
-										columns = 5,
-										inventory = inventory,
-										storage = crate,
-										stash = stash,
-									}),
-								}),
-							}),
+							else e(InboxList, { rows = if type(inbox) == "table" then inbox else {} }),
 					}
 			),
 			Divider = e("Frame", {

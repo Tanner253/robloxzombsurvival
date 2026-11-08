@@ -379,6 +379,7 @@ local function ActionButton(
 		onRelease: (() -> ())?,
 		dot: boolean?, -- something new inside (NEW badge, checklist 8.4)
 		alertAt: number?, -- os.clock() of an alert: the button flashes red briefly
+		badge: number?, -- a count in a red circle, e.g. unclaimed inbox rows (4.15)
 	}
 )
 	local pressed, setPressed = React.useState(false)
@@ -446,7 +447,20 @@ local function ActionButton(
 			anchorPoint = Vector2.new(1, 0),
 			accent = props.primary,
 		}),
-		Dot = props.dot and e("Frame", {
+		Badge = (props.badge or 0) > 0 and e("TextLabel", {
+			Size = UDim2.fromOffset(24, 24),
+			Position = UDim2.fromOffset(-4, -4),
+			BackgroundColor3 = Theme.colors.locked,
+			FontFace = Theme.fonts.header,
+			Text = if (props.badge or 0) > 99 then "99+" else tostring(props.badge),
+			TextSize = Theme.textSize.caption,
+			TextColor3 = Theme.colors.textOnAccent,
+			ZIndex = 4,
+		}, {
+			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+			Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1.5 }),
+		}),
+		Dot = (props.badge or 0) == 0 and props.dot and e("Frame", {
 			Size = UDim2.fromOffset(14, 14),
 			Position = UDim2.fromOffset(4, 4),
 			BackgroundColor3 = Theme.colors.accent,
@@ -468,6 +482,7 @@ end
 
 local function ActionBar()
 	local ui = hooks.useUi()
+	local inbox = hooks.useSection("inbox")
 	local target = ui.target
 	local interactLabel = if ui.panel == "build" then "Place" elseif target then target.verb else "Use"
 	local glyph = if target and target.kind == "node"
@@ -518,9 +533,14 @@ local function ActionBar()
 			glyph = "🎒",
 			size = 64,
 			layoutOrder = 3,
-			onPress = Actions.toggleInventory,
+			onPress = if type(inbox) == "table"
+					and #inbox > 0
+					and ui.panel ~= "inventory"
+				then Actions.openInbox
+				else Actions.toggleInventory,
 			dot = next(ui.newItems) ~= nil,
 			alertAt = ui.bagFullAt,
+			badge = if type(inbox) == "table" then #inbox else 0,
 		}),
 		Interact = e(ActionButton, {
 			label = interactLabel,

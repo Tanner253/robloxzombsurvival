@@ -14,7 +14,7 @@
 
 	Container refs name one of the player's slot containers: "pockets",
 	"backpack", "equipment" (slots in Slots.EQUIP_ORDER), "storage" (the crate
-	the player has open) and "stash" (the locked stash; take only).
+	the player has open). The item inbox has its own remotes (InboxTake...).
 ]]
 
 local Check = require("./Check")
@@ -35,7 +35,7 @@ local Remotes = {}
 -- Name of the Folder in ReplicatedStorage that holds the remote instances.
 Remotes.FOLDER_NAME = "Remotes"
 
-Remotes.CONTAINER_REFS = { "pockets", "backpack", "equipment", "storage", "stash" }
+Remotes.CONTAINER_REFS = { "pockets", "backpack", "equipment", "storage" }
 
 -- Largest slot index any container can have (storage crates top out at 28).
 Remotes.MAX_SLOT = 64
@@ -54,6 +54,8 @@ local uid = Check.pattern("^%d+$", 10)
 local nodeKey = Check.pattern("^p%d+n%d+$", 16)
 -- Ground drops from the Drops service, e.g. "d42".
 local dropId = Check.pattern("^d%d+$", 12)
+-- Item inbox rows from Domain/Inbox, e.g. "i17".
+local inboxId = Check.pattern("^i%d+$", 12)
 
 local SERVER_ONLY = { count = 1, perSeconds = 60 }
 local MOVES = { count = 24, perSeconds = 4 }
@@ -174,6 +176,27 @@ Remotes.list = {
 		rateLimit = ACTIONS,
 		validate = Check.args(ref, slot),
 		description = "(ref, index) destroys a whole slot for good (the trash button, after a confirm)",
+	},
+	InboxTake = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = MOVES,
+		validate = Check.args(inboxId),
+		description = "(id) moves one inbox row into the bag as far as it fits",
+	},
+	InboxTakeAll = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.optional(Check.string(16))),
+		description = "(category?) moves every inbox row (or one category's) into the bag",
+	},
+	InboxUse = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(inboxId),
+		description = "(id) eats or drinks one unit straight from the inbox",
 	},
 	PickupDrop = {
 		kind = "event",

@@ -20,7 +20,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 3
+PlayerSchema.VERSION = 4
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -75,7 +75,10 @@ export type PlayerData = {
 		equipment: Equipment,
 	},
 	storage: { [string]: Types.Container }, -- keyed by placed storage piece UID
-	lockedStash: Types.Container, -- purchases land here; never raidable
+	-- The item inbox (checklist 4.15): rewards, purchases and overflow, no capacity
+	-- limit, never raidable, never expires. inboxSeq numbers its rows.
+	inbox: { Types.InboxEntry },
+	inboxSeq: number,
 	stations: { [string]: StationState }, -- keyed by placed station UID
 	crops: { [string]: CropState }, -- keyed by placed plot UID
 	progression: { level: number, xp: number },
@@ -156,7 +159,8 @@ function PlayerSchema.template(): PlayerData
 			},
 		},
 		storage = {},
-		lockedStash = Inventory.newContainer(slots.lockedStashSlots),
+		inbox = {},
+		inboxSeq = 0,
 		stations = {},
 		crops = {},
 		progression = { level = 1, xp = 0 },
@@ -187,6 +191,26 @@ PlayerSchema.migrations = {
 		if data.settings == nil then
 			data.settings = PlayerSchema.defaultSettings()
 		end
+	end,
+	-- v4: the locked stash becomes the unlimited item inbox; its items move over.
+	[3] = function(data)
+		local entries, seq = {}, 0
+		for _, slot in (if type(data.lockedStash) == "table" then data.lockedStash else {}) do
+			if type(slot) == "table" and type(slot.count) == "number" and slot.count > 0 then
+				seq += 1
+				table.insert(entries, {
+					id = `i{seq}`,
+					itemId = slot.itemId,
+					count = slot.count,
+					durability = slot.durability,
+					source = "Stash",
+					at = 0,
+				})
+			end
+		end
+		data.inbox = entries
+		data.inboxSeq = seq
+		data.lockedStash = nil
 	end,
 } :: Migrations.Steps
 

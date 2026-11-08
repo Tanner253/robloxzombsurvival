@@ -280,7 +280,10 @@ local function LevelUp()
 			Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 3 }),
 		}),
 		Sub = e(Label, {
-			text = "Energy restored · fully healed",
+			-- Rewards always wait in the inbox (4.15), so the card says where they are.
+			text = if #(info.rewards or {}) > 0
+				then "Energy restored · fully healed · rewards are in your inbox"
+				else "Energy restored · fully healed",
 			style = "caption",
 			tone = "muted",
 			size = UDim2.new(1, 0, 0, 20),

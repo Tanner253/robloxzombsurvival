@@ -2,6 +2,7 @@
 --[[
 	hooks: React hooks for screens.
 	- useSection(name): a synced section from State, re-rendering on change
+	- usePooled(): the carried inventory plus the home pool, for have/need counts
 	- useUi(): the UI state
 	- useClock(seconds): server time, re-rendering every `seconds`
 	- useAnimated(target, speed): a binding that eases toward `target` each frame
@@ -12,9 +13,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Pool = require("../Pool")
 local State = require("../State")
 
 local hooks = {}
+
+-- The carried inventory plus every home crate and the inbox (checklist 5.13), for
+-- have/need counts only: never render its slots.
+function hooks.usePooled(): any
+	local inventory = hooks.useSection("inventory")
+	hooks.useSection("pool")
+	hooks.useSection("inbox")
+	return Pool.inventory(inventory)
+end
 
 function hooks.useSection(name: string): any
 	local value, setValue = React.useState(State.get(name))

@@ -21,7 +21,6 @@ local Tuning: Types.TuningDef = {
 		pocketSlots = 10,
 		backpackSlots = 0,
 		maxBackpackSlots = 18, -- Scrap Pack Frame (12) + Pack Expansion (6)
-		lockedStashSlots = 30,
 	},
 	player = {
 		maxHealth = 100,

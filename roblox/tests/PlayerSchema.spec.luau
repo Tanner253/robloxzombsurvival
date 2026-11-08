@@ -59,11 +59,29 @@ return function(test: TestKit.Register)
 		TestKit.equal(#data.inventory.backpack, Tuning.inventory.backpackSlots, "backpack")
 		TestKit.equal(data.energy.value, Tuning.energy.cap, "energy")
 		for _, section in
-			{ "storage", "lockedStash", "stations", "crops", "progression", "quests", "unlocks", "purchases", "raid" }
+			{ "storage", "inbox", "stations", "crops", "progression", "quests", "unlocks", "purchases", "raid" }
 		do
 			TestKit.truthy((data :: any)[section], section)
 		end
 		TestKit.deepEqual(data.purchases.receiptIds, {}, "receipt log")
+	end)
+
+	test("v3 profiles move the locked stash into the inbox", function()
+		local data: { [string]: any } = {
+			version = 3,
+			lockedStash = {
+				{ itemId = "item.timber", count = 40 },
+				{ itemId = "", count = 0 },
+				{ itemId = "item.stone_hatchet", count = 1, durability = 12 },
+			},
+		}
+		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
+		TestKit.truthy(ok, reason)
+		TestKit.equal(data.lockedStash, nil, "stash retired")
+		TestKit.equal(#data.inbox, 2, "empty slots dropped")
+		TestKit.equal(data.inbox[1].count, 40)
+		TestKit.equal(data.inbox[2].durability, 12, "durability kept")
+		TestKit.equal(data.inboxSeq, 2)
 	end)
 
 	test("v1 profiles migrate up with full survival meters and default settings", function()

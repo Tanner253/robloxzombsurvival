@@ -14,7 +14,7 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local ProgressionMath = require(ReplicatedStorage.Shared.Domain.Progression)
 local Analytics = require("./Analytics")
 local Energy = require("./Energy")
-local Inventory = require("./Inventory")
+local Inbox = require("./Inbox")
 local PlayerData = require("./PlayerData")
 local Survival = require("./Survival")
 local Sync = require("./Sync")
@@ -33,15 +33,16 @@ function Progression.grantXp(player: Player, amount: number, source: string)
 	Sync.mark(player, "progression")
 
 	for _, def in reached do
+		-- Level-up rewards always wait in the inbox (checklist 4.15): never lost, never
+		-- dropped, taken when the player wants them.
 		local rewards = def.rewards or {}
-		local given, leftover = Inventory.give(player, rewards, "LevelUp")
-		local stashed = Inventory.stash(player, leftover)
+		Inbox.grant(player, rewards :: any, "LevelUp", true)
 		Energy.restore(player, Content.Tuning.energy.levelUpRestore, "grant")
 		Survival.healFull(player)
 		Sync.fx(player, "levelUp", {
 			level = def.level,
-			rewards = given,
-			stashed = #leftover > #stashed,
+			rewards = rewards,
+			inbox = #rewards > 0,
 			energy = Content.Tuning.energy.levelUpRestore,
 		})
 		Analytics.progression(player, "PlayerLevel", "complete", def.level, nil, { source })

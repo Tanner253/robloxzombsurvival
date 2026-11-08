@@ -8,7 +8,8 @@
 	- exposes ServerStorage.EO_Dev, a BindableFunction that tools and the command
 	  bar can invoke to drive the real services: ("place", pieceId, x, z, axis?, rot?),
 	  ("upgrade", uid), ("demolish", uid), ("give", itemId, count), ("xp", amount),
-	  ("learn", blueprintItemId), ("testbase") builds a furnished test base, ("rebuildworld") rebuilds
+	  ("learn", blueprintItemId), ("pool", itemId) counts it per pool source, ("inboxgrant", itemId, n),
+	  ("testbase") builds a furnished test base, ("rebuildworld") rebuilds
 	  the Neighbourhood from code,
 	  ("bag", slots) resizes the backpack. place/upgrade return "ok" or the refusal reason.
 	  ("clock", hours).
@@ -25,7 +26,9 @@ local InventoryMath = require(ReplicatedStorage.Shared.Domain.Inventory)
 local Net = require("../Net")
 local Building = require("./Building")
 local PlayerData = require("./PlayerData")
+local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
+local Materials = require("./Materials")
 local Progression = require("./Progression")
 local Scenery = require("./Scenery")
 local Sync = require("./Sync")
@@ -132,6 +135,19 @@ local function devCommand(command: string, ...: any): any
 			end
 		end
 		Scenery.start()
+	elseif command == "pool" then
+		-- ("pool", itemId) -> units per source in draw order, e.g. "pockets=2 inbox=40".
+		local MaterialPool = require(ReplicatedStorage.Shared.Domain.MaterialPool)
+		local parts = {}
+		for _, source in Materials.sources(player) do
+			local n = MaterialPool.count({ source }, args[1])
+			if n > 0 then
+				table.insert(parts, `{source.key}={n}`)
+			end
+		end
+		return table.concat(parts, " ")
+	elseif command == "inboxgrant" then
+		Inbox.grant(player, { { itemId = args[1], count = args[2] or 1 } }, args[3] or "Event")
 	elseif command == "xp" then
 		Progression.grantXp(player, args[1], "Dev")
 	elseif command == "clock" then

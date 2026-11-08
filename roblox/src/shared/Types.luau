@@ -380,7 +380,6 @@ export type TuningDef = {
 		pocketSlots: number,
 		backpackSlots: number, -- with no bag equipped
 		maxBackpackSlots: number, -- largest bag plus every purchasable upgrade
-		lockedStashSlots: number,
 	},
 	player: {
 		maxHealth: number,
@@ -487,6 +486,18 @@ export type Slot = {
 }
 
 export type Container = { Slot }
+
+-- One row of the item inbox (checklist 4.15): rewards, purchases and overflow wait
+-- here with no capacity limit until the player takes or uses them. Saved in the
+-- profile, so it is raid-proof; nothing in it expires.
+export type InboxEntry = {
+	id: string, -- "i<seq>", unique per profile
+	itemId: ItemId,
+	count: number,
+	durability: number?,
+	source: string, -- "LevelUp", "Quest", "Purchase", "Event", "Overflow", ...
+	at: number, -- os.time() it arrived (or was last added to)
+}
 
 export type Inventory = {
 	pockets: Container,

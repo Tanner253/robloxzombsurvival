@@ -25,7 +25,9 @@ local InventoryMath = require(Domain.Inventory)
 local Rng = require(Domain.Rng)
 local Net = require("../Net")
 local Analytics = require("./Analytics")
+local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
+local Materials = require("./Materials")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Sync = require("./Sync")
@@ -165,26 +167,23 @@ local function craft(player: Player, uid: string, recipeId: string, count: numbe
 	if ctx == nil or recipe == nil then
 		return
 	end
-	local view = Inventory.view(player) :: Types.Inventory
-	local inventory, station, reason =
-		Crafting.start(view, ctx.station, ctx.def, recipe, progressOf(ctx.data), os.time(), count)
-	if inventory == nil or station == nil then
+	-- Checks run against the whole home pool; the inputs then come out of it (5.13).
+	local pool = Materials.virtual(player) :: Types.Inventory
+	local checked, station, reason =
+		Crafting.start(pool, ctx.station, ctx.def, recipe, progressOf(ctx.data), os.time(), count)
+	if checked == nil or station == nil then
 		refuse(player, reason)
 		return
 	end
-	Inventory.commit(player, inventory)
-	save(player, ctx, uid, station)
+	local inputs: { Types.ItemStack } = {}
 	for _, stack in recipe.inputs do
-		Analytics.economy(
-			player,
-			"sink",
-			stack.itemId,
-			stack.count * count,
-			InventoryMath.count(inventory, stack.itemId),
-			"Crafting",
-			recipe.id
-		)
+		table.insert(inputs, { itemId = stack.itemId, count = stack.count * count })
 	end
+	if not Materials.take(player, inputs, "Crafting") then
+		refuse(player, "missingInputs")
+		return
+	end
+	save(player, ctx, uid, station)
 	Sync.fx(player, "craftStarted", { uid = uid, recipeId = recipeId, count = count })
 end
 
@@ -350,17 +349,27 @@ local function handCraft(player: Player, recipeId: string, count: number)
 		refuse(player, "wrongStation")
 		return
 	end
-	local view = Inventory.view(player) :: Types.Inventory
-	local inventory, reason = Crafting.craftByHand(view, recipe, progressOf(data), Items, count)
-	if inventory == nil then
+	-- Inputs come from the home pool (5.13); what doesn't fit the bag goes to the inbox.
+	local pool = Materials.virtual(player) :: Types.Inventory
+	local ok, reason = Crafting.check(recipe, pool, progressOf(data), nil, nil, count)
+	if not ok then
 		refuse(player, reason)
 		return
 	end
-	Inventory.commit(player, inventory)
+	local inputs: { Types.ItemStack } = {}
+	for _, stack in recipe.inputs do
+		table.insert(inputs, { itemId = stack.itemId, count = stack.count * count })
+	end
+	if not Materials.take(player, inputs, "Crafting") then
+		refuse(player, "missingInputs")
+		return
+	end
 	local made: { Types.ItemStack } = {}
 	for _, stack in recipe.outputs do
 		table.insert(made, { itemId = stack.itemId, count = stack.count * count })
 	end
+	local _, leftover = Inventory.give(player, made, "Crafting")
+	Inbox.grant(player, leftover :: any, "Overflow")
 	Analytics.custom(player, "HandCraft", count, { recipeId })
 	Sync.fx(player, "items", { items = made, source = "craft" })
 end

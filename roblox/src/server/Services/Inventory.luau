@@ -1,7 +1,7 @@
 --!strict
 --[[
 	Inventory: server-authoritative pockets, backpack, equipment, storage crates
-	and the locked stash (ARCHITECTURE.md §6; M1 step 1).
+	(ARCHITECTURE.md §6; M1 step 1). Rewards that do not fit go to Services/Inbox.
 
 	Clients only send intents (InventoryMove, InventorySplit, InventoryTransfer,
 	UseItem, StorageOpen, HotbarSelect); every rule is in Domain/Slots and
@@ -52,7 +52,6 @@ local REASON_TEXT: { [string]: string } = {
 	noSpace = "No room there",
 	count = "Can't split that",
 	bagFull = "Empty the bag's slots before taking it off",
-	stashIn = "The locked stash only gives items out",
 	noStorage = "Open a crate first",
 }
 
@@ -368,26 +367,6 @@ function Inventory.openStorage(player: Player): string?
 	return openStorage[player]
 end
 
--- Puts stacks into the locked stash (level rewards that did not fit). Returns leftovers.
-function Inventory.stash(player: Player, stacks: { Types.ItemStack }): { Types.ItemStack }
-	local data = PlayerData.get(player)
-	if data == nil then
-		return stacks
-	end
-	local containers = { data.lockedStash }
-	local leftover: { Types.ItemStack } = {}
-	for _, stack in stacks do
-		local after, left = Slots.addTo(containers, { itemId = stack.itemId, count = stack.count }, Items)
-		containers = after
-		if left > 0 then
-			table.insert(leftover, { itemId = stack.itemId, count = left })
-		end
-	end
-	data.lockedStash = containers[1]
-	Sync.mark(player, "stash")
-	return leftover
-end
-
 -- Containers by ref ------------------------------------------------------------------------------
 
 local function bagSlots(equipment: { [string]: Types.Slot }): number
@@ -409,8 +388,6 @@ local function read(player: Player, data: PlayerData, ref: string): (Container?,
 		return data.inventory.backpack, nil
 	elseif ref == "equipment" then
 		return Slots.fromEquipment(data.inventory.equipment :: any), nil
-	elseif ref == "stash" then
-		return data.lockedStash, nil
 	end
 	local uid = openStorage[player]
 	if uid == nil or data.storage[uid] == nil or not storageInReach(player, uid) then
@@ -426,14 +403,12 @@ local function write(player: Player, data: PlayerData, ref: string, container: C
 		data.inventory.backpack = container
 	elseif ref == "equipment" then
 		data.inventory.equipment = Slots.toEquipment(container) :: any
-	elseif ref == "stash" then
-		data.lockedStash = container
-		Sync.mark(player, "stash")
 	else
 		local uid = openStorage[player]
 		if uid then
 			data.storage[uid] = container
 			Sync.mark(player, "storage")
+			Sync.mark(player, "pool") -- crates count toward home have/need (Services/Materials)
 		end
 	end
 end
@@ -475,10 +450,6 @@ local function move(player: Player, fromRef: string, fromIndex: number, toRef: s
 	if data == nil then
 		return
 	end
-	if toRef == "stash" and fromRef ~= "stash" then
-		Sync.notice(player, REASON_TEXT.stashIn)
-		return
-	end
 	local fromContainer, why = read(player, data, fromRef)
 	local toContainer, whyTo = read(player, data, toRef)
 	if fromContainer == nil or toContainer == nil then
@@ -503,7 +474,7 @@ end
 
 local function split(player: Player, ref: string, index: number)
 	local data = PlayerData.get(player)
-	if data == nil or ref == "equipment" or ref == "stash" then
+	if data == nil or ref == "equipment" then
 		return
 	end
 	local container, why = read(player, data, ref)
@@ -523,7 +494,7 @@ end
 -- it on the ground). Returns the slot, or nil.
 function Inventory.takeSlot(player: Player, ref: string, index: number): Types.Slot?
 	local data = PlayerData.get(player)
-	if data == nil or ref == "equipment" or ref == "stash" then
+	if data == nil or ref == "equipment" then
 		return nil
 	end
 	local container = read(player, data, ref)
@@ -768,10 +739,6 @@ function Inventory.start()
 		local plot = Plots.of(player)
 		local piece = plot and plot.layout.pieces[uid]
 		return { uid = uid, pieceId = if piece then piece.pieceId else "", slots = data.storage[uid] }
-	end)
-	Sync.provide("stash", function(player: Player)
-		local data = PlayerData.get(player)
-		return if data then data.lockedStash else false
 	end)
 	Sync.provide("unlocks", function(player: Player)
 		local data = PlayerData.get(player)

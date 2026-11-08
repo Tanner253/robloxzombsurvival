@@ -54,6 +54,7 @@ export type Ui = {
 	touch: boolean,
 	newItems: { [string]: boolean }, -- item ids gained since the inventory was last opened
 	bagFullAt: number?, -- os.clock() of the last "bag is full", for the Bag button flash
+	inventoryTab: string?, -- the inventory's right pane: "crafting" (default) or "inbox"
 }
 
 -- Fires (key) when a section or "ui" changes.

@@ -29,7 +29,9 @@ local Net = require("../Net")
 local Models = require("../World/Models")
 local Seams = require("../World/Seams")
 local Analytics = require("./Analytics")
+local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
+local Materials = require("./Materials")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Stations = require("./Stations")
@@ -146,7 +148,8 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 	end
 	local target: Grid.Target = { x = x, z = z, axis = axis :: Grid.Axis?, rot = rot }
 	local ctx = Plots.context(plot, player)
-	local ok, reason = BuildRules.canPlace(plot.layout, pieceId, target, ctx, progress, view)
+	local pool = Materials.virtual(player) or view -- have/need counts the whole home pool (5.13)
+	local ok, reason = BuildRules.canPlace(plot.layout, pieceId, target, ctx, progress, pool)
 	if not ok then
 		deny(player, reason)
 		return
@@ -157,7 +160,7 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 		return
 	end
 	local def = Pieces[pieceId]
-	if not Inventory.take(player, def.cost, "Building") then
+	if not Materials.take(player, def.cost, "Building") then
 		deny(player, "cantAfford")
 		return
 	end
@@ -166,6 +169,7 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 		Stations.create(player, piece.uid, def.stationId)
 	elseif def.kind == "storage" then
 		data.storage[piece.uid] = InventoryMath.newContainer(def.storageSlots or 0)
+		Sync.mark(player, "pool")
 	end
 	render(plot, piece, true)
 	renderSeams(plot)
@@ -188,7 +192,8 @@ local function upgrade(player: Player, uid: string)
 		return
 	end
 	local ctx = Plots.context(plot, player)
-	local ok, nextDef, reason = BuildRules.canUpgrade(plot.layout, uid, ctx, progress, view)
+	local ok, nextDef, reason =
+		BuildRules.canUpgrade(plot.layout, uid, ctx, progress, Materials.virtual(player) or view)
 	if not ok or nextDef == nil then
 		deny(player, reason)
 		return
@@ -198,7 +203,7 @@ local function upgrade(player: Player, uid: string)
 		deny(player, why)
 		return
 	end
-	if not Inventory.take(player, cost, "Building") then
+	if not Materials.take(player, cost, "Building") then
 		deny(player, "cantAfford")
 		return
 	end
@@ -255,12 +260,10 @@ local function demolish(player: Player, uid: string)
 		deny(player, reason)
 		return
 	end
-	if not Inventory.fits(player, removal.refund) then
-		Sync.notice(player, "Make room in your bag for the refund")
-		return
-	end
 	Plots.setLayout(player, layout)
-	Inventory.give(player, removal.refund, "Demolish")
+	-- What doesn't fit the bag waits in the inbox (4.15).
+	local _, leftover = Inventory.give(player, removal.refund, "Demolish")
+	Inbox.grant(player, leftover :: any, "Overflow")
 	local debris = {}
 	for _, gone in removal.removed do
 		local model = plot.pieceModels[gone.uid]

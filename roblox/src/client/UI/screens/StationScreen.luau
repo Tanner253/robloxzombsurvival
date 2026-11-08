@@ -20,6 +20,7 @@ local Crafting = require(ReplicatedStorage.Shared.Domain.Crafting)
 local Salvage = require(ReplicatedStorage.Shared.Domain.Salvage)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
+local Pool = require("../../Pool")
 local Theme = require("../theme")
 local hooks = require("../hooks")
 local format = require("../format")
@@ -133,15 +134,24 @@ end
 
 -- Middle: recipe detail -----------------------------------------------------------------------------------
 
-local function InputRow(props: { itemId: string, need: number, have: number, layoutOrder: number })
+local function InputRow(props: { itemId: string, need: number, have: number, from: string?, layoutOrder: number })
 	local enough = props.have >= props.need
+	local from = props.from or ""
 	return e("Frame", { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1, LayoutOrder = props.layoutOrder }, {
 		Icon = iconBox(props.itemId, 40),
 		Name = e(Label, {
 			text = format.itemName(props.itemId),
 			style = "body",
-			size = UDim2.new(1, -150, 1, 0),
+			size = UDim2.new(1, -150, 0, if from ~= "" then 24 else 44),
 			position = UDim2.fromOffset(50, 0),
+		}),
+		-- Where it will be taken from (5.13): "Bag 3 · Crates 10 · Inbox 50".
+		From = from ~= "" and e(Label, {
+			text = from,
+			style = "caption",
+			tone = "muted",
+			size = UDim2.new(1, -150, 0, 18),
+			position = UDim2.fromOffset(50, 24),
 		}),
 		Count = e(Label, {
 			text = `{props.have} / {props.need}`,
@@ -225,13 +235,15 @@ local function StationScreen()
 		level = if progression then progression.level else 1,
 		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
 	}
-	local view = if inventory then { pockets = inventory.pockets, backpack = inventory.backpack } else nil
+	-- Have/need and "can craft" count the whole home pool (5.13); slots render from `inventory`.
+	local pooled = hooks.usePooled()
+	local view = pooled
 
 	-- The chosen recipe (or, at the Recycler, the chosen carried item).
 	local recipes: { any } = if def and not def.salvage then recipesFor(def.id) else {}
 	-- What you can make now comes first, then what is unlocked, then the rest.
 	if station and def and inventory then
-		local view0 = { pockets = inventory.pockets, backpack = inventory.backpack }
+		local view0 = pooled
 		local function rank(recipe: any): number
 			if not Crafting.isUnlocked(recipe, progress) or station.level < (recipe.stationLevel or 1) then
 				return 2
@@ -401,7 +413,8 @@ local function StationScreen()
 					rows[`I{index}`] = e(InputRow, {
 						itemId = stack.itemId,
 						need = stack.count * count,
-						have = format.count(inventory, stack.itemId),
+						have = format.count(pooled, stack.itemId),
+						from = Pool.sourcesText(inventory, stack.itemId),
 						layoutOrder = index,
 					})
 				end

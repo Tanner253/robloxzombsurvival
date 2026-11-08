@@ -32,6 +32,16 @@ function Actions.toggleInventory()
 	Sfx.play(if State.ui().panel == "inventory" then "uiOpen" else "uiClose")
 end
 
+-- Opens the inventory on the item inbox (the Bag badge counts its rows, 4.15).
+function Actions.openInbox()
+	seenInventory()
+	State.patch({ inventoryTab = "inbox" })
+	if State.ui().panel ~= "inventory" then
+		State.toggle("inventory")
+		Sfx.play("uiOpen")
+	end
+end
+
 function Actions.toggleSettings()
 	State.toggle("settings")
 	Sfx.play(if State.ui().panel == "settings" then "uiOpen" else "uiClose")

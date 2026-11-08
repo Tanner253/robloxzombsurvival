@@ -204,7 +204,7 @@ end
 
 local function BuildMenu()
 	local ui = hooks.useUi()
-	local inventory = hooks.useSection("inventory")
+	local inventory = hooks.usePooled() -- costs count the whole home pool (5.13)
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
 	local tab, setTab = React.useState("foundation")

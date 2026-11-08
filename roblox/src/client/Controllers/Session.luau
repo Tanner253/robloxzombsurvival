@@ -44,6 +44,16 @@ local function onFx(kind: string, payload: any)
 			State.reward(stack.itemId, stack.count)
 			State.markNew(stack.itemId)
 		end
+	elseif kind == "inbox" then
+		-- Something landed in the inbox (overflow, a reward): say so once.
+		local names = {}
+		for _, item in payload.items or {} do
+			local def = Content.Items[item.itemId]
+			table.insert(names, `{if def then def.name else item.itemId} ×{item.count}`)
+		end
+		if #names > 0 then
+			State.notify(`To your inbox: {table.concat(names, ", ")}`, "info")
+		end
 	elseif kind == "bagFull" then
 		State.patch({ bagFullAt = os.clock() })
 	elseif kind == "levelUp" then
