@@ -27,8 +27,11 @@ Written by the orchestrator on 2026-11-08. A fresh worker session in its own wor
    - Every ScreenGui uses `ScreenInsets = CoreUISafeInsets` (or offsets by `GuiService:GetGuiInset()` and the top-bar height).
    - Nothing may overlap Roblox core buttons, chat, the leaderboard or the mobile thumbstick or jump zones.
    - Verify on PC and with the mobile emulator.
-9. **The current action buttons** (Auto/Craft/Build/Bag/Use as big round emoji buttons) and the **level-ring vitals panel** are both replaced by the LDoE HUD in rulings #1–#12. Rebuild them; don't restyle them. Until the rebuild lands, they must at least use the glyphs and not overlap.
-10. **Read slice 1's handoff note** (the orchestrator pastes it into your first message) for the Studio state, asset methods, `tools/` scripts and known bugs.
+9. **Build the UI so it can't overlap** (the developer's screenshot showed the inventory with the Crafting button lying over the inbox chips and Take all, and text overlapped by other elements).
+   - First write the **automated UI overlap gate** (checklist 4.19): every screen and state, at 4 resolutions, with zero intersecting siblings, zero clipped text and zero safe-area violations. Run it before every report.
+   - Rebuild panels with layout objects and constraints, not hand-placed positions.
+10. **The current action buttons** (Auto/Craft/Build/Bag/Use as big round emoji buttons) and the **level-ring vitals panel** are both replaced by the LDoE HUD in rulings #1–#12. Rebuild them; don't restyle them. Until the rebuild lands, they must at least use the glyphs and not overlap.
+11. **Read slice 1's handoff note** (the orchestrator pastes it into your first message) for the Studio state, asset methods, `tools/` scripts and known bugs.
 
 **Review rule (the developer, 2026-11-08):** don't redo an asset the developer hasn't flagged unless it has an objective defect (floaters, smeared texture, blobs, wrong scale or orientation, z-fighting, a stand-in, emoji). Restyling acceptable assets is over-engineering.
 
