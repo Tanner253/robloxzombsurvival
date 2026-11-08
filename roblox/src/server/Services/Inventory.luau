@@ -227,6 +227,15 @@ function Inventory.heldIndex(player: Player): number
 	return held[player] or 0
 end
 
+-- Holds pocket `index` in hand (Gathering holds the tool it swings with).
+function Inventory.hold(player: Player, index: number)
+	if held[player] ~= index then
+		held[player] = index
+		Sync.mark(player, "inventory")
+		refreshHeld(player)
+	end
+end
+
 -- The UID of the crate the player has open, if any.
 function Inventory.openStorage(player: Player): string?
 	return openStorage[player]

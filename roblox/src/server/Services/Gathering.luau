@@ -69,8 +69,12 @@ local function setStanding(node: Node, standing: boolean)
 	node.model:SetAttribute("HitsLeft", if standing then node.state.hitsLeft else 0)
 	for _, descendant in node.model:GetDescendants() do
 		if descendant:IsA("BasePart") then
-			descendant.CanCollide = standing and descendant.Name ~= "Berry"
-			descendant.CanQuery = standing
+			-- Only the footprint collider blocks movement (World/Models).
+			if descendant.Name == "Collider" then
+				descendant.CanCollide = standing
+			else
+				descendant.CanQuery = standing
+			end
 		end
 	end
 end
@@ -264,6 +268,8 @@ local function gather(player: Player, key: string)
 	local toolItem = ""
 	local broke = false
 	if toolIndex > 0 then
+		-- Swinging a tool puts it in your hand (LDoE's context switch to the axe).
+		Inventory.hold(player, toolIndex)
 		local slot = (Inventory.view(player) :: Types.Inventory).pockets[toolIndex]
 		toolItem = slot.itemId
 		local worn, didBreak = Slots.wear(slot, tuning.gathering.durabilityPerHit)

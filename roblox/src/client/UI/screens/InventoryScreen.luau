@@ -392,6 +392,7 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 			end,
 		}),
 		UseKey = usable
+			and (focus.ref == "pockets" or focus.ref == "backpack")
 			and e(KeyChip, { text = "RMB", position = UDim2.new(1, -236, 0.5, 0), anchorPoint = Vector2.new(1, 0.5) }),
 		Split = slot.count > 1 and focus.ref ~= "equipment" and focus.ref ~= "stash" and e(Button, {
 			text = "Split",

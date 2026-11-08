@@ -531,6 +531,42 @@ local function fallbackNode(nodeId: string, rng: Random): Model
 	return finish(model)
 end
 
+-- Footprint colliders: how much of a node's width blocks movement (0 = walk through).
+-- Generated meshes collide by their hull, which for a tree includes the canopy,
+-- so nodes never collide by mesh; a simple invisible "Collider" does instead.
+local COLLIDER_FRACTION: { [string]: number } = {
+	["node.pine_tree"] = 0.14,
+	["node.boulder"] = 0.75,
+	["node.fatwood_stump"] = 0.6,
+	["node.scrap_heap"] = 0.7,
+}
+
+local function addCollider(model: Model, nodeId: string)
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.CanCollide = false
+		end
+	end
+	local fraction = COLLIDER_FRACTION[nodeId]
+	if fraction == nil then
+		return
+	end
+	local _, size = model:GetBoundingBox()
+	local width = math.max(1, math.min(size.X, size.Z) * fraction)
+	local height = math.min(size.Y, 6)
+	local pivot = model:GetPivot()
+	local collider = Instance.new("Part")
+	collider.Name = "Collider"
+	collider.Anchored = true
+	collider.Transparency = 1
+	collider.CanQuery = false
+	collider.CastShadow = false
+	collider.Shape = Enum.PartType.Cylinder
+	collider.Size = Vector3.new(height, width, width)
+	collider.CFrame = pivot * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+	collider.Parent = model
+end
+
 -- The model for a resource node, scaled to Art.nodes[id].height.
 function Models.node(def: Types.ResourceNodeDef, rng: Random): Model
 	local art = Art.nodes[def.id]
@@ -543,6 +579,7 @@ function Models.node(def: Types.ResourceNodeDef, rng: Random): Model
 			model:ScaleTo(model:GetScale() * art.height / height)
 		end
 	end
+	addCollider(model, def.id)
 	return model
 end
 

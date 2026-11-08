@@ -474,6 +474,55 @@ local function updateDoors()
 	end
 end
 
+-- Canopy fade ---------------------------------------------------------------------------------------
+-- Tall things (trees) between the camera and the survivor fade out, so the
+-- player is never hidden under a canopy (LDoE does the same).
+
+local CANOPY_RADIUS = 9
+local CANOPY_MIN_HEIGHT = 7
+local CANOPY_ALPHA = 0.7
+local faded: { [Model]: boolean } = {}
+
+local function setFade(model: Model, amount: number)
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.LocalTransparencyModifier = amount
+		end
+	end
+end
+
+local function updateCanopy()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local near: { [Model]: boolean } = {}
+	if root then
+		for model, info in nodeFx do
+			if info.standing then
+				local offset = model:GetPivot().Position - root.Position
+				if
+					Vector2.new(offset.X, offset.Z).Magnitude < CANOPY_RADIUS
+					and model:GetExtentsSize().Y > CANOPY_MIN_HEIGHT
+				then
+					near[model] = true
+				end
+			end
+		end
+	end
+	for model in near do
+		if not faded[model] then
+			faded[model] = true
+			setFade(model, CANOPY_ALPHA)
+		end
+	end
+	for model in faded do
+		if not near[model] then
+			faded[model] = nil
+			local info = nodeFx[model]
+			setFade(model, if info and not info.standing then 1 else 0)
+		end
+	end
+end
+
 -- Level-ups ----------------------------------------------------------------------------------------------
 
 local function levelBurst()
@@ -537,6 +586,7 @@ function WorldFx.start()
 	RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
 		updateDoors()
+		updateCanopy()
 		if elapsed >= 0.1 then
 			elapsed = 0
 			updateStations(State.now())

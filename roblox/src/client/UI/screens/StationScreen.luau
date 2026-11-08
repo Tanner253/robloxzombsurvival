@@ -178,7 +178,7 @@ local function JobCard(props: { uid: string, job: any, outputItem: string?, layo
 			AnchorPoint = Vector2.new(1, 0.5),
 			BackgroundColor3 = Theme.colors.track,
 			FontFace = Theme.fonts.header,
-			Text = "✕",
+			Text = "X",
 			TextSize = Theme.textSize.body,
 			TextColor3 = Theme.colors.textMuted,
 			[React.Event.Activated] = function()
@@ -213,6 +213,23 @@ local function StationScreen()
 
 	-- The chosen recipe (or, at the Recycler, the chosen carried item).
 	local recipes: { any } = if def and not def.salvage then recipesFor(def.id) else {}
+	-- What you can make now comes first, then what is unlocked, then the rest.
+	if station and def and inventory then
+		local view0 = { pockets = inventory.pockets, backpack = inventory.backpack }
+		local function rank(recipe: any): number
+			if not Crafting.isUnlocked(recipe, progress) or station.level < (recipe.stationLevel or 1) then
+				return 2
+			end
+			return if Crafting.check(recipe, view0, progress, station, def, 1) then 0 else 1
+		end
+		table.sort(recipes, function(a: any, b: any)
+			local ra, rb = rank(a), rank(b)
+			if ra ~= rb then
+				return ra < rb
+			end
+			return a.craftSeconds < b.craftSeconds
+		end)
+	end
 	local selectedRecipe = nil
 	for _, recipe in recipes do
 		if recipe.id == selectedId then

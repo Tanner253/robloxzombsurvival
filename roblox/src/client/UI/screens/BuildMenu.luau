@@ -276,7 +276,7 @@ local function BuildMenu()
 		Hint = open and hint and e("Frame", {
 			Size = UDim2.fromOffset(0, 36),
 			AutomaticSize = Enum.AutomaticSize.X,
-			Position = UDim2.new(0.5, 0, 1, -262),
+			Position = UDim2.new(0.5, 0, 1, -302),
 			AnchorPoint = Vector2.new(0.5, 1),
 			BackgroundColor3 = Theme.colors.panel,
 			BackgroundTransparency = 0.1,
@@ -292,7 +292,7 @@ local function BuildMenu()
 			subtitle = "LMB place · drag to paint floors and walls",
 			closeKey = "B",
 			onClose = Actions.toggleBuild,
-			size = UDim2.fromOffset(1180, 250),
+			size = UDim2.fromOffset(1180, 290),
 			position = UDim2.new(0.5, 0, 1, -8),
 			anchorPoint = Vector2.new(0.5, 1),
 			rise = 40,

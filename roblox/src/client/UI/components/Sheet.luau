@@ -133,7 +133,7 @@ local function Sheet(props: Props)
 						BackgroundColor3 = Theme.colors.panelRaised,
 						AutoButtonColor = true,
 						FontFace = Theme.fonts.header,
-						Text = "✕",
+						Text = "X",
 						TextSize = Theme.textSize.body,
 						TextColor3 = Theme.colors.text,
 						[React.Event.Activated] = props.onClose,

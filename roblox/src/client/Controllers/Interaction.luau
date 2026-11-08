@@ -34,13 +34,19 @@ local VERB: { [string]: string } = { hatchet = "Chop", pick = "Mine" }
 -- Auto-gather (LDoE's context button and AUTO): holding the gather button walks
 -- to the nearest node within HOLD_RADIUS; AUTO keeps going within AUTO_RADIUS.
 local HOLD_RADIUS = 28
-local AUTO_RADIUS = 90
+local AUTO_RADIUS = 180 -- the whole home plot ring
 local WALK_REFRESH = 0.35
 
 local player = Players.LocalPlayer
 local gathering = false
 local walkTarget: Model? = nil
 local lastWalk = 0
+-- Stuck guard: a goal the survivor can't reach is skipped for SKIP_SECONDS.
+local STUCK_SECONDS = 1.5
+local SKIP_SECONDS = 8
+local skipped: { [Model]: number } = {}
+local progressAt = 0
+local progressPos: Vector3? = nil
 local lastSwing = 0
 local scanElapsed = 0
 
@@ -212,9 +218,10 @@ local function swingArm()
 	up:Play()
 end
 
-local function swing(): boolean
-	local target = State.ui().target
-	if target == nil or target.kind ~= "node" then
+-- One swing at a node model (throttled to the swing time).
+local function swingAt(model: Model): boolean
+	local key = model:GetAttribute("NodeKey")
+	if type(key) ~= "string" then
 		return false
 	end
 	local now = os.clock()
@@ -222,12 +229,20 @@ local function swing(): boolean
 		return true
 	end
 	lastSwing = now
-	face(target.model:GetPivot().Position)
-	Net.fire("Gather", target.key)
+	face(model:GetPivot().Position)
+	Net.fire("Gather", key)
 	-- Cosmetic only; never let it stop the swing.
 	pcall(swingArm)
-	State.fx:Fire("swing", { key = target.key, model = target.model })
+	State.fx:Fire("swing", { key = key, model = model })
 	return true
+end
+
+local function swing(): boolean
+	local target = State.ui().target
+	if target == nil or target.kind ~= "node" then
+		return false
+	end
+	return swingAt(target.model)
 end
 
 -- Auto-gather ---------------------------------------------------------------------------------
@@ -265,7 +280,12 @@ local function nearestHarvestable(radius: number): Model?
 	end
 	local best: Model? = nil
 	local bestDistance = radius
+	local now = os.clock()
 	for _, instance in CollectionService:GetTagged(TAGS.node) do
+		local skipUntil = skipped[instance :: any]
+		if skipUntil and now < skipUntil then
+			continue
+		end
 		if instance:IsA("Model") and instance:IsDescendantOf(workspace) then
 			local distance = flat(instance:GetPivot().Position, here.Position)
 			if distance < bestDistance and harvestable(instance) then
@@ -297,21 +317,55 @@ function Interaction.setAuto(on: boolean)
 	end
 end
 
--- One step of gathering while the button is held or AUTO is on.
+-- One step of gathering while the button is held or AUTO is on: swing at the
+-- goal node when it's in reach, otherwise walk to it. The goal is the prompt's
+-- target when that can be harvested, else the nearest node that can.
 local function autoStep()
 	local ui = State.ui()
 	local target = ui.target
-	if target and target.kind == "node" and harvestable(target.model) then
-		stopWalking()
-		swing()
+	local here = root()
+	if here == nil then
+		return
+	end
+	local current = walkTarget
+	if current and not harvestable(current) then
+		current = nil
+	end
+	if current == nil and target and target.kind == "node" and harvestable(target.model) then
+		current = target.model
+	end
+	if current and flat(current:GetPivot().Position, here.Position) <= reachFor("node", current) then
+		walkTarget = current
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid:MoveTo(here.Position)
+		end
+		swingAt(current)
 		return
 	end
 	local now = os.clock()
+	-- Stuck guard: no progress toward the goal for a while means skip it.
+	if walkTarget and progressPos then
+		if (here.Position - progressPos).Magnitude > 1 then
+			progressPos, progressAt = here.Position, now
+		elseif now - progressAt > STUCK_SECONDS then
+			skipped[walkTarget] = now + SKIP_SECONDS
+			walkTarget = nil
+			current = nil
+			progressPos = nil
+		end
+	end
 	if now - lastWalk < WALK_REFRESH then
 		return
 	end
 	lastWalk = now
-	local goal = nearestHarvestable(if ui.auto then AUTO_RADIUS else HOLD_RADIUS)
+	local goal = current or nearestHarvestable(if ui.auto then AUTO_RADIUS else HOLD_RADIUS)
+	if goal == nil and next(skipped) ~= nil then
+		-- Give the nodes we couldn't reach one more try before stopping.
+		table.clear(skipped)
+		goal = nearestHarvestable(if ui.auto then AUTO_RADIUS else HOLD_RADIUS)
+	end
 	if goal == nil then
 		stopWalking()
 		if ui.auto then
@@ -321,6 +375,9 @@ local function autoStep()
 			swing() -- let the server say why (needs a tool, bag full)
 		end
 		return
+	end
+	if walkTarget ~= goal then
+		progressPos, progressAt = here.Position, now
 	end
 	walkTarget = goal
 	local character = player.Character

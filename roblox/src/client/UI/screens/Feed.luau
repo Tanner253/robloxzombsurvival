@@ -103,6 +103,7 @@ local function Toasts()
 		children[`N{notice.id}`] = e(Toast, { text = notice.text, tone = notice.tone, layoutOrder = notice.id })
 	end
 	return e("Frame", {
+		ZIndex = 30,
 		Size = UDim2.fromOffset(600, 200),
 		Position = UDim2.new(0.5, 0, 0, 18),
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -162,6 +163,7 @@ local function Rewards()
 		Position = UDim2.new(1, -16, 1, -140),
 		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 1,
+		ZIndex = 30, -- above open screens (Sheet uses 10)
 	}, children)
 end
 
