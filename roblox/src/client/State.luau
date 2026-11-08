@@ -58,6 +58,7 @@ export type Ui = {
 	questCollapsed: boolean?, -- the quest tracker folded to one line (8.9)
 	projectId: string?, -- the project whose parts checklist is open (panel "project")
 	fogLocation: string?, -- the Fog map's chosen location, its panel open (panel "fogmap")
+	settingsTab: string?, -- the settings' right column: the keys (nil) or "credits"
 	hideUpperWalls: boolean?, -- build mode's top-left toggle (LDOE_PARITY #25)
 	pieceActions: string?, -- build mode: the placed piece whose floating actions show (#27)
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size

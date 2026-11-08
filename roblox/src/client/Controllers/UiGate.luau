@@ -367,6 +367,7 @@ local function scenes(): { Scene }
 		{ name = "inventory.inbox", ui = { panel = "inventory", inventoryTab = "inbox" } },
 		{ name = "crafting", ui = { panel = "crafting" } },
 		{ name = "settings", ui = { panel = "settings" } },
+		{ name = "settings.credits", ui = { panel = "settings", settingsTab = "credits" } },
 		{ name = "project.hauler", ui = { panel = "project", projectId = "project.hauler" } },
 		{ name = "build", ui = { panel = "build", buildMode = "place" } },
 		{ name = "build.hint", ui = { panel = "build", buildMode = "place", buildHint = "Needs a Timber floor" } },
@@ -496,7 +497,8 @@ local function run()
 				"buildHint",
 				"pieceActions",
 				"inventoryTab",
-				"fogLocation"
+				"fogLocation",
+				"settingsTab"
 			)
 			table.clear(Boundary.failures)
 			State.patch(scene.ui)
