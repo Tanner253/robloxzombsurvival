@@ -1,0 +1,15 @@
+wall_wood 0db36fa6-6122-4e6f-8816-a2628530efe5
+wall_scrap fa1dda0f-29f8-4bd4-8944-e68ff95c73f9
+wall_reinforced aa4aa7f7-1a41-40d2-93d4-d2edee21735c
+door_scrap 33f3def2-51a8-4f4d-b872-85e766e675e1
+window_scrap 87b79f83-860c-4285-9fa7-4282c0345160
+found_wood b5cd201e-ef05-44a1-a6a3-cb7d874071de
+found_scrap e323498f-3c70-4743-9f2e-034268fc2bc4
+found_reinforced e6aa24da-c85a-4116-94b4-a417740ec083
+workbench d659494a-3b01-48de-b50e-0344de1702bb
+crate 37a937d1-5660-459d-8524-02bdf7842b7e
+lamp edb7dc5b-b70d-4c1a-b3a2-73e9a88ff6f5
+car 1fb1fdcb-d943-4e1a-9cd2-8f259dc0e912
+hearth 28719248-38da-4576-9299-89ab6253f258
+hollow_runner 1bdfa3ab-aaa9-41ce-ac88-84a82b2157f1
+hollow_brute 61f32ad9-e0b9-4b4a-88a8-8e9948666f03
