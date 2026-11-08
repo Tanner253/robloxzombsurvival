@@ -2,11 +2,36 @@
 
 Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures).
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-88 this pass).
 
 Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
 solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
-test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapping pairs, **0 hits**.
+test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapping pairs, **0 hits**;
+re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
+
+## Orchestrator review of b1ebba8: scale, walls, ground (this pass)
+
+- **Scale:** the cell is 8 studs (Tuning.building.gridStuds); 2-stud sub-grid; wall-layer kit models
+  fit one cell (Models.fitEdge); trim and posts scaled down; layouts from the 12-stud grid reset
+  (LAYOUT_VERSION 3, Lune test); minimap reads the cell size; test base is a 4 x 3 room (77).
+- **Walls:** the palisade is a Defense piece now (build.fence_wood "Palisade Fence", Defense tab).
+  The Timber Wall points at WallTimber, a solid plank wall with a top cap: family sheet drawn, wall
+  converted (16.5k tris, one piece, 0 floater flags), hidden by the quality gate until model uploads
+  are approved and it passes the lineup. Doorway and window wait (budget). Wall height stays 8.6:
+  checklist 6.8 needs walls above head height plus the 2.2 hop (8.3), which rules out the reviewer's
+  1.3x-survivor walls.
+- **Ground (three layers, no new models):** the flat Ground, Road and Pad parts sat exactly on the
+  painted terrain and hid it; they are gone (79 before, 80 after). Five generated PBR variants
+  (Studio material generator, best of four each) override the terrain materials: grass, leaf-litter
+  forest floor, gravel earth, rutted mud and straw dry grass. Pebbles, leaves and ruts are in the
+  textures. Layers: macro zones from noise; worn plot pads, footpaths and the gravel road with two
+  wheel ruts; fine grain noise ragging every border. Ash under the Hearth is painted only with the
+  Hearth's approved model. Captures 78-88.
+- **Lived-in dressing:** no kit dressing model grades A yet (the look-test barrels, crates, sacks,
+  lamp, tool rack, shelf, cot, planter and car are soft generated meshes), so nothing was added. It
+  lands with the Camp family once uploads work.
+- **Generation:** this pass 2.75 (timber sheet) + 12 (timber wall); the pool is about 375 of 500.
+
 
 ## Art consistency (ART_DIRECTION 10a v2)
 
@@ -85,8 +110,8 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 | 1.8 | ✅ | Name tags on others only. |
 | 1.10 | ✅ | Eat/drink clip and sounds. |
 | 2.1 | ✅ | Fixed 45° yaw, steep pitch, smooth follow. |
-| 2.2 | ✅ | Default zoom 26: the survivor stands about 1/6 of the screen (69); Ctrl+wheel 18-70; build mode eases out. |
-| 2.3 | ✅ | Walls, doors, windows and posts between camera and survivor fade. |
+| 2.2 | ✅ | Default zoom 31 on the 8-stud grid: the survivor stands about 1/7 of the screen with a room around them (77, 86); Ctrl+wheel 18-70; build mode eases out. |
+| 2.3 | ✅ | Walls, doors, windows and posts between camera and survivor fade; tree nodes and the edge pines fade when their canopy covers the survivor or stands in the sight line (87). |
 | 2.4 | ✅ | Build mode eases the camera out and back. |
 | 2.5 | ✅ | Shake on swings and falls; Settings toggle. |
 | 3.1 | ✅ | Outline and prompt with key and tool. |
@@ -137,7 +162,7 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 | 6.8 | ✅ | Wall height test. |
 | 6.9 | ✅ | Seamless decks; trim frame outside the decks, beams abut end to end, one corner block per outside corner (64, 71-72). |
 | 6.10 | ✅ | Quarter-cell furniture, flush to walls. |
-| 6.11 | ✅ | Scan 0 hits; tiles abut with zero overlap; trim and posts offset ≥ 0.05; deck tops 0.95 above terrain; closest/farthest zoom captures from two angles (71-72). |
+| 6.11 | ✅ | Scan 0 hits (re-run on the 8-stud grid: 0); tiles abut with zero overlap; trim and posts offset ≥ 0.05; deck tops 0.95 above terrain; closest/farthest zoom captures from two angles (71-72). |
 | 6.12 | ✅ | Kit pivots at the base centre, up +Y (Studio check); the workbench source model turned so its working side faces the pivot front (tools/conform_pivots.luau); against a wall it stands on its legs, worktop up, back to the wall, working side to the room (74). Other placeables are gated until their models land and go through the same lineup. |
 | 7.1 | ✅ | Bars drain smoothly, pulse when low. |
 | 7.2 | ✅ | Starvation/dehydration damage and regen. |
