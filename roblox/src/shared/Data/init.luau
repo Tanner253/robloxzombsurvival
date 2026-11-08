@@ -23,6 +23,8 @@ local Content: Types.Content = {
 	Levels = require("@self/Levels"),
 	Quests = require("@self/Quests"),
 	Products = require("@self/Products"),
+	Projects = require("@self/Projects"),
+	StarterShelter = require("@self/StarterShelter"),
 	Tuning = require("@self/Tuning"),
 }
 

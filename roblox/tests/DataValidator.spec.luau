@@ -51,7 +51,8 @@ return function(test: TestKit.Register)
 				tiers[location.fogTier] = (tiers[location.fogTier] or 0) + 1
 			end
 		end
-		TestKit.equal(tiers[1], 1, "Light locations")
+		-- Pine Hollow, plus the one-time crash site the Ember Trail sends you to.
+		TestKit.equal(tiers[1], 2, "Light locations")
 		TestKit.equal(tiers[2], 1, "Dense locations")
 		TestKit.equal(tiers[3], 1, "Black locations")
 		TestKit.equal(rotating, 1, "rotating event locations")
@@ -79,10 +80,10 @@ return function(test: TestKit.Register)
 		local energy = Energy.spend({ value = tuning.energy.cap, updatedAt = 0 }, 0, tuning.energy, 22)
 		TestKit.truthy(energy, "spend")
 		TestKit.equal(Energy.secondsUntilFull(energy :: any, 0, tuning.energy), 22 * 5 * 60, "regen time")
-		-- Survival: a full thirst meter lasts about 18 active minutes.
+		-- Survival: LDoE's rate, 1 point per 10 s, so a full thirst meter lasts about 17 minutes.
 		local meters = Survival.new(0, tuning.survival)
 		local thirstSeconds = Survival.secondsUntil(meters, tuning.survival, "thirst", 0)
-		TestKit.truthy(thirstSeconds > 17 * 60 and thirstSeconds < 19 * 60, `thirst lasts {thirstSeconds} s`)
+		TestKit.truthy(thirstSeconds > 16 * 60 and thirstSeconds < 17 * 60, `thirst lasts {thirstSeconds} s`)
 		-- Travel: Run and Walk to every location.
 		for _, location in Content.Locations do
 			TestKit.equal(Travel.plan(location, "run", tuning.travel).energyCost, location.energyCost, location.id)
@@ -251,7 +252,7 @@ return function(test: TestKit.Register)
 	test("catches bad quest references and prerequisite loops", function()
 		local errors = brokenCopy(function(c)
 			c.Quests["quest.first_light"].prerequisite = "quest.the_dense_fog"
-			c.Quests["quest.scavenger"].objectives[1].locationId = "loc.nowhere"
+			c.Quests["quest.into_the_fog"].objectives[2].locationId = "loc.nowhere"
 			c.Quests["quest.tools_of_survival"].objectives[1].recipeId = "recipe.ghost"
 		end)
 		TestKit.anyContains(errors, "prerequisite chain loops back on itself")
@@ -303,6 +304,29 @@ return function(test: TestKit.Register)
 		local errors = brokenCopy(function(c)
 			c.Tuning.inventory.maxBackpackSlots = 10
 		end)
-		TestKit.anyContains(errors, "maxBackpackSlots is 10 but bags and upgrades reach 18")
+		TestKit.anyContains(errors, "maxBackpackSlots is 10 but bags and upgrades reach 15")
+	end)
+
+	test("LDoE parity: converters, quest gates, a playable trail and a shelter that builds", function()
+		local errors = brokenCopy(function(c)
+			c.Recipes["recipe.plank"].inputs[2] = { itemId = "item.stone", count = 1 }
+			c.Recipes["recipe.spiked_club"].unlock = { kind = "level", level = 3 }
+			c.BuildPieces["build.stonecutter"].unlock = { kind = "quest", questId = "quest.nope" }
+			c.Stations["station.smelter"].levels[2].slotCap = 20
+			c.Quests["quest.claim_the_ground"].objectives[1] =
+				{ kind = "build", pieceId = "build.workbench", count = 1 }
+			c.Quests["quest.keep_the_fire"].order = 1
+			c.StarterShelter[2].x = 6
+		end)
+		TestKit.anyContains(errors, "station recipes convert exactly one input stack into one output stack")
+		TestKit.anyContains(
+			errors,
+			"Recipes['recipe.spiked_club']: recipes unlock through quests or schematics, not levels"
+		)
+		TestKit.anyContains(errors, "unknown quest 'quest.nope'")
+		TestKit.anyContains(errors, "slotCap must grow with each level")
+		TestKit.anyContains(errors, "'build.workbench' is still locked when the quest opens")
+		TestKit.anyContains(errors, "order 1 is also")
+		TestKit.anyContains(errors, "StarterShelter (front 1): piece 2 (build.foundation_wood): occupied")
 	end)
 end

@@ -46,6 +46,39 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.spiked_club",
 		},
 	},
+	-- The one-time crash site Ember Trail quest 6 sends you to (LDOE_PARITY #57): a wreck
+	-- in the Light fog with salvage, a few Hollow and a reason to build the Smelter. Fog Runs
+	-- (S2) build its lobby; until then quest 6's travel objective waits on that flag.
+	["loc.crash_site"] = {
+		id = "loc.crash_site",
+		name = "The Crash Site",
+		fogTier = 1,
+		levelGate = 1,
+		energyCost = 6,
+		walkSeconds = 3 * 60,
+		reset = { kind = "onExit" },
+		availability = { kind = "always" },
+		containers = {
+			{ lootTableId = "loot.pine_crate", count = { min = 2, max = 3 } },
+			{ lootTableId = "loot.pine_pack", count = { min = 1, max = 2 } },
+		},
+		nodes = {
+			{ nodeId = "node.scrap_heap", count = 6 },
+			{ nodeId = "node.fallen_branches", count = 4 },
+			{ nodeId = "node.loose_stones", count = 4 },
+		},
+		enemySpawns = {
+			{ enemyId = "enemy.shambler", count = { min = 3, max = 4 } },
+		},
+		mainLoot = { "item.scrap", "item.sticks", "item.stone" },
+		possibleLoot = {
+			"item.rope",
+			"item.cloth",
+			"item.sealed_tin",
+			"item.field_dressing",
+			"item.broken_lantern",
+		},
+	},
 	["loc.sunken_quarry"] = {
 		id = "loc.sunken_quarry",
 		name = "Sunken Quarry",

@@ -9,12 +9,21 @@
 	chain (Domain/Grid). Upgraded tiers are only reached by upgrading.
 
 	Edge pieces set minFoundationTier to their own tier: "wall tier can't exceed
-	foundation tier".
+	foundation tier". Stations and storage set it as their floor-tier gate (LDOE_PARITY
+	#22): the ghost says "Needs a Timber floor".
+
+	Unlocks (#49): only the Timber Crate (LDoE's Small Box) starts unlocked; every other
+	piece unlocks with an Ember Trail quest (Data/Quests), and the reinforced tier with
+	its found plans.
 ]]
 
 local Types = require("../Types")
 
-local SCRAP_TIER: Types.UnlockGate = { kind = "level", level = 6 }
+local function quest(questId: string): Types.UnlockGate
+	return { kind = "quest", questId = questId }
+end
+
+local SCRAP_TIER: Types.UnlockGate = quest("quest.stand_your_ground")
 local REINFORCED_TIER: Types.UnlockGate = { kind = "blueprint", itemId = "item.bp_reinforced" }
 
 local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
@@ -28,6 +37,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		cost = { { itemId = "item.timber", count = 10 } },
 		breachCost = 2,
 		upgradesTo = "build.foundation_scrap",
+		unlock = quest("quest.first_light"),
 	},
 	["build.wall_wood"] = {
 		id = "build.wall_wood",
@@ -42,6 +52,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.wall_scrap",
+		unlock = quest("quest.first_light"),
 	},
 	-- The sharpened-stake palisade reads as an outdoor fence, not a room wall: it's a Defense
 	-- piece of its own. The Timber Wall gets a solid plank wall with a top cap.
@@ -58,6 +69,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		},
 		breachCost = 1,
 		minFoundationTier = 1,
+		unlock = quest("quest.a_place_to_work"),
 	},
 	["build.doorway_wood"] = {
 		id = "build.doorway_wood",
@@ -72,6 +84,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.doorway_scrap",
+		unlock = quest("quest.claim_the_ground"),
 	},
 	["build.door_wood"] = {
 		id = "build.door_wood",
@@ -86,6 +99,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.door_scrap",
+		unlock = quest("quest.claim_the_ground"),
 	},
 	["build.window_wood"] = {
 		id = "build.window_wood",
@@ -100,6 +114,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.window_scrap",
+		unlock = quest("quest.a_place_to_work"),
 	},
 
 	-- Scrap Metal (tier 2): cost is the upgrade from Wood ----------------------------------
@@ -255,11 +270,11 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		unlock = REINFORCED_TIER,
 	},
 
-	-- Stations -----------------------------------------------------------------------------
-	["build.workbench"] = {
-		id = "build.workbench",
+	-- Stations (LDOE_PARITY #19): each a building goal with its own floor tier ----------------
+	["build.woodworking_bench"] = {
+		id = "build.woodworking_bench",
 		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
-		name = "Workbench",
+		name = "Woodworking Bench",
 		kind = "station",
 		tier = 1,
 		hp = 300,
@@ -269,9 +284,63 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 			{ itemId = "item.rope", count = 2 },
 		},
 		breachCost = 1,
+		stationId = "station.woodworking_bench",
+		minFoundationTier = 1,
+		maxPerPlot = 2,
+		unlock = quest("quest.claim_the_ground"),
+	},
+	["build.stonecutter"] = {
+		id = "build.stonecutter",
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
+		name = "Stonecutter",
+		kind = "station",
+		tier = 1,
+		hp = 350,
+		cost = {
+			{ itemId = "item.plank", count = 8 },
+			{ itemId = "item.stone", count = 10 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		breachCost = 1,
+		stationId = "station.stonecutter",
+		minFoundationTier = 1,
+		maxPerPlot = 2,
+		unlock = quest("quest.a_place_to_work"),
+	},
+	["build.smelter"] = {
+		id = "build.smelter",
+		footprint = { w = 3, d = 3 }, -- quarter cells (2 studs)
+		name = "Smelter",
+		kind = "station",
+		tier = 1,
+		hp = 400,
+		cost = {
+			{ itemId = "item.stone", count = 12 },
+			{ itemId = "item.stone_block", count = 4 },
+			{ itemId = "item.sticks", count = 6 },
+		},
+		breachCost = 1,
+		stationId = "station.smelter",
+		maxPerPlot = 2,
+		unlock = quest("quest.crash_site"),
+	},
+	["build.workbench"] = {
+		id = "build.workbench",
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
+		name = "Workbench",
+		kind = "station",
+		tier = 1,
+		hp = 300,
+		cost = {
+			{ itemId = "item.plank", count = 10 },
+			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.rope", count = 4 },
+		},
+		breachCost = 1,
 		stationId = "station.workbench",
 		minFoundationTier = 1,
 		maxPerPlot = 2,
+		unlock = quest("quest.keep_the_fire"),
 	},
 	["build.campfire"] = {
 		id = "build.campfire",
@@ -288,6 +357,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		stationId = "station.campfire",
 		maxPerPlot = 2,
+		unlock = quest("quest.tools_of_survival"),
 	},
 	["build.recycler"] = {
 		id = "build.recycler",
@@ -306,7 +376,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		stationId = "station.recycler",
 		minFoundationTier = 2,
 		maxPerPlot = 1,
-		unlock = { kind = "level", level = 7 },
+		unlock = quest("quest.into_the_fog"),
 	},
 
 	-- Storage --------------------------------------------------------------------------------
@@ -322,7 +392,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 			{ itemId = "item.rope", count = 4 },
 		},
 		breachCost = 1,
-		storageSlots = 16,
+		storageSlots = 15, -- LDoE's Small Box
 		minFoundationTier = 1,
 		maxPerPlot = 20,
 		upgradesTo = "build.crate_banded",
@@ -340,10 +410,10 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 			{ itemId = "item.rivets", count = 2 },
 		},
 		breachCost = 2,
-		storageSlots = 28,
+		storageSlots = 25, -- LDoE's Chest
 		minFoundationTier = 1,
 		maxPerPlot = 20,
-		unlock = { kind = "level", level = 9 },
+		unlock = quest("quest.hold_the_door"),
 	},
 }
 

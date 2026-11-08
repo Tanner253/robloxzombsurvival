@@ -15,15 +15,16 @@
 local Types = require("../Types")
 local Grid = require("./Grid")
 local Inventory = require("./Inventory")
+local Unlocks = require("./Unlocks")
 
 local BuildRules = {}
 
-export type Progress = {
-	level: number,
-	unlocks: { recipes: { [string]: boolean }, blueprints: { [string]: boolean } },
-}
+export type Progress = Unlocks.Progress
 
-export type Reason = Grid.Reason | "notBase" | "locked" | "limit" | "cantAfford"
+export type Reason = Grid.Reason | "notBase" | "locked" | "limit" | "cantAfford" | "floorTier"
+
+-- Floor names by foundation tier, for the floor-tier gate (LDOE_PARITY #22).
+BuildRules.FLOOR_NAMES = { "Timber", "Scrap", "Reinforced" } :: { string }
 
 -- Player-facing copy for every reason, for toasts and the build menu.
 BuildRules.REASON_TEXT = {
@@ -44,16 +45,10 @@ BuildRules.REASON_TEXT = {
 	limit = "Plot limit reached",
 	cantAfford = "Not enough materials",
 	notReady = "Not available yet",
+	floorTier = "Needs a better floor",
 } :: { [string]: string }
 
-local function unlocked(gate: Types.UnlockGate?, progress: Progress): boolean
-	if gate == nil or gate.kind == "default" then
-		return true
-	elseif gate.kind == "level" then
-		return progress.level >= gate.level
-	end
-	return progress.unlocks.blueprints[gate.itemId] == true
-end
+local unlocked = Unlocks.isMet
 
 -- Whether a piece's unlock gate is met.
 function BuildRules.isUnlocked(def: Types.BuildPieceDef, progress: Progress): boolean
@@ -175,7 +170,7 @@ function BuildRules.canPlace(
 		return false, reason
 	end
 	if not foundationOk(layout, def, target, ctx.pieces) then
-		return false, "tierTooHigh"
+		return false, "floorTier"
 	end
 	local limit = chainLimit(pieceId, ctx.pieces)
 	if limit and BuildRules.countChain(layout, pieceId, ctx.pieces) >= limit then
@@ -245,7 +240,8 @@ function BuildRules.explain(
 	def: Types.BuildPieceDef?,
 	inventory: Types.Inventory?,
 	items: { [string]: { name: string } },
-	defs: Grid.Defs?
+	defs: Grid.Defs?,
+	quests: { [string]: { name: string } }?
 ): string
 	local base = BuildRules.REASON_TEXT[reason or ""] or "Can't build there"
 	if def == nil then
@@ -263,14 +259,11 @@ function BuildRules.explain(
 		if #missing > 0 then
 			return `Not enough {table.concat(missing, ", ")}`
 		end
-	elseif reason == "locked" and def.unlock then
-		local gate = def.unlock
-		if gate.kind == "level" then
-			return `Unlocks at level {gate.level}`
-		elseif gate.kind == "blueprint" then
-			local item = items[gate.itemId]
-			return `Needs the {if item then item.name else "right"} blueprint`
-		end
+	elseif reason == "floorTier" and def.minFoundationTier then
+		local name = BuildRules.FLOOR_NAMES[def.minFoundationTier] or "better"
+		return `Needs a {name} floor`
+	elseif reason == "locked" and def.unlock and quests then
+		return Unlocks.text(def.unlock, { items = items, quests = quests }) or base
 	elseif reason == "limit" and defs then
 		local limit = chainLimit(def.id, defs)
 		if limit then

@@ -1,12 +1,25 @@
 --!strict
--- Recipe definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
--- Processed materials craft in batches so a full Workbench queue runs for an hour
--- or more, the way LDoE's 20-slot station inputs do.
+--[[
+	Recipe definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
+
+	Hand recipes (no stationId) are the crafting catalogue: every tool, weapon, armor piece,
+	bag and food mix is made by hand (LDOE_PARITY #20). Station recipes are converter lines
+	(#18): one input stack -> one output stack, one batch per craftSeconds, at LDoE's pace
+	(a plank or stone block every 4 minutes, cooking every 2).
+
+	Unlocks (#49): only the hatchet, pick, satchel (and the cord it needs) start unlocked.
+	Everything else unlocks by completing an Ember Trail quest (Data/Quests), or by reading
+	a found schematic. Repair doesn't exist yet: worn gear is re-crafted (#21).
+]]
 
 local Types = require("../Types")
 
+local function quest(questId: string): Types.UnlockGate
+	return { kind = "quest", questId = questId }
+end
+
 local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
-	-- Hand-crafted ---------------------------------------------------------------
+	-- Hand-crafted: the starter set ----------------------------------------------------
 	["recipe.stone_hatchet"] = {
 		id = "recipe.stone_hatchet",
 		inputs = {
@@ -44,46 +57,14 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		craftSeconds = 10,
 		unlock = { kind = "default" },
 	},
+
+	-- Hand-crafted: unlocked along the Ember Trail ---------------------------------------
 	["recipe.field_dressing"] = {
 		id = "recipe.field_dressing",
 		inputs = { { itemId = "item.cloth", count = 3 } },
 		outputs = { { itemId = "item.field_dressing", count = 1 } },
 		craftSeconds = 5,
-		unlock = { kind = "level", level = 2 },
-	},
-
-	-- Workbench --------------------------------------------------------------------
-	["recipe.plank"] = {
-		id = "recipe.plank",
-		inputs = { { itemId = "item.timber", count = 4 } },
-		outputs = { { itemId = "item.plank", count = 4 } },
-		stationId = "station.workbench",
-		craftSeconds = 10 * 60,
-		unlock = { kind = "default" },
-	},
-	["recipe.cloth"] = {
-		id = "recipe.cloth",
-		inputs = { { itemId = "item.fiber", count = 4 } },
-		outputs = { { itemId = "item.cloth", count = 2 } },
-		stationId = "station.workbench",
-		craftSeconds = 3 * 60,
-		unlock = { kind = "level", level = 2 },
-	},
-	["recipe.stone_block"] = {
-		id = "recipe.stone_block",
-		inputs = { { itemId = "item.stone", count = 4 } },
-		outputs = { { itemId = "item.stone_block", count = 2 } },
-		stationId = "station.workbench",
-		craftSeconds = 5 * 60,
-		unlock = { kind = "level", level = 3 },
-	},
-	["recipe.scrap_plate"] = {
-		id = "recipe.scrap_plate",
-		inputs = { { itemId = "item.scrap", count = 6 } },
-		outputs = { { itemId = "item.scrap_plate", count = 2 } },
-		stationId = "station.workbench",
-		craftSeconds = 10 * 60,
-		unlock = { kind = "level", level = 4 },
+		unlock = quest("quest.keep_the_fire"),
 	},
 	["recipe.spiked_club"] = {
 		id = "recipe.spiked_club",
@@ -93,9 +74,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.scrap", count = 3 },
 		},
 		outputs = { { itemId = "item.spiked_club", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 60,
-		unlock = { kind = "level", level = 2 },
+		craftSeconds = 10,
+		unlock = quest("quest.crash_site"),
 	},
 	["recipe.padded_hood"] = {
 		id = "recipe.padded_hood",
@@ -104,9 +84,19 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.rope", count = 2 },
 		},
 		outputs = { { itemId = "item.padded_hood", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 2 * 60,
-		unlock = { kind = "level", level = 4 },
+		craftSeconds = 10,
+		unlock = quest("quest.hold_the_door"),
+	},
+	["recipe.hearth_stew"] = {
+		id = "recipe.hearth_stew",
+		inputs = {
+			{ itemId = "item.roasted_ashroot", count = 2 },
+			{ itemId = "item.emberberry", count = 3 },
+			{ itemId = "item.boiled_water", count = 1 },
+		},
+		outputs = { { itemId = "item.hearth_stew", count = 1 } },
+		craftSeconds = 5,
+		unlock = quest("quest.hold_the_door"),
 	},
 	["recipe.shortbow"] = {
 		id = "recipe.shortbow",
@@ -116,9 +106,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.pitch_glue", count = 1 },
 		},
 		outputs = { { itemId = "item.shortbow", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 3 * 60,
-		unlock = { kind = "level", level = 5 },
+		craftSeconds = 10,
+		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.arrow"] = {
 		id = "recipe.arrow",
@@ -128,9 +117,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.fiber", count = 1 },
 		},
 		outputs = { { itemId = "item.arrow", count = 5 } },
-		stationId = "station.workbench",
-		craftSeconds = 60,
-		unlock = { kind = "level", level = 5 },
+		craftSeconds = 5,
+		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.padded_vest"] = {
 		id = "recipe.padded_vest",
@@ -140,9 +128,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.scrap_plate", count = 2 },
 		},
 		outputs = { { itemId = "item.padded_vest", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 5 * 60,
-		unlock = { kind = "level", level = 6 },
+		craftSeconds = 10,
+		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.scrapblade"] = {
 		id = "recipe.scrapblade",
@@ -153,9 +140,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.rivets", count = 2 },
 		},
 		outputs = { { itemId = "item.scrapblade", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 5 * 60,
-		unlock = { kind = "level", level = 8 },
+		craftSeconds = 10,
+		unlock = quest("quest.into_the_fog"),
 	},
 	["recipe.pack_frame"] = {
 		id = "recipe.pack_frame",
@@ -167,39 +153,82 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.brass_gear", count = 1 },
 		},
 		outputs = { { itemId = "item.pack_frame", count = 1 } },
-		stationId = "station.workbench",
-		stationLevel = 2,
-		craftSeconds = 10 * 60,
+		craftSeconds = 15,
 		unlock = { kind = "blueprint", itemId = "item.bp_pack_frame" },
 	},
 
-	-- Campfire ------------------------------------------------------------------------
+	-- Woodworking Bench ------------------------------------------------------------------
+	["recipe.plank"] = {
+		id = "recipe.plank",
+		inputs = { { itemId = "item.timber", count = 1 } },
+		outputs = { { itemId = "item.plank", count = 1 } },
+		stationId = "station.woodworking_bench",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.claim_the_ground"),
+	},
+
+	-- Stonecutter -------------------------------------------------------------------------
+	["recipe.stone_block"] = {
+		id = "recipe.stone_block",
+		inputs = { { itemId = "item.stone", count = 2 } },
+		outputs = { { itemId = "item.stone_block", count = 1 } },
+		stationId = "station.stonecutter",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.a_place_to_work"),
+	},
+
+	-- Smelter ------------------------------------------------------------------------------
+	["recipe.scrap_plate"] = {
+		id = "recipe.scrap_plate",
+		inputs = { { itemId = "item.scrap", count = 3 } },
+		outputs = { { itemId = "item.scrap_plate", count = 1 } },
+		stationId = "station.smelter",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.crash_site"),
+	},
+
+	-- Workbench: parts -----------------------------------------------------------------------
+	["recipe.cloth"] = {
+		id = "recipe.cloth",
+		inputs = { { itemId = "item.fiber", count = 2 } },
+		outputs = { { itemId = "item.cloth", count = 1 } },
+		stationId = "station.workbench",
+		craftSeconds = 2 * 60,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.rivets"] = {
+		id = "recipe.rivets",
+		inputs = { { itemId = "item.scrap_plate", count = 1 } },
+		outputs = { { itemId = "item.rivets", count = 2 } },
+		stationId = "station.workbench",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.hold_the_door"),
+	},
+
+	-- Campfire: cooking ----------------------------------------------------------------------
 	["recipe.boiled_water"] = {
 		id = "recipe.boiled_water",
-		inputs = { { itemId = "item.murky_water", count = 2 } },
-		outputs = { { itemId = "item.boiled_water", count = 2 } },
+		inputs = { { itemId = "item.murky_water", count = 1 } },
+		outputs = { { itemId = "item.boiled_water", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 2 * 60,
-		unlock = { kind = "default" },
+		unlock = quest("quest.tools_of_survival"),
 	},
 	["recipe.roasted_ashroot"] = {
 		id = "recipe.roasted_ashroot",
-		inputs = { { itemId = "item.ashroot", count = 2 } },
-		outputs = { { itemId = "item.roasted_ashroot", count = 2 } },
+		inputs = { { itemId = "item.ashroot", count = 1 } },
+		outputs = { { itemId = "item.roasted_ashroot", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 2 * 60,
-		unlock = { kind = "default" },
+		unlock = quest("quest.tools_of_survival"),
 	},
 	["recipe.ember_tea"] = {
 		id = "recipe.ember_tea",
-		inputs = {
-			{ itemId = "item.emberberry", count = 3 },
-			{ itemId = "item.boiled_water", count = 1 },
-		},
+		inputs = { { itemId = "item.emberberry", count = 3 } },
 		outputs = { { itemId = "item.ember_tea", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 2 * 60,
-		unlock = { kind = "level", level = 3 },
+		unlock = quest("quest.keep_the_fire"),
 	},
 	["recipe.pitch_glue"] = {
 		id = "recipe.pitch_glue",
@@ -207,20 +236,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		outputs = { { itemId = "item.pitch_glue", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 4 * 60,
-		unlock = { kind = "level", level = 5 },
-	},
-	["recipe.hearth_stew"] = {
-		id = "recipe.hearth_stew",
-		inputs = {
-			{ itemId = "item.ashroot", count = 2 },
-			{ itemId = "item.emberberry", count = 3 },
-			{ itemId = "item.boiled_water", count = 1 },
-		},
-		outputs = { { itemId = "item.hearth_stew", count = 1 } },
-		stationId = "station.campfire",
-		stationLevel = 2,
-		craftSeconds = 8 * 60,
-		unlock = { kind = "level", level = 8 },
+		unlock = quest("quest.keep_the_fire"),
 	},
 }
 
