@@ -151,7 +151,7 @@ local function devCommand(command: string, ...: any): any
 		-- ("stock", uid, itemId, count) fills a placed crate directly, for captures.
 		local data = PlayerData.get(player)
 		local crate = data and data.storage[args[1]]
-		if crate == nil then
+		if data == nil or crate == nil then
 			return "no crate"
 		end
 		local fresh = table.clone(crate)

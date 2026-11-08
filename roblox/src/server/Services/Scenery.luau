@@ -133,12 +133,14 @@ end
 local TERRAIN_COLORS: { [Enum.Material]: Color3 } = {
 	[Enum.Material.Grass] = Color3.fromRGB(82, 92, 62),
 	[Enum.Material.LeafyGrass] = Color3.fromRGB(74, 84, 58),
-	[Enum.Material.Ground] = Color3.fromRGB(98, 90, 80),
-	[Enum.Material.Mud] = Color3.fromRGB(72, 74, 76),
+	[Enum.Material.Ground] = Color3.fromRGB(104, 90, 70),
+	[Enum.Material.Mud] = Color3.fromRGB(76, 68, 58),
 	[Enum.Material.Rock] = Color3.fromRGB(110, 112, 112),
 	[Enum.Material.Slate] = Color3.fromRGB(88, 89, 86),
 	[Enum.Material.Pavement] = Color3.fromRGB(120, 118, 112),
 	[Enum.Material.Asphalt] = Color3.fromRGB(78, 82, 88),
+	[Enum.Material.Sand] = Color3.fromRGB(98, 94, 70), -- dead dry grass toward the fog
+	[Enum.Material.Basalt] = Color3.fromRGB(52, 48, 46), -- ash and scorch around the Hearth
 }
 
 local function terrain(origin: Vector3, random: Random)
@@ -151,39 +153,121 @@ local function terrain(origin: Vector3, random: Random)
 	local terrainService = workspace.Terrain
 	local pad = 260 -- ground past the edges, under the fog wall and beyond
 	local width, depth = HALF_WIDTH * 2 + pad * 2, HALF_DEPTH * 2 + pad * 2
+	local top = origin.Y -- the flat ground's surface; foundations stand on it
+	local roadHalf = tuning.rowGapStuds * 0.4
+	local plots = plotCentres()
+	local seedX, seedZ = random:NextNumber(0, 1000), random:NextNumber(0, 1000)
+
+	local function outside(x: number, z: number): number
+		return math.max(math.abs(x) - HALF_WIDTH, math.abs(z) - HALF_DEPTH)
+	end
+
+	-- Every surface material comes from this one function, painted in one pass
+	-- (ART_DIRECTION §4): mid-layer wear first (Hearth scorch, the road, plot pads,
+	-- worn paths), then macro zones from layered noise, drying to dead grass toward
+	-- the fog. Nothing here changes the height.
+	local function surface(x: number, z: number): Enum.Material
+		local fromHearth = math.sqrt(x * x + z * z)
+		if fromHearth < 10 then
+			return Enum.Material.Basalt -- ash
+		elseif fromHearth < 16 then
+			return Enum.Material.Ground -- scorched, trodden earth
+		end
+		local ragged = math.noise(x / 9, 0, 3.3) * 2.5
+		if math.abs(z) < roadHalf + ragged and math.abs(x) < HALF_WIDTH + 60 then
+			return Enum.Material.Mud
+		end
+		for _, centre in plots do
+			local dx, dz = math.abs(x - centre.x), math.abs(z - centre.z)
+			local padHalf = GRID_STUDS / 2 + 4
+			if dx < padHalf and dz < padHalf then
+				-- Trodden earth in patches, more worn toward the middle; never one flat colour.
+				local worn = math.noise((x + seedX) / 16, (z + seedZ) / 16, 9.1)
+					+ (1 - math.max(dx, dz) / padHalf) * 0.45
+				if worn > 0.3 then
+					return Enum.Material.Ground
+				elseif worn > -0.05 then
+					return Enum.Material.Grass
+				end
+				return Enum.Material.LeafyGrass
+			end
+			-- A worn path from the plot's front edge to the road, wandering a little.
+			local front = centre.z + centre.front * (GRID_STUDS / 2 + 4)
+			local lo, hi = math.min(front, 0), math.max(front, 0)
+			local wobble = math.noise(centre.x / 10, z / 14, 2.2) * 3
+			if z > lo and z < hi and math.abs(x - centre.x - wobble) < 3 then
+				return Enum.Material.Ground
+			end
+		end
+		-- Out to the Trailhead along the road's line.
+		if x < -HALF_WIDTH and x > -HALF_WIDTH - 66 and math.abs(z - math.noise(x / 20, 0, 5.5) * 4) < 3.5 then
+			return Enum.Material.Ground
+		end
+		local edge = outside(x, z)
+		local zones = math.noise((x + seedX) / 70, (z + seedZ) / 70, 0.31)
+		local patches = math.noise((x + seedX) / 22, (z + seedZ) / 22, 1.73)
+		local speckle = math.noise((x + seedX) / 8, (z + seedZ) / 8, 4.11)
+		if edge > 0 and patches * 0.5 + edge / 90 > 0.42 then
+			return Enum.Material.Sand -- dead, dry grass toward the fog
+		elseif edge > 15 and speckle > 0.5 then
+			return Enum.Material.Rock
+		elseif patches > 0.38 then
+			return Enum.Material.Ground
+		elseif patches < -0.42 then
+			return Enum.Material.Mud
+		elseif zones > 0.18 then
+			return Enum.Material.LeafyGrass
+		end
+		return Enum.Material.Grass
+	end
+
+	-- Flat inside the neighbourhood; gently rolling beyond it.
+	local function height(x: number, z: number): number
+		local rise = math.clamp((outside(x, z) - 25) / 70, 0, 1)
+		local hills = math.noise((x + seedX) / 55, (z + seedZ) / 55, 7.7) * 0.5 + 0.5
+		return top + rise * hills * 9
+	end
+
+	-- Deep ground under everything, then the painted surface layers on top of it.
+	local base = math.floor(top / 4) * 4 - 4 -- one full layer under the surface voxel
 	terrainService:FillBlock(
-		CFrame.new(origin - Vector3.new(0, 6, 0)),
+		CFrame.new(Vector3.new(origin.X, base - 6, origin.Z)),
 		Vector3.new(width, 12, depth),
 		Enum.Material.Grass
 	)
-	-- Patches change the surface material only: cylinders reaching just under the top.
-	local patches = {
-		{ material = Enum.Material.LeafyGrass, count = 90, radius = NumberRange.new(8, 22) },
-		{ material = Enum.Material.Ground, count = 60, radius = NumberRange.new(5, 14) },
-		{ material = Enum.Material.Mud, count = 24, radius = NumberRange.new(4, 9) },
-	}
-	for _, patch in patches do
-		for _ = 1, patch.count do
-			local x = random:NextNumber(-width / 2, width / 2)
-			local z = random:NextNumber(-depth / 2, depth / 2)
-			local radius = random:NextNumber(patch.radius.Min, patch.radius.Max)
-			terrainService:FillCylinder(CFrame.new(origin + Vector3.new(x, -1, z)), 2, radius, patch.material)
+	local half = Vector3.new(width / 2, 0, depth / 2)
+	local lo = Vector3.new(origin.X, base, origin.Z) - half
+	local region = Region3.new(lo, lo + Vector3.new(width, 5 * 4, depth)):ExpandToGrid(4)
+	local size = region.Size / 4
+	local nx, ny, nz = math.floor(size.X), math.floor(size.Y), math.floor(size.Z)
+	local minCorner = region.CFrame.Position - region.Size / 2
+	local materials: { { { any } } }, occupancy: { { { number } } } = {}, {}
+	for ix = 1, nx do
+		local mx: { { any } }, ox: { { number } } = {}, {}
+		for iy = 1, ny do
+			mx[iy], ox[iy] = {}, {}
+		end
+		materials[ix], occupancy[ix] = mx, ox
+		local x = minCorner.X + (ix - 0.5) * 4 - origin.X
+		for iz = 1, nz do
+			local z = minCorner.Z + (iz - 0.5) * 4 - origin.Z
+			local ground = height(x, z)
+			local material = surface(x, z)
+			for iy = 1, ny do
+				-- Roblox puts a partly filled top voxel's surface at its centre plus
+				-- 4 x occupancy (measured: 0.25 -> centre + 1, 1 -> centre + 4), so a
+				-- layer is full when the ground is a whole voxel above its centre.
+				local centre = minCorner.Y + (iy - 0.5) * 4
+				local fill = if centre + 4 <= ground then 1 else math.clamp((ground - centre) / 4, 0, 1)
+				mx[iy][iz] = if fill > 0 then material else Enum.Material.Air
+				ox[iy][iz] = fill
+			end
+		end
+		if ix % 40 == 0 then
+			task.wait() -- keep the server responsive while it paints
 		end
 	end
-	-- The road between the rows, and an earth pad under every plot.
-	-- One full 4-stud voxel layer, so the surface material registers.
-	terrainService:FillBlock(
-		CFrame.new(origin + Vector3.new(0, -2, 0)),
-		Vector3.new(HALF_WIDTH * 2 + 120, 4, tuning.rowGapStuds * 0.8),
-		Enum.Material.Mud
-	)
-	for _, centre in plotCentres() do
-		terrainService:FillBlock(
-			CFrame.new(origin + Vector3.new(centre.x, -2, centre.z)),
-			Vector3.new(GRID_STUDS + 8, 4, GRID_STUDS + 8),
-			Enum.Material.Ground
-		)
-	end
+	terrainService:WriteVoxels(region, 4, materials, occupancy)
 end
 
 -- Props ---------------------------------------------------------------------------------------------

@@ -43,7 +43,8 @@
 			"$className": "Workspace",
 			"Terrain": {
 				"$properties": {
-					"Decoration": false
+					"Decoration": true,
+					"GrassLength": 0.12
 				}
 			}
 		}

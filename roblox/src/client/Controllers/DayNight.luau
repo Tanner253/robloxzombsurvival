@@ -53,7 +53,10 @@ local NIGHT: Key = {
 	decay = Color3.fromRGB(34, 40, 58),
 }
 local DUSK_TINT = Color3.fromRGB(255, 212, 172) -- golden hour, strongest mid-transition
-local READ_LIGHT = { color = Color3.fromRGB(255, 214, 170), range = 16, brightness = 0.75 }
+-- A soft light on your own survivor: by night it keeps you readable in the dark; by day a
+-- smaller, dimmer one lifts the shadowed side so you never sink into the ground (2.2).
+local READ_LIGHT =
+	{ color = Color3.fromRGB(255, 214, 170), range = 16, brightness = 0.75, dayRange = 7, dayBrightness = 0.45 }
 
 local cues = {
 	{ hour = 18.5, text = "Night is coming. Keep your fire fed.", tone = "warn" },
@@ -110,7 +113,8 @@ local function apply(hours: number)
 	end
 	local light = readabilityLight()
 	if light then
-		light.Brightness = READ_LIGHT.brightness * t
+		light.Brightness = READ_LIGHT.dayBrightness + (READ_LIGHT.brightness - READ_LIGHT.dayBrightness) * t
+		light.Range = READ_LIGHT.dayRange + (READ_LIGHT.range - READ_LIGHT.dayRange) * t
 		light.Enabled = t > 0.01
 	end
 end
