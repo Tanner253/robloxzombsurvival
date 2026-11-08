@@ -121,23 +121,25 @@ local function chainLimit(pieceId: Types.BuildPieceId, defs: Grid.Defs): number?
 	return limit
 end
 
+-- Whether every foundation under an object meets its minFoundationTier.
 local function foundationOk(
 	layout: Grid.Layout,
 	def: Types.BuildPieceDef,
-	x: number,
-	z: number,
+	target: Grid.Target,
 	defs: Grid.Defs
 ): boolean
 	local need = def.minFoundationTier
 	if need == nil or Grid.layerOf(def) ~= "object" then
 		return true
 	end
-	local floor = Grid.pieceAt(layout, "floor", x, z)
-	if floor == nil then
-		return false
+	for _, cell in Grid.cellsUnder(def, target) do
+		local floor = Grid.pieceAt(layout, "floor", cell.x, cell.z)
+		local floorDef = if floor then defs[floor.pieceId] else nil
+		if floorDef == nil or floorDef.tier < need then
+			return false
+		end
 	end
-	local floorDef = defs[floor.pieceId]
-	return floorDef ~= nil and floorDef.tier >= need
+	return true
 end
 
 --[[
@@ -166,9 +168,8 @@ function BuildRules.canPlace(
 	if not ok then
 		return false, reason
 	end
-	if not foundationOk(layout, def, target.x, target.z, ctx.pieces) then
-		local floor = Grid.pieceAt(layout, "floor", target.x, target.z)
-		return false, if floor then "tierTooHigh" else "needsFoundation"
+	if not foundationOk(layout, def, target, ctx.pieces) then
+		return false, "tierTooHigh"
 	end
 	local limit = chainLimit(pieceId, ctx.pieces)
 	if limit and BuildRules.countChain(layout, pieceId, ctx.pieces) >= limit then
@@ -201,7 +202,7 @@ function BuildRules.canUpgrade(
 	if not BuildRules.isUnlocked(nextDef, progress) then
 		return false, nextDef, "locked"
 	end
-	if not foundationOk(layout, nextDef, piece.x, piece.z, ctx.pieces) then
+	if not foundationOk(layout, nextDef, { x = piece.x, z = piece.z, rot = piece.rot }, ctx.pieces) then
 		return false, nextDef, "tierTooHigh"
 	end
 	if inventory and not Inventory.hasAll(inventory, nextDef.cost) then

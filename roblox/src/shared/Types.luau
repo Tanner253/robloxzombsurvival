@@ -292,7 +292,10 @@ export type BuildPieceDef = {
 	upgradesTo: BuildPieceId?,
 	stationId: StationId?, -- required when kind == "station"
 	storageSlots: number?, -- required when kind == "storage"
-	minFoundationTier: number?, -- nil means it can stand on bare ground
+	minFoundationTier: number?, -- objects: the lowest foundation tier they can stand on (nil: any)
+	-- Objects: the footprint on the furniture sub-grid, in quarter cells at rotation 0
+	-- (w along X, d along Z). nil means one whole cell.
+	footprint: { w: number, d: number }?,
 	maxPerPlot: number?, -- nil means no limit
 	unlock: UnlockGate?, -- nil means available from the start
 }

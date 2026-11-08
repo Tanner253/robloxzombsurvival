@@ -172,19 +172,21 @@ return function(test: TestKit.Register)
 		TestKit.equal(locked, "locked", "recycler is level 7")
 		local _, bare = BuildRules.canPlace(layout, "build.workbench", { x = 0, z = 0 }, ctx(), starter)
 		TestKit.equal(bare, "needsFoundation", "workbench needs a floor")
-		TestKit.truthy(
-			(BuildRules.canPlace(layout, "build.campfire", { x = 0, z = 0 }, ctx(), starter)),
-			"campfire on ground"
-		)
+		local _, ground = BuildRules.canPlace(layout, "build.campfire", { x = 0, z = 0 }, ctx(), starter)
+		TestKit.equal(ground, "needsFoundation", "furniture stands on foundations")
 
 		local poor = Inventory.new(10, 0)
 		local _, broke = BuildRules.canPlace(layout, "build.foundation_wood", { x = 1, z = 1 }, ctx(), starter, poor)
 		TestKit.equal(broke, "cantAfford")
 
-		for index = 0, 1 do
-			layout = (Grid.place(layout, "build.campfire", { x = index, z = 5 }, ctx())) :: any
+		for _, x in { 0, 1, 3 } do
+			layout = (Grid.place(layout, "build.foundation_wood", { x = x, z = 5 }, ctx())) :: any
 		end
-		local _, limit = BuildRules.canPlace(layout, "build.campfire", { x = 3, z = 5 }, ctx(), starter)
+		for index = 0, 1 do
+			-- Quarter cells: cell (index, 5) starts at quarter (index * 4, 20).
+			layout = (Grid.place(layout, "build.campfire", { x = index * 4, z = 20 }, ctx())) :: any
+		end
+		local _, limit = BuildRules.canPlace(layout, "build.campfire", { x = 12, z = 20 }, ctx(), starter)
 		TestKit.equal(limit, "limit", "maxPerPlot")
 		TestKit.equal(BuildRules.rootOf("build.wall_reinforced", Content.BuildPieces), "build.wall_wood")
 	end)

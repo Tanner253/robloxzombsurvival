@@ -350,7 +350,7 @@ local function claim(player: Player)
 	end
 	profile:AddUserId(player.UserId)
 	profile:Reconcile()
-	local layout, reason = Grid.deserialize(profile.Data.layout)
+	local layout, reason = Grid.deserialize(profile.Data.layout, Content.BuildPieces)
 	if layout == nil then
 		warn(`Plots: layout for {player.UserId} failed to load ({reason}); it will not be saved over`)
 		p.readOnly = true

@@ -46,7 +46,14 @@ local DEFS: any = {
 	["build.window_wood"] = def("build.window_wood", "window", 1, 150, { wood(5) }, 2),
 	["build.roof_wood"] = def("build.roof_wood", "roof", 1, 100, { wood(3) }, 1),
 	["build.box"] = def("build.box", "storage", 1, 100, { wood(3) }, 1),
+	-- Furniture on the quarter-cell sub-grid: 2 x 1 and 2 x 2 quarter cells.
+	["build.chest"] = def("build.chest", "storage", 1, 100, { wood(2) }, 1, "build.chest_big"),
+	["build.chest_big"] = def("build.chest_big", "storage", 2, 200, { wood(4) }, 1),
+	["build.bench"] = def("build.bench", "station", 1, 100, { wood(4) }, 1),
 }
+DEFS["build.chest"].footprint = { w = 2, d = 1 }
+DEFS["build.chest_big"].footprint = { w = 3, d = 2 }
+DEFS["build.bench"].footprint = { w = 2, d = 2 }
 
 local function ctx(now: number?, actor: number?, maxTier: number?): Grid.Context
 	return {
@@ -175,12 +182,45 @@ return function(test: TestKit.Register)
 		TestKit.equal((Grid.pieceAt(withWindow, "frame", 0, 1, "h") :: Grid.Piece).layer, "frame")
 	end)
 
-	test("roofs need a foundation; objects may stand on bare ground", function()
+	test("roofs and objects need a foundation", function()
 		local layout = Grid.new()
 		TestKit.equal(reasonOf(layout, "build.roof_wood", { x = 1, z = 1 }), "needsFoundation")
+		TestKit.equal(reasonOf(layout, "build.box", { x = 4, z = 4 }), "needsFoundation", "no bare ground")
+		layout = build({ { "build.floor_wood", { x = 1, z = 1 } } })
 		local placed, piece = Grid.place(layout, "build.box", { x = 4, z = 4, rot = 5 }, ctx())
-		TestKit.truthy(placed, "box on ground")
+		TestKit.truthy(placed, "box on the foundation")
 		TestKit.equal((piece :: Grid.Piece).rot, 1, "rotation wraps to 0-3")
+	end)
+
+	test("objects sit on a quarter-cell sub-grid, side by side but never overlapping", function()
+		local layout = build({ { "build.floor_wood", { x = 1, z = 1 } }, { "build.floor_wood", { x = 2, z = 1 } } })
+		-- Cell (1, 1) is quarters 4..7 on each axis: two 2 x 1 chests share it.
+		layout = build({ { "build.chest", { x = 4, z = 4 } }, { "build.chest", { x = 6, z = 4 } } }, layout)
+		TestKit.equal(reasonOf(layout, "build.chest", { x = 5, z = 4 }), "occupied", "overlaps both")
+		TestKit.equal(reasonOf(layout, "build.chest", { x = 4, z = 5 }), nil, "the next quarter row is free")
+		-- A footprint may straddle two foundations, but every cell under it needs one.
+		TestKit.equal(reasonOf(layout, "build.bench", { x = 7, z = 6 }), nil, "across cells (1,1) and (2,1)")
+		TestKit.equal(reasonOf(layout, "build.bench", { x = 11, z = 6 }), "needsFoundation", "half off the floor")
+		TestKit.equal(reasonOf(layout, "build.bench", { x = 23, z = 0 }), "outOfBounds")
+		-- Rotation turns the footprint: a 2 x 1 chest turned once is 1 x 2.
+		TestKit.deepEqual({ Grid.footprint(DEFS["build.chest"], 1) }, { 1, 2 })
+		TestKit.equal(reasonOf(layout, "build.chest", { x = 8, z = 4, rot = 1 }), nil)
+		TestKit.equal(Grid.objectAt(layout, 6, 4).pieceId, "build.chest")
+		TestKit.equal(Grid.pieceAt(layout, "object", 1, 1).pieceId, "build.chest", "any object on the cell")
+	end)
+
+	test("an object upgrades only when its next tier still fits", function()
+		local layout = build({ { "build.floor_wood", { x = 1, z = 1 } } })
+		layout = build({ { "build.chest", { x = 4, z = 4 } }, { "build.chest", { x = 6, z = 5 } } }, layout)
+		local first = uidAt(layout, "object", 1, 1)
+		local _, why = Grid.canUpgrade(layout, first, ctx())
+		TestKit.equal(why, "occupied", "the bigger chest would cover its neighbour")
+		local alone = build({ { "build.floor_wood", { x = 1, z = 1 } }, { "build.chest", { x = 4, z = 4 } } })
+		local upgraded = Grid.upgrade(alone, uidAt(alone, "object", 1, 1), ctx()) :: Grid.Layout
+		TestKit.equal(Grid.objectAt(upgraded, 6, 5).pieceId, "build.chest_big", "re-keyed to the new footprint")
+		local removed = Grid.demolish(upgraded, uidAt(upgraded, "object", 1, 1), ctx()) :: Grid.Layout
+		TestKit.equal(next(removed.slots, nil) ~= nil, true, "the floor's slot stays")
+		TestKit.equal(Grid.objectAt(removed, 6, 5), nil, "every quarter freed")
 	end)
 
 	test("upgrade swaps in the next tier at full HP and returns its cost", function()
@@ -268,7 +308,7 @@ return function(test: TestKit.Register)
 	end)
 
 	test("a foundation under an object cannot be demolished, but can be destroyed", function()
-		local layout = build({ { "build.box", { x = 2, z = 2 } } }, room())
+		local layout = build({ { "build.box", { x = 8, z = 8 } } }, room())
 		local floor = uidAt(layout, "floor", 2, 2)
 		TestKit.equal(select(3, Grid.demolish(layout, floor, ctx())), "objectOnTop")
 		local destroyed, gone = Grid.damage(layout, floor, 10_000, DEFS)
@@ -328,14 +368,14 @@ return function(test: TestKit.Register)
 
 	test("serialize and deserialize round-trip a layout exactly", function()
 		local layout =
-			build({ { "build.roof_wood", { x = 2, z = 2 } }, { "build.box", { x = 4, z = 1, rot = 3 } } }, room())
+			build({ { "build.roof_wood", { x = 2, z = 2 } }, { "build.box", { x = 8, z = 8, rot = 3 } } }, room())
 		layout = Grid.damage(layout, uidAt(layout, "frame", 2, 2, "h"), 37, DEFS)
 		layout = Grid.upgrade(layout, uidAt(layout, "floor", 2, 2), ctx(T0 + 50)) :: Grid.Layout
 		local saved = Grid.serialize(layout)
 		TestKit.equal(saved.v, Grid.LAYOUT_VERSION)
 		TestKit.equal(#saved.d, 8 * 8, "8 pieces x 8 numbers")
 		TestKit.equal(#saved.p, 6, "palette dedupes piece IDs; the wood floor was upgraded away")
-		local loaded = Grid.deserialize(saved) :: Grid.Layout
+		local loaded = Grid.deserialize(saved, DEFS) :: Grid.Layout
 		TestKit.deepEqual(loaded, layout, "pieces, slots and nextUid")
 		TestKit.deepEqual(Grid.serialize(loaded), saved, "stable encoding")
 	end)
@@ -344,18 +384,37 @@ return function(test: TestKit.Register)
 		local saved = Grid.serialize(room())
 		local future = table.clone(saved)
 		future.v = 99
-		TestKit.equal(select(2, Grid.deserialize(future)), "unsupportedVersion")
-		TestKit.equal(select(2, Grid.deserialize(nil :: any)), "unsupportedVersion")
+		TestKit.equal(select(2, Grid.deserialize(future, DEFS)), "unsupportedVersion")
+		TestKit.equal(select(2, Grid.deserialize(nil :: any, DEFS)), "unsupportedVersion")
 		local short = table.clone(saved)
 		short.d = { 1, 2, 3 }
-		TestKit.equal(select(2, Grid.deserialize(short)), "corrupt")
+		TestKit.equal(select(2, Grid.deserialize(short, DEFS)), "corrupt")
 		local duplicate = table.clone(saved)
 		duplicate.d = table.clone(saved.d)
 		for i = 1, 8 do
 			table.insert(duplicate.d, saved.d[i])
 		end
-		TestKit.equal(select(2, Grid.deserialize(duplicate)), "corrupt", "same uid twice")
-		TestKit.deepEqual(Grid.deserialize(Grid.serialize(Grid.new())), Grid.new(), "empty layout")
+		TestKit.equal(select(2, Grid.deserialize(duplicate, DEFS)), "corrupt", "same uid twice")
+		TestKit.deepEqual(Grid.deserialize(Grid.serialize(Grid.new()), DEFS), Grid.new(), "empty layout")
+		local unknown = table.clone(saved)
+		unknown.p = table.clone(saved.p)
+		unknown.p[1] = "build.gone"
+		TestKit.equal(select(2, Grid.deserialize(unknown, DEFS)), "corrupt", "unknown piece id")
+	end)
+
+	test("version 1 layouts move objects from whole cells to the sub-grid", function()
+		local layout = build({ { "build.floor_wood", { x = 2, z = 1 } }, { "build.chest", { x = 8, z = 5 } } })
+		local saved = Grid.serialize(layout)
+		-- Rewrite it as version 1 did: the chest on cell (2, 1).
+		saved.v = 1
+		saved.d = table.clone(saved.d)
+		saved.d[8 + 4], saved.d[8 + 5] = 2, 1
+		local loaded = Grid.deserialize(saved, DEFS) :: Grid.Layout
+		local chest = Grid.pieceAt(loaded, "object", 2, 1) :: Grid.Piece
+		TestKit.equal(chest.x, 9, "2 x 1 footprint centred in quarters 8..11")
+		TestKit.equal(chest.z, 5)
+		TestKit.equal(Grid.objectAt(loaded, 10, 5), chest)
+		TestKit.equal(Grid.serialize(loaded).v, Grid.LAYOUT_VERSION, "saves as the current version")
 	end)
 
 	test("stud helpers snap positions to cells and edges", function()

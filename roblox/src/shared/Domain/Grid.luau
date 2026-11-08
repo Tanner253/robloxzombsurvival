@@ -15,15 +15,19 @@
 	- frame:  wall, doorway, window, on an edge
 	- fill:   door, gate, on an edge that has a doorway frame
 	- roof:   roof, on a cell with a foundation
-	- object: everything else (station, storage, defenses), on a cell, on the
-	          ground or on a foundation
+	- object: everything else (station, storage, defenses), on a fine sub-grid
+	          of Grid.SUB x Grid.SUB quarter cells per cell. An object's x, z
+	          are its footprint's minimum corner in quarter cells; its
+	          footprint (BuildPieceDef.footprint, quarter cells, turned by
+	          `rot`) must lie wholly on foundations and overlap no other object.
 
 	Rules:
 	- Only the plot owner builds, upgrades or demolishes; pieces must be inside
 	  the plot and their slot free; `plot.maxTier` (Hearth gating) caps tiers.
 	- An edge piece needs an adjacent foundation whose tier is at least its own
 	  ("wall tier cannot exceed floor tier"). A roof needs a foundation of at
-	  least its tier on its cell.
+	  least its tier on its cell. Objects need foundations under every cell
+	  their footprint covers.
 	- Removing a foundation collapses every edge piece and roof that loses its
 	  support, and every door whose doorway collapsed. Objects rest on the
 	  ground, so a foundation with an object on it cannot be demolished (empty
@@ -43,13 +47,17 @@ local Types = require("../Types")
 local Grid = {}
 
 Grid.CELL_STUDS = 12
-Grid.LAYOUT_VERSION = 1
+-- Quarter cells per cell side: the furniture sub-grid.
+Grid.SUB = 4
+Grid.SUB_STUDS = Grid.CELL_STUDS / Grid.SUB
+-- 2: objects moved from whole cells to quarter cells (migrated on load).
+Grid.LAYOUT_VERSION = 2
 
 export type Axis = "h" | "v"
 export type Layer = "floor" | "frame" | "fill" | "roof" | "object"
 
 export type Target = {
-	x: number,
+	x: number, -- cells; for objects, quarter cells (footprint minimum corner)
 	z: number,
 	axis: Axis?, -- edge pieces
 	rot: number?, -- objects: quarter turns 0-3
@@ -163,6 +171,32 @@ local function keyOf(piece: Piece): string
 	return slotKey(piece.layer, piece.x, piece.z, piece.axis)
 end
 
+local function quarterKey(qx: number, qz: number): string
+	return `object:q:{qx},{qz}`
+end
+
+-- An object's footprint in quarter cells for a rotation: width along X, depth along Z.
+function Grid.footprint(def: Types.BuildPieceDef, rot: number?): (number, number)
+	local fp = def.footprint
+	local w = if fp then fp.w else Grid.SUB
+	local d = if fp then fp.d else Grid.SUB
+	if (rot or 0) % 2 == 1 then
+		return d, w
+	end
+	return w, d
+end
+
+-- The quarter-cell slot keys an object covers at (qx, qz) with this footprint.
+local function quarterKeys(qx: number, qz: number, w: number, d: number): { string }
+	local keys = table.create(w * d) :: { string }
+	for x = qx, qx + w - 1 do
+		for z = qz, qz + d - 1 do
+			table.insert(keys, quarterKey(x, z))
+		end
+	end
+	return keys
+end
+
 local function edgeCells(axis: Axis, x: number, z: number): { Cell }
 	if axis == "h" then
 		return { { x = x, z = z - 1 }, { x = x, z = z } }
@@ -200,6 +234,27 @@ local function defOf(defs: Defs, piece: Piece): Types.BuildPieceDef
 	return def
 end
 
+-- Every slot key a piece occupies: one for cells and edges, each covered quarter for objects.
+local function keysOf(piece: Piece, defs: Defs): { string }
+	if piece.layer ~= "object" then
+		return { keyOf(piece) }
+	end
+	local w, d = Grid.footprint(defOf(defs, piece), piece.rot)
+	return quarterKeys(piece.x, piece.z, w, d)
+end
+
+-- The cells an object's footprint at `target` covers.
+function Grid.cellsUnder(def: Types.BuildPieceDef, target: Target): { Cell }
+	local w, d = Grid.footprint(def, target.rot)
+	local cells: { Cell } = {}
+	for x = target.x // Grid.SUB, (target.x + w - 1) // Grid.SUB do
+		for z = target.z // Grid.SUB, (target.z + d - 1) // Grid.SUB do
+			table.insert(cells, { x = x, z = z })
+		end
+	end
+	return cells
+end
+
 -- Highest foundation tier among the cells an edge touches; -1 when there is none.
 local function supportTier(layout: Layout, defs: Defs, axis: Axis, x: number, z: number): number
 	local best = -1
@@ -223,10 +278,34 @@ function Grid.layerOf(def: Types.BuildPieceDef): Layer
 	return LAYER_BY_KIND[def.kind :: string] or "object"
 end
 
--- The piece in `layer` at a cell (or an edge, with `axis`), if any.
+-- The piece in `layer` at a cell (or an edge, with `axis`), if any. For "object",
+-- any object whose footprint covers part of the cell.
 function Grid.pieceAt(layout: Layout, layer: Layer, x: number, z: number, axis: Axis?): Piece?
+	if layer == "object" then
+		for qx = x * Grid.SUB, x * Grid.SUB + Grid.SUB - 1 do
+			for qz = z * Grid.SUB, z * Grid.SUB + Grid.SUB - 1 do
+				local found = layout.slots[quarterKey(qx, qz)]
+				if found then
+					return layout.pieces[found]
+				end
+			end
+		end
+		return nil
+	end
 	local uid = layout.slots[slotKey(layer, x, z, if isEdgeLayer(layer) then axis else nil)]
 	return if uid then layout.pieces[uid] else nil
+end
+
+-- The object covering quarter cell (qx, qz), if any.
+function Grid.objectAt(layout: Layout, qx: number, qz: number): Piece?
+	local uid = layout.slots[quarterKey(qx, qz)]
+	return if uid then layout.pieces[uid] else nil
+end
+
+-- Stud offsets of an object's footprint centre from the plot corner.
+function Grid.objectCenter(def: Types.BuildPieceDef, target: Target): (number, number)
+	local w, d = Grid.footprint(def, target.rot)
+	return (target.x + w / 2) * Grid.SUB_STUDS, (target.z + d / 2) * Grid.SUB_STUDS
 end
 
 -- Stud offsets of a cell's centre from the plot corner.
@@ -313,6 +392,28 @@ function Grid.canPlace(layout: Layout, pieceId: Types.BuildPieceId, target: Targ
 		return true, nil
 	end
 
+	if layer == "object" then
+		local w, d = Grid.footprint(def, target.rot)
+		if
+			target.x < 0
+			or target.z < 0
+			or target.x + w > plot.width * Grid.SUB
+			or target.z + d > plot.depth * Grid.SUB
+		then
+			return false, "outOfBounds"
+		end
+		for _, key in quarterKeys(target.x, target.z, w, d) do
+			if layout.slots[key] then
+				return false, "occupied"
+			end
+		end
+		for _, cell in Grid.cellsUnder(def, target) do
+			if layout.slots[slotKey("floor", cell.x, cell.z)] == nil then
+				return false, "needsFoundation"
+			end
+		end
+		return true, nil
+	end
 	if not cellInBounds(plot, target.x, target.z) then
 		return false, "outOfBounds"
 	end
@@ -362,7 +463,9 @@ function Grid.place(
 	local result = copy(layout)
 	result.nextUid += 1
 	result.pieces[piece.uid] = piece
-	result.slots[keyOf(piece)] = piece.uid
+	for _, key in keysOf(piece, ctx.pieces) do
+		result.slots[key] = piece.uid
+	end
 	return result, piece, nil
 end
 
@@ -397,6 +500,19 @@ function Grid.canUpgrade(layout: Layout, uid: string, ctx: Context): (boolean, R
 		if not floor or defOf(ctx.pieces, floor).tier < nextDef.tier then
 			return false, "tierTooHigh"
 		end
+	elseif piece.layer == "object" then
+		-- A bigger next tier must still fit where the object stands.
+		local w, d = Grid.footprint(nextDef, piece.rot)
+		local plot = ctx.plot
+		if piece.x + w > plot.width * Grid.SUB or piece.z + d > plot.depth * Grid.SUB then
+			return false, "outOfBounds"
+		end
+		for _, key in quarterKeys(piece.x, piece.z, w, d) do
+			local other = layout.slots[key]
+			if other and other ~= uid then
+				return false, "occupied"
+			end
+		end
 	end
 	return true, nil
 end
@@ -420,6 +536,14 @@ function Grid.upgrade(layout: Layout, uid: string, ctx: Context): (Layout?, { Ty
 	upgraded.upgradedAt = ctx.now
 	local result = copy(layout)
 	result.pieces[uid] = upgraded
+	if piece.layer == "object" then
+		for _, key in keysOf(piece, ctx.pieces) do
+			result.slots[key] = nil
+		end
+		for _, key in keysOf(upgraded, ctx.pieces) do
+			result.slots[key] = uid
+		end
+	end
 	return result, table.clone(nextDef.cost), nil
 end
 
@@ -431,7 +555,9 @@ local function removeWithCascade(layout: Layout, uid: string, defs: Defs): (Layo
 	local removed: { Piece } = {}
 	local function drop(piece: Piece)
 		result.pieces[piece.uid] = nil
-		result.slots[keyOf(piece)] = nil
+		for _, key in keysOf(piece, defs) do
+			result.slots[key] = nil
+		end
 		table.insert(removed, piece)
 	end
 
@@ -736,11 +862,15 @@ end
 
 --[[
 	Decodes a saved layout and rebuilds the slot index. Returns nil and a reason
-	("unsupportedVersion", "corrupt") for data it cannot trust. Piece IDs are
-	not checked against content here. `saved` is untrusted DataStore data.
+	("unsupportedVersion", "corrupt") for data it cannot trust. `defs` sizes
+	object footprints; a piece ID it doesn't know is "corrupt". `saved` is
+	untrusted DataStore data.
+
+	Version 1 stored objects on whole cells; they move to the quarter-cell
+	footprint centred on that cell (as near as the sub-grid allows).
 ]]
-function Grid.deserialize(saved: any): (Layout?, string?)
-	if type(saved) ~= "table" or saved.v ~= Grid.LAYOUT_VERSION then
+function Grid.deserialize(saved: any, defs: Defs): (Layout?, string?)
+	if type(saved) ~= "table" or (saved.v ~= Grid.LAYOUT_VERSION and saved.v ~= 1) then
 		return nil, "unsupportedVersion"
 	end
 	local data, palette = saved.d, saved.p
@@ -763,6 +893,10 @@ function Grid.deserialize(saved: any): (Layout?, string?)
 			return nil, "corrupt"
 		end
 		local placedAt = saved.t + data[offset + 7]
+		local def = defs[pieceId]
+		if def == nil then
+			return nil, "corrupt"
+		end
 		local piece: Piece = {
 			uid = tostring(uidNumber),
 			pieceId = pieceId,
@@ -775,12 +909,24 @@ function Grid.deserialize(saved: any): (Layout?, string?)
 			placedAt = placedAt,
 			upgradedAt = placedAt + data[offset + 8],
 		}
-		local key = keyOf(piece)
-		if layout.pieces[piece.uid] or layout.slots[key] then
+		if piece.layer == "object" and saved.v == 1 then
+			local w, d = Grid.footprint(def, piece.rot)
+			piece.x = math.max(0, piece.x * Grid.SUB + (Grid.SUB - w) // 2)
+			piece.z = math.max(0, piece.z * Grid.SUB + (Grid.SUB - d) // 2)
+		end
+		if layout.pieces[piece.uid] then
 			return nil, "corrupt"
 		end
+		local keys = keysOf(piece, defs)
+		for _, key in keys do
+			if layout.slots[key] then
+				return nil, "corrupt"
+			end
+		end
 		layout.pieces[piece.uid] = piece
-		layout.slots[key] = piece.uid
+		for _, key in keys do
+			layout.slots[key] = piece.uid
+		end
 	end
 	return layout, nil
 end

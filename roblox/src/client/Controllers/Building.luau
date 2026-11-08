@@ -47,6 +47,8 @@ local ghostCFrame: CFrame? = nil
 local highlight: Highlight? = nil
 local overlay: Folder? = nil
 local rotation = 0
+-- How close (studs) the cursor must be to a wall for an object to snap against it.
+local WALL_SNAP_STUDS = 4.5
 local current: { target: Grid.Target, valid: boolean, reason: string? }? = nil
 local hoveredUid: string? = nil
 local armed: { uid: string, at: number }? = nil
@@ -67,7 +69,7 @@ local function layout(): Grid.Layout?
 	end
 	if saved ~= cachedSaved then
 		cachedSaved = saved
-		cachedLayout = Grid.deserialize(saved)
+		cachedLayout = Grid.deserialize(saved, Pieces :: any)
 	end
 	return cachedLayout
 end
@@ -238,15 +240,46 @@ local function pieceUnderCursor(): string?
 	return if instance then instance:GetAttribute("Uid") :: string? else nil
 end
 
+-- An object's target under the cursor: its footprint centred on the cursor and
+-- snapped to the quarter-cell grid. Near a wall it snaps flush with its back to the
+-- wall, facing into the room (LDoE puts stations against walls); otherwise R rotates.
+local function objectTarget(def: Types.BuildPieceDef, px: number, pz: number): Grid.Target
+	local sub, quarter = Grid.SUB, Grid.SUB_STUDS
+	local current = layout()
+	if current then
+		local axis, ex, ez = Grid.edgeNear(px, pz)
+		if Grid.pieceAt(current, "frame", ex, ez, axis :: Grid.Axis) then
+			local lineStuds = (if axis == "h" then ez else ex) * Grid.CELL_STUDS
+			local offset = (if axis == "h" then pz else px) - lineStuds
+			if math.abs(offset) <= WALL_SNAP_STUDS then
+				-- The wall is behind the object: on the cursor's far side of the line.
+				local rot = if axis == "h" then (if offset > 0 then 2 else 0) else (if offset > 0 then 3 else 1)
+				local w, d = Grid.footprint(def, rot)
+				local line = (if axis == "h" then ez else ex) * sub
+				if axis == "h" then
+					local qz = if offset > 0 then line else line - d
+					return { x = math.round(px / quarter - w / 2), z = qz, rot = rot }
+				end
+				local qx = if offset > 0 then line else line - w
+				return { x = qx, z = math.round(pz / quarter - d / 2), rot = rot }
+			end
+		end
+	end
+	local w, d = Grid.footprint(def, rotation)
+	return { x = math.round(px / quarter - w / 2), z = math.round(pz / quarter - d / 2), rot = rotation }
+end
+
 local function targetFor(def: Types.BuildPieceDef, px: number, pz: number): Grid.Target
 	local layer = Grid.layerOf(def)
 	if layer == "frame" or layer == "fill" then
 		local axis, x, z = Grid.edgeNear(px, pz)
 		local edge: Grid.Target = { x = x, z = z, axis = axis :: Grid.Axis }
 		return edge
+	elseif layer == "object" then
+		return objectTarget(def, px, pz)
 	end
 	local x, z = Grid.cellAt(px, pz)
-	local cell: Grid.Target = { x = x, z = z, rot = if layer == "object" then rotation else nil }
+	local cell: Grid.Target = { x = x, z = z }
 	return cell
 end
 
@@ -367,8 +400,7 @@ local function step(dt: number)
 	local target = targetFor(def, px, pz)
 	local ok, reason = BuildRules.canPlace(currentLayout, pieceId, target, ctx, progress(), inventory())
 	current = { target = target, valid = ok, reason = reason }
-	local onFloor = Grid.pieceAt(currentLayout, "floor", target.x, target.z) ~= nil
-	local goal = PlotSpace.target(info.origin, Grid.layerOf(def), target, onFloor)
+	local goal = PlotSpace.target(info.origin, currentLayout, Grid.layerOf(def), target, def)
 	ghostCFrame = if ghostCFrame then (ghostCFrame :: CFrame):Lerp(goal, 1 - math.exp(-GHOST_RATE * dt)) else goal
 	model:PivotTo(ghostCFrame :: CFrame)
 	if highlight then

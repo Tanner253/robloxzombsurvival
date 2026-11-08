@@ -73,7 +73,7 @@ local function render(plot: Plots.Plot, piece: Grid.Piece, fresh: boolean)
 	local def = Pieces[piece.pieceId]
 	local model = Models.piece(def)
 	model.Name = piece.uid
-	model:PivotTo(PlotSpace.piece(plot.origin, plot.layout, piece))
+	model:PivotTo(PlotSpace.piece(plot.origin, plot.layout, piece, def))
 	model:SetAttribute("Uid", piece.uid)
 	model:SetAttribute("PieceId", piece.pieceId)
 	model:SetAttribute("Layer", piece.layer)
@@ -95,12 +95,14 @@ local function render(plot: Plots.Plot, piece: Grid.Piece, fresh: boolean)
 	plot.pieceModels[piece.uid] = model
 end
 
--- Objects stand on the floor when one is under them; re-seat them after floor changes.
-local function reseatObject(plot: Plots.Plot, x: number, z: number)
-	local object = Grid.pieceAt(plot.layout, "object", x, z)
-	local model = object and plot.pieceModels[object.uid]
-	if object and model then
-		model:PivotTo(PlotSpace.piece(plot.origin, plot.layout, object))
+-- Objects stand on their foundations and off the walls behind them; re-seat every
+-- object after the floor or walls change.
+local function reseatObjects(plot: Plots.Plot)
+	for uid, piece in plot.layout.pieces do
+		local model = plot.pieceModels[uid]
+		if piece.layer == "object" and model then
+			model:PivotTo(PlotSpace.piece(plot.origin, plot.layout, piece, Pieces[piece.pieceId]))
+		end
 	end
 end
 
@@ -167,8 +169,8 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 	end
 	render(plot, piece, true)
 	renderSeams(plot)
-	if piece.layer == "floor" then
-		reseatObject(plot, piece.x, piece.z)
+	if piece.layer == "floor" or piece.layer == "frame" then
+		reseatObjects(plot)
 	end
 	if def.kind == "station" then
 		Stations.refresh(player, piece.uid)
@@ -273,11 +275,9 @@ local function demolish(player: Player, uid: string)
 		elseif goneDef.kind == "storage" then
 			data.storage[gone.uid] = nil
 		end
-		if gone.layer == "floor" then
-			reseatObject(plot, gone.x, gone.z)
-		end
 	end
 	renderSeams(plot)
+	reseatObjects(plot)
 	Net.fireAllClients("Fx", "debris", { pieces = debris })
 	Analytics.custom(player, "BuildDemolish", 1, { piece.pieceId })
 	Sync.fx(player, "items", { items = removal.refund, source = "refund" })
