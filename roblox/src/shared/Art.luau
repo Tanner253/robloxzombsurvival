@@ -46,7 +46,7 @@ Art.pieces = {
 Art.decks = {
 	-- Wood uses Roblox's own wide, calm planks: the generated variant read as a noisy
 	-- barcode at the gameplay camera (QA).
-	{ base = Enum.Material.WoodPlanks, variant = "", tint = Color3.fromRGB(150, 116, 84) },
+	{ base = Enum.Material.WoodPlanks, variant = "", tint = Color3.fromRGB(122, 96, 72) },
 	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
@@ -54,14 +54,20 @@ Art.decks = {
 -- Ground (three layers, ART_DIRECTION §4): every terrain material the ground is painted
 -- with wears a generated PBR variant (place/materials -> MaterialService.EO_Materials),
 -- multiplied by its tint. The textures carry the small layer themselves: pebbles in the
--- earth, leaf litter in the leafy ground, dry blades toward the fog. Sand is the dead grass.
+-- earth, leaf litter in the leafy ground. Sand is the dead grass: the grass tile, straw-tinted.
 Art.ground = {
-	[Enum.Material.Grass] = { variant = "EO_Ground_Grass", tint = Color3.fromRGB(150, 158, 128) },
-	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(160, 160, 140) },
-	[Enum.Material.Ground] = { variant = "EO_Ground_Earth", tint = Color3.fromRGB(150, 140, 126) },
-	[Enum.Material.Mud] = { variant = "EO_Ground_Mud", tint = Color3.fromRGB(176, 164, 144) },
+	[Enum.Material.Grass] = { variant = "EO_Ground_Grass", tint = Color3.fromRGB(150, 148, 122) },
+	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(150, 146, 128) },
+	[Enum.Material.Ground] = { variant = "EO_Ground_Earth", tint = Color3.fromRGB(128, 128, 122) },
+	[Enum.Material.Mud] = { variant = "EO_Ground_Mud", tint = Color3.fromRGB(138, 138, 128) },
 	[Enum.Material.Sand] = { variant = "EO_Ground_DryGrass", tint = Color3.fromRGB(172, 162, 128) },
 } :: { [Enum.Material]: { variant: string, tint: Color3 } }
+
+-- Kit models whose texture sits off the shared palette, warmed or cooled by a multiply on
+-- their SurfaceAppearance (QA: the workbench's blue-grey wood clashed with the deck).
+Art.tints = {
+	Workbench = Color3.fromRGB(255, 226, 192),
+} :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
 Art.dropModels = { "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }

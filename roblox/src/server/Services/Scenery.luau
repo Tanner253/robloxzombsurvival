@@ -134,7 +134,7 @@ end
 -- The muted palette the look test settled on (ART_DIRECTION §4). The ground materials
 -- take their variant and tint from Art.ground.
 local TERRAIN_COLORS: { [Enum.Material]: Color3 } = {
-	[Enum.Material.Rock] = Color3.fromRGB(110, 112, 112),
+	[Enum.Material.Rock] = Color3.fromRGB(84, 82, 76), -- QA: lighter read as snow blotches
 	[Enum.Material.Slate] = Color3.fromRGB(88, 89, 86),
 	[Enum.Material.Pavement] = Color3.fromRGB(120, 118, 112),
 	[Enum.Material.Asphalt] = Color3.fromRGB(78, 82, 88),
@@ -169,6 +169,7 @@ local function terrain(origin: Vector3, random: Random)
 	-- worn paths), then macro zones from layered noise, drying to dead grass toward
 	-- the fog. Nothing here changes the height.
 	local function surface(x: number, z: number): Enum.Material
+		local grain = math.noise((x + seedX) / 6, (z + seedZ) / 6, 3.7)
 		local fromHearth = math.sqrt(x * x + z * z)
 		if Art.approved.Hearth and fromHearth < 5 + math.noise(x / 4, z / 4, 6.6) * 1.5 then
 			return Enum.Material.Basalt -- ash and scorch under the Hearth's fire (with the Hearth only)
@@ -176,9 +177,14 @@ local function terrain(origin: Vector3, random: Random)
 		if fromHearth < 14 then
 			return Enum.Material.Ground -- the trodden plaza where the Hearth will stand
 		end
-		local ragged = math.noise(x / 9, 0, 3.3) * 2.5
+		-- The road: compacted gravel with two dark wheel ruts along it, ragged at the verges.
+		local ragged = math.noise(x / 9, 0, 3.3) * 2.5 + math.noise(x / 27, 0, 8.1) * 4 + grain * 1.5
 		if math.abs(z) < roadHalf + ragged and math.abs(x) < HALF_WIDTH + 60 then
-			return Enum.Material.Mud
+			local sway = math.noise(x / 30, 0, 4.4) * 1.2
+			if math.abs(math.abs(z + sway) - 6) < 2 then
+				return Enum.Material.Mud
+			end
+			return Enum.Material.Ground
 		end
 		for _, centre in plots do
 			local dx, dz = math.abs(x - centre.x), math.abs(z - centre.z)
@@ -188,7 +194,8 @@ local function terrain(origin: Vector3, random: Random)
 				local worn = math.noise((x + seedX) / 16, (z + seedZ) / 16, 9.1)
 					+ (1 - math.max(dx, dz) / padHalf) * 0.45
 				-- No plain Grass on a plot: its wind blades would poke up through the decks.
-				if worn > 0.3 then
+				-- The grain breaks the border into islands of earth and litter.
+				if worn + grain * 0.3 > 0.42 then
 					return Enum.Material.Ground
 				end
 				return Enum.Material.LeafyGrass
@@ -197,8 +204,8 @@ local function terrain(origin: Vector3, random: Random)
 			local front = centre.z + centre.front * (GRID_STUDS / 2 + 4)
 			local lo, hi = math.min(front, 0), math.max(front, 0)
 			local wobble = math.noise(centre.x / 10, z / 14, 2.2) * 3
-			if z > lo and z < hi and math.abs(x - centre.x - wobble) < 3 then
-				return Enum.Material.Ground
+			if z > lo and z < hi and math.abs(x - centre.x - wobble) < 2.5 + grain then
+				return Enum.Material.Ground -- a footpath about two survivors wide
 			end
 		end
 		-- Out to the Trailhead along the road's line.
@@ -209,15 +216,14 @@ local function terrain(origin: Vector3, random: Random)
 		local zones = math.noise((x + seedX) / 70, (z + seedZ) / 70, 0.31)
 		local patches = math.noise((x + seedX) / 22, (z + seedZ) / 22, 1.73)
 		local speckle = math.noise((x + seedX) / 8, (z + seedZ) / 8, 4.11)
+		patches += grain * 0.15
 		if edge > 0 and patches * 0.5 + edge / 90 > 0.42 then
 			return Enum.Material.Sand -- dead, dry grass toward the fog
 		elseif edge > 15 and speckle > 0.5 then
 			return Enum.Material.Rock
 		elseif patches > 0.38 then
 			return Enum.Material.Ground
-		elseif patches < -0.55 and edge < 0 then
-			return Enum.Material.Mud
-		elseif zones > 0.18 then
+		elseif zones + grain * 0.12 > 0.18 then
 			return Enum.Material.LeafyGrass
 		end
 		return Enum.Material.Grass

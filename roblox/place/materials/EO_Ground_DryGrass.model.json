@@ -2,11 +2,11 @@
 	"className": "MaterialVariant",
 	"properties": {
 		"BaseMaterial": "Sand",
-		"ColorMap": "rbxassetid://129285398545363",
-		"NormalMap": "rbxassetid://99606135847119",
-		"RoughnessMap": "rbxassetid://89103216919423",
-		"MetalnessMap": "rbxassetid://121569052883613",
+		"ColorMap": "rbxassetid://105363648328368",
+		"NormalMap": "rbxassetid://110572912428330",
+		"RoughnessMap": "rbxassetid://91326898359169",
+		"MetalnessMap": "rbxassetid://99045737262501",
 		"MaterialPattern": "Organic",
-		"StudsPerTile": 14
+		"StudsPerTile": 10
 	}
 }

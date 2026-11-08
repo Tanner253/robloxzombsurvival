@@ -34,9 +34,9 @@ local SINK = 0.05 -- detail layers sit at least this far off any surface they me
 type Trim = { material: Enum.Material, color: Color3, post: "log" | "box", postSize: number }
 
 local TRIMS: { Trim } = {
-	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "log", postSize = 1.7 },
-	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 1.3 },
-	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 1.5 },
+	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "log", postSize = 1.15 },
+	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 0.95 },
+	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 1.1 },
 }
 local CAP = { Color3.fromRGB(62, 44, 32), Color3.fromRGB(70, 72, 76), Color3.fromRGB(70, 72, 76) }
 local CAP_MATERIAL = { Enum.Material.Wood, Enum.Material.DiamondPlate, Enum.Material.DiamondPlate }

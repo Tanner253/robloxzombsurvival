@@ -85,6 +85,14 @@ function Models.kit(names: { string }): Model?
 			if found and found:IsA("Model") then
 				local copy = found:Clone()
 				prepare(copy)
+				local tint = Art.tints[name]
+				if tint then
+					for _, look in copy:GetDescendants() do
+						if look:IsA("SurfaceAppearance") then
+							look.Color = tint
+						end
+					end
+				end
 				return copy
 			end
 		end
