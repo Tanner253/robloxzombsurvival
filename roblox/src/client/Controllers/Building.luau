@@ -354,7 +354,9 @@ local function fadeWalls(hidden: boolean)
 end
 
 -- Furniture as translucent cyan ghosts while building (#28), so floors and walls read
--- clearly and every object shows where it stands.
+-- clearly and every object shows where it stands. The cyan is a Highlight over the solid
+-- model: Roblox draws no Highlight over faded parts (S1b found the ghosts plain grey), so
+-- the parts stay solid.
 local function ghostFurniture(on: boolean)
 	furnitureGhosted = on
 	local info = plot()
@@ -366,18 +368,13 @@ local function ghostFurniture(on: boolean)
 		if model:GetAttribute("Layer") ~= "object" then
 			continue
 		end
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				part.LocalTransparencyModifier = if on then 0.55 else 0
-			end
-		end
 		local glow = model:FindFirstChild("EO_BuildGhost")
 		if on and glow == nil then
 			local made = Instance.new("Highlight")
 			made.Name = "EO_BuildGhost"
 			made.FillColor = FURNITURE_GHOST
 			made.OutlineColor = FURNITURE_GHOST
-			made.FillTransparency = 0.55
+			made.FillTransparency = 0.4
 			made.OutlineTransparency = 0.3
 			made.DepthMode = Enum.HighlightDepthMode.Occluded
 			made.Parent = model

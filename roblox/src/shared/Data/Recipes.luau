@@ -18,6 +18,13 @@ local function quest(questId: string): Types.UnlockGate
 	return { kind = "quest", questId = questId }
 end
 
+-- v0.1 launch set (docs/MVP_LAUNCH.md): Campfire, Woodworking Bench and Workbench. The
+-- Stonecutter and Smelter wait on their models grading A (Art.pieces), so stone blocks
+-- and scrap plates are made at the Workbench until then; point these back at
+-- "station.stonecutter" and "station.smelter" when the models pass.
+local STONE_STATION: Types.StationId = "station.workbench"
+local PLATE_STATION: Types.StationId = "station.workbench"
+
 local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	-- Hand-crafted: the starter set ----------------------------------------------------
 	["recipe.stone_hatchet"] = {
@@ -167,22 +174,22 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		unlock = quest("quest.claim_the_ground"),
 	},
 
-	-- Stonecutter -------------------------------------------------------------------------
+	-- Stonecutter (at the Workbench for v0.1: STONE_STATION) ---------------------------------
 	["recipe.stone_block"] = {
 		id = "recipe.stone_block",
 		inputs = { { itemId = "item.stone", count = 2 } },
 		outputs = { { itemId = "item.stone_block", count = 1 } },
-		stationId = "station.stonecutter",
+		stationId = STONE_STATION,
 		craftSeconds = 4 * 60,
 		unlock = quest("quest.a_place_to_work"),
 	},
 
-	-- Smelter ------------------------------------------------------------------------------
+	-- Smelter (at the Workbench for v0.1: PLATE_STATION) -------------------------------------
 	["recipe.scrap_plate"] = {
 		id = "recipe.scrap_plate",
 		inputs = { { itemId = "item.scrap", count = 3 } },
 		outputs = { { itemId = "item.scrap_plate", count = 1 } },
-		stationId = "station.smelter",
+		stationId = PLATE_STATION,
 		craftSeconds = 4 * 60,
 		unlock = quest("quest.into_the_fog"),
 	},

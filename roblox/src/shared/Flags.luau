@@ -35,7 +35,9 @@ Flags.DEFAULTS = {
 	-- The converter screen is the only one that matches the converter stations, so it
 	-- is on; Phase B verifies it beside rec4_05.
 	ldoeStations = true,
-	ldoeBuild = false,
+	-- On since Phase B (d): build mode checked beside rec2's build frames (grid, tray,
+	-- cyan furniture ghosts, per-piece actions), gate at zero.
+	ldoeBuild = true,
 	vehicleFrame = false,
 	fogRuns = (Tuning.features :: any).fogRuns == true,
 } :: { [string]: boolean }

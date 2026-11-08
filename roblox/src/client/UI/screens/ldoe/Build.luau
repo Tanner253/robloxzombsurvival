@@ -13,11 +13,11 @@
 	- The cursor hint sits above the tray.
 ]]
 
-local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
-local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
@@ -101,7 +101,7 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 	local unlocked = BuildRules.isUnlocked(def, progress)
 	local lock = if unlocked
 		then nil
-		else Unlocks.text(def.unlock, { items = Content.Items :: any, quests = Content.Quests :: any })
+		else Unlocks.short(def.unlock, { items = Content.Items :: any, quests = Content.Quests :: any })
 	local limit = BuildRules.limitOf(def.id, Content.BuildPieces)
 	local installed = if props.layout then BuildRules.countChain(props.layout, def.id, Content.BuildPieces) else 0
 	local placeable = def.kind == "station" or def.kind == "storage"
@@ -206,12 +206,43 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 	})
 end
 
--- The floating actions on a selected placed piece (#27), on a billboard over it.
+-- The floating actions on a selected placed piece (#27): a row that follows the piece on
+-- screen, just above its top. It lives in the App (screen space), not on a BillboardGui:
+-- S1b found AlwaysOnTop billboards don't draw in Studio's captures, and screen space also
+-- keeps the row inside the UI gate and the safe area.
 local function PieceActions(props: { uid: string, layout: any, pooled: any })
 	local model = Building.pieceModel(props.uid)
 	local piece = props.layout and props.layout.pieces[props.uid]
-	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
-	if model == nil or piece == nil or playerGui == nil then
+	local holder = React.useRef(nil :: Frame?)
+	local position, setPosition = React.useBinding(UDim2.fromScale(-1, -1))
+	React.useEffect(function()
+		local target = model
+		if target == nil then
+			return function() end
+		end
+		local connection = RunService.RenderStepped:Connect(function()
+			local camera = workspace.CurrentCamera
+			local frame = holder.current
+			if camera == nil or frame == nil or target.Parent == nil then
+				return
+			end
+			local box, extents = target:GetBoundingBox()
+			local point, onScreen = camera:WorldToViewportPoint(box.Position + Vector3.new(0, extents.Y / 2 + 1, 0))
+			if not onScreen or frame.AbsoluteSize.X <= 0 then
+				setPosition(UDim2.fromScale(-1, -1))
+				return
+			end
+			-- Viewport pixels -> this frame's share (GUI space starts below the top-bar inset).
+			local inset = GuiService:GetGuiInset()
+			local gui = Vector2.new(point.X, point.Y) - inset
+			local share = (gui - frame.AbsolutePosition) / frame.AbsoluteSize
+			setPosition(UDim2.fromScale(share.X, share.Y))
+		end)
+		return function()
+			connection:Disconnect()
+		end
+	end, { model })
+	if model == nil or piece == nil then
 		return nil
 	end
 	local def = Content.BuildPieces[piece.pieceId]
@@ -277,25 +308,22 @@ local function PieceActions(props: { uid: string, layout: any, pooled: any })
 			},
 		}),
 	}
-	return ReactRoblox.createPortal({
-		EO_PieceActions = e("BillboardGui", {
-			Adornee = model,
-			Size = UDim2.fromOffset(280, 64),
-			StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y + 1.5, 0),
-			AlwaysOnTop = true,
-			LightInfluence = 0,
-			Active = true,
-			ResetOnSpawn = false,
-		}, {
-			Row = e(Layout.Stack, {
-				direction = "row",
-				gap = 8,
-				alignX = Enum.HorizontalAlignment.Center,
-				alignY = Enum.VerticalAlignment.Center,
-				children = buttons,
-			}),
+	return e("Frame", {
+		ref = holder,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+	}, {
+		Row = e(Layout.Stack, {
+			direction = "row",
+			gap = 8,
+			alignX = Enum.HorizontalAlignment.Center,
+			alignY = Enum.VerticalAlignment.Center,
+			size = UDim2.fromOffset(280, 64),
+			position = position,
+			anchorPoint = Vector2.new(0.5, 1),
+			children = buttons,
 		}),
-	}, playerGui)
+	})
 end
 
 local function Build()
