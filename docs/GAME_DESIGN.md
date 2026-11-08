@@ -107,7 +107,9 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - WASD to move, the mouse to aim, left click to attack or gather, E to interact, Shift to sprint
 - Q to auto-gather: free on the home plot, a Shop lever on Fog Runs
 - Space to **jump** (a short hop), C for a **dodge roll** (combat, slice 2)
-- a 1–9 hotbar
+- **Two weapon slots** (LDoE-style; no 1–9 hotbar): 1 and 2 select, and F or the on-screen swap button swaps. The active slot shows the weapon icon and ammo count. Tools never take a slot, because gathering auto-equips the right tool from your bag.
+- **H, or the meds button,** uses your best healing item. It shows the count.
+- The mouse wheel zooms the camera.
 - Tab for inventory, B for build mode, M for the Fog map
 
 **Jumping yes, climbing no.** The developer wants to keep jumping, which Roblox players expect. Walls still have to hold, so nobody gets over a wall, onto a rock or up a tree:
@@ -118,7 +120,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - **Parkour where we want it:** Fog Run locations have hand-placed **vault ledges, rooftops and gaps** that you mantle with Space. They make shortcuts, hidden loot spots and escape routes. Bases never get them.
 - **Server checks:** raids also validate on the server that nobody is inside an enclosed base without a breach, because exploiters can ignore client movement rules.
 
-**Mobile controls:** a virtual joystick on the left, and action, attack, jump, dodge, sprint and auto buttons on the right.
+**Mobile controls:** a virtual joystick on the left, and action, attack, weapon swap, meds, jump, dodge, sprint and auto buttons on the right.
 
 **Gamepad:** later.
 

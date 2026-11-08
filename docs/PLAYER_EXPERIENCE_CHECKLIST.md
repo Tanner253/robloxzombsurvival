@@ -87,7 +87,7 @@ Nothing player-facing is done until it has all ten:
 | 4.6 | Storage panel side by side with the inventory, with Take all and Put all | rec2 | S1 |
 | 4.7 | A sort button. Full-inventory feedback (a red flash and a toast). | — | S1 |
 | 4.8 | Premium currency balance with "+" on every inventory screen (opens the shop) | rec1 lever 10 | S1 (display) → S3 (shop) |
-| 4.9 | Hotbar 1–9, the mouse wheel cycles, the selected slot is highlighted, durability and ammo counts show, quick-use consumables | Weapon swap (rec6) | S1 (ammo S2) |
+| 4.9 | **LDoE-style hands, no hotbar:** two weapon slots, filled from the equipment paper-doll. The active one sits big on the right of the HUD with its icon, durability and ammo count. 1 and 2 select, F or the swap button swaps, with a swap animation. A **meds button** (H) shows the count and uses the best healing item. Tools never occupy a slot: gathering auto-equips the right one from your bag. The mouse wheel is reserved for zoom. | rec1, rec6, rec8 HUD | S1 (ammo S2) |
 | 4.10 | Open and close tweens, plus open, close, hover, click, error and pickup sounds. Esc closes. Tab toggles. | — | S1 |
 | 4.11 | Inventory action bar: Equip/Use, Split, sort, and **destroy** (trash, with confirmation). Storage bar: Take all, sort, Put all. | rec8 | S1 |
 | 4.12 | **Storage upgrade in the panel:** the storage header has an upgrade button showing slot capacity now → next and the material cost (have/need). Upgrading happens in place without rebuilding. | rec8 "Storage upgrade" | S1 |
