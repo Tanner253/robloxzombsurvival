@@ -13,6 +13,8 @@ The orchestrator wrote this on 2026-11-07. It's ready to hand to a fresh worker 
 - the `Domain/*` public APIs
 - `docs/reference/ldoe-recordings/NOTES.md`, for interaction flow
 
+**Binding:** every row owned by **S1** in `docs/PLAYER_EXPERIENCE_CHECKLIST.md` (added 2026-11-08), plus the feature-feel rule in its §0.
+
 **Quality bar:** "the game should be impressive." No default-looking UI, and no placeholder parts where kit art exists. Tweened panels, reward pops, sounds (placeholder IDs marked), snap animations.
 
 ## Scope

@@ -20,14 +20,15 @@ This is the source of truth that worker sessions build against. Reference materi
    - At night the Fog advances, and Hollow waves hit whatever sits in the dark. Nights play like **light tower defense**: layout, lights, traps and walls decide whether you hold. Roblox players love tower defense.
    - Fuel is a satisfying everyday sink, constantly gathered.
 2. **Fog Runs (push your luck).**
-   - Expeditions take 8–15 minutes, solo or with players in your server.
+   - Expeditions take 8–15 minutes in **shared lobbies** of 8–12 survivors drawn from across servers. Depending on the fog tier, you can team up, trade or fight. See "Fog Runs: shared lobbies and PvP".
    - A visible **Fog meter rises the longer you stay.** Loot gets better and the Hollow get stronger. **Extract before it closes in,** or drop your pack.
    - Location layouts and modifiers vary each run, with weekly modifiers on top. Every run plays differently.
 3. **Survivors you rescue.**
    - Survivors are found on runs as escort events, never sold as a gacha. They move into your outpost and **staff stations, producing while you're offline.**
    - Each has traits and levels, and there's a collection log. This is the idle and collection layer that keeps people checking in.
-4. **The Neighbourhood.**
+4. **The Neighbourhood and Crews.**
    - Plots sit side by side, so players see, visit and help each other.
+   - **Crews:** up to 4 friends share one outpost and build it together. See "Crews: build together".
    - A **server-wide Blood Moon** each week has everyone defending at once, with a leaderboard.
    - Then raids (M2) and guilds holding radio towers for server buffs (M3).
 
@@ -90,7 +91,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 | Pockets plus backpack inventory, storage boxes, recycler with a skill level | The same: limited pockets plus backpack slots that grow with better bags; storage crates at base; a **Recycler** with a skill that raises the chance of rare outputs. |
 | Workbenches with craft timers; tier-gated recipes | Stations: Workbench, Smelter, Campfire/Kitchen, Recycler, Ammo Press, Garden, Water Collector. Each has timers and unlocks by Hearth or player level. |
 | Durability on tools, weapons and armor | Kept, with repair at the workbench. |
-| Death drops your inventory at the location | Kept: your backpack drops where you fell and you can go back for it. Equipped gear is kept. |
+| Death drops your inventory at the location | Kept: your backpack drops where you fell and you can go back for it while the lobby is open. Equipped gear is kept, except in Black fog, which is full loot apart from the secure pouch. |
 | Long build goals (chopper, ATV, motorcycle from parts) | A **vehicle chain** (scooter, truck, then something bigger), each built from rare parts found deep in the fog. The parts are also sold. |
 | Companions (dog) | A companion animal that helps in combat and finds loot. |
 | Random "unknown box" chests | Loot crates **earned in play** (event and location rewards). If we ever sell them, the odds must be published (a Roblox rule). |
@@ -104,14 +105,32 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 
 **PC controls:**
 - WASD to move, the mouse to aim, left click to attack or gather, E to interact, Shift to sprint
+- Q to auto-gather: free on the home plot, a Shop lever on Fog Runs
+- Space to **jump** (a short hop), C for a **dodge roll** (combat, slice 2)
 - a 1–9 hotbar
 - Tab for inventory, B for build mode, M for the Fog map
 
-**Mobile controls:** a virtual joystick on the left, and action, attack, sprint and auto buttons on the right.
+**Jumping yes, climbing no.** The developer wants to keep jumping, which Roblox players expect. Walls still have to hold, so nobody gets over a wall, onto a rock or up a tree:
+- **A short hop:** jump height is tuned well below the lowest wall, with a brief cooldown so nobody bunny-hops in fights.
+- **No climbing:** the Humanoid's Climbing state is off, and the steepest walkable slope is limited, so rock faces and tree trunks can't be scaled.
+- **Collision:** tree canopies don't collide, and rocks and props use simple shapes that can't be stood on.
+- **Building rule:** every wall and gate is taller than the highest point a player can reach, standing on anything that can be placed outside a base. Raiders can't place objects, only raid tools.
+- **Parkour where we want it:** Fog Run locations have hand-placed **vault ledges, rooftops and gaps** that you mantle with Space. They make shortcuts, hidden loot spots and escape routes. Bases never get them.
+- **Server checks:** raids also validate on the server that nobody is inside an enclosed base without a breach, because exploiters can ignore client movement rules.
+
+**Mobile controls:** a virtual joystick on the left, and action, attack, jump, dodge, sprint and auto buttons on the right.
 
 **Gamepad:** later.
 
 ## The Fog map: neighbours, raids, guilds
+
+**Leaving home: walk off the edge into the Fog.** This is the LDoE feel, and the developer asked for it.
+- The Neighbourhood (6–8 plots in one server) is ringed by a wall of Fog.
+- Walking into that edge anywhere starts a short fog-in: the screen fogs, footsteps and ambience change, and after about 1.5 s the **Fog map** opens. Backing out during the fog-in cancels it.
+- The **Trailhead** at the end of the Neighbourhood road is the main exit. It's a lit signpost and gate, and the natural place to group up for co-op runs.
+- Closing the map leaves you standing at the edge, so a separate confirmation dialog isn't needed.
+- M opens the map anywhere **to plan** (timers, loot previews, neighbours). Travel starts only from the edge or the Trailhead.
+- Leaving a location depends on its tier. In Light fog, walk out of any edge. In Dense and Black fog, you leave only through **extraction points** (see "Fog Runs: shared lobbies and PvP").
 
 **What the map shows:**
 - Your outpost, loot locations, rotating events and Vaults.
@@ -142,6 +161,94 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - A raid locks the target base in MemoryStore, runs in a reserved server, and applies loot changes in one transaction.
 - That works whether the defender is online or offline, which solves the "nobody raids, nobody gets raided" problem.
 
+## Crews: build together
+
+Roblox is built around playing with friends, and the big Roblox building and survival games let friends build together. LDoE never had shared bases; we do. That's a "better than LDoE" multiplayer win, and friend invites are free growth.
+
+**How it works:**
+- A **Crew** is 2–4 players sharing **one outpost**: one Hearth, one plot, shared storage crates and stations. Anyone in the crew can queue station jobs and collect them.
+- **Joining** is an invite from the outpost owner. Your own outpost is packed into storage crates that you take with you, so nothing is lost.
+- **Each member keeps a personal locked stash.** Purchases still go there.
+- Crews always play in the same Neighbourhood server. Joining sends you to the server where your crew's outpost is loaded.
+
+**Roles (anti-grief):**
+- The **owner** can invite, kick and promote.
+- **Builders** can place and upgrade.
+- **Demolish** is limited to the owner and whoever placed the piece.
+- **Shared storage** keeps an access log.
+
+**Leaving:**
+- You keep your personal stash and start a fresh outpost with a starter kit.
+- The outpost and its shared storage stay with the crew.
+
+**Raids:**
+- A crew outpost is matched by its combined power.
+- Online crewmates all get the defense alert.
+- The share of raidable loot is the same as for anyone else.
+
+**Without a crew:** you can still team up while living in separate bases. Party up at the Trailhead for co-op Fog Runs, defend the Blood Moon together, trade, and visit or help neighbours. Guilds (M3) are the large-group layer, with 20–50 players and districts.
+
+**Monetization:**
+- **gifting** packs to crewmates and friends, a major Roblox lever
+- crew cosmetics (banner, Hearth flame)
+- crew-wide storage expansions that any member can buy
+
+The usual guardrails still apply.
+
+**Rollout:**
+- **M1 slice 3:** crews.
+- **Already in M1:** Neighbourhood visits, Trailhead parties and the co-op Blood Moon.
+
+## Fog Runs: shared lobbies and PvP
+
+The developer asked for this: a run should feel like a Tarkov lobby. Strangers meet, and each can team up and loot in peace or turn on the other for their loot. It has to be "healthy and balanced, so it feels real and random." The **fog tier sets the rules**, so every player picks their own risk.
+
+**Lobbies:**
+- Each location run is its own server holding **8–12 players**, matched from across all servers by **power band** (player level plus the gear score of the loadout). Parties queue together.
+- The **Fog meter is shared by the whole lobby** and acts as its clock. Loot gets better and the Hollow get stronger as it rises. When it closes in (about 15 min), anyone still inside is lost to the Fog.
+- That pulls everyone toward the extraction points late in the run, which is where the drama happens.
+- New players can join a lobby only during its first 3 minutes.
+- The Hollow are in every lobby, and gunfire noise draws them. A loud fight gets **third-partied by the horde**, which makes ambushes a gamble rather than a sure thing.
+
+**Rules by fog tier:**
+
+| | **Light** | **Dense** | **Black** |
+|---|---|---|---|
+| Entry | Anyone | Player level 8+ | Player level 15+ |
+| PvP | **Off** (co-op and trading only) | **On.** Attacking a non-hostile player marks you **Hostile** for 3 min (red outline, shown on everyone's minimap) | **On**, with no marks. Anything goes. |
+| Loot | **Personal:** each player gets their own container rolls | **Shared and contested** | Shared, best tier: Vault keycard fragments, rare blueprints |
+| On death | Your backpack drops. **Re-enter the same lobby** while it's open (costs Energy), or have a teammate carry it out. | Backpack drops and **anyone can loot it** | **Full loot:** everything you carry drops, equipped gear included, **except your secure pouch** |
+| Leaving | Any edge | 2–3 extraction points; one is closed at random each run | 2 extraction points, plus a **flare extract**: fire a flare and survive 30 s while everyone sees it |
+
+**Social tools:**
+- **Party up** at the Trailhead before a run, or queue with friends.
+- **Truce ("show your light"):**
+  - Raise a lit flare to offer a truce, and the other player accepts by raising theirs. That forms a party for the rest of the run: no friendly fire, and shared credit for Hollow kills.
+  - **Betrayal is possible but never instant.** Breaking a truce takes a 2 s hold that alerts your partner ("X lowered their light"), and damage switches on 3 s later. In Dense fog the betrayer also becomes Hostile and is tagged **Oathbreaker** for the run.
+- **Downed state** (in PvP tiers): at zero HP you're downed and can crawl. A teammate can revive you, or an enemy can finish you.
+- **Bounties:** killing non-hostile players while Hostile posts a bounty on you, and anyone who kills you in a Dense or Black run claims it. This is the same revenge and bounty system raids use.
+
+**Fairness rules:**
+- **Light fog is always PvE and fully viable.** Every item has a PvE route (Light runs, quests, Vaults). PvP tiers are faster and richer, but never required.
+- **Losses are bounded:** you only risk what you carry in. Your base, storage and locked stash are never at stake on a run. Before a Dense or Black run, the loadout screen shows exactly what's at risk.
+- **Secure pouch:** 2 slots, rising to 4 through progression. It's **never sold**.
+- **Spawn protection:** 10 s, and players spawn spread apart.
+- **Power-band matchmaking:** a veteran can't drop into a lobby of newcomers.
+- **Cross-platform fairness:** touch players get aim assist in PvP, tuned with telemetry so neither PC nor mobile dominates. Time-to-kill is longer than Tarkov's, with no one-shots from full HP, so a fight is a fight and not a coin flip.
+
+**Monetization:**
+- PvP losses create real demand for gear, ammo and weapon-part bundles. These are tier-capped, as with all paid weapons.
+- **Never sold:** PvP protection, secure-pouch size, extraction or matchmaking advantages.
+
+**Roblox implementation:**
+- Each location is its own place in the universe, and lobbies are reserved servers.
+- A MemoryStore queue per location and power band forms lobbies, and parties teleport together.
+- The player's ProfileStore session moves with them, so extracted loot saves directly in the run server.
+
+**Rollout:**
+1. **M1:** cross-server shared lobbies from day one (this is architecture, so it isn't bolted on later). PvE in every tier, with extraction points, Trailhead parties, the lobby-wide Fog meter and re-entry to recover a backpack.
+2. **M2, the PvP milestone:** PvP in Dense and Black fog, Hostile marks, truces and betrayal, downed and finishing, bounties, the secure pouch and touch aim-assist tuning. It ships together with raids and the standard firearms, so PvP balance is tuned once against the real arsenal.
+
 ## Core loop
 
 | Scale | Loop |
@@ -160,9 +267,47 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 - **Material tiers** for weapons, armor and building pieces: Wood → Scrap Metal → Reinforced.
 - **Pacing:** grindy by design, but each tier should land in hours to days, not weeks. Tune with retention data.
 
+## Combat and the arsenal
+
+LDoE is the standard here: a long weapon ladder, from improvised melee to modded firearms, is the backbone of progression and of the shop. We match its breadth and add three things it lacks:
+- **Noise.** Every gunshot has a noise radius that pulls the Hollow toward you. Guns are a push-your-luck choice, not a straight upgrade.
+- **Light.** Flares and fire are weapons, because the Hollow fear light.
+- **A dodge roll.**
+
+**Weapon classes:**
+
+| Class | Role | Ladder (our own names, no real-world brands) |
+|---|---|---|
+| **Melee** | Silent, costs no ammo, durability only | Club → Scrapblade → Fire Axe / Machete → Rebar Maul (heavy, staggers) → Reinforced variants |
+| **Bows** | Silent ranged; cheap craftable arrows | Reed Shortbow → Recurve Bow → Crossbow |
+| **Firearms: improvised** | First guns, loud and unreliable | Pipe Pistol (single shot), Scrap Shotgun (two barrels) |
+| **Firearms: standard** | The mid-game workhorses | Service Revolver, Semi-auto Pistol, Pump Shotgun, Hunting Rifle, SMG |
+| **Firearms: advanced** | Late game, from Vaults and blueprints | Carbine (assault rifle), Marksman Rifle, Drum Shotgun |
+| **Light weapons** | Signature: burn and repel the Hollow, light the area for a while | Flare Pistol, Ember Thrower (burns Hearth fuel), incendiary rounds |
+| **Throwables** | Crowd control and breaching | Molotov, flashbang, breach charge (raids) |
+
+**Supporting systems:**
+- **Ammo Press:** crafts 4 ammo types (Light rounds, Shells, Rifle rounds, Flares) from Rusted Scrap plus Blackpowder. Ammo is the steady resource sink.
+- **Weapon parts and blueprints:** guns are crafted at Workbench tier 2–3 from parts found deep in the Fog and in Vaults. Firearms are also found in high-tier containers.
+- **Durability and repair:** at the Workbench.
+- **Mods** (M2–M3): suppressor (cuts noise, which matters a lot on Fog Runs), scope, extended magazine, stock. The rarest mod blueprints are Vault drops.
+- **Rating:** guns are fine at Mild. The Hollow dissolve into ash with no blood, and downed players collapse without gore.
+
+**Monetization:**
+- weapon-part packs, ammo bundles and weapon skins
+- **Guardrail:** paid packs only contain guns at or below the buyer's unlocked tier, so money speeds up the ladder but never skips it. That keeps power-band raids fair.
+
+**Rollout:**
+1. **M1 slice 2:** melee, bows, Pipe Pistol, Scrap Shotgun and Flare Pistol; the Ammo Press with Light rounds, Shells and Flares; noise; dodge roll.
+2. **M2 (raids):** the standard firearms, the suppressor mod and breach charges.
+3. **M3:** advanced firearms, the Ember Thrower, the full mod system and Vault-exclusive weapons.
+4. **Seasons:** each one adds 1–2 weapons.
+
 ## Building
 
 - Grid **foundations**; **walls, doorways, doors, gates and windows** snap to cell edges. Build menu tabs: Foundations, Walls, Doors, Windows, Stations, Storage, Defense, Decor.
+- Structure (foundations, walls, doors) snaps to the cell grid and **meshes seamlessly**. Corner posts appear where walls meet.
+- **Furniture** (stations, storage, decor) is placed freely on foundations on a ¼-cell sub-grid. It snaps flush against walls and rotates in 90° steps, so bases can be laid out like real rooms.
 - Upgrade pieces in place, and HP is shown. Wall tier cannot exceed floor tier. Placement is touch first: tap a cell, the piece snaps, confirm or cancel.
 - Defenses: spikes, traps, turrets, and lights, which matter against the Fog at night.
 - **Night assaults** on your outpost happen while you're online (escalating, with a weekly Blood Moon). Offline plots are never attacked.
@@ -204,6 +349,7 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 - **Raid-economy rules:**
   - Purchased resources and items go into the **locked stash**, so nobody pays and then gets robbed.
   - **Never sell shields or raid immunity.** Otherwise heavy spenders hide forever and the raid ecosystem dies.
+  - Likewise, never sell PvP protection, secure-pouch size, or extraction or matchmaking advantages on Fog Runs.
   - Matchmaking by power band keeps paid power from steamrolling weaker players.
 
 ## Platform requirements
@@ -218,26 +364,29 @@ Rewarded ads are only shown to players aged 13+ (a Roblox rule).
 **In scope:**
 - Home plot with grid building in 3 tiers
 - The Fog map with Run/Walk and Energy
-- 3 locations (one per fog tier) plus 1 rotating event location
+- 3 locations (one per fog tier) plus 1 rotating event location, run as **cross-server shared lobbies** (PvE in M1) with extraction points and the lobby-wide Fog meter
 - 5–6 resources
-- About 15 craftables
-- Workbench, Campfire and Recycler with timers
+- About 15 craftables, plus the first weapons: melee, bows, Pipe Pistol, Scrap Shotgun and Flare Pistol (see "Combat and the arsenal")
+- Workbench, Campfire, Recycler and Ammo Press with timers
 - Pockets/backpack inventory and storage crates
 - Hunger and thirst
 - 3 Hollow types
 - Death drop
+- **Crews:** 2–4 friends share one outpost and build together
 - Quest tracker with a starter questline
 - DataStore saving
 - A shop with 3–4 products (resource pack, Energy refill, backpack upgrade, starter offer)
 - The full UI kit and HUD
 
-**Milestone 2 (raids, straight after the MVP):**
+**Milestone 2 (raids and PvP, straight after the MVP):**
+- Fog Run PvP in Dense and Black fog: Hostile marks, truces and betrayal, downed and finishing, bounties, the secure pouch
 - Neighbour markers on the Fog map (level, defense, loot tier, shield)
 - Raid tools and breach costs
+- The standard firearms and the suppressor mod
 - Raids on offline bases, with raidable storage versus the locked stash
 - Shields, new-player protection and a raid log with revenge
 
-**Milestone 3:** guilds (districts, defense calls, control points), live defense, Vaults.
+**Milestone 3:** guilds (districts, defense calls, control points), live defense, Vaults, advanced firearms and the full mod system.
 
 **Later:** vehicles, the companion, seasons.
 

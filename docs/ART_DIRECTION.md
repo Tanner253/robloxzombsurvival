@@ -33,6 +33,11 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 **Test for every milestone:** a 15-second clip plus a screenshot set that would make a strong Roblox thumbnail or trailer shot. If it wouldn't, it isn't done.
 
+**LDoE side-by-side gate:** every UI screen and world shot is placed next to the matching frame in `docs/reference/ldoe-recordings/`. Each visible gap is listed and fixed before reporting: crispness, contrast, readability, density, iconography and juice. UI must render pixel-crisp:
+- no content left inside CanvasGroups at rest
+- no fractional scaling
+- near-opaque panels over the 3D scene
+
 ## 2. Shape language
 
 - **Friendly / safe** (survivors, outposts, the Hearth): rounded-square shapes, sturdy, slightly oversized props (chunky lanterns, fat bolts, thick planks).
@@ -56,6 +61,11 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 - Use one MaterialVariant library, shared by everything: wood planks, scrap sheet metal, rusted steel, concrete, cloth, glass, asphalt, dirt, moss.
 - Keep **texel density** consistent across assets. Avoid photographic detail; use soft, hand-painted-looking surface detail, edge wear and grime.
+- **Ground and terrain: never a single tiled material.** The developer flagged flat, repetitive ground on 2026-11-08. Every area needs all three layers of variation:
+  1. **Macro:** Terrain with noise-blended material zones (mud, grass, leafy grass, rock, road), palette-locked MaterialVariants with color and value shifts, and gently rolling land outside the flat building plots.
+  2. **Mid:** wear that tells a story. Paths worn between points of use, cracked roads with puddles, scorched ash near fires, dead grey grass toward the Fog.
+  3. **Micro:** scatter (grass tufts, pebbles, leaves, roots, scrap, planks) plus decals (stains, cracks, tire tracks). Wind-animated grass via Terrain decoration.
+  - **Gate:** at the gameplay camera, a viewer can't spot a repeating pattern by day or by night.
 - **Building tiers must read instantly by silhouette and material:**
   - **Wood:** plank lattice and rope.
   - **Scrap metal:** patched corrugated sheets and bolts.
@@ -63,7 +73,7 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 ## 5. Lighting and atmosphere
 
-- `Lighting.Technology = Future`, with Atmosphere and custom sky.
+- `Lighting.LightingStyle = Realistic` with `PrioritizeLightingQuality` on (this replaced `Technology = Future` in current Studio), plus Atmosphere and a custom sky. Exposure must stay stable: no jarring brightness shifts when the camera moves.
 - **Day:** hazy overcast, low warm sun, light fog at the edges.
 - **Night:** deep blue ambient, heavy fog. Pools of warm light are the only safety, and gameplay depends on this.
 - **Post-processing:** ColorCorrection (slightly desaturated, cool shadows, warm highlights), subtle Bloom (light sources only), SunRays by day. Use depth of field only in menus.
@@ -85,6 +95,10 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - downed, revive, emotes
 
   Never mix in default Roblox animations or free-model animations.
+- **Gear is always visible:**
+  - The selected tool or weapon is held in the hand.
+  - Gathering swaps to the right tool, plays the chop, mine or pickup animation with hit VFX and sound, then swaps back.
+  - Other carried weapons and tools are holstered on the back or belt.
 
 ## 7. VFX and audio
 
@@ -102,7 +116,10 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - 2 px stroke in warm gray, with an ember accent for primary actions
   - a soft drop shadow
 - **Font:** Builder Sans (ExtraBold for headers, Medium for body). Use no other fonts.
-- **Icons:** one style, chunky with soft shading, a 2 px dark outline and a consistent light direction (top-left).
+- **Icons:** painted, realistic-leaning item renders in one style, with no emoji, flat symbols or default glyphs.
+  - Same 3/4 angle, light from the top-left, soft shading, a subtle dark outline and a transparent background.
+  - Weathered materials that match the toon-PBR world.
+  - Lock the style with 3 sample icons before generating a batch.
 - **PC first, mobile supported:**
   - Design layouts for 16:9 desktop, with keybind hints on buttons and hover states.
   - Every screen also needs a touch layout: tap targets at least 44 pt, thumb zones respected, HUD in the corners, and no hover-only information.
