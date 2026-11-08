@@ -7,6 +7,7 @@
 	- bottom right: action buttons with keybind hints (E, Tab, B; Shift on touch)
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
@@ -15,6 +16,9 @@ local Art = require(ReplicatedStorage.Shared.Art)
 local EnergyMath = require(ReplicatedStorage.Shared.Domain.Energy)
 local Clock = require(ReplicatedStorage.Shared.Clock)
 local Progression = require(ReplicatedStorage.Shared.Domain.Progression)
+local Crafting = require(ReplicatedStorage.Shared.Domain.Crafting)
+local DevSpeed = require(ReplicatedStorage.Shared.DevSpeed)
+local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Actions = require("../../Actions")
 local Theme = require("../theme")
 local hooks = require("../hooks")
@@ -261,15 +265,58 @@ local function objectiveText(objective: any, inventory: any): (string, number, n
 	return objective.kind, 0, 1
 end
 
+local function foldButton(collapsed: boolean): any
+	return e("TextButton", {
+		Size = UDim2.fromOffset(32, 28),
+		Position = UDim2.fromScale(1, 0),
+		AnchorPoint = Vector2.new(1, 0),
+		BackgroundColor3 = Theme.colors.panelRaised,
+		FontFace = Theme.fonts.header,
+		Text = if collapsed then "»" else "«",
+		TextSize = Theme.textSize.section,
+		TextColor3 = Theme.colors.text,
+		ZIndex = 3,
+		[React.Event.Activated] = Actions.toggleQuests,
+	}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) })
+end
+
 local function QuestTracker()
+	local ui = hooks.useUi()
 	local inventory = hooks.useSection("inventory")
 	local quest = starterQuest()
 	if quest == nil then
 		return nil
 	end
+	-- Folded to one line with the « button (8.9): the quest name and how far along it is.
+	if ui.questCollapsed then
+		local done = 0
+		for _, objective in quest.objectives do
+			local _, have, need = objectiveText(objective, inventory)
+			done += if have >= need then 1 else 0
+		end
+		return card({
+			size = UDim2.fromOffset(300, 46),
+			position = UDim2.fromOffset(16, 146),
+			children = {
+				Name = e(Label, {
+					text = `{quest.name}  {done}/{#quest.objectives}`,
+					style = "section",
+					size = UDim2.new(1, -40, 0, 28),
+				}),
+				Fold = foldButton(true),
+			},
+		})
+	end
 	local rows: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
-		Header = e(Label, { text = "SURVIVOR'S PATH", style = "section", tone = "accent", layoutOrder = 0 }),
+		-- The header row carries the « fold button (8.9); the list layout places rows only.
+		Header = e("Frame", { Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, LayoutOrder = 0 }, {
+			Title = e(
+				Label,
+				{ text = "SURVIVOR'S PATH", style = "section", tone = "accent", size = UDim2.new(1, -40, 1, 0) }
+			),
+			Fold = foldButton(false),
+		}),
 		Name = e(Label, { text = quest.name, style = "title", layoutOrder = 1 }),
 	}
 	for index, objective in quest.objectives do
@@ -299,10 +346,129 @@ local function QuestTracker()
 		})
 	end
 	return card({
-		size = UDim2.fromOffset(300, 54 + #quest.objectives * 24),
+		size = UDim2.fromOffset(300, 60 + #quest.objectives * 24),
 		position = UDim2.fromOffset(16, 146),
 		children = rows,
 	})
+end
+
+-- Level bar along the bottom edge (8.9) -----------------------------------------------------------------
+
+local function LevelBar()
+	local progression = hooks.useSection("progression")
+	if not progression then
+		return nil
+	end
+	local into, span, fraction = Progression.progress(progression, Content.Levels)
+	return e("Frame", {
+		Size = UDim2.new(1, 0, 0, 8),
+		Position = UDim2.fromScale(0, 1),
+		AnchorPoint = Vector2.new(0, 1),
+		BackgroundColor3 = Theme.colors.track,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel = 0,
+	}, {
+		Fill = e("Frame", {
+			Size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1),
+			BackgroundColor3 = Theme.meters.xp,
+			BorderSizePixel = 0,
+		}),
+		Level = e("TextLabel", {
+			Size = UDim2.fromOffset(0, 22),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Position = UDim2.fromOffset(12, -4),
+			AnchorPoint = Vector2.new(0, 1),
+			BackgroundColor3 = Theme.colors.panel,
+			FontFace = Theme.fonts.header,
+			Text = ` Lv {progression.level}  ·  {into}/{span} XP `,
+			TextSize = Theme.textSize.caption,
+			TextColor3 = Theme.colors.text,
+		}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
+	})
+end
+
+-- Home minimap (8.11): your outpost from above, north up, with you on it -------------------------------
+
+local MAP_SIZE = 168
+
+local function Minimap()
+	local plot = hooks.useSection("plot")
+	local saved = hooks.useSection("layout")
+	hooks.useClock(0.25)
+	if type(plot) ~= "table" or type(saved) ~= "table" then
+		return nil
+	end
+	local cells = plot.cells
+	local scale = MAP_SIZE / (cells * 12)
+	local layout = Grid.deserialize(saved, Content.BuildPieces :: any)
+	if layout == nil then
+		return nil
+	end
+	local children: { [string]: any } = {
+		Corner = e("UICorner", { CornerRadius = Theme.radius }),
+		Stroke = e("UIStroke", { Color = Theme.colors.strokeWarm, Thickness = Theme.strokeThickness }),
+	}
+	for uid, piece in layout.pieces do
+		local def = Content.BuildPieces[piece.pieceId]
+		if def == nil then
+			continue
+		end
+		if piece.layer == "floor" then
+			children[`F{uid}`] = e("Frame", {
+				Size = UDim2.fromOffset(12 * scale, 12 * scale),
+				Position = UDim2.fromOffset(piece.x * 12 * scale, piece.z * 12 * scale),
+				BackgroundColor3 = Color3.fromRGB(122, 96, 70),
+				BorderSizePixel = 0,
+			})
+		elseif piece.layer == "frame" then
+			local horizontal = piece.axis == "h"
+			children[`W{uid}`] = e("Frame", {
+				Size = if horizontal then UDim2.fromOffset(12 * scale, 3) else UDim2.fromOffset(3, 12 * scale),
+				Position = UDim2.fromOffset(piece.x * 12 * scale - 1, piece.z * 12 * scale - 1),
+				BackgroundColor3 = Theme.colors.text,
+				BorderSizePixel = 0,
+				ZIndex = 2,
+			})
+		elseif piece.layer == "object" then
+			local cx, cz = Grid.objectCenter(def, piece :: any)
+			children[`O{uid}`] = e("Frame", {
+				Size = UDim2.fromOffset(6, 6),
+				Position = UDim2.fromOffset(cx * scale, cz * scale),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = if def.kind == "station" then Theme.colors.accent else Theme.colors.highlight,
+				ZIndex = 3,
+			}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		end
+	end
+	-- You: an arrow that turns with the survivor.
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local rel = root.Position - plot.origin
+		local look = root.CFrame.LookVector
+		children.You = e("TextLabel", {
+			Size = UDim2.fromOffset(16, 16),
+			Position = UDim2.fromOffset(math.clamp(rel.X * scale, 0, MAP_SIZE), math.clamp(rel.Z * scale, 0, MAP_SIZE)),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			FontFace = Theme.fonts.header,
+			Text = "▲",
+			TextSize = 20,
+			TextColor3 = Theme.colors.highlight,
+			TextStrokeColor3 = Theme.colors.shadow,
+			TextStrokeTransparency = 0,
+			Rotation = math.deg(math.atan2(look.X, -look.Z)),
+			ZIndex = 4,
+		})
+	end
+	return e("Frame", {
+		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
+		Position = UDim2.new(1, -16, 0, 80),
+		AnchorPoint = Vector2.new(1, 0),
+		BackgroundColor3 = Color3.fromRGB(46, 58, 44),
+		BackgroundTransparency = 0.1,
+		ClipsDescendants = true,
+	}, children)
 end
 
 -- Hotbar ---------------------------------------------------------------------------------------------------
@@ -483,6 +649,20 @@ end
 local function ActionBar()
 	local ui = hooks.useUi()
 	local inbox = hooks.useSection("inbox")
+	local marks = hooks.useSection("recipeMarks")
+	local progression = hooks.useSection("progression")
+	local unlocks = hooks.useSection("unlocks")
+	-- Recipes unlocked since the catalogue was last closed: the Craft button's count (8.10).
+	local newRecipes = 0
+	if type(marks) == "table" and progression then
+		local progress =
+			{ level = progression.level, unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} } }
+		for id, recipe in Content.Recipes do
+			if marks.seen[id] ~= true and Crafting.isUnlocked(recipe, progress) then
+				newRecipes += 1
+			end
+		end
+	end
 	local target = ui.target
 	local interactLabel = if ui.panel == "build" then "Place" elseif target then target.verb else "Use"
 	local glyph = if target and target.kind == "node"
@@ -526,6 +706,7 @@ local function ActionBar()
 			size = 64,
 			layoutOrder = 2,
 			onPress = Actions.toggleCrafting,
+			badge = newRecipes,
 		}),
 		Build = e(ActionButton, {
 			label = "Build",
@@ -597,6 +778,20 @@ local function HUD()
 		}),
 		Status = e(Status),
 		Quest = playing and e(QuestTracker),
+		Minimap = playing and e(Minimap),
+		LevelBar = e(LevelBar),
+		-- Studio playtests run sped up (Tuning.devSpeed): say so, never on live servers.
+		Dev = DevSpeed.factor(Content) > 1 and e("TextLabel", {
+			Size = UDim2.fromOffset(0, 24),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Position = UDim2.new(0.5, 0, 0, 8),
+			AnchorPoint = Vector2.new(0.5, 0),
+			BackgroundColor3 = Theme.colors.threat,
+			FontFace = Theme.fonts.header,
+			Text = `  DEV ×{DevSpeed.factor(Content)}  `,
+			TextSize = Theme.textSize.caption,
+			TextColor3 = Theme.colors.textOnAccent,
+		}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
 		Hotbar = ui.panel ~= "build" and e(Hotbar),
 		Actions = (playing or ui.panel == "build") and e(ActionBar),
 	})

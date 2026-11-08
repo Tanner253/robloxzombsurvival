@@ -26,6 +26,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Clock", spec = require("./Clock.spec") },
 	{ name = "MaterialPool", spec = require("./MaterialPool.spec") },
 	{ name = "ItemSources", spec = require("./ItemSources.spec") },
+	{ name = "DevSpeed", spec = require("./DevSpeed.spec") },
 }
 
 local passed, failed = 0, 0

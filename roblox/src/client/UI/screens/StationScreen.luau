@@ -22,6 +22,7 @@ local Actions = require("../../Actions")
 local Net = require("../../Net")
 local Pool = require("../../Pool")
 local Theme = require("../theme")
+local offers = require("../offers")
 local hooks = require("../hooks")
 local format = require("../format")
 local Button = require("../components/Button")
@@ -197,6 +198,20 @@ local function JobCard(props: { uid: string, job: any, outputItem: string?, layo
 			color = if job.done then Theme.colors.durability else Theme.colors.accent,
 			size = UDim2.new(1, -100, 0, 10),
 			position = UDim2.fromOffset(54, 32),
+		}),
+		-- S3 slot (UI/offers): "Speed up" on a running job, only once the shop fills it in.
+		SpeedUp = not job.done and offers.speedUp ~= nil and e(Button, {
+			text = "Speed up",
+			variant = "secondary",
+			size = UDim2.fromOffset(100, 36),
+			position = UDim2.new(1, -48, 0.5, 0),
+			anchorPoint = Vector2.new(1, 0.5),
+			onActivated = function()
+				local speedUp = offers.speedUp
+				if speedUp then
+					speedUp(props.uid, job.index)
+				end
+			end,
 		}),
 		Cancel = not job.done and e("TextButton", {
 			Size = UDim2.fromOffset(36, 36),

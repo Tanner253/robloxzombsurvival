@@ -55,6 +55,7 @@ export type Ui = {
 	newItems: { [string]: boolean }, -- item ids gained since the inventory was last opened
 	bagFullAt: number?, -- os.clock() of the last "bag is full", for the Bag button flash
 	inventoryTab: string?, -- the inventory's right pane: "crafting" (default) or "inbox"
+	questCollapsed: boolean?, -- the quest tracker folded to one line (8.9)
 }
 
 -- Fires (key) when a section or "ui" changes.

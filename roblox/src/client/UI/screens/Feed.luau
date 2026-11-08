@@ -17,8 +17,10 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
 local State = require("../../State")
 local Theme = require("../theme")
+local offers = require("../offers")
 local hooks = require("../hooks")
 local format = require("../format")
+local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
@@ -66,6 +68,8 @@ end
 
 local function Toast(props: { text: string, tone: string, layoutOrder: number })
 	local alpha = hooks.useAnimated(1, 16, 0)
+	local forNotice = offers.forNotice
+	local offer = if forNotice then forNotice(props.text) else nil
 	local color = if props.tone == "good"
 		then Theme.colors.durability
 		elseif props.tone == "info" then Theme.colors.strokeWarm
@@ -87,7 +91,18 @@ local function Toast(props: { text: string, tone: string, layoutOrder: number })
 			end),
 		}),
 		Padding = e("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16) }),
+		Layout = e("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 12),
+		}),
 		Text = e(Label, { text = props.text, style = "body", autoWidth = true, size = UDim2.fromOffset(0, 40) }),
+		-- S3 slot (UI/offers): an offer on "bag full" and limit toasts once the shop sets it.
+		Offer = offer and e(Button, {
+			text = offer.label,
+			size = UDim2.fromOffset(120, 32),
+			onActivated = offer.onActivated,
+		}),
 	})
 end
 

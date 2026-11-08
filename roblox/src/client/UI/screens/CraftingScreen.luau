@@ -24,6 +24,7 @@ local Actions = require("../../Actions")
 local Net = require("../../Net")
 local Sfx = require("../../Sfx")
 local Theme = require("../theme")
+local offers = require("../offers")
 local format = require("../format")
 local hooks = require("../hooks")
 local Button = require("../components/Button")
@@ -469,7 +470,23 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 			alignY = Enum.TextYAlignment.Top,
 			layoutOrder = 2,
 		}),
-		NeedsTitle = e(Label, { text = "NEEDS", style = "section", tone = "accent", layoutOrder = 3 }),
+		NeedsTitle = e("Frame", { Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, LayoutOrder = 3 }, {
+			Title = e(Label, { text = "NEEDS", style = "section", tone = "accent", size = UDim2.fromScale(0.5, 1) }),
+			-- S3 slot (UI/offers): "Fill up" the missing ingredients, only once the shop sets it.
+			FillUp = firstShort ~= nil and offers.fillUp ~= nil and e(Button, {
+				text = "Fill up",
+				variant = "secondary",
+				size = UDim2.fromOffset(100, 30),
+				position = UDim2.fromScale(1, 0),
+				anchorPoint = Vector2.new(1, 0),
+				onActivated = function()
+					local fillUp = offers.fillUp
+					if fillUp then
+						fillUp(recipe.inputs)
+					end
+				end,
+			}),
+		}),
 		Ingredients = e(
 			"Frame",
 			{ Size = UDim2.new(1, 0, 0, 104), BackgroundTransparency = 1, LayoutOrder = 4 },

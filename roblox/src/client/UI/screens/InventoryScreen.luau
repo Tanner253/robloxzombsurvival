@@ -25,6 +25,7 @@ local Net = require("../../Net")
 local Sfx = require("../../Sfx")
 local State = require("../../State")
 local Theme = require("../theme")
+local offers = require("../offers")
 local hooks = require("../hooks")
 local format = require("../format")
 local Button = require("../components/Button")
@@ -624,6 +625,20 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 			richText = true,
 			size = UDim2.new(1, -120, 0, 18),
 			position = UDim2.fromOffset(10, 23),
+		}),
+		-- S3 slot (UI/offers): "Fill up" what the upgrade lacks, only once the shop sets it.
+		FillUp = unlocked and not affordable and offers.fillUp ~= nil and e(Button, {
+			text = "Fill up",
+			variant = "secondary",
+			size = UDim2.fromOffset(90, 40),
+			position = UDim2.new(1, -112, 0.5, 0),
+			anchorPoint = Vector2.new(1, 0.5),
+			onActivated = function()
+				local fillUp = offers.fillUp
+				if fillUp then
+					fillUp(nextDef.cost)
+				end
+			end,
 		}),
 		Upgrade = e(Button, {
 			text = "Upgrade",

@@ -184,10 +184,9 @@ local function terrain(origin: Vector3, random: Random)
 				-- Trodden earth in patches, more worn toward the middle; never one flat colour.
 				local worn = math.noise((x + seedX) / 16, (z + seedZ) / 16, 9.1)
 					+ (1 - math.max(dx, dz) / padHalf) * 0.45
+				-- No plain Grass on a plot: its wind blades would poke up through the decks.
 				if worn > 0.3 then
 					return Enum.Material.Ground
-				elseif worn > -0.05 then
-					return Enum.Material.Grass
 				end
 				return Enum.Material.LeafyGrass
 			end

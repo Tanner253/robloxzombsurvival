@@ -8,6 +8,7 @@
 ]]
 
 local Types = require("./Types")
+local DevSpeed = require("./DevSpeed")
 local TableUtil = require("./Util/Table")
 
 local Content: Types.Content = {
@@ -24,5 +25,9 @@ local Content: Types.Content = {
 	Products = require("@self/Products"),
 	Tuning = require("@self/Tuning"),
 }
+
+-- Studio playtests run the pacing sped up (Tuning.devSpeed; live servers always 1).
+-- It has to happen here, before the freeze, so every reader sees the same numbers.
+DevSpeed.apply(Content, DevSpeed.factor(Content))
 
 return TableUtil.deepFreeze(Content)

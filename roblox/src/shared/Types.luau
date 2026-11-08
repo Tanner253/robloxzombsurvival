@@ -370,6 +370,7 @@ export type SurvivalMeter = {
 -- Sections whose shape matches a Domain module's Config can be passed to it as is:
 -- energy (Energy), survival (Survival), death (Death), building (Grid), travel (Travel).
 export type TuningDef = {
+	devSpeed: number, -- Studio-only pacing multiplier (Shared/DevSpeed); live servers use 1
 	energy: {
 		cap: number,
 		secondsPerPoint: number, -- regen, offline included

@@ -42,6 +42,12 @@ function Actions.openInbox()
 	end
 end
 
+-- Folds or unfolds the quest tracker (the « button, 8.9).
+function Actions.toggleQuests()
+	State.patch({ questCollapsed = not State.ui().questCollapsed })
+	Sfx.play("uiClick")
+end
+
 function Actions.toggleSettings()
 	State.toggle("settings")
 	Sfx.play(if State.ui().panel == "settings" then "uiOpen" else "uiClose")

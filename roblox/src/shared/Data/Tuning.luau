@@ -8,6 +8,9 @@
 local Types = require("../Types")
 
 local Tuning: Types.TuningDef = {
+	-- Studio playtests only: timers, yields, regen and XP sped up by this much
+	-- (Shared/DevSpeed). Live servers always run at 1.
+	devSpeed = 10,
 	energy = {
 		-- LDoE: cap 200 at 1 per 5 min. Same regen here, half the cap, and runs cost
 		-- about two thirds as much, so a run pays back in two thirds of the time.
