@@ -95,6 +95,10 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - downed, revive, emotes
 
   Never mix in default Roblox animations or free-model animations.
+- **Gear is always visible:**
+  - The selected tool or weapon is held in the hand.
+  - Gathering swaps to the right tool, plays the chop, mine or pickup animation with hit VFX and sound, then swaps back.
+  - Other carried weapons and tools are holstered on the back or belt.
 
 ## 7. VFX and audio
 
