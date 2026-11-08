@@ -43,6 +43,33 @@ test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapp
 - **Blocked on one click:** model uploads only work from approved folders; the worktree's art folder isn't
   one and the tool forbids copying around that. 17 converted models wait.
 
+## Adversarial QA (fresh reviewer, LDoE frames as the bar, default C) — and what changed
+
+| Thing | QA grade | After this pass |
+|---|---|---|
+| Edge trees | C (1-stud, invisible) | Fixed: 3-row line of 26-36 stud pines before the fog (75) |
+| Night look | C (near black) | Fixed: blue moonlight fill, 24-stud survivor light (76) |
+| Hearth light | C (light over mud, no source) | Hidden until its fire model passes |
+| Wind grass | C | Off until a grass that holds up exists |
+| Ground at the edge | C (black mud blots) | Calmer mud, no blots, no ash pit |
+| Wood deck | C (narrow noisy planks) | Wide calm planks, warm tint (75) |
+| Deck trim / floating | C | Decks 0.45 above ground (FLOOR_HEIGHT 0.5) |
+| Log posts | C | Lighter bark, rope bands, caps at the wall line, wider |
+| Camera framing | C (too tight) | Default 30: room plus surroundings |
+| Minimap | C | Round, N marker, trees and nodes; still plot-anchored |
+| Inventory / Inbox overlap | C | Take all clear of Crafting; whole backpack rows |
+| Build menu | C | Tray sized to cards, action bar uncovered, Demolish on Delete |
+| HUD badges, Auto icon, clock | B | Badges above icons, Auto glyph, pinned hour shown |
+| Crafting | B | Recipes for unbuildable stations hidden; NEW only until first close |
+| Settings | B | C listed |
+| Pine tree | C (clones, khaki leaf cards) | Taller, random yaw per node; **foliage needs a regenerated model** |
+| Survivor | B (finger tips, armpit clip) | **Needs a character fix in the model** |
+| Workbench | B (smeared saw) | Faces the room now; texture needs the model regenerated |
+| Fatwood stump | B | Scaled to the trunk; resin colour needs the model |
+| Fog banks | C | **Needs volumetric layers; open** |
+| Inbox as its own screen | C | Kept as the inventory pane (spec allows); open |
+| Quest claim / hotbar stacks / food numbers | B | S3 quests; stack sizes wait for the pacing rescale; open |
+
 ## Audit table
 
 | # | Status | Notes |
