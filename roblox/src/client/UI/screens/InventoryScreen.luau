@@ -19,6 +19,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
 local Actions = require("../../Actions")
@@ -580,6 +581,7 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 	local pooled = hooks.usePooled()
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
+	local questsState = hooks.useSection("quests")
 	local def = Content.BuildPieces[props.pieceId]
 	local nextDef = def and def.upgradesTo and Content.BuildPieces[def.upgradesTo]
 	if def == nil or nextDef == nil then
@@ -593,6 +595,7 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 	local progress = {
 		level = if progression then progression.level else 1,
 		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
+		quests = if type(questsState) == "table" then questsState else nil,
 	}
 	local unlocked = BuildRules.isUnlocked(nextDef, progress)
 	local affordable = true
@@ -607,10 +610,7 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 		)
 	end
 	local gate = nextDef.unlock
-	local lockText = if gate and gate.kind == "level"
-		then `Unlocks at level {gate.level}`
-		elseif gate and gate.kind == "blueprint" then "Needs its blueprint"
-		else ""
+	local lockText = Unlocks.text(gate, { items = Content.Items :: any, quests = Content.Quests :: any }) or ""
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 0, 44),
 		BackgroundColor3 = Theme.colors.panelRaised,

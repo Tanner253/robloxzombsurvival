@@ -6,7 +6,9 @@
 	A node instance is { hitsLeft, respawnAt }. Each hit yields every
 	NodeYield.perHit (rolling `chance` when set) and wears the tool by
 	Tuning.gathering.durabilityPerHit. The last hit depletes the node until
-	`respawnAt`; `refresh` brings it back once that time has passed.
+	`respawnAt`; `refresh` brings it back once that time has passed. Home nodes are
+	finite (LDOE_PARITY #30): their last hit sets respawnAt to Gathering.NEVER and
+	they stay depleted for good.
 
 	Tool choice: the carried tool (pockets or backpack) with the highest tier that
 	can harvest the node (LDoE's context button that switches to the axe).
@@ -16,6 +18,9 @@ local Types = require("../Types")
 local Rng = require("./Rng")
 
 local Gathering = {}
+
+-- respawnAt for a node that never comes back (home nodes, LDOE_PARITY #30).
+Gathering.NEVER = -1
 
 export type Node = {
 	hitsLeft: number,
@@ -31,14 +36,18 @@ function Gathering.new(def: Types.ResourceNodeDef): Node
 	return { hitsLeft = def.hits, respawnAt = 0 }
 end
 
+local function due(node: Node, now: number): boolean
+	return node.respawnAt ~= Gathering.NEVER and now >= node.respawnAt
+end
+
 -- True while the node can be hit (standing, or its respawn time has passed).
 function Gathering.isStanding(node: Node, now: number): boolean
-	return node.hitsLeft > 0 or now >= node.respawnAt
+	return node.hitsLeft > 0 or due(node, now)
 end
 
 -- The node with its respawn applied if due.
 function Gathering.refresh(node: Node, def: Types.ResourceNodeDef, now: number): Node
-	if node.hitsLeft <= 0 and now >= node.respawnAt then
+	if node.hitsLeft <= 0 and due(node, now) then
 		return Gathering.new(def)
 	end
 	return { hitsLeft = node.hitsLeft, respawnAt = node.respawnAt }
@@ -103,7 +112,8 @@ end
 	One hit. Returns the new node state, what it yielded and whether this hit
 	depleted it, or nil, {}, false and "depleted" when it is not standing.
 ]]
--- `respawnSeconds` overrides the def's respawn (home nodes regrow on Tuning.home.regrowHours).
+-- `respawnSeconds` overrides the def's respawn; Gathering.NEVER makes the node finite
+-- (home nodes: depleted for good).
 function Gathering.hit(
 	node: Node,
 	def: Types.ResourceNodeDef,
@@ -125,14 +135,17 @@ function Gathering.hit(
 	local depleted = hitsLeft <= 0
 	return {
 		hitsLeft = hitsLeft,
-		respawnAt = if depleted then now + (respawnSeconds or def.respawnSeconds) else 0,
+		respawnAt = if not depleted
+			then 0
+			elseif respawnSeconds == Gathering.NEVER then Gathering.NEVER
+			else now + (respawnSeconds or def.respawnSeconds),
 	},
 		yields,
 		depleted,
 		nil
 end
 
--- A saved node (home nodes persist per player): nil when the node is whole, so only
+-- A saved node (home nodes persist per outpost): nil when the node is whole, so only
 -- hit or depleted nodes take space. Stamps are real Unix seconds (os.time).
 export type Saved = { hitsLeft: number, respawnAt: number }
 
@@ -143,7 +156,7 @@ function Gathering.toSave(node: Node, def: Types.ResourceNodeDef): Saved?
 	return { hitsLeft = node.hitsLeft, respawnAt = node.respawnAt }
 end
 
--- The node a save describes at `now`: whole when nothing was saved or its regrowth has
+-- The node a save describes at `now`: whole when nothing was saved or its respawn has
 -- passed, else exactly as saved (a restart or rejoin never refills it).
 function Gathering.fromSave(saved: Saved?, def: Types.ResourceNodeDef, now: number): Node
 	if type(saved) ~= "table" or type(saved.hitsLeft) ~= "number" or type(saved.respawnAt) ~= "number" then
@@ -156,12 +169,10 @@ function Gathering.fromSave(saved: Saved?, def: Types.ResourceNodeDef, now: numb
 	)
 end
 
--- A regrow time in seconds within a span of real hours.
-function Gathering.regrowSeconds(span: { min: number, max: number }?, roll: number): number?
-	if span == nil then
-		return nil
-	end
-	return math.floor((span.min + (span.max - span.min) * math.clamp(roll, 0, 1)) * 3600)
+-- The respawn a home node gets on depletion: never, unless Tuning.home.renewing lists it
+-- (water sources), in which case its own respawnSeconds.
+function Gathering.homeRespawn(nodeId: Types.NodeId, renewing: { Types.NodeId }): number?
+	return if table.find(renewing, nodeId) then nil else Gathering.NEVER
 end
 
 return Gathering

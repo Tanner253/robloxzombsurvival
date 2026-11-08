@@ -21,9 +21,11 @@ local Tuning: Types.TuningDef = {
 		foodDailyCap = 40,
 	},
 	inventory = {
-		pocketSlots = 10,
+		pocketSlots = 10, -- LDoE's 10 pockets
 		backpackSlots = 0,
-		maxBackpackSlots = 18, -- Scrap Pack Frame (12) + Pack Expansion (6)
+		-- Bags add +5, +10 or +15 (LDOE_PARITY #15); the +15 bag comes with Fog Run loot (S2)
+		-- and raises this to 20.
+		maxBackpackSlots = 15, -- the Scrap Pack Frame (+10) and the Pack Expansion (+5)
 	},
 	player = {
 		maxHealth = 100,
@@ -34,31 +36,29 @@ local Tuning: Types.TuningDef = {
 		fistRange = 4,
 	},
 	survival = {
-		-- Meters drain only in the world (not on the Fog map or offline), so these are
-		-- active-play rates. LDoE drains 1 point per 10 s for both (about 17 min from
-		-- full) and deals 2 HP/s at 0. Here a full meter lasts about 23 min (hunger)
-		-- and 18 min (thirst): a long run plus the trip home, with a warning band.
+		-- LDoE's numbers (LDOE_PARITY #33): both meters drain 1 point every 10 s while in
+		-- the world (about 17 min from full), an empty meter deals 2 HP/s, and the HUD
+		-- warns at 20. Death resets every meter to full.
 		hunger = {
 			max = 100,
-			decayPerSecond = 1 / 14,
+			decayPerSecond = 1 / 10,
 			thresholds = {
-				{ atOrBelow = 15, damagePerSecond = 0.25 },
-				{ atOrBelow = 0, damagePerSecond = 0.75 },
+				{ atOrBelow = 0, damagePerSecond = 2 },
 			},
 		},
 		thirst = {
 			max = 100,
-			decayPerSecond = 1 / 11,
+			decayPerSecond = 1 / 10,
 			thresholds = {
-				{ atOrBelow = 15, damagePerSecond = 0.25 },
-				{ atOrBelow = 0, damagePerSecond = 0.75 },
+				{ atOrBelow = 0, damagePerSecond = 2 },
 			},
 		},
+		warnAt = 20,
 		regenThreshold = 60,
 		regenPerSecond = 0.1,
-		respawnHealth = 60,
-		respawnHunger = 60,
-		respawnThirst = 60,
+		respawnHealth = 100,
+		respawnHunger = 100,
+		respawnThirst = 100,
 		tickSeconds = 1,
 	},
 	combat = {
@@ -98,33 +98,23 @@ local Tuning: Types.TuningDef = {
 		durabilityScalesChance = true,
 	},
 	home = {
-		-- Home is for starter materials (LDoE): enough for the first 30-60 minute hook
-		-- (hatchet and pick, a workbench, a campfire, first floors and walls), then it
-		-- runs dry and the bulk comes from Fog Runs. Node state is saved per player and
-		-- regrows on real-time stamps, so a server restart never refills it.
+		-- LDoE's home set (LDOE_PARITY #30): enough for the first hours (tools, the first
+		-- stations, floors and walls), and it never respawns. Node state is saved per
+		-- outpost, so a restart or rejoin never refills it; repeat farming happens on Fog
+		-- Runs. The spring is a well, not a stock: it refills like a Fog Run node.
 		nodes = {
-			{ nodeId = "node.fallen_branches", count = 8 },
-			{ nodeId = "node.loose_stones", count = 6 },
-			{ nodeId = "node.pine_tree", count = 12 },
-			{ nodeId = "node.boulder", count = 2 },
-			{ nodeId = "node.reed_patch", count = 5 },
-			{ nodeId = "node.ember_bush", count = 3 },
+			{ nodeId = "node.pine_tree", count = 20 },
+			{ nodeId = "node.boulder", count = 7 },
+			{ nodeId = "node.scrap_heap", count = 5 },
+			{ nodeId = "node.ember_bush", count = 7 },
+			{ nodeId = "node.reed_patch", count = 20 },
+			{ nodeId = "node.fallen_branches", count = 12 },
+			{ nodeId = "node.loose_stones", count = 10 },
 			{ nodeId = "node.spring_pool", count = 1 },
 		},
-		-- How long a depleted home node takes to regrow, in real hours (a random time
-		-- in the span each time).
-		regrowHours = {
-			["node.fallen_branches"] = { min = 1, max = 2 },
-			["node.loose_stones"] = { min = 1, max = 2 },
-			["node.pine_tree"] = { min = 8, max = 12 },
-			["node.fatwood_stump"] = { min = 8, max = 12 },
-			["node.boulder"] = { min = 12, max = 24 },
-			["node.scrap_heap"] = { min = 12, max = 24 },
-			["node.reed_patch"] = { min = 4, max = 6 },
-			["node.ember_bush"] = { min = 4, max = 6 },
-			["node.ashroot_mound"] = { min = 4, max = 6 },
-			["node.spring_pool"] = { min = 1, max = 2 },
-		},
+		-- The exception: water sources refill on their node respawnSeconds, the way LDoE's
+		-- well and rain catcher keep a base drinkable.
+		renewing = { "node.spring_pool" },
 	},
 	plots = {
 		-- 8 plots in two rows of 4 facing a shared road: the Neighbourhood.
@@ -162,6 +152,15 @@ local Tuning: Types.TuningDef = {
 			{ itemId = "item.boiled_water", count = 2 },
 		},
 	},
+	-- LDOE_PARITY #58: until level 10, a daily food and water gift waits in the inbox (one
+	-- per UTC day, the first time the player is online that day).
+	dailyGift = {
+		items = {
+			{ itemId = "item.sealed_tin", count = 2 },
+			{ itemId = "item.boiled_water", count = 2 },
+		},
+		untilLevel = 10,
+	},
 	raid = {
 		lootFraction = 0.3,
 	},
@@ -175,6 +174,7 @@ local Tuning: Types.TuningDef = {
 	features = {
 		fogRuns = false,
 		aiRaiders = false, -- M2
+		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby

@@ -31,7 +31,11 @@ export type Reason = "empty" | "badSlot" | "same" | "wrongSlot" | "noSpace" | "c
 -- Equipment slot order; also the slot indices clients send for "equipment".
 -- weapon is the primary and weapon2 the secondary weapon (checklist 4.9: LDoE's two
 -- weapon slots); both take items whose equipSlot is "weapon".
-Slots.EQUIP_ORDER = { "head", "body", "legs", "feet", "weapon", "weapon2", "bag" } :: { Types.EquipSlot }
+-- quick is LDoE's quick-access pocket (LDOE_PARITY #14), last so older indices hold.
+Slots.EQUIP_ORDER = { "head", "body", "legs", "feet", "weapon", "weapon2", "bag", "quick" } :: { Types.EquipSlot }
+
+-- What the quick slot takes: food, drink, healing, a weapon or a tool (a stack of meds too).
+Slots.QUICK_CATEGORIES = { consumable = true, weapon = true, tool = true } :: { [string]: boolean }
 
 -- Categories "Put all" leaves in the inventory: gear, food and ammo stay with you.
 Slots.KEEP_ON_PUT_ALL = {
@@ -75,6 +79,10 @@ local function accepts(side: Side, index: number, slot: Slot, items: ItemLookup)
 	end
 	local wanted = side.accepts[index]
 	local def = items[slot.itemId]
+	if wanted == "quick" then
+		local category: string = if def and def.category then def.category else ""
+		return def ~= nil and Slots.QUICK_CATEGORIES[category] == true
+	end
 	return def ~= nil and def.equipSlot == wanted and slot.count == 1
 end
 

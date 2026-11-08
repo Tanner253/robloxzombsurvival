@@ -25,6 +25,10 @@
 	- nothing is orphaned: every loot table, node, enemy and station is used, every
 	  blueprint unlocks something, and every item can be earned in play (not only
 	  bought)
+	- LDoE parity (LDOE_PARITY.md): station recipes are converter lines (one input, one
+	  output); recipes and pieces never use level gates (#49); the Ember Trail can be
+	  played in order (each quest's recipes and pieces are unlocked by a quest before it);
+	  the starter shelter builds on both rows of plots; projects name real parts
 	- Fog Runs (slice 2): firearm, bow and melee stats, flares, bursts, each
 	  location's run rules (extraction by fog tier, band loot, travel bonus), the
 	  lobby and combat tuning, and feature tags naming a real Tuning.features flag.
@@ -34,6 +38,8 @@
 
 local Types = require("../Types")
 local TableUtil = require("../Util/Table")
+local Grid = require("./Grid")
+local Shelter = require("./Shelter")
 
 local DataValidator = {}
 
@@ -99,7 +105,11 @@ local function checkLevel(errors: Errors, content: Types.Content, where: string,
 end
 
 local function checkGate(errors: Errors, content: Types.Content, where: string, gate: Types.UnlockGate)
-	if gate.kind == "blueprint" then
+	if gate.kind == "quest" then
+		if content.Quests[gate.questId] == nil then
+			push(errors, `{where}: unknown quest '{gate.questId}'`)
+		end
+	elseif gate.kind == "blueprint" then
 		local item = content.Items[gate.itemId]
 		if item == nil then
 			push(errors, `{where}: unknown item '{gate.itemId}'`)
@@ -376,6 +386,12 @@ local function checkRecipes(errors: Errors, content: Types.Content)
 		if recipe.craftSeconds < 0 then
 			push(errors, `{where}: craftSeconds must not be negative`)
 		end
+		if recipe.stationId ~= nil and (#recipe.inputs ~= 1 or #recipe.outputs ~= 1) then
+			push(errors, `{where}: station recipes convert exactly one input stack into one output stack`)
+		end
+		if recipe.unlock.kind == "level" then
+			push(errors, `{where}: recipes unlock through quests or schematics, not levels`)
+		end
 		checkGate(errors, content, `{where}.unlock`, recipe.unlock)
 	end
 end
@@ -415,14 +431,18 @@ local function checkStations(errors: Errors, content: Types.Content)
 		if #station.levels == 0 then
 			push(errors, `{where}: needs at least one level`)
 		end
-		local previousRequired = 1
+		local previousCap = 0
 		for index, level in station.levels do
 			local levelWhere = `{where}.levels[{index}]`
 			if level.level ~= index then
 				push(errors, `{levelWhere}: level must be {index}`)
 			end
-			if not isPositiveInteger(level.queueSlots) then
-				push(errors, `{levelWhere}: queueSlots must be a positive integer`)
+			if not isPositiveInteger(level.slotCap) then
+				push(errors, `{levelWhere}: slotCap must be a positive integer`)
+			elseif level.slotCap <= previousCap then
+				push(errors, `{levelWhere}: slotCap must grow with each level`)
+			else
+				previousCap = level.slotCap
 			end
 			if level.speedMultiplier <= 0 then
 				push(errors, `{levelWhere}: speedMultiplier must be positive`)
@@ -430,13 +450,6 @@ local function checkStations(errors: Errors, content: Types.Content)
 			checkStacks(errors, content, `{levelWhere}.upgradeCost`, level.upgradeCost)
 			if index > 1 and #level.upgradeCost == 0 then
 				push(errors, `{levelWhere}: upgrades past level 1 need an upgradeCost`)
-			end
-			if level.requiredLevel ~= nil then
-				checkLevel(errors, content, `{levelWhere}.requiredLevel`, level.requiredLevel)
-				if level.requiredLevel < previousRequired then
-					push(errors, `{levelWhere}: requiredLevel must not drop below the previous level's`)
-				end
-				previousRequired = level.requiredLevel
 			end
 			local bonus = level.salvageChanceBonus
 			if bonus ~= nil and (bonus < 0 or bonus >= 1) then
@@ -453,9 +466,6 @@ local function checkStations(errors: Errors, content: Types.Content)
 			if fuel.secondsPerUnit <= 0 then
 				push(errors, `{where}.fuel: secondsPerUnit must be positive`)
 			end
-			if not isPositiveInteger(fuel.maxUnits) then
-				push(errors, `{where}.fuel: maxUnits must be a positive integer`)
-			end
 			for _, itemId in TableUtil.sortedKeys(fuel.burnSeconds or {}) do
 				local seconds = (fuel.burnSeconds :: { [string]: number })[itemId]
 				if not accepted[itemId] then
@@ -468,6 +478,16 @@ local function checkStations(errors: Errors, content: Types.Content)
 		end
 		if station.salvage then
 			checkSalvage(errors, content, where, station.salvage)
+		end
+		if station.outputSlots ~= nil and not isPositiveInteger(station.outputSlots) then
+			push(errors, `{where}: outputSlots must be a positive integer`)
+		end
+		local outputs = station.outputSlots or 1
+		local salvageList: { Types.SalvageDef } = station.salvage or {}
+		for _, salvage in salvageList do
+			if #salvage.outputs > outputs then
+				push(errors, `{where}: '{salvage.inputItemId}' breaks into more items than its {outputs} output slots`)
+			end
 		end
 	end
 end
@@ -843,6 +863,9 @@ local function checkBuildPieces(errors: Errors, content: Types.Content)
 		if piece.maxPerPlot ~= nil and not isPositiveInteger(piece.maxPerPlot) then
 			push(errors, `{where}: maxPerPlot must be a positive integer`)
 		end
+		if piece.unlock and piece.unlock.kind == "level" then
+			push(errors, `{where}: pieces unlock through quests or schematics, not levels`)
+		end
 		if piece.unlock then
 			checkGate(errors, content, `{where}.unlock`, piece.unlock)
 		end
@@ -921,17 +944,72 @@ local function checkObjective(errors: Errors, content: Types.Content, where: str
 	elseif objective.kind == "reachLevel" then
 		checkLevel(errors, content, where, objective.level)
 	end
+	if objective.flag ~= nil and type(objective.flag) ~= "string" then
+		push(errors, `{where}: flag must be a feature flag name`)
+	end
 	local count = (objective :: any).count
 	if count ~= nil and not isPositiveInteger(count) then
 		push(errors, `{where}: count must be a positive integer`)
 	end
 end
 
+-- The quests a quest's prerequisite chain completes before it.
+local function ancestors(content: Types.Content, quest: Types.QuestDef): { [string]: boolean }
+	local result: { [string]: boolean } = {}
+	local current = if quest.prerequisite then content.Quests[quest.prerequisite] else nil
+	while current and not result[current.id] do
+		result[current.id] = true
+		current = if current.prerequisite then content.Quests[current.prerequisite] else nil
+	end
+	return result
+end
+
+-- Whether a gate is met by default, by a schematic, or by one of `done`'s quests.
+local function gateOpen(gate: Types.UnlockGate?, done: { [string]: boolean }): boolean
+	if gate == nil or gate.kind == "default" or gate.kind == "blueprint" then
+		return true
+	elseif gate.kind == "quest" then
+		return done[gate.questId] == true
+	end
+	return false
+end
+
 local function checkQuests(errors: Errors, content: Types.Content)
 	local starts = 0
+	local orders: { [number]: string } = {}
 	for _, id in TableUtil.sortedKeys(content.Quests) do
 		local quest = content.Quests[id]
 		local where = `Quests['{id}']`
+		if not isPositiveInteger(quest.order) then
+			push(errors, `{where}: order must be a positive integer`)
+		elseif orders[quest.order] then
+			push(errors, `{where}: order {quest.order} is also '{orders[quest.order]}'`)
+		else
+			orders[quest.order] = id
+		end
+		if quest.chapter == "" then
+			push(errors, `{where}: needs a chapter`)
+		end
+		local prerequisite = if quest.prerequisite then content.Quests[quest.prerequisite] else nil
+		if prerequisite and prerequisite.order >= quest.order then
+			push(errors, `{where}: comes before its prerequisite on the trail`)
+		end
+		-- Playable in order: what it asks you to craft or build is unlocked before it opens.
+		local done = ancestors(content, quest)
+		for index, objective in quest.objectives do
+			local objectiveWhere = `{where}.objectives[{index}]`
+			if objective.kind == "craft" then
+				local recipe = content.Recipes[objective.recipeId]
+				if recipe and not gateOpen(recipe.unlock, done) then
+					push(errors, `{objectiveWhere}: '{objective.recipeId}' is still locked when the quest opens`)
+				end
+			elseif objective.kind == "build" then
+				local piece = content.BuildPieces[objective.pieceId]
+				if piece and not gateOpen(piece.unlock, done) then
+					push(errors, `{objectiveWhere}: '{objective.pieceId}' is still locked when the quest opens`)
+				end
+			end
+		end
 		if quest.prerequisite == nil then
 			starts += 1
 		elseif content.Quests[quest.prerequisite] == nil then
@@ -1261,6 +1339,9 @@ local function checkTuning(errors: Errors, content: Types.Content)
 		push(errors, "Tuning.inventory: need pocketSlots >= 1 and backpackSlots <= maxBackpackSlots")
 	end
 	local survival = tuning.survival
+	if survival.warnAt < 0 or survival.warnAt > math.min(survival.hunger.max, survival.thirst.max) then
+		push(errors, "Tuning.survival: warnAt must be between 0 and the meters' max")
+	end
 	for _, meterName in { "hunger", "thirst" } do
 		local meter: Types.SurvivalMeter = if meterName == "hunger" then survival.hunger else survival.thirst
 		local where = `Tuning.survival.{meterName}`
@@ -1296,8 +1377,51 @@ local function checkTuning(errors: Errors, content: Types.Content)
 		push(errors, "Tuning.raid: lootFraction must be between 0 and 1")
 	end
 	checkStacks(errors, content, "Tuning.newPlayer.items", tuning.newPlayer.items)
+	checkStacks(errors, content, "Tuning.dailyGift.items", tuning.dailyGift.items)
+	checkLevel(errors, content, "Tuning.dailyGift.untilLevel", tuning.dailyGift.untilLevel)
 	checkLocationNodes(errors, content, "Tuning.home.nodes", tuning.home.nodes)
+	for index, nodeId in tuning.home.renewing do
+		local listed = false
+		for _, entry in tuning.home.nodes do
+			listed = listed or entry.nodeId == nodeId
+		end
+		if not listed then
+			push(errors, `Tuning.home.renewing[{index}]: '{nodeId}' doesn't grow at home`)
+		end
+	end
 	checkFogRunTuning(errors, content)
+end
+
+-- The starter shelter and projects (LDOE_PARITY #56) ---------------------------------------------
+
+local function checkOnboarding(errors: Errors, content: Types.Content)
+	local cells = content.Tuning.building.plotCells
+	local plot: Grid.Plot = { ownerUserId = 1, width = cells, depth = cells }
+	for _, front in { 1, -1 } do
+		local _, reason = Shelter.build(content.StarterShelter, content.BuildPieces, plot, front, 0)
+		if reason then
+			push(errors, `StarterShelter (front {front}): {reason}`)
+		end
+	end
+	for index, piece in content.StarterShelter do
+		if piece.hp <= 0 or piece.hp > 1 then
+			push(errors, `StarterShelter[{index}]: hp must be a fraction in (0, 1]`)
+		end
+	end
+	for _, id in TableUtil.sortedKeys(content.Projects) do
+		local project = content.Projects[id]
+		local where = `Projects['{id}']`
+		if project.id ~= id or string.match(id, "^project%.[%l%d_]+$") == nil then
+			push(errors, `{where}: key must equal its id, of the form 'project.snake_case'`)
+		end
+		if #project.parts == 0 then
+			push(errors, `{where}: needs at least one part`)
+		end
+		checkStacks(errors, content, `{where}.parts`, project.parts)
+		if project.rewards then
+			checkStacks(errors, content, `{where}.rewards`, project.rewards)
+		end
+	end
 end
 
 -- Cross-checks: nothing orphaned ----------------------------------------------------------------
@@ -1414,6 +1538,7 @@ local function checkUsage(errors: Errors, content: Types.Content)
 		addStacks(level.rewards)
 	end
 	addStacks(content.Tuning.newPlayer.items)
+	addStacks(content.Tuning.dailyGift.items)
 	-- Fog Runs: location quests and death-milestone gifts pay out too.
 	for _, location in content.Locations do
 		for _, quest in (if location.run then location.run.quests else {}) :: { Types.LocationQuest } do
@@ -1485,6 +1610,7 @@ function DataValidator.validate(content: Types.Content): { string }
 	checkQuests(errors, content)
 	checkProducts(errors, content)
 	checkTuning(errors, content)
+	checkOnboarding(errors, content)
 	checkFeatureTags(errors, content)
 	checkUsage(errors, content)
 

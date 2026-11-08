@@ -28,6 +28,11 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "ItemSources", spec = require("./ItemSources.spec") },
 	{ name = "DevSpeed", spec = require("./DevSpeed.spec") },
 	{ name = "Economy", spec = require("./Economy.spec") },
+	{ name = "Converter", spec = require("./Converter.spec") },
+	{ name = "Quests", spec = require("./Quests.spec") },
+	{ name = "Onboarding", spec = require("./Onboarding.spec") },
+	{ name = "Chapter1", spec = require("./Chapter1.spec") },
+	{ name = "UiAudit", spec = require("./UiAudit.spec") },
 	-- Fog Runs (slice 2)
 	{ name = "Features", spec = require("./Features.spec") },
 	{ name = "Plane", spec = require("./Plane.spec") },

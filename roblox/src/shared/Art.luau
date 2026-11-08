@@ -25,8 +25,15 @@ Art.WALL_HEIGHT = 8.6
 -- hairline seam between them; World/Seams adds trim and (scrap/reinforced) corner posts.
 Art.pieces = {
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
-	["build.workbench"] = { "EO_WorkbenchP2", "Workbench" },
-	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
+	-- The LDoE station roster (LDOE_PARITY #19). The P2 carpentry bench (saw, chisels,
+	-- vise) is the Woodworking Bench; the slice-1 kit bench serves as the parts Workbench
+	-- until its own model passes the lineup (S1b Phase B checks it beside rec8). The
+	-- Stonecutter and Smelter have no approved model yet, so they stay hidden.
+	["build.woodworking_bench"] = { "EO_WorkbenchP2" },
+	["build.workbench"] = { "Workbench" },
+	["build.stonecutter"] = {},
+	["build.smelter"] = {},
+	["build.campfire"] = { "EO_CampfireRing" }, -- the camp family's stone ring and charred teepee (B18)
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
@@ -75,47 +82,76 @@ Art.tints = {
 	EO_BareBranches = Color3.fromRGB(150, 118, 92), -- weathered bark, not bleached bone
 	EO_WorkbenchP2 = Color3.fromRGB(255, 232, 204), -- its grey wood warmed toward the deck
 	EO_RockCluster = Color3.fromRGB(168, 150, 128), -- warm brown-grey, darker (concept palette)
+	-- S1b: the camp family's stones were bleached light grey. The well takes the rock's warm
+	-- grey (B25); the campfire a neutral soot grey, since warm went clay-brown on the deck
+	-- (B28 vs B29), and its logs read charred.
+	EO_CampfireRing = Color3.fromRGB(150, 146, 140),
+	EO_SpringBasin = Color3.fromRGB(168, 150, 128),
+	EO_ReedStubbleMesh = Color3.fromRGB(176, 150, 100), -- straw, not pale blue
+	-- The fieldstones were the last bleached-white rock beside the warm boulders (B27): the
+	-- boulder's own palette, so the small pickup and the big node read as one stone.
+	EO_LooseStonesClean = Color3.fromRGB(168, 150, 128),
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
 Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
+-- `sink` (studs) settles a model into the ground; `clump` stems of a thin plant grow as
+-- one bush, each turned and offset (CLUMP below), the way LDoE's bushes read round.
+export type NodeArt = { names: { string }, height: number, sink: number?, clump: number? }
 Art.nodes = {
-	["node.pine_tree"] = { names = { "EO_PineConifer", "EO_PineTree" }, height = 22 },
-	["node.boulder"] = { names = { "EO_RockCluster", "EO_Boulder" }, height = 3.1 },
+	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
+	["node.boulder"] = { names = { "EO_RockCluster" }, height = 3.1, sink = 0.3 },
 	["node.loose_stones"] = { names = { "EO_LooseStonesClean", "EO_LooseStones" }, height = 1.1 },
 	["node.fallen_branches"] = { names = { "EO_BareBranches", "EO_FallenBranches" }, height = 0.94 },
-	["node.reed_patch"] = { names = { "EO_Reeds" }, height = 4.2 },
-	["node.ember_bush"] = { names = { "EO_EmberBush" }, height = 4 },
-	["node.spring_pool"] = { names = { "SpringPool" }, height = 1 },
+	["node.reed_patch"] = { names = { "EO_ReedsClean" }, height = 4.2, clump = 2 },
+	["node.ember_bush"] = { names = { "EO_EmberBushClean" }, height = 4.2, clump = 4 },
+	-- The stone well: its basin stays when drained and only the water goes (Art.springWater).
+	["node.spring_pool"] = { names = { "EO_SpringBasin" }, height = 4.4 },
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 3 },
-	["node.scrap_heap"] = { names = { "EO_ScrapHeap" }, height = 3.8 },
+	["node.scrap_heap"] = { names = { "EO_ScrapHeapClean" }, height = 3.8 },
 	["node.ashroot_mound"] = { names = { "AshrootMound" }, height = 1.6 },
-} :: { [string]: { names: { string }, height: number } }
+} :: { [string]: NodeArt }
+
+-- Clump stems: { x, z offset as a share of the stem's width, turn in degrees, scale }.
+Art.CLUMP = {
+	{ 0, 0, 0, 1 },
+	{ 0.37, 0.16, 125, 0.86 },
+	{ -0.29, 0.25, 240, 0.78 },
+	{ 0.04, -0.33, 60, 0.7 },
+} :: { { number } }
+
+-- The well's water, in the conformed EO_SpringBasin's frame (9 studs across, pivot at its
+-- base centre): a dark disc inside the stone ring, below the rim (capture S1b_B25).
+Art.springWater = {
+	offset = Vector3.new(-0.1, 1.55, -0.2),
+	diameter = 5.2,
+	color = Color3.fromRGB(24, 38, 34),
+	reflectance = 0.04,
+}
 
 -- What a depleted node leaves behind until it regrows (LDoE leaves stumps and rubble):
 -- a kit model scaled to `height`. Small pickups (branches, loose stones) leave nothing.
 Art.remnants = {
 	["node.pine_tree"] = { names = { "EO_FatwoodStump" }, height = 2.3 },
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 0.55 },
-	["node.boulder"] = { names = { "EO_LooseStones" }, height = 1.1 },
-	["node.scrap_heap"] = { names = { "EO_ScrapHeap" }, height = 0.9 },
-	-- Reeds and bushes leave nothing until their family models pass the lineup gate
-	-- (ART_DIRECTION 10a): squashing the standing model made a mud blob.
-	["node.reed_patch"] = { names = { "EO_ReedStubble" }, height = 0.9 },
+	["node.boulder"] = { names = { "EO_LooseStonesClean" }, height = 1.1 },
+	["node.scrap_heap"] = { names = { "EO_ScrapHeapClean" }, height = 0.9 },
+	["node.reed_patch"] = { names = { "EO_ReedStubbleMesh" }, height = 0.9 },
 	["node.ember_bush"] = { names = { "EO_BareBranches" }, height = 0.8 },
-	["node.ashroot_mound"] = { names = { "EO_LooseStones" }, height = 0.5 },
+	["node.ashroot_mound"] = { names = { "EO_LooseStonesClean" }, height = 0.5 },
 } :: { [string]: { names: { string }, height: number } }
 
 -- Quality gate (PLAYER_EXPERIENCE_CHECKLIST §0): only kit models graded A may appear.
 -- Everything else (fallback builds, look-test and generated stand-ins, models with
 -- defects) stays out of the world, and the feature that needs it is hidden until its
 -- model is graded A and added here. Grades: docs/briefs/m1-slice1-audit.md.
--- (Loose stones and reeds wait on re-uploads: art/tools/glb_floaters.py found a
--- floating stone and detached blade fragments in their meshes; the fixed GLBs pass.)
+-- (Reeds, the ember bush and the scrap heap are the floater-free re-uploads
+-- (art/tools/glb_floaters.py: 0 flags), named *Clean.)
 Art.approved = {
-	-- EO_PineTree (flat khaki leaf cards, C) is retired: EO_PineConifer replaces it.
-	EO_PineConifer = true, -- tiered spruce from the conifer sheet (Tripo P2; capture 119)
+	-- The developer liked the original pines: EO_PineTree is back (S1b leftover 1). The
+	-- conifer (EO_PineConifer, capture 119) stays uploaded and unused; trees are not touched again.
+	EO_PineTree = true,
 	EO_FatwoodStump = true,
 	WallWood = true, -- the outpost kit (the lineup's exemplars)
 	WallScrap = true,
@@ -129,7 +165,17 @@ Art.approved = {
 	-- Family conversions graded A in the lineup (captures 95-101):
 	EO_LanternPost = true,
 	EO_BareBranches = true,
-	-- EO_RockCluster: C (orchestrator: light-grey popcorn lumps); gated until a re-conversion.
+	-- S1b home set, graded in the lineup beside approved models (captures S1b_B16-B25):
+	-- the rock warm-tinted and sunk (the C was for light-grey popcorn lumps), the camp
+	-- family's ring and well warm-tinted (the well holds water), reeds and the ember bush
+	-- grown as clumps, the scrap heap and stubble as they are.
+	EO_RockCluster = true,
+	EO_CampfireRing = true,
+	EO_SpringBasin = true,
+	EO_ReedStubbleMesh = true,
+	EO_ReedsClean = true,
+	EO_EmberBushClean = true,
+	EO_ScrapHeapClean = true,
 	-- Batch 2 (captures 105-107):
 	EO_StorageCrate = true,
 	EO_RecyclerStation = true,
@@ -172,6 +218,9 @@ Art.uploaded = {
 	EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
 	EO_PineConifer = { id = 130639495990824, yaw = 0, axis = "Y", size = 22 },
 	EO_LooseStonesClean = { id = 100348018403125, yaw = 0, axis = "X", size = 2.4 },
+	EO_ReedsClean = { id = 106633992505764, yaw = 0, axis = "Y", size = 4.2 },
+	EO_EmberBushClean = { id = 106896648014033, yaw = 0, axis = "Y", size = 4 },
+	EO_ScrapHeapClean = { id = 89747869389109, yaw = 0, axis = "Y", size = 3.8 },
 	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
@@ -427,6 +476,35 @@ Art.glyphs = {
 	trash = "rbxassetid://120304458961712",
 	storage = "rbxassetid://104605090820806",
 	campfire = "rbxassetid://139250651894110",
+	-- Sheet C (S1b, LDOE_PARITY HUD and screens): art/ui/glyphs, uploaded by S1b.
+	axe = "rbxassetid://132008963429716", -- context button: chop
+	pick = "rbxassetid://116723703965422", -- context button: mine
+	talk = "rbxassetid://131895473902591", -- context button: talk
+	crew = "rbxassetid://75710612953498", -- menu bar
+	pass = "rbxassetid://95275003551384", -- menu bar
+	chat = "rbxassetid://80912016428510",
+	expand = "rbxassetid://88969264987884",
+	sort = "rbxassetid://90551417983901",
+	split = "rbxassetid://138832061964321",
+	upgrade = "rbxassetid://122680927129738", -- the green upgrade arrow
+	brush = "rbxassetid://120848260300004", -- storage label colour
+	recipes = "rbxassetid://82674517043372", -- ALL RECIPES
+	defense = "rbxassetid://72325909298547", -- armor stat; Defense tray tab
+	sun = "rbxassetid://129919915537676",
+	moon = "rbxassetid://74460301341960",
+	hide_walls = "rbxassetid://140600825829489", -- hide upper walls
+	move = "rbxassetid://87099813822929",
+	rotate = "rbxassetid://116016044144367",
+	chevron = "rbxassetid://98853120119324", -- tracker collapse
+	check = "rbxassetid://88186247590426", -- objective done
+	timer = "rbxassetid://93404803435369",
+	furniture = "rbxassetid://81227467583015", -- tray tab
+	station = "rbxassetid://76437812041068", -- tray tab and station headers
+	vehicle = "rbxassetid://106222628289474", -- the wrecked hauler
+	event = "rbxassetid://128117457014617", -- top-right strip (S3)
+	offer = "rbxassetid://71527739225617",
+	gift = "rbxassetid://118846511433792",
+	fill_up = "rbxassetid://113536503595888", -- FILL UP
 } :: { [string]: string }
 
 -- The Fog map (checklist 11.2): the painted region (art/higgsfield/m1-slice2/ui/fog_map_v1.png,

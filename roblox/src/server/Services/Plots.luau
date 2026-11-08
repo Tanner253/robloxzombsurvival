@@ -4,9 +4,11 @@
 
 	Tuning.plots.count plots sit in two rows facing a shared road under
 	Workspace.World.Plots. Each player claims the first free plot once their
-	profile loads and keeps it until they leave. The outpost layout (Domain/Grid)
-	is saved separately from the profile (ARCHITECTURE.md §6) in the "Outposts"
-	store, one profile per player, so a big base never hits the profile limit.
+	profile loads and keeps it until they leave. The outpost (Domain/OutpostSchema: the
+	Grid layout, its finite home nodes and projects) is saved separately from the
+	profile (ARCHITECTURE.md §6) in the "Outposts" store, one profile per player, so a
+	big base never hits the profile limit. A brand-new outpost starts with the damaged
+	starter shelter (Domain/Shelter, LDOE_PARITY #56), laid once and never again.
 
 	The Studio place owns the world: when Workspace.World or its plots exist
 	there, their `Origin` attributes are used. A missing folder or plot is created
@@ -22,6 +24,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local Migrations = require(ReplicatedStorage.Shared.Domain.Migrations)
+local OutpostSchema = require(ReplicatedStorage.Shared.Domain.OutpostSchema)
+local Shelter = require(ReplicatedStorage.Shared.Domain.Shelter)
 local Stores = require("../Stores")
 local PlayerData = require("./PlayerData")
 local Sync = require("./Sync")
@@ -61,8 +66,8 @@ local plots: { Plot } = {}
 local byPlayer: { [Player]: Plot } = {}
 local store: any
 
-local function template(): { layout: Grid.Saved }
-	return { layout = Grid.serialize(Grid.new()) }
+local function template(): OutpostSchema.Data
+	return OutpostSchema.template()
 end
 
 -- World layout ---------------------------------------------------------------------------
@@ -302,12 +307,37 @@ local function claim(player: Player)
 		return
 	end
 	profile:AddUserId(player.UserId)
+	-- Migrate before Reconcile, which would stamp the template's version on old data.
+	OutpostSchema.prepare(profile.Data)
+	local migrated, why = Migrations.run(profile.Data, OutpostSchema.migrations, OutpostSchema.VERSION)
+	if not migrated then
+		-- Like PlayerData: never reconcile or play on half-migrated data; end and retry later.
+		warn(`Plots: outpost {player.UserId} could not migrate ({why})`)
+		profile:EndSession()
+		p.owner = nil
+		byPlayer[player] = nil
+		player:Kick("Your outpost needs a newer server. Please rejoin.")
+		return
+	end
 	profile:Reconcile()
 	local layout, reason = Grid.deserialize(profile.Data.layout, Content.BuildPieces)
 	if layout == nil then
 		warn(`Plots: layout for {player.UserId} failed to load ({reason}); it will not be saved over`)
 		p.readOnly = true
 		layout = Grid.new()
+	end
+	-- A brand-new outpost gets the damaged starter shelter, once.
+	if not p.readOnly and profile.Data.seeded ~= true then
+		local gridPlot: Grid.Plot =
+			{ ownerUserId = player.UserId, width = building.plotCells, depth = building.plotCells }
+		local shelter, failed = Shelter.build(Content.StarterShelter, Content.BuildPieces, gridPlot, p.front, os.time())
+		if failed then
+			warn(`Plots: starter shelter failed ({failed})`)
+		else
+			layout = shelter
+			profile.Data.layout = Grid.serialize(shelter)
+		end
+		profile.Data.seeded = true
 	end
 	p.profile = profile
 	p.layout = layout :: Grid.Layout
@@ -358,6 +388,13 @@ function Plots.context(plot: Plot, player: Player): Grid.Context
 	}
 end
 
+-- The owner's saved outpost (OutpostSchema.Data: nodes, projects...), or nil.
+function Plots.outpost(player: Player): OutpostSchema.Data?
+	local plot = byPlayer[player]
+	local profile = plot and plot.profile
+	return if profile then profile.Data else nil
+end
+
 -- Replaces the owner's layout and saves it with their Outposts profile.
 function Plots.setLayout(player: Player, layout: Grid.Layout)
 	local plot = byPlayer[player]
@@ -382,6 +419,12 @@ function Plots.setCrateIcon(player: Player, uid: string, slots: { any }?)
 	local plot = byPlayer[player]
 	local model: Model? = if plot then plot.pieceModels[uid] else nil
 	if not model then
+		return
+	end
+	local data = PlayerData.get(player)
+	local pinned = data and (data :: any).storageLabels and (data :: any).storageLabels[uid]
+	if type(pinned) == "string" then
+		model:SetAttribute("MainItem", pinned) -- the player's brush choice (LDOE_PARITY #16)
 		return
 	end
 	local totals: { [string]: number } = {}

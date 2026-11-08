@@ -40,7 +40,7 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		robloxId = 0,
 		defaultPriceRobux = 149,
 		limit = 1,
-		grants = { { kind = "backpackSlots", amount = 6 } },
+		grants = { { kind = "backpackSlots", amount = 5 } },
 	},
 	["product.starter_offer"] = {
 		id = "product.starter_offer",

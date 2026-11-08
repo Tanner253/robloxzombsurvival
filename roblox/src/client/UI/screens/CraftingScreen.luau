@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local Crafting = require(ReplicatedStorage.Shared.Domain.Crafting)
 local ItemSources = require(ReplicatedStorage.Shared.Domain.ItemSources)
 local Actions = require("../../Actions")
@@ -34,6 +35,7 @@ local Label = require("../components/Label")
 local Glyph = require("../components/Glyph")
 local LockGlyph = require("../components/LockGlyph")
 local Sheet = require("../components/Sheet")
+local mark = require("../mark")
 local StatPairs = require("../components/StatPairs")
 
 local e = React.createElement
@@ -69,14 +71,12 @@ local function outputDef(recipe: any): any
 end
 
 local function lockText(recipe: any): string
-	local gate = recipe.unlock
-	if gate.kind == "level" then
-		return `Reach level {gate.level}`
-	elseif gate.kind == "blueprint" then
-		local def = Content.Items[gate.itemId]
-		return `Read the {if def then def.name else "blueprint"}`
-	end
-	return ""
+	return Unlocks.text(recipe.unlock, { items = Content.Items :: any, quests = Content.Quests :: any }) or ""
+end
+
+-- The short form under a locked tile ("Ember Trail 4", "Level 6"); the card says it in full.
+local function lockShort(recipe: any): string
+	return Unlocks.short(recipe.unlock, { items = Content.Items :: any, quests = Content.Quests :: any }) or ""
 end
 
 -- Stations the player can build (their piece has an approved model, checklist §0).
@@ -135,6 +135,7 @@ local function RecipeCard(props: {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),
 		Icon = e("Frame", {
+			ref = mark.composite, -- the icon, its dim veil and the lock overlap on purpose
 			Size = UDim2.fromOffset(72, 72),
 			Position = UDim2.new(0.5, 0, 0, 10),
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -166,7 +167,7 @@ local function RecipeCard(props: {
 			alignY = Enum.TextYAlignment.Top,
 		}),
 		Under = e(Label, {
-			text = if not props.unlocked then lockText(recipe) elseif station then station.name else "",
+			text = if not props.unlocked then lockShort(recipe) elseif station then station.name else "",
 			style = "caption",
 			tone = if not props.unlocked then "locked" else "muted",
 			size = UDim2.new(1, -8, 0, 16),
@@ -403,7 +404,12 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 		})
 	end
 
-	return e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, {
+	-- Grows to its content; the column scrolls it when a phone's sheet is shorter.
+	return e("Frame", {
+		Size = UDim2.new(1, -8, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+	}, {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 		Card = e("Frame", {
 			Size = UDim2.new(1, 0, 0, 150),
@@ -415,7 +421,7 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 			-- Blueprint grid lines.
 			Grid = e(
 				"Frame",
-				{ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ClipsDescendants = true },
+				{ ref = mark.decor, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ClipsDescendants = true },
 				(function()
 					local lines: { [string]: any } = {}
 					for i = 1, 11 do
@@ -545,12 +551,14 @@ local function CraftingScreen()
 	local pooled = hooks.usePooled()
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
+	local questsState = hooks.useSection("quests")
 	local marks = hooks.useSection("recipeMarks")
 	local tab, setTab = React.useState("all")
 	local selectedId, setSelected = React.useState(nil :: string?)
 	local progress = {
 		level = if progression then progression.level else 1,
 		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
+		quests = if type(questsState) == "table" then questsState else nil,
 	}
 	local favourites = if type(marks) == "table" then marks.favourites or {} else {}
 	local seen = if type(marks) == "table" then marks.seen or {} else {}
@@ -667,11 +675,15 @@ local function CraftingScreen()
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			CanvasSize = UDim2.new(),
 		}, cards),
-		Detail = e("Frame", {
+		Detail = e("ScrollingFrame", {
 			Size = UDim2.new(0.42, -20, 1, 0),
 			Position = UDim2.fromScale(1, 0),
 			AnchorPoint = Vector2.new(1, 0),
 			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 4,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			CanvasSize = UDim2.new(),
 		}, {
 			Inner = selected and e(Detail, {
 				recipe = selected,

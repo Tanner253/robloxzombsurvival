@@ -734,7 +734,7 @@ local function FogMap()
 		-- The panel's header colour carried up under Roblox's top bar, so the panel reads
 		-- as full height and the slid map's empty edge never shows.
 		PanelCap = location and e("Frame", {
-			Size = UDim2.new(0, PANEL_WIDTH, 0, topInset),
+			Size = UDim2.fromOffset(PANEL_WIDTH, topInset),
 			Position = UDim2.fromScale(1, 0),
 			AnchorPoint = Vector2.new(1, 0),
 			BackgroundColor3 = Theme.colors.panelRaised,

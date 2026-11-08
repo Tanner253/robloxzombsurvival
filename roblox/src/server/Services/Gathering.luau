@@ -7,10 +7,11 @@
 	the owner gathers their home nodes. Each Gather request is one swing: the
 	server checks reach, the swing cooldown (Tuning.gathering.swingSeconds), the
 	tool (Domain/Gathering.pickTool) and bag space, then yields items and XP and
-	wears the tool. Home nodes are saved per player (PlayerData.homeNodes, keyed
-	"<nodeId>#<n>") and regrow on real-time stamps (Tuning.home.regrowHours), so a
-	restart or rejoin never refills them. The plot's layout is seeded by the player,
-	so their home grows the same way on whichever plot they get.
+	wears the tool. Home nodes are finite (LDOE_PARITY #30): once depleted they stay
+	down for good (only Tuning.home.renewing, the spring, refills). They are saved per
+	outpost (OutpostSchema `nodes`, keyed "<nodeId>#<n>"), so a restart or rejoin never
+	refills them. The plot's layout is seeded by the owner, so their home grows the
+	same way on whichever plot they get.
 
 	Node models carry attributes for the client: NodeKey, NodeId, Standing,
 	HitsLeft, Hits and OwnerUserId, and the "EO_Node" tag.
@@ -28,11 +29,11 @@ local Rng = require(ReplicatedStorage.Shared.Domain.Rng)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Net = require("../Net")
+local Events = require("../Events")
 local Models = require("../World/Models")
 local Analytics = require("./Analytics")
 local Drops = require("./Drops")
 local Inventory = require("./Inventory")
-local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
@@ -45,7 +46,7 @@ Gathering.TAG = "EO_Node"
 
 type Node = {
 	key: string,
-	saveKey: string, -- "<nodeId>#<n>": the key in the owner's PlayerData.homeNodes
+	saveKey: string, -- "<nodeId>#<n>": the key in the outpost's saved nodes
 	def: Types.ResourceNodeDef,
 	state: GatheringMath.Node,
 	model: Model,
@@ -91,9 +92,10 @@ local function setStanding(node: Node, standing: boolean)
 	node.model:SetAttribute("HitsLeft", if standing then node.state.hitsLeft else 0)
 	for _, descendant in node.model:GetDescendants() do
 		if descendant:IsA("BasePart") then
-			-- Only the footprint collider blocks movement (World/Models).
+			-- Only the footprint collider blocks movement (World/Models). A drained well
+			-- (Drains) keeps its basin, so it keeps blocking.
 			if descendant.Name == "Collider" then
-				descendant.CanCollide = standing
+				descendant.CanCollide = standing or node.model:GetAttribute("Drains") == true
 			else
 				descendant.CanQuery = standing
 			end
@@ -150,8 +152,8 @@ end
 local function spawnNodes(player: Player, plot: Plots.Plot)
 	local random = Random.new(player.UserId % 2147483000 + 7919)
 	local taken: { Vector2 } = {}
-	local data = PlayerData.get(player)
-	local saved = if data then data.homeNodes else {}
+	local outpost = Plots.outpost(player)
+	local saved = if outpost then outpost.nodes else {}
 	local stamp = os.time()
 	for _, entry in tuning.home.nodes do
 		local def = Content.Nodes[entry.nodeId]
@@ -212,13 +214,13 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 	end
 end
 
--- Records a home node's state in the owner's profile (nothing while it is whole).
+-- Records a home node's state on the outpost (nothing while it is whole).
 saveNode = function(player: Player, node: Node)
-	local data = PlayerData.get(player)
-	if data == nil then
+	local outpost = Plots.outpost(player)
+	if outpost == nil then
 		return
 	end
-	(data.homeNodes :: any)[node.saveKey] = GatheringMath.toSave(node.state, node.def)
+	(outpost.nodes :: any)[node.saveKey] = GatheringMath.toSave(node.state, node.def)
 end
 
 local function clearNodes(plot: Plots.Plot)
@@ -232,8 +234,6 @@ end
 
 -- Fog Runs: a lobby's nodes stand on its map's "node" markers (FogRuns/Map). Anyone in the
 -- lobby harvests them, first come first served, and they don't regrow before it closes.
-local NEVER = 10 * 365 * 24 * 3600
-
 local function spawnLobbyNodes(hosted: Lobby.Hosted)
 	local random = Random.new(hosted.state.seed)
 	local folder = Instance.new("Folder")
@@ -365,10 +365,11 @@ local function gather(player: Player, key: string)
 		return
 	end
 	lastSwing[player] = now
-	local regrow = if node.plot
-		then GatheringMath.regrowSeconds(tuning.home.regrowHours[node.def.id], rng:NextNumber())
-		else NEVER
-	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp, regrow)
+	-- Home nodes follow the renewing list; a Fog Run's never grow back within its lobby.
+	local respawn = if node.plot
+		then GatheringMath.homeRespawn(node.def.id, tuning.home.renewing)
+		else GatheringMath.NEVER
+	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp, respawn)
 	if nextState == nil then
 		return
 	end
@@ -429,6 +430,9 @@ local function gather(player: Player, key: string)
 		node.model:SetAttribute("HitsLeft", node.state.hitsLeft)
 	end
 	Progression.grantXp(player, node.def.xpPerHit, "Gathering")
+	for _, stack in given do
+		Events.played:Fire(player, { kind = "gather", itemId = stack.itemId, count = stack.count })
+	end
 	Sync.fx(player, "gather", {
 		key = key,
 		nodeId = node.def.id,

@@ -1,13 +1,13 @@
 --!strict
 -- Specs for the home-loop domain modules: Slots, Progression, Gathering,
--- BuildRules, Salvage, and Crafting's per-item fuel burn times.
+-- BuildRules, Salvage, and each fuel's burn time.
 local TestKit = require("./TestKit")
 local Slots = require("../src/shared/Domain/Slots")
 local Progression = require("../src/shared/Domain/Progression")
 local Gathering = require("../src/shared/Domain/Gathering")
 local BuildRules = require("../src/shared/Domain/BuildRules")
 local Salvage = require("../src/shared/Domain/Salvage")
-local Crafting = require("../src/shared/Domain/Crafting")
+local Converter = require("../src/shared/Domain/Converter")
 local Grid = require("../src/shared/Domain/Grid")
 local Inventory = require("../src/shared/Domain/Inventory")
 local Rng = require("../src/shared/Domain/Rng")
@@ -182,21 +182,31 @@ return function(test: TestKit.Register)
 			now = T0,
 		}
 	end
-	local starter = { level = 1, unlocks = { recipes = {}, blueprints = {} } }
+	local starter = { level = 1, unlocks = { recipes = {}, blueprints = {} }, quests = { completed = {} } }
+	-- Everything the home chapter unlocks.
+	local completed: { [string]: number } = {}
+	for id, quest in Content.Quests do
+		if quest.order <= 8 then
+			completed[id] = T0
+		end
+	end
+	local veteran = { level = 1, unlocks = { recipes = {}, blueprints = {} }, quests = { completed = completed } }
 
 	test("BuildRules refuses upgraded tiers, locked pieces and plot limits", function()
 		local layout = Grid.new()
 		local _, notBase = BuildRules.canPlace(layout, "build.wall_scrap", { x = 0, z = 0, axis = "h" }, ctx(), starter)
 		TestKit.equal(notBase, "notBase", "the wood-tier price can't be skipped")
 		local _, locked = BuildRules.canPlace(layout, "build.recycler", { x = 0, z = 0 }, ctx(), starter)
-		TestKit.equal(locked, "locked", "recycler is level 7")
-		local _, bare = BuildRules.canPlace(layout, "build.workbench", { x = 0, z = 0 }, ctx(), starter)
+		TestKit.equal(locked, "locked", "the recycler unlocks on the Ember Trail")
+		local _, starterCrate = BuildRules.canPlace(layout, "build.crate_wood", { x = 0, z = 0 }, ctx(), starter)
+		TestKit.equal(starterCrate, "needsFoundation", "the small crate is unlocked from the start")
+		local _, bare = BuildRules.canPlace(layout, "build.workbench", { x = 0, z = 0 }, ctx(), veteran)
 		TestKit.equal(bare, "needsFoundation", "workbench needs a floor")
-		local _, ground = BuildRules.canPlace(layout, "build.campfire", { x = 0, z = 0 }, ctx(), starter)
+		local _, ground = BuildRules.canPlace(layout, "build.campfire", { x = 0, z = 0 }, ctx(), veteran)
 		TestKit.equal(ground, "needsFoundation", "furniture stands on foundations")
 
 		local poor = Inventory.new(10, 0)
-		local _, broke = BuildRules.canPlace(layout, "build.foundation_wood", { x = 1, z = 1 }, ctx(), starter, poor)
+		local _, broke = BuildRules.canPlace(layout, "build.foundation_wood", { x = 1, z = 1 }, ctx(), veteran, poor)
 		TestKit.equal(broke, "cantAfford")
 
 		for _, x in { 0, 1, 3 } do
@@ -206,7 +216,7 @@ return function(test: TestKit.Register)
 			-- Quarter cells: cell (index, 5) starts at quarter (index * 4, 20).
 			layout = (Grid.place(layout, "build.campfire", { x = index * 4, z = 20 }, ctx())) :: any
 		end
-		local _, limit = BuildRules.canPlace(layout, "build.campfire", { x = 12, z = 20 }, ctx(), starter)
+		local _, limit = BuildRules.canPlace(layout, "build.campfire", { x = 12, z = 20 }, ctx(), veteran)
 		TestKit.equal(limit, "limit", "maxPerPlot")
 		TestKit.equal(BuildRules.rootOf("build.wall_reinforced", Content.BuildPieces), "build.wall_wood")
 	end)
@@ -218,7 +228,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(ok, false)
 		TestKit.equal(reason, "locked")
 		TestKit.equal((nextDef :: any).id, "build.foundation_scrap")
-		TestKit.truthy((BuildRules.canUpgrade(layout, "1", ctx(), { level = 6, unlocks = starter.unlocks })), "level 6")
+		TestKit.truthy((BuildRules.canUpgrade(layout, "1", ctx(), veteran)), "Stand Your Ground unlocks scrap")
 		local catalog = BuildRules.catalog(Content.BuildPieces)
 		for _, def in catalog do
 			TestKit.truthy(BuildRules.isBase(def.id, Content.BuildPieces), def.id)
@@ -226,51 +236,40 @@ return function(test: TestKit.Register)
 	end)
 
 	-- Salvage ---------------------------------------------------------------------------------------
-	test("Salvage queues, collects with rolls and cancels with the input's condition", function()
+	test("the Recycler breaks a worn vest down in its converter, guaranteed outputs first", function()
 		local recycler = Content.Stations["station.recycler"]
-		local station = Crafting.newStation("station.recycler")
 		local vest = Content.Items["item.padded_vest"]
-		local queued = Salvage.start(
-			station,
-			recycler,
+		TestKit.truthy(Salvage.find(recycler, "item.padded_vest"), "vests are salvageable")
+		TestKit.equal(Salvage.find(recycler, "item.timber"), nil, "timber isn't")
+		local recycling: Converter.Context = {
+			def = recycler,
+			recipes = Content.Recipes,
+			items = Content.Items :: any,
+			rng = Rng.new(3),
+		}
+		local state = Converter.new(recycler, T0)
+		local placed = Converter.putInput(
+			state,
+			recycling,
+			veteran,
 			slot("item.padded_vest", 1, vest.durability :: number / 2),
-			Content.Items,
 			T0
 		)
-		TestKit.truthy(queued, "queued")
-		local itemId, condition = Salvage.parse((queued :: any).queue[1].id)
-		TestKit.equal(itemId, "item.padded_vest")
-		TestKit.equal(condition, 0.5)
-		TestKit.equal(
-			select(2, Salvage.start(station, recycler, slot("item.timber", 1), Content.Items, T0)),
-			"notSalvageable"
-		)
-
-		local _, refund = Salvage.cancel(queued :: any, 1, Content.Items, T0 + 5)
-		TestKit.equal((refund :: any).durability, math.floor(vest.durability :: number * 0.5), "refund keeps condition")
-
-		local inventory = Inventory.new(10, 0)
-		local done = (queued :: any).queue[1].endsAt
-		local after, newInventory, collected = Salvage.collect(
-			queued :: any,
-			recycler,
-			inventory,
-			Content.Items,
-			Rng.new(3),
-			done,
-			{ durabilityScalesChance = true }
-		)
-		TestKit.equal(#after.queue, 0, "collected")
-		TestKit.truthy(#collected >= 1, "cloth always drops")
-		TestKit.truthy(Inventory.count(newInventory, "item.cloth") >= 2, "guaranteed output")
+		TestKit.truthy(placed, "the vest goes in")
+		local salvage = Salvage.find(recycler, "item.padded_vest") :: any
+		local done = Converter.advance(placed :: any, recycling, T0 + salvage.seconds)
+		local cloth = 0
+		for _, out in done.output do
+			cloth += if out.itemId == "item.cloth" then out.count else 0
+		end
+		TestKit.truthy(cloth >= 2, "guaranteed output")
 	end)
 
-	test("Crafting burns each fuel for its own time", function()
+	test("each fuel burns for its own time (LDoE: log 2 min, plank 3)", function()
 		local campfire = Content.Stations["station.campfire"]
-		local stocked = (Inventory.add(Inventory.new(10, 0), "item.fatwood", 2, Content.Items))
-		local lit = Crafting.addFuel(Crafting.newStation("station.campfire"), campfire, stocked, "item.fatwood", 2, T0)
-		TestKit.equal((lit :: any).fuelEndsAt, T0 + 2 * 6 * 60, "fatwood burns 6 minutes")
-		TestKit.equal(Crafting.burnSeconds(campfire, "item.timber"), campfire.fuel.secondsPerUnit, "default")
+		TestKit.equal(Converter.burnSeconds(campfire, "item.timber"), 2 * 60, "a log")
+		TestKit.equal(Converter.burnSeconds(campfire, "item.plank"), 3 * 60, "a plank")
+		TestKit.truthy(Converter.burnSeconds(campfire, "item.fatwood") > 5 * 60, "fatwood burns longest")
 	end)
 
 	test("the progression ladder: hands -> sticks + stone -> hatchet -> timber -> planks", function()
@@ -301,8 +300,26 @@ return function(test: TestKit.Register)
 		local text = BuildRules.explain("cantAfford", wall, inv, Content.Items :: any, Content.BuildPieces :: any)
 		TestKit.truthy(string.find(text, "Timber 3/", 1, true) ~= nil, text)
 		local reinforced = Content.BuildPieces["build.wall_reinforced"]
-		local locked = BuildRules.explain("locked", reinforced, inv, Content.Items :: any, Content.BuildPieces :: any)
-		TestKit.truthy(string.find(locked, "blueprint", 1, true) ~= nil, locked)
+		local locked = BuildRules.explain(
+			"locked",
+			reinforced,
+			inv,
+			Content.Items :: any,
+			Content.BuildPieces :: any,
+			Content.Quests :: any
+		)
+		TestKit.truthy(string.find(locked, "Reinforcement Plans", 1, true) ~= nil, locked)
+		local stonecutter = Content.BuildPieces["build.stonecutter"]
+		local questLock = BuildRules.explain(
+			"locked",
+			stonecutter,
+			inv,
+			Content.Items :: any,
+			Content.BuildPieces :: any,
+			Content.Quests :: any
+		)
+		TestKit.equal(questLock, "Complete the 'A Place to Work' quest")
+		TestKit.equal(BuildRules.explain("floorTier", stonecutter, inv, Content.Items :: any), "Needs a Timber floor")
 		TestKit.equal(BuildRules.explain("occupied", wall, inv, Content.Items :: any), "Something is already there")
 		local cost = BuildRules.costText(wall.cost, inv, Content.Items :: any)
 		TestKit.truthy(string.find(cost, "Timber 3/", 1, true) ~= nil, cost)
@@ -332,5 +349,27 @@ return function(test: TestKit.Register)
 		local SURVIVOR_HEIGHT = 5.6 -- the custom StarterCharacter
 		local reach = SURVIVOR_HEIGHT + Content.Tuning.movement.hopHeight
 		TestKit.truthy(wall > reach + 0.5, `walls {wall} vs reach {reach}`)
+	end)
+
+	test("objects move and turn in place, keeping their uid; walls don't move", function()
+		local layout = Grid.new()
+		for x = 0, 2 do
+			layout = (Grid.place(layout, "build.foundation_wood", { x = x, z = 0 }, ctx())) :: any
+		end
+		layout = (Grid.place(layout, "build.crate_wood", { x = 0, z = 0, rot = 0 }, ctx())) :: any
+		local crateUid = tostring(layout.nextUid - 1)
+		local moved, why = Grid.move(layout, crateUid, { x = 8, z = 1, rot = 1 }, ctx())
+		TestKit.equal(why, nil)
+		local crate = (moved :: any).pieces[crateUid]
+		TestKit.equal(crate.x, 8)
+		TestKit.equal(crate.rot, 1)
+		TestKit.equal(Grid.objectAt(moved :: any, 0, 0), nil, "the old spot is free")
+		TestKit.equal((Grid.objectAt(moved :: any, 8, 1) :: any).uid, crateUid)
+		local _, offPlot = Grid.move(layout, crateUid, { x = 20, z = 0, rot = 0 }, ctx())
+		TestKit.equal(offPlot, "needsFoundation")
+		layout = (Grid.place(layout, "build.wall_wood", { x = 0, z = 0, axis = "h" }, ctx())) :: any
+		local wallUid = tostring(layout.nextUid - 1)
+		TestKit.equal(select(2, Grid.move(layout, wallUid, { x = 1, z = 0, axis = "h" }, ctx())), "badTarget")
+		TestKit.truthy((BuildRules.canMove(layout, crateUid, { x = 4, z = 0, rot = 0 }, ctx())), "BuildRules agrees")
 	end)
 end

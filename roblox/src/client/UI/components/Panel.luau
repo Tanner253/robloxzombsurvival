@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
+local mark = require("../mark")
 
 export type Props = {
 	title: string?,
@@ -30,6 +31,7 @@ local function Panel(props: Props)
 		BackgroundTransparency = 1,
 	}, {
 		Shadow = React.createElement("Frame", {
+			ref = mark.decor,
 			Size = UDim2.fromScale(1, 1),
 			Position = UDim2.fromOffset(0, Theme.shadowOffset),
 			BackgroundColor3 = Theme.colors.shadow,

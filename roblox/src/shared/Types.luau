@@ -46,7 +46,10 @@ export type ItemCategory =
 	| "misc"
 
 -- Matches the keys of PlayerSchema.Equipment.
-export type EquipSlot = "head" | "body" | "legs" | "feet" | "weapon" | "weapon2" | "bag" -- weapon2: the secondary weapon (an item's equipSlot is "weapon")
+-- weapon2: the secondary weapon (an item's equipSlot is "weapon"). quick: LDoE's quick-access
+-- pocket (LDOE_PARITY #14), which takes food, drink, healing, a weapon or a tool and feeds the
+-- HUD meds button.
+export type EquipSlot = "head" | "body" | "legs" | "feet" | "weapon" | "weapon2" | "bag" | "quick"
 
 export type ToolKind = "hatchet" | "pick"
 
@@ -111,17 +114,26 @@ export type ItemStack = {
 
 -- Recipes and stations ---------------------------------------------------------
 
--- Gates recipes and build pieces. A blueprint gate is met once the player has
--- read that blueprint item (PlayerData.unlocks.blueprints[itemId]).
-export type UnlockGate = { kind: "default" } | { kind: "level", level: number } | { kind: "blueprint", itemId: ItemId }
+-- Gates recipes and build pieces (Domain/Unlocks). Blueprints unlock through Ember Trail
+-- quests (LDOE_PARITY #49): a quest gate is met once that quest is complete. A blueprint
+-- gate is met once the player has read that blueprint item (a schematic found as loot).
+-- Level gates only gate locations; recipes and pieces never use them.
+export type UnlockGate =
+	{ kind: "default" }
+	| { kind: "level", level: number }
+	| { kind: "blueprint", itemId: ItemId }
+	| { kind: "quest", questId: QuestId }
 
+-- A hand recipe (no stationId) makes gear, tools, bags and food mixes instantly in the
+-- crafting catalogue (LDOE_PARITY #20). A station recipe is one converter line (#18):
+-- exactly one input stack and one output stack, one batch per craftSeconds.
 export type RecipeDef = {
 	id: RecipeId,
 	inputs: { ItemStack },
 	outputs: { ItemStack },
 	stationId: StationId?, -- nil means hand-crafted from the inventory
 	stationLevel: number?, -- minimum station level; defaults to 1
-	craftSeconds: number, -- one job; divided by the station level's speedMultiplier
+	craftSeconds: number, -- one batch; divided by the station level's speedMultiplier
 	unlock: UnlockGate,
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off (Shared/Features)
 }
@@ -129,17 +141,17 @@ export type RecipeDef = {
 export type StationLevel = {
 	level: number,
 	upgradeCost: { ItemStack }, -- empty for level 1 (paid by the build piece)
-	queueSlots: number, -- jobs that can be queued or waiting for collection
+	-- How many items the input, output and fuel slots each hold (LDoE: 20, +20 per level).
+	slotCap: number,
 	speedMultiplier: number, -- 1 = recipe craftSeconds as written
-	requiredLevel: number?, -- player level needed to upgrade to this level
 	salvageChanceBonus: number?, -- Recycler: added to every non-guaranteed output chance
 }
 
+-- Fuel burns only while the station is converting (Domain/Converter).
 export type StationFuel = {
 	itemIds: { ItemId }, -- what the station accepts as fuel
 	secondsPerUnit: number, -- burn time for a fuel item not listed in burnSeconds
 	burnSeconds: { [ItemId]: number }?, -- per-item burn time
-	maxUnits: number, -- fuel slot capacity
 }
 
 -- One output of a Recycler job. chance is rolled once, scaled by the input's
@@ -157,12 +169,16 @@ export type SalvageDef = {
 	outputs: { SalvageOutput },
 }
 
+-- A station is an LDoE converter (LDOE_PARITY #18): one input slot -> one output slot
+-- (the Recycler has outputSlots for its several outputs), an optional fuel slot, and
+-- level upgrades that raise slotCap.
 export type StationDef = {
 	id: StationId,
 	name: string,
 	levels: { StationLevel },
-	fuel: StationFuel?, -- jobs only progress while fuel burns
+	fuel: StationFuel?, -- converts only while fuel burns
 	salvage: { SalvageDef }?, -- Recycler: what it breaks down
+	outputSlots: number?, -- output slots; nil means 1
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
 
@@ -210,7 +226,7 @@ export type ResourceNodeDef = {
 	hits: number, -- hits to deplete; each tool hit costs Tuning.gathering.durabilityPerHit
 	yields: { NodeYield },
 	xpPerHit: number,
-	respawnSeconds: number, -- in shared instances and on the home plot
+	respawnSeconds: number, -- in Fog Run locations; home nodes never respawn (LDOE_PARITY #30)
 }
 
 -- Enemies ---------------------------------------------------------------------------
@@ -325,6 +341,29 @@ export type BuildPieceDef = {
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
 
+-- One piece of the damaged starter shelter every new plot starts with (LDOE_PARITY #56),
+-- in plot cells as Domain/Grid targets them, laid out for a plot whose road is on +Z
+-- (Domain/Shelter mirrors it for the other row). `hp` is the fraction of full HP it
+-- starts with.
+export type StarterPiece = {
+	pieceId: BuildPieceId,
+	x: number,
+	z: number,
+	axis: ("h" | "v")?,
+	rot: number?,
+	hp: number,
+}
+
+-- A long-term build goal shown on the plot (LDOE_PARITY #56): a wreck restored by handing
+-- in parts. The parts checklist screen shows have/need per part, FILL UP and FINALIZE.
+export type ProjectDef = {
+	id: string, -- "project.*"
+	name: string,
+	description: string,
+	parts: { ItemStack }, -- what finalizing takes
+	rewards: { ItemStack }?, -- granted on finalizing (into the inbox)
+}
+
 -- Player progression ---------------------------------------------------------------
 
 export type PlayerLevelDef = {
@@ -333,16 +372,19 @@ export type PlayerLevelDef = {
 	rewards: { ItemStack }?, -- granted on reaching it (unlocks come from UnlockGates)
 }
 
+-- `flag` names a feature flag (Shared/Flags) the objective waits on: while the flag is off
+-- the objective is left out, so quest 1 needs no Hollow until Fog Runs ship.
 export type QuestObjective =
-	{ kind: "gather", itemId: ItemId, count: number } -- harvested from nodes
-	| { kind: "craft", recipeId: RecipeId, count: number } -- jobs collected
-	| { kind: "build", pieceId: BuildPieceId, count: number } -- placed or upgraded into
-	| { kind: "travel", locationId: LocationId } -- arrive by Run or Walk
-	| { kind: "loot", count: number, locationId: LocationId? } -- containers opened
-	| { kind: "kill", count: number, enemyId: EnemyId? } -- nil means any Hollow
-	| { kind: "equip", itemId: ItemId }
-	| { kind: "consume", itemId: ItemId, count: number }
-	| { kind: "reachLevel", level: number }
+	{ kind: "gather", itemId: ItemId, count: number, flag: string? } -- harvested from nodes
+	| { kind: "craft", recipeId: RecipeId, count: number, flag: string? } -- hand crafts or batches taken
+	| { kind: "build", pieceId: BuildPieceId, count: number, flag: string? } -- placed or upgraded into
+	| { kind: "travel", locationId: LocationId, flag: string? } -- arrive by Run or Walk
+	| { kind: "loot", count: number, locationId: LocationId?, flag: string? } -- containers opened
+	| { kind: "lootBody", count: number, flag: string? } -- Hollow bodies searched
+	| { kind: "kill", count: number, enemyId: EnemyId?, flag: string? } -- nil means any Hollow
+	| { kind: "equip", itemId: ItemId, flag: string? }
+	| { kind: "consume", itemId: ItemId, count: number, flag: string? }
+	| { kind: "reachLevel", level: number, flag: string? }
 
 export type QuestRewards = {
 	xp: number,
@@ -350,10 +392,14 @@ export type QuestRewards = {
 	energy: number?,
 }
 
+-- One quest of the Ember Trail (LDOE_PARITY #48-50). Completing it grants its rewards and
+-- unlocks every recipe and build piece whose UnlockGate names it.
 export type QuestDef = {
 	id: QuestId,
 	name: string,
 	description: string,
+	order: number, -- position on the trail (1 = the first quest); the tracker sorts by it
+	chapter: string, -- the Ember Trail chapter it belongs to
 	prerequisite: QuestId?, -- nil starts the chain
 	objectives: { QuestObjective },
 	rewards: QuestRewards,
@@ -418,6 +464,7 @@ export type TuningDef = {
 	survival: {
 		hunger: SurvivalMeter,
 		thirst: SurvivalMeter,
+		warnAt: number, -- the HUD shows a pulsing food or water icon at or below this
 		regenThreshold: number, -- passive healing while hunger and thirst are both at or above this
 		regenPerSecond: number,
 		respawnHealth: number,
@@ -460,8 +507,10 @@ export type TuningDef = {
 		durabilityScalesChance: boolean,
 	},
 	home: {
-		nodes: { LocationNode }, -- what grows on a fresh home plot; feeds the first quests
-		regrowHours: { [string]: { min: number, max: number } }, -- real hours, per node type
+		-- What grows on a fresh home plot (LDOE_PARITY #30): finite, saved per outpost and
+		-- never respawning. Repeat farming happens on Fog Runs.
+		nodes: { LocationNode },
+		renewing: { NodeId }, -- the exceptions that refill on their respawnSeconds (water)
 	},
 	plots: {
 		count: number, -- plots per server (one per player)
@@ -488,6 +537,11 @@ export type TuningDef = {
 	},
 	newPlayer: {
 		items: { ItemStack },
+	},
+	-- LDOE_PARITY #58: a daily food and water gift into the inbox, below untilLevel.
+	dailyGift: {
+		items: { ItemStack },
+		untilLevel: number,
 	},
 	raid: { lootFraction: number },
 	shield: { afterRaidSeconds: number },
@@ -516,11 +570,12 @@ export type TuningDef = {
 -- Fog Runs (slice 2) -------------------------------------------------------------------
 -- Everything here is read only while Tuning.features.fogRuns is on (Shared/Features).
 
-export type FeatureName = "fogRuns" | "aiRaiders"
+export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift"
 
 export type Features = {
 	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
 	aiRaiders: boolean, -- M2: AI survivor bands backfill short lobbies
+	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift (cut from v0.1, MVP_LAUNCH)
 }
 
 -- Per-weapon melee overrides; anything missing comes from Tuning.melee.
@@ -799,6 +854,8 @@ export type Content = {
 	Levels: { PlayerLevelDef }, -- index = level
 	Quests: { [QuestId]: QuestDef },
 	Products: { [ProductId]: ProductDef },
+	Projects: { [string]: ProjectDef },
+	StarterShelter: { StarterPiece },
 	Tuning: TuningDef,
 }
 

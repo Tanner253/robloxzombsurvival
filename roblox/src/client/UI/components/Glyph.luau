@@ -20,8 +20,25 @@ export type Props = {
 	layoutOrder: number?,
 }
 
+-- One cached ref per glyph name, marking the icon for the UI gate (an empty image is
+-- a missing glyph, checklist 4.17).
+local refs: { [string]: (Instance?) -> () } = {}
+local function refFor(name: string): (Instance?) -> ()
+	local ref = refs[name]
+	if ref == nil then
+		ref = function(instance: Instance?)
+			if instance then
+				instance:SetAttribute("Glyph", name)
+			end
+		end
+		refs[name] = ref
+	end
+	return ref :: (Instance?) -> ()
+end
+
 local function Glyph(props: Props)
 	return React.createElement("ImageLabel", {
+		ref = refFor(props.name),
 		Size = props.size or UDim2.fromScale(1, 1),
 		Position = props.position,
 		AnchorPoint = props.anchorPoint,

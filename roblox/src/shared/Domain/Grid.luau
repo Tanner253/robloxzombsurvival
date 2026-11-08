@@ -472,6 +472,57 @@ function Grid.place(
 	return result, piece, nil
 end
 
+-- Move ---------------------------------------------------------------------------------------
+
+-- The layout without one piece (for checking where an object may move to).
+function Grid.without(layout: Layout, uid: string, defs: Defs): Layout
+	local piece = layout.pieces[uid]
+	if piece == nil then
+		return layout
+	end
+	local result = copy(layout)
+	result.pieces[uid] = nil
+	for _, key in keysOf(piece, defs) do
+		if result.slots[key] == uid then
+			result.slots[key] = nil
+		end
+	end
+	return result
+end
+
+--[[
+	Moves or turns an object (station, storage, furniture) to `target`, keeping its uid,
+	HP and timestamps, so a station keeps its converter and a crate its items (LDOE_PARITY
+	#27's move button). Floors, walls and doors are rebuilt rather than moved. Returns the
+	new layout, or nil and a reason.
+]]
+function Grid.move(layout: Layout, uid: string, target: Target, ctx: Context): (Layout?, Reason?)
+	local piece = layout.pieces[uid]
+	if piece == nil then
+		return nil, "notFound"
+	end
+	if ctx.actorUserId ~= ctx.plot.ownerUserId then
+		return nil, "notOwner"
+	end
+	if piece.layer ~= "object" then
+		return nil, "badTarget"
+	end
+	local lifted = Grid.without(layout, uid, ctx.pieces)
+	local ok: boolean, reason: Reason? = Grid.canPlace(lifted, piece.pieceId, target, ctx)
+	if not ok then
+		return nil, reason
+	end
+	local moved = table.clone(piece)
+	moved.x = target.x
+	moved.z = target.z
+	moved.rot = (target.rot or 0) % 4
+	lifted.pieces[uid] = moved
+	for _, key in keysOf(moved, ctx.pieces) do
+		lifted.slots[key] = uid
+	end
+	return lifted, nil
+end
+
 -- Upgrade ----------------------------------------------------------------------------------
 
 -- Whether the piece can upgrade in place. Returns true, or false and a reason.

@@ -14,12 +14,25 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
 - Survival at LDoE rates. Readable nights. The old pines restored, with the occlusion fade fixed.
 - **Ember Trail chapter 1** (quest-gated blueprints, a tracker that completes quests). A simple first-session flow.
 
+**Haven Square: the public safe-zone hub, inside every Neighbourhood server** (session S1b, after the shop). The developer's ask on 2026-11-08: "a public outpost... to meet with quests and traders and NPCs or access VIP areas like Last Day on Earth has, to drive micro txns and also allow players to meet guild and stuff in a safe zone". It follows the LDoE Settlement (rec4).
+- **Layout:** a central plaza in the middle of each Neighbourhood, with the 8 plots around it and the Trailhead just off the square. That makes it instantly multiplayer, with no new server role. It's a **safe zone**: no Hollow, and no PvP ever.
+- **The Trader** (an NPC with a stall): buys and sells basics for coins. In v0.1 it's a small fixed stock; Daily Deals come in M2.
+- **The Quest-giver** (an NPC): Ember Trail chapter hand-ins and a daily contract board (3 contracts a day).
+- **The VIP Lounge:** a game-pass-gated fenced area with a warm fire, a cosmetic flame aura, a daily VIP crate in the inbox, and a VIP Energy cap bonus. People can see it from outside, which is the point (aspiration sells).
+- **Social:** a notice board (server-wide Blood Moon later), a guild banner spot (guilds come in M3), emote space and a campfire circle.
+- **NPC dialogue in the LDoE style** (rec4 speech bubble and talk button). NPCs are survivor-rig variants, so no new credits.
+
+**Later (M3):** a large cross-server **Haven** hub as its own server role, with the guild hall, more traders, events and Haven-only quests.
+
 **Fog Runs: lootable areas, PvE, multiplayer lobbies of up to 12** (session S2B)
 - The Fog map with **3 locations**: Light, Dense and Black. Run/Walk with Energy (#38). Location panels and the loading screen.
 - Each location is a **handcrafted, dense map built from code** (world-as-code), with **lootable containers** (search bar, loot panel).
 - **The Hollow:** shambler, runner and bloater, rigged and animated, dissolving to ash. Combat with melee, bow, Pipe Pistol, Scrap Shotgun and Flare Pistol, plus the Ammo Press, noise and the dodge roll.
 - Death: the backpack drops, re-entry while the lobby is open, extraction, the lobby-wide Fog meter.
 - **Architecture: one place, two server roles** (decided 2026-11-08). Lobbies are reserved servers of the **same** place. On start, a server reads its teleport data or private-server ID and builds either the Neighbourhood or a location map. No extra places to create, and one `rojo build` publishes everything.
+
+**Assets from the developer's Zona repo** (`C:\Users\perci\source\repos\Zona`, browserdayz). The developer's scope: **weapons and animations ONLY**, owned by S2B. No Zona trees, props, buildings, rocks or zombies. Home keeps the original EO_PineTree, which the developer liked.
+- Every CC-BY asset we use goes into our `CREDITS.md`, and the game ships an in-game **Credits** panel (Settings → Credits). Launch requirement.
 
 **Platform**
 - ProfileStore on live DataStores, with schema migrations.

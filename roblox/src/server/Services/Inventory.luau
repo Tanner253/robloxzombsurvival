@@ -26,6 +26,7 @@ local InventoryMath = require(Domain.Inventory)
 local Slots = require(Domain.Slots)
 local PlayerSchema = require(Domain.PlayerSchema)
 local Net = require("../Net")
+local Events = require("../Events")
 local Art = require(ReplicatedStorage.Shared.Art)
 local Models = require("../World/Models")
 local Analytics = require("./Analytics")
@@ -577,6 +578,8 @@ local function move(player: Player, fromRef: string, fromIndex: number, toRef: s
 	changed[toRef] = newTo
 	if not apply(player, data, changed) then
 		Sync.notice(player, REASON_TEXT.bagFull)
+	elseif fromRef == "equipment" or toRef == "equipment" then
+		Events.factsChanged:Fire(player) -- equip quest objectives
 	end
 end
 
@@ -596,6 +599,41 @@ local function split(player: Player, ref: string, index: number)
 		return
 	end
 	apply(player, data, { [ref] = result })
+end
+
+-- A copy of the slot at `index` of a carried container (pockets, backpack or the open
+-- crate), or nil. Reads only.
+function Inventory.peekSlot(player: Player, ref: string, index: number): Types.Slot?
+	local data = PlayerData.get(player)
+	if data == nil or ref == "equipment" then
+		return nil
+	end
+	local container = read(player, data, ref)
+	local slot = container and container[index]
+	if slot == nil or slot.count <= 0 then
+		return nil
+	end
+	return { itemId = slot.itemId, count = slot.count, durability = slot.durability }
+end
+
+-- Takes `count` items out of one slot (dragging part of a stack into a station). Returns
+-- what was taken, or nil when the slot holds fewer.
+function Inventory.takeFromSlot(player: Player, ref: string, index: number, count: number): Types.Slot?
+	local data = PlayerData.get(player)
+	if data == nil or ref == "equipment" or count <= 0 then
+		return nil
+	end
+	local container = read(player, data, ref)
+	local slot = container and container[index]
+	if container == nil or slot == nil or slot.count < count then
+		return nil
+	end
+	local result = table.clone(container)
+	result[index] = if slot.count == count
+		then InventoryMath.emptySlot()
+		else { itemId = slot.itemId, count = slot.count - count, durability = slot.durability }
+	apply(player, data, { [ref] = result })
+	return { itemId = slot.itemId, count = count, durability = slot.durability }
 end
 
 -- Takes a whole slot out of the player's pockets, backpack or open crate (dropping
@@ -669,6 +707,19 @@ local function transfer(player: Player, mode: string)
 	end
 end
 
+-- The crate brush (LDOE_PARITY #16): pins an item's icon on the open crate's lid, or nil
+-- to go back to showing what it holds most of.
+local function labelCrate(player: Player, itemId: string?)
+	local data = PlayerData.get(player)
+	local uid = openStorage[player]
+	if data == nil or uid == nil or data.storage[uid] == nil or (itemId and Items[itemId] == nil) then
+		return
+	end
+	(data :: any).storageLabels[uid] = itemId
+	Plots.setCrateIcon(player, uid, data.storage[uid])
+	Sync.fx(player, "crateLabel", { uid = uid, itemId = itemId })
+end
+
 local function openCrate(player: Player, uid: string?)
 	if uid == nil then
 		if openStorage[player] then
@@ -720,6 +771,7 @@ local function use(player: Player, ref: string, index: number)
 		local target = table.find(Slots.EQUIP_ORDER, name :: any) :: number
 		move(player, ref, index, "equipment", target, nil)
 		Inventory.hold(player, weaponRef(player))
+		Events.factsChanged:Fire(player)
 		return
 	end
 
@@ -749,6 +801,7 @@ local function use(player: Player, ref: string, index: number)
 			Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "eat" })
 			Analytics.economy(player, "sink", slot.itemId, 1, 0, "Consume")
 			Sync.fx(player, "consumed", { itemId = slot.itemId })
+			Events.played:Fire(player, { kind = "consume", itemId = slot.itemId, count = 1 })
 		end
 		return
 	end
@@ -766,7 +819,8 @@ local function use(player: Player, ref: string, index: number)
 	end
 end
 
--- The meds button (4.9): uses the carried consumable that heals the most.
+-- The meds button (4.9, LDOE_PARITY #1): uses what sits in the quick slot when it heals,
+-- else the carried consumable that heals the most.
 local function useMeds(player: Player)
 	local hook = Inventory.combat
 	if hook and hook.active(player) then
@@ -775,6 +829,23 @@ local function useMeds(player: Player)
 	end
 	local data = PlayerData.get(player)
 	if data == nil then
+		return
+	end
+	local equipment = data.inventory.equipment :: any
+	local quick = equipment.quick
+	local quickDef = if quick and quick.count > 0 then Items[quick.itemId] else nil
+	if quickDef and quickDef.consume and (quickDef.consume.health or 0) > 0 then
+		if Survival.canConsume(player, quickDef.consume) then
+			equipment.quick = if quick.count > 1
+				then { itemId = quick.itemId, count = quick.count - 1 }
+				else InventoryMath.emptySlot()
+			Sync.mark(player, "inventory")
+			Survival.consume(player, quickDef.consume)
+			Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "eat" })
+			Analytics.economy(player, "sink", quick.itemId, 1, 0, "Consume")
+			Sync.fx(player, "consumed", { itemId = quick.itemId })
+			Events.played:Fire(player, { kind = "consume", itemId = quick.itemId, count = 1 })
+		end
 		return
 	end
 	local bestRef, bestIndex, bestHeal = nil, 0, 0
@@ -843,6 +914,7 @@ function Inventory.init()
 		end
 	end)
 	Net.onEvent("StorageOpen", openCrate)
+	Net.onEvent("StorageLabel", labelCrate)
 	Net.onEvent("UseItem", use)
 	Net.onEvent("WeaponSelect", selectWeapon)
 	Net.onEvent("WeaponSwap", swapWeapon)

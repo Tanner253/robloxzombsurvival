@@ -9,7 +9,7 @@
 	- Footsteps: one step sound per stride, chosen by the floor material, with a
 	  light dust puff when sprinting. The default Roblox running loop is muted.
 	- Station loops: the campfire crackles while it burns and work stations saw
-	  while a job runs (FuelEndsAt / WorkingUntil attributes from the server).
+	  while it converts (the Burning / Working attributes from the server).
 	- Low meters: a heartbeat fades in while health, hunger or thirst is low.
 ]]
 
@@ -225,7 +225,6 @@ local function setLoop(model: Model, entry: StationLoop, key: string, name: stri
 end
 
 local function updateStations()
-	local now = State.now()
 	for _, instance in CollectionService:GetTagged("EO_Station") do
 		if not instance:IsA("Model") or not instance:IsDescendantOf(workspace) then
 			continue
@@ -233,10 +232,8 @@ local function updateStations()
 		local entry: StationLoop = stationLoops[instance] or {}
 		stationLoops[instance] = entry
 		local def = Content.Stations[instance:GetAttribute("StationId") :: any]
-		local fuelEndsAt = instance:GetAttribute("FuelEndsAt")
-		local workingUntil = instance:GetAttribute("WorkingUntil")
-		local burning = type(fuelEndsAt) == "number" and now < fuelEndsAt
-		local working = type(workingUntil) == "number" and now < workingUntil
+		local burning = instance:GetAttribute("Burning") == true
+		local working = instance:GetAttribute("Working") == true
 		local usesFuel = def ~= nil and def.fuel ~= nil
 		setLoop(instance, entry, "fire", "fireLoop", burning)
 		setLoop(instance, entry, "work", "workLoop", working and not usesFuel)

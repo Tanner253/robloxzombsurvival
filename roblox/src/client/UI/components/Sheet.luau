@@ -16,6 +16,7 @@ local Theme = require("../theme")
 local Glyph = require("./Glyph")
 local hooks = require("../hooks")
 local KeyChip = require("./KeyChip")
+local mark = require("../mark")
 
 export type Props = {
 	open: boolean,
@@ -31,6 +32,8 @@ export type Props = {
 }
 
 local HEADER = 40
+-- The least gap kept between a sheet and the design frame's edge.
+local FRAME_MARGIN = 8
 
 local function Sheet(props: Props)
 	local alpha = hooks.useAnimated(if props.open then 1 else 0, 16, 0)
@@ -55,9 +58,17 @@ local function Sheet(props: Props)
 	local rise = props.rise or 18
 	local base = props.position or UDim2.fromScale(0.5, 0.5)
 	local headerHeight = if props.title then HEADER else 0
+	-- A sheet never outgrows the design frame (a phone's is shorter than 768).
+	local frame = Theme.currentFrame
+	local size = UDim2.new(
+		props.size.X.Scale,
+		math.min(props.size.X.Offset, frame.X - FRAME_MARGIN * 2),
+		props.size.Y.Scale,
+		math.min(props.size.Y.Offset, frame.Y - FRAME_MARGIN * 2)
+	)
 
 	return React.createElement("Frame", {
-		Size = props.size,
+		Size = size,
 		Position = alpha:map(function(a: number)
 			return base + UDim2.fromOffset(0, math.round((1 - a) * rise))
 		end),
@@ -75,6 +86,7 @@ local function Sheet(props: Props)
 			end),
 		}),
 		Shadow = React.createElement("Frame", {
+			ref = mark.decor,
 			Size = UDim2.new(1, -8, 1, -8),
 			Position = UDim2.fromOffset(4, 4 + Theme.shadowOffset),
 			BackgroundColor3 = Theme.colors.shadow,
@@ -104,7 +116,7 @@ local function Sheet(props: Props)
 					BackgroundTransparency = 1,
 				}, {
 					Title = React.createElement("TextLabel", {
-						Size = UDim2.new(1, -120, 1, 0),
+						Size = UDim2.new(1, -120, 1, -2), -- the rule runs under it
 						Position = UDim2.fromOffset(Theme.spacing.lg, 0),
 						BackgroundTransparency = 1,
 						FontFace = Theme.fonts.header,
