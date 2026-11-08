@@ -9,6 +9,7 @@
 
 local Types = require("./Types")
 local DevSpeed = require("./DevSpeed")
+local Features = require("./Features")
 local TableUtil = require("./Util/Table")
 
 local Content: Types.Content = {
@@ -31,5 +32,8 @@ local Content: Types.Content = {
 -- Studio playtests run the pacing sped up (Tuning.devSpeed; live servers always 1).
 -- It has to happen here, before the freeze, so every reader sees the same numbers.
 DevSpeed.apply(Content, DevSpeed.factor(Content))
+
+-- Content behind a feature flag that is off (Tuning.features) is left out entirely.
+Features.strip(Content)
 
 return TableUtil.deepFreeze(Content)

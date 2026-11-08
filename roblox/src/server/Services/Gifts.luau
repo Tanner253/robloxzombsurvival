@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local Features = require(ReplicatedStorage.Shared.Features)
 local GiftsMath = require(ReplicatedStorage.Shared.Domain.Gifts)
 local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
@@ -37,6 +38,9 @@ local function check(player: Player)
 end
 
 function Gifts.start()
+	if not Features.on(Content.Tuning, "dailyGift") then
+		return -- cut from v0.1 (docs/MVP_LAUNCH.md)
+	end
 	PlayerData.loaded:Connect(check)
 	for _, player in Players:GetPlayers() do
 		task.spawn(check, player)

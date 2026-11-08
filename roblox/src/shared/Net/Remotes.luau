@@ -19,6 +19,9 @@
 
 local Check = require("./Check")
 local RateLimiter = require("./RateLimiter")
+local FogRunRemotes = require("./FogRunRemotes")
+local Features = require("../Features")
+local Tuning = require("../Data/Tuning")
 
 export type RemoteKind = "event" | "function"
 
@@ -356,6 +359,16 @@ Remotes.list = {
 		description = "(uid) demolishes a piece and what it holds up, with a refund",
 	},
 } :: { [string]: RemoteDecl }
+
+-- Fog Runs (slice 2) declare theirs in Net/FogRunRemotes; they join the list only
+-- while Tuning.features.fogRuns is on, so nothing of the feature exists until then.
+Remotes.fogRuns = FogRunRemotes :: { [string]: RemoteDecl }
+if Features.on(Tuning, "fogRuns") then
+	for name, decl in Remotes.fogRuns do
+		assert(Remotes.list[name] == nil, `Remote '{name}' is declared twice`)
+		Remotes.list[name] = decl
+	end
+end
 
 -- Returns a declaration, or errors for an undeclared name (catches typos early).
 function Remotes.get(name: string): RemoteDecl

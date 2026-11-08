@@ -64,10 +64,17 @@ export type WeaponStats = {
 	attacksPerSecond: number,
 	range: number, -- studs
 	ammoItemId: ItemId?, -- ranged only: consumed one per shot
+	-- Fog Runs (slice 2): exactly one of firearm and bow on ranged weapons; melee may override Tuning.melee.
+	critChance: number?, -- overrides Tuning.combat.critChance
+	swapSeconds: number?, -- raising it into the active hand; overrides Tuning.hands.swapSeconds
+	melee: MeleeStats?,
+	firearm: FirearmStats?,
+	bow: BowStats?,
 }
 
 export type ArmorStats = {
 	defense: number, -- reduction = defense / (defense + Tuning.combat.armorConstant)
+	fogResist: number?, -- Fog Runs: share of fog exposure this piece blocks (Domain/FogExposure)
 }
 
 -- What eating, drinking or using a consumable restores. Missing fields are 0.
@@ -95,6 +102,8 @@ export type ItemDef = {
 	armor: ArmorStats?,
 	consume: ConsumeEffect?,
 	bagSlots: number?, -- bags: backpack slots while equipped
+	flare: FlareStats?, -- ammo that burns as a flare when it lands (Domain/Flare)
+	feature: FeatureName?, -- only made by recipes of that feature: it need not be earnable while the flag is off
 }
 
 -- An amount of one item, used for costs, recipe inputs and outputs, and grants.
@@ -126,6 +135,7 @@ export type RecipeDef = {
 	stationLevel: number?, -- minimum station level; defaults to 1
 	craftSeconds: number, -- one batch; divided by the station level's speedMultiplier
 	unlock: UnlockGate,
+	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off (Shared/Features)
 }
 
 export type StationLevel = {
@@ -169,6 +179,7 @@ export type StationDef = {
 	fuel: StationFuel?, -- converts only while fuel burns
 	salvage: { SalvageDef }?, -- Recycler: what it breaks down
 	outputSlots: number?, -- output slots; nil means 1
+	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
 
 -- Loot ------------------------------------------------------------------------
@@ -231,6 +242,11 @@ export type EnemyDef = {
 	aggroRadius: number, -- studs; noise and light can widen it later
 	xp: number,
 	lootTableId: LootTableId, -- rolled when it dissolves into ash
+	-- Fog Runs (slice 2): perception and fear for Domain/HollowAI.
+	hearing: number, -- multiplier on every noise radius it hears (1 = as loud as emitted)
+	lightFear: number, -- light exposure (0..1) at or above which it flees; above 1 never flees
+	burst: BurstDef?, -- bursts into a toxic cloud near its target and on death (the bloater)
+	wildlife: WildlifeDef?, -- an animal, not a Hollow (LDOE_PARITY #35): deer flee, wolves hunt
 }
 
 -- World map ---------------------------------------------------------------------
@@ -246,10 +262,14 @@ export type LocationAvailability =
 	{ kind: "always" }
 	-- Open while (now - offsetSeconds) % periodSeconds < activeSeconds, in UTC seconds.
 	| { kind: "rotating", periodSeconds: number, activeSeconds: number, offsetSeconds: number }
+	-- Fog Runs: only while the player has a live airdrop pin (Domain/FogMap, LDOE_PARITY #43)
+	| { kind: "airdrop" }
 
 export type LocationContainer = {
 	lootTableId: LootTableId,
 	count: Range,
+	kind: string?, -- Fog Runs: "crate", "locker", "trunk", "cabinet", "strongbox"... (art and sound)
+	searchSeconds: number?, -- Fog Runs: overrides Tuning.containers.searchSeconds
 }
 
 export type LocationNode = {
@@ -260,6 +280,7 @@ export type LocationNode = {
 export type EnemySpawn = {
 	enemyId: EnemyId,
 	count: Range,
+	minBand: number?, -- Fog Runs: only spawns once the Fog meter reaches this band (Tuning.lobby.bands)
 }
 
 export type LocationDef = {
@@ -277,6 +298,7 @@ export type LocationDef = {
 	-- The Fog map panel's preview. Every item listed must actually drop there.
 	mainLoot: { ItemId },
 	possibleLoot: { ItemId },
+	run: LocationRun, -- Fog Runs (slice 2): the lobby, extraction and loot-band rules
 }
 
 -- Building -----------------------------------------------------------------------
@@ -316,6 +338,7 @@ export type BuildPieceDef = {
 	maxPerPlot: number?, -- nil means no limit
 	tab: string?, -- build menu tab when it isn't the kind's own, e.g. "defense" for fences
 	unlock: UnlockGate?, -- nil means available from the start
+	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
 
 -- One piece of the damaged starter shelter every new plot starts with (LDOE_PARITY #56),
@@ -453,6 +476,11 @@ export type TuningDef = {
 		armorConstant: number,
 		weaponDurabilityPerHit: number,
 		armorDurabilityPerHitTaken: number,
+		critChance: number, -- Fog Runs: the default chance a hit crits
+		critMultiplier: number,
+		pvpMaxHitFraction: number, -- M2 PvP: no hit takes more than this share of a full-health player
+		lagToleranceStuds: number, -- server hit checks allow this much extra reach
+		softLockDegrees: number, -- a locked target this close to the aim pulls the shot onto it (13.3)
 	},
 	gathering: {
 		swingSeconds: number,
@@ -461,6 +489,8 @@ export type TuningDef = {
 	travel: {
 		runSeconds: number, -- loading time of a Run, after paying Energy
 		fogTierNames: { string },
+		reentryEnergyMultiplier: number, -- Fog Runs: re-entering an open lobby costs this share of the Run
+		departureStuds: number, -- Fog Runs: how near the Trailhead or the fog wall a trip may start
 	},
 	death: {
 		despawnSeconds: number, -- how long the dropped backpack waits at the location
@@ -515,6 +545,300 @@ export type TuningDef = {
 	},
 	raid: { lootFraction: number },
 	shield: { afterRaidSeconds: number },
+	-- Fog Runs (slice 2). Off until features.fogRuns; the types are in the block below.
+	features: Features,
+	lobby: LobbyTuning,
+	extraction: ExtractionTuning,
+	matchmaking: MatchmakingTuning,
+	containers: ContainersTuning,
+	travelBonus: TravelBonusTuning,
+	noise: NoiseTuning,
+	stamina: StaminaTuning,
+	dodge: DodgeTuning,
+	melee: MeleeTuning,
+	hands: HandsTuning,
+	sneak: SneakTuning,
+	autoAttack: AutoAttackTuning,
+	autoClear: AutoClearTuning,
+	airdrops: AirdropTuning,
+	regionGates: { RegionGate },
+	fogExposure: FogExposureTuning,
+	deathRecovery: DeathRecoveryTuning,
+	hollow: HollowTuning,
+}
+
+-- Fog Runs (slice 2) -------------------------------------------------------------------
+-- Everything here is read only while Tuning.features.fogRuns is on (Shared/Features).
+
+export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift"
+
+export type Features = {
+	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
+	aiRaiders: boolean, -- M2: AI survivor bands backfill short lobbies
+	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift (cut from v0.1, MVP_LAUNCH)
+}
+
+-- Per-weapon melee overrides; anything missing comes from Tuning.melee.
+export type MeleeStats = {
+	arcDegrees: number?,
+	heavyMultiplier: number?,
+	knockbackStuds: number?,
+	hitStopSeconds: number?,
+}
+
+export type FirearmStats = {
+	fireInterval: number, -- seconds between shots from one magazine
+	-- attacksPerSecond on a firearm is its sustained rate, reloads included (Domain/Combat.sustainedRate)
+	magazine: number, -- rounds loaded at once
+	reloadSeconds: number,
+	spreadDegrees: number, -- full width of the aim cone
+	pellets: number?, -- shotguns: projectiles per shot; damage is per pellet
+	projectileSpeed: number, -- studs per second
+	noiseRadius: number, -- studs (Domain/Noise)
+	falloffStart: number?, -- studs; damage drops linearly from here to range
+	falloffMin: number?, -- damage multiplier at full range (default 1: no falloff)
+	knockbackStuds: number?,
+}
+
+export type BowStats = {
+	drawSeconds: number, -- time to full draw
+	minDraw: number, -- draw fraction (0..1) below which a release is a dud
+	recoveryChance: number, -- chance an arrow can be picked up after it lands
+	projectileSpeed: number, -- studs per second at full draw
+}
+
+export type FlareStats = {
+	lightRadius: number, -- studs lit
+	seconds: number, -- burn time
+	burnDps: number, -- damage per second to a Hollow it hits directly
+	burnSeconds: number, -- how long that burn lasts
+	fleeRadius: number, -- the Hollow inside this radius flee its light
+}
+
+export type BurstDef = {
+	triggerRange: number, -- studs to its target that start the fuse
+	fuseSeconds: number,
+	radius: number, -- the toxic cloud
+	damagePerSecond: number,
+	cloudSeconds: number,
+}
+
+export type ExtractionPoint = {
+	id: string, -- unique within the location, e.g. "north_ramp"
+	name: string,
+}
+
+export type ExtractionDef =
+	{ kind: "edge" } -- Light fog: walk out of any edge
+	-- Dense and Black: marked points; closeCount of them are shut at random per lobby
+	-- seed. flare: the Black-fog flare extract (fire a flare, survive Tuning.extraction.flareSeconds).
+	| { kind: "points", points: { ExtractionPoint }, closeCount: number, flare: boolean? }
+
+-- Extra loot rolled into every container searched once the meter reaches `band`.
+export type BandLoot = {
+	band: number,
+	lootTableId: LootTableId,
+}
+
+export type LocationRun = {
+	recommendedGearScore: number, -- shown on the location panel (Domain/Matchmaking.gearScore)
+	placeId: number, -- the location's place in the universe; 0 until it is published (Phase B)
+	extraction: ExtractionDef,
+	bandLoot: { BandLoot },
+	travelBonusTableId: LootTableId, -- "found on the way" (Domain/TravelBonus)
+	quests: { LocationQuest }, -- location quests, pinned in teal at the top of the tracker (LDOE_PARITY #45)
+}
+
+export type MeterBand = {
+	from: number, -- meter value (0..1) where the band starts; the first band starts at 0
+	name: string,
+	lootMultiplier: number, -- base container rolls are multiplied by this (Domain/Containers)
+	hollowStrength: number, -- Hollow HP and damage multiplier
+}
+
+-- What a death drops and who may open it, by fog tier (Domain/Lobby).
+export type DropRule = {
+	access: "party" | "anyone",
+	equipment: boolean, -- equipped gear drops too (everything but the secure pouch)
+}
+
+export type LobbyTuning = {
+	capacity: number,
+	openTimeoutSeconds: number, -- a reserved lobby nobody reaches is closed
+	reservationSeconds: number, -- a matched seat is held this long for the teleport
+	joinWindowSeconds: number,
+	durationSeconds: number, -- the Fog meter's run from 0 to full
+	warningSeconds: number,
+	meterExponent: number, -- 1 = linear; above 1 rises slowly, then fast
+	reentryCutoffSeconds: number, -- re-entry closes this long before the Fog closes in
+	bandTolerance: number, -- power bands a joiner may sit from the lobby's
+	bands: { MeterBand },
+	drops: { DropRule }, -- index = fog tier
+	ticketMaxAgeSeconds: number, -- a run ticket older than this is refused on arrival (Domain/RunTicket)
+}
+
+export type ExtractionTuning = {
+	edgeSeconds: number, -- Light: the fog-out at any edge
+	pointSeconds: number, -- Dense and Black: the channel, interrupted by damage
+	flareSeconds: number, -- Black: survive this long after firing the flare
+	radiusStuds: number, -- leaving it cancels a channel
+	xpByTier: { number }, -- XP for getting out alive, index = fog tier
+}
+
+export type MatchmakingTuning = {
+	levelWeight: number, -- power = level * levelWeight + gear score
+	bandWidth: number, -- power per band
+	widenEverySeconds: number, -- waiting this long widens the band tolerance by one
+	maxTolerance: number,
+	newLobbyAfterSeconds: number, -- no lobby fits after this long: open a fresh one
+	weights: { weapon: number, armor: number, bag: number, companion: number },
+	aiBackfillTarget: number, -- M2 (features.aiRaiders): fill short lobbies to this many
+	maxPartySize: number,
+}
+
+export type ContainersTuning = {
+	searchSeconds: number,
+	reachStuds: number,
+	lootModeByTier: { "personal" | "shared" }, -- index = fog tier
+}
+
+export type TravelBonusTuning = {
+	runChance: number,
+	walkChance: number,
+	walkRolls: number,
+	-- LDOE_PARITY #40: TAKE costs one rewarded ad per item; TAKE ALL costs Rations (or premium, S3).
+	takeAllRations: number,
+	hurryEnergyPerMinute: number, -- #43: Energy to cut a minute off a Walk
+}
+
+export type NoiseTuning = {
+	decaySeconds: number, -- a noise is heard, shrinking, for this long
+	melee: number, -- radii in studs; guns carry their own (FirearmStats.noiseRadius)
+	bow: number,
+	sprint: number,
+	search: number,
+	bloaterBurst: number,
+	flare: number,
+}
+
+export type StaminaTuning = {
+	max: number,
+	regenPerSecond: number,
+	regenDelaySeconds: number, -- after spending, regen waits this long
+	sprintPerSecond: number,
+}
+
+export type DodgeTuning = {
+	staminaCost: number,
+	iframeSeconds: number,
+	cooldownSeconds: number,
+	distanceStuds: number,
+	durationSeconds: number,
+}
+
+export type MeleeTuning = {
+	arcDegrees: number,
+	heavyMultiplier: number,
+	heavyWindupSeconds: number,
+	staminaLight: number,
+	staminaHeavy: number,
+	hitStopSeconds: number,
+	heavyHitStopSeconds: number,
+	knockbackStuds: number,
+	heavyKnockbackStuds: number,
+	-- LDOE_PARITY #34: a tool in a weapon slot swings as weak melee.
+	toolDamage: number,
+	toolAttacksPerSecond: number,
+	toolRange: number,
+}
+
+-- The two weapon slots, LDoE-style (GAME_DESIGN PC controls; checklist 4.9; Domain/Hands).
+export type HandsTuning = {
+	slots: number, -- 2: primary and secondary from the equipment paper-doll
+	swapSeconds: number, -- default time to raise the other weapon; no attacking meanwhile
+}
+
+export type HollowTuning = {
+	tickSeconds: number, -- server AI step
+	syncSeconds: number, -- snapshot rate to clients (they interpolate)
+	alertSeconds: number, -- investigating a noise before giving up
+	loseTargetSeconds: number, -- chasing on memory after line of sight breaks
+	idleSeconds: Range,
+	wanderRadius: number,
+	fleeSeconds: number,
+	maxActive: number, -- per lobby
+	spawnSpreadStuds: number, -- spawns at least this far from players
+	hitRadiusStuds: number, -- a Hollow's body for hit tests (Domain/Plane)
+}
+
+-- LDoE parity rulings for slice 2 (docs/LDOE_PARITY.md) ------------------------------------
+
+-- #35: animals share the enemy brain with different instincts.
+export type WildlifeDef = {
+	temperament: "skittish" | "predator", -- deer bolt from players; wolves hunt them
+	spookRadius: number, -- skittish: a player this close sends it running
+}
+
+-- #45: a quest tied to one location, shown at the top of the tracker while there.
+export type LocationQuest = {
+	id: QuestId,
+	name: string,
+	description: string,
+	objectives: { QuestObjective },
+	rewards: QuestRewards,
+}
+
+-- #44: Ctrl sneaks: slower, quieter, harder to spot, and a backstab on the unaware.
+export type SneakTuning = {
+	speedMultiplier: number,
+	noiseMultiplier: number, -- on footsteps and melee noise while sneaking
+	detectionMultiplier: number, -- on a Hollow's sight radius against a sneaking player
+	backstabMultiplier: number, -- melee on a Hollow that hasn't noticed you
+}
+
+-- #31: in-world AUTO (Q) is free everywhere and attacks the nearest Hollow.
+export type AutoAttackTuning = {
+	radiusStuds: number, -- how far AUTO looks for a target
+	tickSeconds: number,
+}
+
+-- #31: the location panel's paid AUTO clears a location into the inbox, unentered.
+export type AutoClearTuning = {
+	adPerDay: number, -- rewarded-ad clears a day (the ad itself is S3)
+	adMinLevel: number,
+	rationsByTier: { number }, -- Rations per clear, index = fog tier
+	nodeShare: number, -- share of the location's resource nodes gathered for you
+	killShare: number, -- share of its Hollow cleared (their loot drops too)
+}
+
+-- #43: airdrops land as Energy falls past each threshold, once per UTC day.
+export type AirdropTuning = {
+	thresholds: { number }, -- Energy values, highest first
+	locationId: LocationId, -- the guarded crate's location (availability "airdrop")
+	pinSeconds: number, -- how long the pin stays on the map
+}
+
+-- #43: repair the tower (a parts checklist) before Dense and Black fog open.
+export type RegionGate = {
+	id: string, -- "tower_dense"
+	name: string,
+	fogTier: number, -- locations of this tier need it repaired
+	parts: { ItemStack },
+}
+
+-- #37: Dense and Black fog seep in over a run; armor's fogResist slows it.
+export type FogExposureTuning = {
+	max: number,
+	ratePerTier: { number }, -- per second, index = fog tier (Light is 0)
+	maxResist: number, -- the most gear can block (0..1)
+	damagePerSecond: number, -- while the meter is full
+}
+
+-- #46: getting your things back after a death.
+export type DeathRecoveryTuning = {
+	recoverAllAdsPerDay: number, -- "Recover all" by rewarded ad (S3 wires the ad)
+	reanimatorHealth: number, -- health a Reanimator revives you at
+	milestones: { { deaths: number, items: { ItemStack } } }, -- death-milestone gifts to the inbox
 }
 
 -- Everything in Data/, as one bundle (what the validator checks).

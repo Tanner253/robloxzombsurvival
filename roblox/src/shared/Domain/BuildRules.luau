@@ -316,7 +316,7 @@ function BuildRules.costText(
 			table.insert(parts, `{stack.count} {name}`)
 		end
 	end
-	return table.concat(parts, " · ")
+	return table.concat(parts, ", ")
 end
 
 return BuildRules

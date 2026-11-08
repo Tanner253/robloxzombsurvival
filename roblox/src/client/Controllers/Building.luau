@@ -474,10 +474,10 @@ local function step(dt: number)
 		if ui.buildMode == "upgrade" then
 			local ok, nextDef, reason = BuildRules.canUpgrade(currentLayout, uid, ctx, progress(), inventory())
 			if ok and nextDef then
-				setHint(`Upgrade to {nextDef.name}: {costText(nextDef.cost)} · {health}`)
+				setHint(`Upgrade to {nextDef.name}: {costText(nextDef.cost)}. {health}`)
 			else
 				local def = Pieces[piece.pieceId]
-				setHint(`{why(reason, if def.upgradesTo then Pieces[def.upgradesTo] else def)} · {health}`)
+				setHint(`{why(reason, if def.upgradesTo then Pieces[def.upgradesTo] else def)}. {health}`)
 			end
 		else
 			local refund = Grid.refundFor(piece, ctx)
@@ -485,7 +485,7 @@ local function step(dt: number)
 			setHint(
 				if confirm
 					then "Click again to demolish"
-					else `Demolish {Pieces[piece.pieceId].name} · {health} · refund {if #refund > 0
+					else `Demolish {Pieces[piece.pieceId].name}. {health}. Refund {if #refund > 0
 						then costText(refund)
 						else "nothing"}`
 			)

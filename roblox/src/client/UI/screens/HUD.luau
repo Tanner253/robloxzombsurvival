@@ -237,7 +237,7 @@ local function Status()
 				Text = e(Label, {
 					text = if bonus > 0
 						then `{energyCap} / {energyCap}  <font color="#{Theme.colors.bonus:ToHex()}">+{bonus}</font>`
-						elseif nextIn > 0 then `{energyValue} / {energyCap}  ·  +1 in {format.duration(nextIn)}`
+						elseif nextIn > 0 then `{energyValue} / {energyCap},  +1 in {format.duration(nextIn)}`
 						else `{energyValue} / {energyCap}`,
 					richText = true,
 					style = "caption",

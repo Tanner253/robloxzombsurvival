@@ -17,8 +17,11 @@
 	  waits on its model passing the lineup gate.
 	Other slices:
 	- fogRuns: the Fog map, locations and the Hollow (S2). Quest objectives that need them
-	  carry this flag and are left out while it is off.
+	  carry this flag and are left out while it is off. Its default is Tuning.features.fogRuns,
+	  the switch slice 2's services read, so there is one switch.
 ]]
+
+local Tuning = require("./Data/Tuning")
 
 local Flags = {}
 
@@ -32,7 +35,7 @@ Flags.DEFAULTS = {
 	ldoeStations = true,
 	ldoeBuild = false,
 	vehicleFrame = false,
-	fogRuns = false,
+	fogRuns = (Tuning.features :: any).fogRuns == true,
 } :: { [string]: boolean }
 
 -- Whether `name` is on, given the Studio state (pure, for Lune).

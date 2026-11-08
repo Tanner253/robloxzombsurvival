@@ -322,7 +322,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		stationId = "station.smelter",
 		maxPerPlot = 2,
-		unlock = quest("quest.crash_site"),
+		unlock = quest("quest.into_the_fog"),
 	},
 	["build.workbench"] = {
 		id = "build.workbench",
@@ -376,7 +376,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		stationId = "station.recycler",
 		minFoundationTier = 2,
 		maxPerPlot = 1,
-		unlock = quest("quest.into_the_fog"),
+		unlock = quest("quest.scavenger"),
 	},
 
 	-- Storage --------------------------------------------------------------------------------
@@ -414,6 +414,27 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 1,
 		maxPerPlot = 20,
 		unlock = quest("quest.hold_the_door"),
+	},
+	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns and its model grades A.
+	["build.ammo_press"] = {
+		id = "build.ammo_press",
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
+		name = "Ammo Press",
+		kind = "station",
+		tier = 2,
+		hp = 450,
+		cost = {
+			{ itemId = "item.plank", count = 10 },
+			{ itemId = "item.scrap_plate", count = 8 },
+			{ itemId = "item.rivets", count = 6 },
+			{ itemId = "item.coil_spring", count = 2 },
+		},
+		breachCost = 2,
+		stationId = "station.ammo_press",
+		minFoundationTier = 2,
+		maxPerPlot = 1,
+		unlock = quest("quest.the_dense_fog"), -- was level 10 (LDOE_PARITY #49)
+		feature = "fogRuns",
 	},
 }
 

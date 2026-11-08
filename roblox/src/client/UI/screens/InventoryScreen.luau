@@ -429,8 +429,8 @@ end
 -- Item details ------------------------------------------------------------------------------------------
 
 local function describe(def: any): string
-	local head = `{string.upper(def.category)} · Tier {def.tier}`
-	return if def.description then `{head}  —  {def.description}` else head
+	local head = `{string.upper(def.category)}, Tier {def.tier}`
+	return if def.description then `{head}.  {def.description}` else head
 end
 
 -- Destroy a slot for good: the first press arms it (red, "Sure?"), a second press
@@ -585,7 +585,7 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 	local nextDef = def and def.upgradesTo and Content.BuildPieces[def.upgradesTo]
 	if def == nil or nextDef == nil then
 		return e(Label, {
-			text = `{if def then def.storageSlots or 0 else 0} slots · fully upgraded`,
+			text = `{if def then def.storageSlots or 0 else 0} slots, fully upgraded`,
 			style = "caption",
 			tone = "muted",
 			size = UDim2.new(1, 0, 0, 44),
@@ -623,7 +623,7 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 			position = UDim2.fromOffset(10, 1),
 		}),
 		Cost = e(Label, {
-			text = if unlocked then table.concat(parts, "  ·  ") else lockText,
+			text = if unlocked then table.concat(parts, ",  ") else lockText,
 			style = "caption",
 			tone = if unlocked then "muted" else "locked",
 			richText = true,

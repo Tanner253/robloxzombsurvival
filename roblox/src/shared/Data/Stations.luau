@@ -218,6 +218,24 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 			},
 		},
 	},
+	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns.
+	["station.ammo_press"] = {
+		id = "station.ammo_press",
+		name = "Ammo Press",
+		-- A converter like every station (LDOE_PARITY #18): niter -> blackpowder, burning
+		-- fatwood. Rounds, shells and flares are then made by hand from the powder.
+		levels = levels({
+			{ itemId = "item.scrap_plate", count = 12 },
+			{ itemId = "item.rivets", count = 8 },
+			{ itemId = "item.brass_gear", count = 2 },
+		}, {
+			{ itemId = "item.scrap_plate", count = 20 },
+			{ itemId = "item.rivets", count = 12 },
+			{ itemId = "item.brass_gear", count = 4 },
+		}),
+		fuel = WOOD_FUEL,
+		feature = "fogRuns",
+	},
 }
 
 return Stations

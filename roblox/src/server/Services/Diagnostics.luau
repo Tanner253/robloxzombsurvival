@@ -105,6 +105,7 @@ local function devCommand(command: string, ...: any): any
 		return Building.lastDenied[player] or "ok"
 	elseif command == "bag" then
 		local view = Inventory.view(player)
+		player:SetAttribute("DevBackpackSlots", args[1])
 		local resized = view and InventoryMath.setBackpackCapacity(view, args[1])
 		if resized then
 			Inventory.commit(player, resized)
@@ -121,6 +122,7 @@ local function devCommand(command: string, ...: any): any
 		end
 	elseif command == "testbase" then
 		local view = Inventory.view(player)
+		player:SetAttribute("DevBackpackSlots", 60) -- kept through gear changes (Inventory.apply)
 		local resized = view and InventoryMath.setBackpackCapacity(view, 60)
 		if resized then
 			Inventory.commit(player, resized)

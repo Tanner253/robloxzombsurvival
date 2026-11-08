@@ -14,8 +14,9 @@
 
 	The home chapter (quests 1-7) is playable on the home plot alone. Objectives with a
 	`flag` wait on that feature (Shared/Flags): quest 1's Hollow kill and body search
-	(#57) and quest 6's crash site need Fog Runs; until they ship those objectives are
-	left out, and quests whose every objective waits stay closed.
+	(#57) and quest 6's trip to Pine Hollow need Fog Runs; until they ship those objectives
+	are left out, and quests whose every objective waits stay closed. (#57's one-time crash
+	site is a Fog Runs location, slice 2's to add.)
 ]]
 
 local Types = require("../Types")
@@ -96,17 +97,17 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		},
 		rewards = { xp = 250, items = { { itemId = "item.fatwood", count = 6 } } },
 	},
-	["quest.crash_site"] = {
-		id = "quest.crash_site",
+	["quest.into_the_fog"] = {
+		id = "quest.into_the_fog",
 		order = 6,
 		chapter = HOME,
-		name = "The Crash Site",
-		description = "Smoke rises past the treeline. Weave a satchel to carry what you find, then reach the crash site.",
+		name = "Into the Fog",
+		description = "Weave a satchel to carry what you find, then Run or Walk to Pine Hollow on the Fog map.",
 		prerequisite = "quest.keep_the_fire",
 		objectives = {
 			{ kind = "craft", recipeId = "recipe.satchel", count = 1 },
 			{ kind = "equip", itemId = "item.satchel" },
-			{ kind = "travel", locationId = "loc.crash_site", flag = "fogRuns" },
+			{ kind = "travel", locationId = "loc.pine_hollow", flag = "fogRuns" },
 		},
 		rewards = {
 			xp = 300,
@@ -133,7 +134,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		chapter = FOG,
 		name = "Stand Your Ground",
 		description = "Make a proper weapon and put five of the Hollow to rest.",
-		prerequisite = "quest.crash_site",
+		prerequisite = "quest.into_the_fog",
 		objectives = {
 			{ kind = "craft", recipeId = "recipe.spiked_club", count = 1 },
 			{ kind = "equip", itemId = "item.spiked_club" },
@@ -141,15 +142,14 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		},
 		rewards = { xp = 400, items = { { itemId = "item.padded_hood", count = 1 } } },
 	},
-	["quest.into_the_fog"] = {
-		id = "quest.into_the_fog",
+	["quest.scavenger"] = {
+		id = "quest.scavenger",
 		order = 9,
 		chapter = FOG,
-		name = "Into the Fog",
-		description = "Run or Walk to Pine Hollow, search what others left behind, and dig up ashroot.",
+		name = "Scavenger",
+		description = "Search what others left behind in Pine Hollow, and dig up ashroot to eat.",
 		prerequisite = "quest.stand_your_ground",
 		objectives = {
-			{ kind = "travel", locationId = "loc.pine_hollow", flag = "fogRuns" },
 			{ kind = "loot", count = 3, locationId = "loc.pine_hollow", flag = "fogRuns" },
 			{ kind = "gather", itemId = "item.ashroot", count = 4, flag = "fogRuns" },
 		},
@@ -165,9 +165,9 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		chapter = FOG,
 		name = "The Dense Fog",
 		description = "Grow strong enough to face the Dense fog, then reach the Sunken Quarry.",
-		prerequisite = "quest.into_the_fog",
+		prerequisite = "quest.scavenger",
 		objectives = {
-			{ kind = "reachLevel", level = 4 },
+			{ kind = "reachLevel", level = 8 }, -- the Dense fog's level gate (GAME_DESIGN, slice 2)
 			{ kind = "travel", locationId = "loc.sunken_quarry", flag = "fogRuns" },
 		},
 		rewards = {

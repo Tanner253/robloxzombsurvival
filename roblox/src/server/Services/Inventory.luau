@@ -493,7 +493,10 @@ local function apply(player: Player, data: PlayerData, changed: { [string]: Cont
 			pockets = changed.pockets or data.inventory.pockets,
 			backpack = changed.backpack or data.inventory.backpack,
 		}
-		local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(equipment))
+		-- The Studio test base (Diagnostics) lends a bigger backpack; it must survive gear changes.
+		local devSlots = player:GetAttribute("DevBackpackSlots")
+		local slots = math.max(bagSlots(equipment), if type(devSlots) == "number" then devSlots else 0)
+		local resized = InventoryMath.setBackpackCapacity(inventory, slots)
 		if resized == nil then
 			return false
 		end

@@ -100,6 +100,16 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		xpPerHit = 12,
 		respawnSeconds = 6 * 60,
 	},
+	-- Fog Runs (slice 2): Dense and Black fog only, so Blackpowder is a bottleneck material.
+	["node.niter_seam"] = {
+		id = "node.niter_seam",
+		name = "Niter Seam",
+		tool = { kind = "pick", tier = 1 },
+		hits = 3,
+		yields = { { itemId = "item.niter", perHit = 1 } },
+		xpPerHit = 14,
+		respawnSeconds = 10 * 60,
+	},
 }
 
 return Nodes

@@ -365,7 +365,7 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 	local sourceLines: { string } = if about then ItemSources.of(Content :: any, about) else {}
 	local sourceText = if about
 		then `{format.itemName(about)}: {if #sourceLines > 0
-			then table.concat(sourceLines, "  ·  ")
+			then table.concat(sourceLines, ";  ")
 			else "found in the world"}`
 		else "Hover an ingredient to see where it comes from."
 

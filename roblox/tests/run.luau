@@ -32,6 +32,24 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Quests", spec = require("./Quests.spec") },
 	{ name = "Onboarding", spec = require("./Onboarding.spec") },
 	{ name = "UiAudit", spec = require("./UiAudit.spec") },
+	-- Fog Runs (slice 2)
+	{ name = "Features", spec = require("./Features.spec") },
+	{ name = "Plane", spec = require("./Plane.spec") },
+	{ name = "Lobby", spec = require("./Lobby.spec") },
+	{ name = "Extraction", spec = require("./Extraction.spec") },
+	{ name = "Matchmaking", spec = require("./Matchmaking.spec") },
+	{ name = "Combat", spec = require("./Combat.spec") },
+	{ name = "Hands", spec = require("./Hands.spec") },
+	{ name = "Noise", spec = require("./Noise.spec") },
+	{ name = "Flare", spec = require("./Flare.spec") },
+	{ name = "HollowAI", spec = require("./HollowAI.spec") },
+	{ name = "Containers", spec = require("./Containers.spec") },
+	{ name = "TravelBonus", spec = require("./TravelBonus.spec") },
+	{ name = "FogTravel", spec = require("./FogTravel.spec") },
+	{ name = "FogRunRemotes", spec = require("./FogRunRemotes.spec") },
+	{ name = "RunTicket", spec = require("./RunTicket.spec") },
+	{ name = "RunSetup", spec = require("./RunSetup.spec") },
+	{ name = "Parity", spec = require("./Parity.spec") },
 }
 
 local passed, failed = 0, 0

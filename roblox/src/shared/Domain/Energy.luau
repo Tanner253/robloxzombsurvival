@@ -110,4 +110,17 @@ function Energy.secondsUntilFull(state: State, now: number, config: Config): num
 	return Energy.secondsUntil(state, now, config, config.cap)
 end
 
+-- Fog Runs: how many points short of `amount` the player is now (0 when they can
+-- afford it). The Run button shows this as the refill slot (checklist 11.7).
+function Energy.shortfall(state: State, now: number, config: Config, amount: number): number
+	return math.max(0, amount - Energy.current(state, now, config).value)
+end
+
+-- Gives back Energy for a trip that never happened (a cancelled Run, a failed
+-- teleport). Like a grant it may pass the cap, so a refund is never lost.
+function Energy.refund(state: State, now: number, config: Config, amount: number): State
+	local restored = Energy.restore(state, now, config, amount, "grant")
+	return restored or Energy.current(state, now, config)
+end
+
 return Energy

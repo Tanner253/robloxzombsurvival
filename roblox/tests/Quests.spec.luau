@@ -154,8 +154,8 @@ return function(test: TestKit.Register)
 		end
 		TestKit.equal(#completed, 8, "home and first-weapon quests complete")
 		TestKit.equal(completed[1], "quest.first_light")
-		TestKit.truthy(state.active["quest.into_the_fog"], "the Fog quest waits, open")
-		TestKit.truthy(Quests.isDormant(Content.Quests["quest.into_the_fog"], flags))
+		TestKit.truthy(state.active["quest.scavenger"], "the Fog quest waits, open")
+		TestKit.truthy(Quests.isDormant(Content.Quests["quest.scavenger"], flags))
 	end)
 
 	test("Unlocks: quest gates, lock text and what a quest unlocks", function()

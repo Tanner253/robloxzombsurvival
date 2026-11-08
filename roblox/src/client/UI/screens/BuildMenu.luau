@@ -136,8 +136,6 @@ local function Card(props: {
 			model = model,
 			size = UDim2.new(1, -12, 0, 70),
 			position = UDim2.fromOffset(6, 4),
-			yaw = 40,
-			pitch = 32,
 		}),
 		Name = e(Label, {
 			text = def.name,
@@ -148,7 +146,7 @@ local function Card(props: {
 		}),
 		-- Placement limits are shown where they apply (5.11): "Placed 1/2".
 		Hp = e(Label, {
-			text = if props.limit then `Placed {props.placed}/{props.limit}` else `{def.hp} HP · Tier {def.tier}`,
+			text = if props.limit then `Placed {props.placed}/{props.limit}` else `{def.hp} HP, Tier {def.tier}`,
 			style = "caption",
 			tone = if props.limit and props.placed >= props.limit then "locked" else "muted",
 			size = UDim2.new(1, -12, 0, 16),
@@ -313,7 +311,7 @@ local function BuildMenu()
 		Tray = e(Sheet, {
 			open = open,
 			title = "Build",
-			subtitle = "LMB place · drag to paint floors and walls",
+			subtitle = "LMB places, drag to paint floors and walls",
 			closeKey = "B",
 			onClose = Actions.toggleBuild,
 			size = UDim2.fromOffset(960, 250), -- leaves the action bar (bottom right) uncovered
