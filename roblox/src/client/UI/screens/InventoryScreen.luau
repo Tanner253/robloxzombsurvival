@@ -490,12 +490,11 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 			size = UDim2.fromScale(1, 1),
 		})
 	end
-	local usable = def.consume or def.equipSlot or def.category == "blueprint" or def.tool
+	local usable = def.consume or def.equipSlot or def.category == "blueprint"
 	local drink = def.consume and (def.consume.thirst or 0) > (def.consume.hunger or 0)
 	local verb = if def.consume
 		then (if drink then "Drink" elseif (def.consume.hunger or 0) > 0 then "Eat" else "Use")
 		elseif def.equipSlot then "Equip"
-		elseif def.tool then "Hold"
 		else "Read"
 	local carried = focus.ref == "pockets" or focus.ref == "backpack" or focus.ref == "storage"
 	-- Dropping on the ground needs the sack model (hidden until it's graded A, §0).
@@ -853,6 +852,11 @@ local function InventoryScreen()
 		local equipment = Slots.fromEquipment(inventory.equipment)
 		-- Each equip slot draws the silhouette of what goes there.
 		local placeholders = table.clone(Slots.EQUIP_ORDER) :: { any }
+		for index, name in placeholders do
+			if name == "weapon2" then
+				placeholders[index] = "weapon" -- the secondary weapon draws the weapon silhouette
+			end
+		end
 		local inboxCount = if type(inbox) == "table" then #inbox else 0
 		local crateDef = crate and Content.BuildPieces[crate.pieceId]
 		local used = 0
@@ -881,7 +885,7 @@ local function InventoryScreen()
 				BackgroundTransparency = 1,
 			}, {
 				Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-				PocketsTitle = e(Section, { title = "POCKETS", note = "1-9 on the hotbar", layoutOrder = 0 }),
+				PocketsTitle = e(Section, { title = "POCKETS", layoutOrder = 0 }),
 				Pockets = e(Grid, {
 					source = "pockets",
 					slots = inventory.pockets,
@@ -889,7 +893,6 @@ local function InventoryScreen()
 					inventory = inventory,
 					storage = crate,
 					stash = stash,
-					hotkeys = true,
 					layoutOrder = 1,
 				}),
 				BackpackTitle = e(Section, {

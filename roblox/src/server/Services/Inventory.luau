@@ -4,13 +4,15 @@
 	(ARCHITECTURE.md §6; M1 step 1). Rewards that do not fit go to Services/Inbox.
 
 	Clients only send intents (InventoryMove, InventorySplit, InventoryTransfer,
-	UseItem, StorageOpen, HotbarSelect); every rule is in Domain/Slots and
+	UseItem, StorageOpen, WeaponSelect, WeaponSwap, UseMeds); every rule is in Domain/Slots and
 	Domain/Inventory. A bag in the equipment's bag slot sets the backpack size;
 	removing it is refused while the slots it adds hold anything.
 
 	Other services change items through `give`, `take`, `commit` and
 	`setPocket`, never by writing PlayerData directly, so every change is synced.
-	The held hotbar slot is shown in the character's hand.
+	Two weapon slots (equipment weapon and weapon2, 4.9): the active one is in the
+	hand; tools stay in the bag and are held only while working (holdForAction).
+	The hand is a slot ref: "w1"/"w2" (weapons), "p<i>"/"b<i>" (a tool), or "".
 ]]
 
 local Players = game:GetService("Players")
@@ -41,7 +43,7 @@ type Container = Types.Container
 local Items: any = Content.Items
 local tuning = Content.Tuning
 
-local held: { [Player]: number } = {}
+local held: { [Player]: string } = {} -- hand refs: "w1", "w2", "p<i>", "b<i>" or ""
 local heldModels: { [Player]: Model } = {}
 local openStorage: { [Player]: string } = {}
 
@@ -68,9 +70,25 @@ end
 
 -- Which carried item goes on each mount: the held pocket slot in the hand, other
 -- tools and weapons holstered on the belt (both hips) and the back (1.5).
-local function gearPlan(data: PlayerData, heldIndex: number): { [string]: string }
+-- The slot a hand ref points at ("w1", "w2", "p<i>", "b<i>"), or nil.
+local function slotAt(data: PlayerData, ref: string): Types.Slot?
+	local equipment = data.inventory.equipment :: any
+	if ref == "w1" then
+		return equipment.weapon
+	elseif ref == "w2" then
+		return equipment.weapon2
+	end
+	local kind, index = string.match(ref, "^([pb])(%d+)$")
+	if kind == nil then
+		return nil
+	end
+	local container = if kind == "p" then data.inventory.pockets else data.inventory.backpack
+	return container[tonumber(index) :: number]
+end
+
+local function gearPlan(data: PlayerData, handRef: string): { [string]: string }
 	local plan: { [string]: string } = {}
-	local heldSlot = if heldIndex > 0 then data.inventory.pockets[heldIndex] else nil
+	local heldSlot = slotAt(data, handRef)
 	if heldSlot and heldSlot.count > 0 then
 		plan.hand = heldSlot.itemId
 	end
@@ -79,9 +97,11 @@ local function gearPlan(data: PlayerData, heldIndex: number): { [string]: string
 		seen[plan.hand] = true
 	end
 	local carried: { string } = {}
-	local weapon = (data.inventory.equipment :: any).weapon
-	if weapon and weapon.count > 0 then
-		table.insert(carried, weapon.itemId)
+	for _, name in { "weapon", "weapon2" } do
+		local weapon = (data.inventory.equipment :: any)[name]
+		if weapon and weapon.count > 0 then
+			table.insert(carried, weapon.itemId)
+		end
 	end
 	for _, container in { data.inventory.pockets, data.inventory.backpack } do
 		for _, slot in container do
@@ -169,7 +189,7 @@ local function refreshHeld(player: Player)
 	if data == nil or character == nil then
 		return
 	end
-	local plan = gearPlan(data, held[player] or 0)
+	local plan = gearPlan(data, held[player] or "")
 	local signature = `{plan.hand or ""}|{plan.belt or ""}|{plan.beltLeft or ""}|{plan.back or ""}`
 	local folder = heldModels[player]
 	if folder and folder.Parent == character and folder:GetAttribute("Signature") == signature then
@@ -215,6 +235,31 @@ function Inventory.setPocket(player: Player, index: number, slot: Types.Slot)
 	data.inventory.pockets = pockets
 	Sync.mark(player, "inventory")
 	refreshHeld(player)
+end
+
+-- Writes a tool slot by hand ref ("p<i>" or "b<i>"), e.g. after a swing wore it.
+function Inventory.setAt(player: Player, ref: string, slot: Types.Slot)
+	local kind, index = string.match(ref, "^([pb])(%d+)$")
+	if kind == nil then
+		return
+	end
+	local data = PlayerData.get(player)
+	assert(data, "player data is not loaded")
+	if kind == "p" then
+		Inventory.setPocket(player, tonumber(index) :: number, slot)
+		return
+	end
+	local backpack = table.clone(data.inventory.backpack)
+	backpack[tonumber(index) :: number] = slot
+	data.inventory.backpack = backpack
+	Sync.mark(player, "inventory")
+	refreshHeld(player)
+end
+
+-- The slot a hand ref points at, for other services.
+function Inventory.slotAt(player: Player, ref: string): Types.Slot?
+	local data = PlayerData.get(player)
+	return if data then slotAt(data, ref) else nil
 end
 
 -- Whether every stack fits at once.
@@ -323,43 +368,60 @@ function Inventory.take(player: Player, stacks: { Types.ItemStack }, sink: strin
 	return true
 end
 
--- The pocket index the player holds (0 for empty hands).
-function Inventory.heldIndex(player: Player): number
-	return held[player] or 0
+-- The active weapon slot (1 or 2) and its hand ref ("w1"/"w2"), or "" when it is empty.
+local activeWeapon: { [Player]: number } = {}
+local function weaponRef(player: Player): string
+	local data = PlayerData.get(player)
+	local n = activeWeapon[player] or 1
+	local slot = if data then slotAt(data, `w{n}`) else nil
+	return if slot and slot.count > 0 then `w{n}` else ""
 end
 
--- Holds pocket `index` in hand.
-function Inventory.hold(player: Player, index: number)
-	if held[player] ~= index then
-		held[player] = index
+-- What the player holds: "w1"/"w2", a tool ref while working, or "" (empty hands).
+function Inventory.handRef(player: Player): string
+	return held[player] or ""
+end
+
+-- Puts `ref` in the hand.
+function Inventory.hold(player: Player, ref: string)
+	if held[player] ~= ref then
+		held[player] = ref
 		Sync.mark(player, "inventory")
 		refreshHeld(player)
 	end
 end
 
--- For an action (a swing, a pickup): holds `index` now, and puts back whatever was
--- in hand once no action has happened for `seconds` (3.2: swap to the tool, swap back).
-local actionRestore: { [Player]: { index: number, untilClock: number } } = {}
-function Inventory.holdForAction(player: Player, index: number, seconds: number)
-	local current = held[player] or 0
-	local pending = actionRestore[player]
-	if pending == nil and current == index then
-		return
-	end
-	if pending == nil then
-		pending = { index = current, untilClock = 0 }
-		actionRestore[player] = pending
-	end
-	local entry = pending :: { index: number, untilClock: number }
+-- For an action (a swing, a pickup): holds `ref` now (a tool, or "" for bare hands),
+-- and goes back to the active weapon once no action has happened for `seconds`
+-- (3.2: swap to the tool, swap back).
+local actionRestore: { [Player]: { untilClock: number } } = {}
+function Inventory.holdForAction(player: Player, ref: string, seconds: number)
+	local entry: { untilClock: number } = actionRestore[player] or { untilClock = 0 }
+	actionRestore[player] = entry
 	entry.untilClock = os.clock() + seconds
-	Inventory.hold(player, index)
+	Inventory.hold(player, ref)
 	task.delay(seconds + 0.05, function()
-		local live = actionRestore[player]
-		if live == entry and os.clock() >= entry.untilClock then
+		if actionRestore[player] == entry and os.clock() >= entry.untilClock then
 			actionRestore[player] = nil
-			Inventory.hold(player, entry.index)
+			Inventory.hold(player, weaponRef(player))
 		end
 	end)
+end
+
+-- Selects weapon slot 1 or 2 (4.9) and puts it in the hand.
+local function selectWeapon(player: Player, n: number)
+	if n ~= 1 and n ~= 2 then
+		return
+	end
+	activeWeapon[player] = n
+	actionRestore[player] = nil
+	Inventory.hold(player, weaponRef(player))
+	Sync.mark(player, "inventory")
+end
+
+local function swapWeapon(player: Player)
+	selectWeapon(player, if (activeWeapon[player] or 1) == 1 then 2 else 1)
+	Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "swap" })
 end
 
 -- The UID of the crate the player has open, if any.
@@ -602,14 +664,17 @@ local function use(player: Player, ref: string, index: number)
 	end
 
 	if def.equipSlot then
-		local target = table.find(Slots.EQUIP_ORDER, def.equipSlot) :: number
+		local name: string = def.equipSlot
+		if name == "weapon" then
+			-- The primary slot when it is free, else the secondary, else swap the primary.
+			local equipment = data.inventory.equipment :: any
+			if equipment.weapon.count > 0 and equipment.weapon2.count == 0 then
+				name = "weapon2"
+			end
+		end
+		local target = table.find(Slots.EQUIP_ORDER, name :: any) :: number
 		move(player, ref, index, "equipment", target, nil)
-		return
-	end
-	if def.tool and ref == "pockets" then
-		held[player] = if held[player] == index then 0 else index
-		Sync.mark(player, "inventory")
-		refreshHeld(player)
+		Inventory.hold(player, weaponRef(player))
 		return
 	end
 
@@ -656,14 +721,28 @@ local function use(player: Player, ref: string, index: number)
 	end
 end
 
-local function hold(player: Player, index: number)
-	local pockets = Inventory.view(player)
-	if pockets == nil or index > #pockets.pockets then
+-- The meds button (4.9): uses the carried consumable that heals the most.
+local function useMeds(player: Player)
+	local data = PlayerData.get(player)
+	if data == nil then
 		return
 	end
-	held[player] = index
-	Sync.mark(player, "inventory")
-	refreshHeld(player)
+	local bestRef, bestIndex, bestHeal = nil, 0, 0
+	for _, ref in { "pockets", "backpack" } do
+		local container = if ref == "pockets" then data.inventory.pockets else data.inventory.backpack
+		for index, slot in container do
+			local def = if slot.count > 0 then Items[slot.itemId] else nil
+			local heal = if def and def.consume then def.consume.health or 0 else 0
+			if heal > bestHeal then
+				bestRef, bestIndex, bestHeal = ref, index, heal
+			end
+		end
+	end
+	if bestRef == nil then
+		Sync.notice(player, "No meds", "info")
+		return
+	end
+	use(player, bestRef, bestIndex)
 end
 
 -- Lifecycle -------------------------------------------------------------------------------------------
@@ -715,7 +794,9 @@ function Inventory.init()
 	end)
 	Net.onEvent("StorageOpen", openCrate)
 	Net.onEvent("UseItem", use)
-	Net.onEvent("HotbarSelect", hold)
+	Net.onEvent("WeaponSelect", selectWeapon)
+	Net.onEvent("WeaponSwap", swapWeapon)
+	Net.onEvent("UseMeds", useMeds)
 end
 
 function Inventory.start()
@@ -728,7 +809,8 @@ function Inventory.start()
 			pockets = data.inventory.pockets,
 			backpack = data.inventory.backpack,
 			equipment = data.inventory.equipment,
-			held = held[player] or 0,
+			hand = held[player] or "",
+			activeWeapon = activeWeapon[player] or 1,
 		}
 	end)
 	Sync.provide("storage", function(player: Player)
@@ -759,6 +841,7 @@ function Inventory.start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		held[player] = nil
+		activeWeapon[player] = nil
 		heldModels[player] = nil
 		openStorage[player] = nil
 	end)

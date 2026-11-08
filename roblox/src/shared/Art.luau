@@ -302,6 +302,7 @@ Art.sounds = {
 	uiHover = snd(CLICK, 0.45, { speed = 1.25, group = "ui" }),
 	uiError = snd(117572160588950, 0.6, { group = "ui" }),
 	pickup = snd(BAG, 3, { region = { 0, 0.35 }, speed = 1.2, group = "ui" }),
+	swap = snd(BAG, 2.6, { region = { 0, 0.22 }, speed = 1.45, group = "ui" }), -- a quick holster rustle (4.9)
 	collect = snd(BAG, 3.4, { region = { 0, 0.35 }, speed = 1.05, group = "ui" }),
 	reward = snd(131408467630923, 0.5, { group = "ui" }),
 	levelUp = snd(9043711287, 0.7, { group = "music" }), -- APM "Triumph of the Underdog - Sting 1"

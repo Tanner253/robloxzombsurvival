@@ -46,7 +46,7 @@ export type ItemCategory =
 	| "misc"
 
 -- Matches the keys of PlayerSchema.Equipment.
-export type EquipSlot = "head" | "body" | "legs" | "feet" | "weapon" | "bag"
+export type EquipSlot = "head" | "body" | "legs" | "feet" | "weapon" | "weapon2" | "bag" -- weapon2: the secondary weapon (an item's equipSlot is "weapon")
 
 export type ToolKind = "hatchet" | "pick"
 

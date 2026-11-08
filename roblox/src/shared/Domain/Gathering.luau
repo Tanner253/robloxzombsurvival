@@ -8,9 +8,8 @@
 	Tuning.gathering.durabilityPerHit. The last hit depletes the node until
 	`respawnAt`; `refresh` brings it back once that time has passed.
 
-	Tool choice: the held pocket slot when it can harvest the node, otherwise the
-	pocket tool with the highest tier that can (LDoE's context button that
-	switches to the axe). Tools work from the pockets (hotbar) only.
+	Tool choice: the carried tool (pockets or backpack) with the highest tier that
+	can harvest the node (LDoE's context button that switches to the axe).
 ]]
 
 local Types = require("../Types")
@@ -61,40 +60,37 @@ function Gathering.canHarvest(def: Types.ResourceNodeDef, tool: Types.ToolStats?
 end
 
 --[[
-	The pocket index of the tool to use: 0 when the node needs no tool, the held
-	slot when it works, else the best suitable pocket tool. Returns nil and a
-	reason when nothing in the pockets can harvest it.
+	The tool to use, as a slot ref: "" when the node needs no tool (bare hands), else
+	"p<i>" (pockets) or "b<i>" (backpack) for the best-tier tool that can harvest it.
+	Tools never take a weapon slot (4.9): they are found in the bag and only held while
+	working. Returns nil and a reason when nothing carried can harvest it.
 ]]
 function Gathering.pickTool(
 	def: Types.ResourceNodeDef,
-	pockets: Types.Container,
-	heldIndex: number,
+	carried: { pockets: Types.Container, backpack: Types.Container },
 	items: ItemLookup
-): (number?, Reason?)
+): (string?, Reason?)
 	if def.tool == nil then
-		return 0, nil
+		return "", nil
 	end
-	local function stats(index: number): Types.ToolStats?
-		local slot = pockets[index]
-		if slot == nil or slot.count <= 0 then
-			return nil
-		end
-		local item = items[slot.itemId]
-		return if item then item.tool else nil
-	end
-	if heldIndex > 0 and (Gathering.canHarvest(def, stats(heldIndex))) then
-		return heldIndex, nil
-	end
-	local best: number? = nil
+	local best: string? = nil
 	local bestTier = -1
 	local reason: Reason = "needsTool"
-	for index in pockets do
-		local tool = stats(index)
-		local ok, why = Gathering.canHarvest(def, tool)
-		if ok and tool and tool.tier > bestTier then
-			best, bestTier = index, tool.tier
-		elseif why == "toolTier" then
-			reason = "toolTier"
+	local groups: { { prefix: string, slots: Types.Container } } = {
+		{ prefix = "p", slots = carried.pockets },
+		{ prefix = "b", slots = carried.backpack or {} },
+	}
+	for _, group in groups do
+		local prefix = group.prefix
+		for index, slot in group.slots do
+			local item = if slot.count > 0 then items[slot.itemId] else nil
+			local tool = if item then item.tool else nil
+			local ok, why = Gathering.canHarvest(def, tool)
+			if ok and tool and tool.tier > bestTier then
+				best, bestTier = `{prefix}{index}`, tool.tier
+			elseif why == "toolTier" then
+				reason = "toolTier"
+			end
 		end
 	end
 	if best then

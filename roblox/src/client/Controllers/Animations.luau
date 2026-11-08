@@ -111,6 +111,23 @@ local SPECS: { [string]: Spec } = {
 			{ time = 0.66, poses = {} },
 		},
 	},
+	-- A quick weapon swap (4.9): the hand drops to the hip and comes back up.
+	swap = {
+		length = 0.32,
+		hit = 0.16,
+		keys = {
+			{ time = 0, poses = {} },
+			{
+				time = 0.14,
+				poses = {
+					RightUpperArm = deg(-25, 0, 18),
+					RightLowerArm = deg(35),
+					UpperTorso = deg(0, -12, 0),
+				},
+			},
+			{ time = 0.32, poses = {} },
+		},
+	},
 	pickup = {
 		length = 0.7,
 		hit = 0.32,

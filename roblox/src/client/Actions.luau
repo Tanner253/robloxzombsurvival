@@ -14,6 +14,7 @@ local Sfx = require("./Sfx")
 local State = require("./State")
 local Building = require("./Controllers/Building")
 local Interaction = require("./Controllers/Interaction")
+local Animations = require("./Controllers/Animations")
 
 local Actions = {}
 
@@ -126,40 +127,27 @@ function Actions.toggleAuto()
 	Sfx.play("uiClick")
 end
 
--- Number keys / hotbar clicks: food and drink are used, tools are held.
-function Actions.hotbar(index: number)
+-- Weapons (4.9, LDoE): two weapon slots, 1 and 2 select, F or the swap button swaps.
+function Actions.selectWeapon(n: number)
 	local inventory = State.get("inventory")
-	if not inventory then
+	if not inventory or inventory.activeWeapon == n then
 		return
 	end
-	local slot = inventory.pockets[index]
-	local def = if slot and slot.count > 0 then Content.Items[slot.itemId] else nil
-	if def and (def.consume or def.category == "blueprint") then
-		Net.fire("UseItem", "pockets", index)
-		return
-	end
-	Net.fire("HotbarSelect", if inventory.held == index then 0 else index)
-	Sfx.play("uiClick")
+	Net.fire("WeaponSelect", n)
+	Animations.play(Players.LocalPlayer.Character, "swap")
+	Sfx.play("swap")
 end
 
--- Selects the next (+1) or previous (-1) filled pocket on the hotbar (mouse wheel).
-function Actions.cycleHotbar(step: number)
-	local inventory = State.get("inventory")
-	if not inventory then
-		return
-	end
-	local count = math.min(9, #inventory.pockets)
-	local index = inventory.held or 0
-	for _ = 1, count do
-		index = (index + step - 1) % count + 1
-		local slot = inventory.pockets[index]
-		local def = if slot and slot.count > 0 then Content.Items[slot.itemId] else nil
-		if def and (def.tool or def.weapon) then
-			Net.fire("HotbarSelect", index)
-			Sfx.play("uiHover")
-			return
-		end
-	end
+function Actions.swapWeapon()
+	Net.fire("WeaponSwap")
+	Animations.play(Players.LocalPlayer.Character, "swap")
+	Sfx.play("swap")
+end
+
+-- The meds button (H): the server uses the carried item that heals the most.
+function Actions.useMeds()
+	Net.fire("UseMeds")
+	Sfx.play("uiClick")
 end
 
 function Actions.setSprint(on: boolean)

@@ -3,7 +3,8 @@
 	HUD: always on screen while playing (PC-first 16:9 layout, corners on touch).
 	- top left: level badge, health, hunger and thirst, XP, Energy with its regen timer
 	- left: the Survivor's Path quest tracker (placeholder until Quests land)
-	- bottom centre: the 1-9 hotbar (pockets 1-9), with the held item's name
+	- bottom right, above the action buttons: the two weapon slots (the active one big,
+	  with durability; 1, 2 and F) and the meds button (H) with its count (4.9)
 	- bottom right: action buttons with keybind hints (E, Tab, B; Shift on touch)
 ]]
 
@@ -31,8 +32,8 @@ local StatBar = require("../components/StatBar")
 
 local e = React.createElement
 
-local HOTBAR_SLOTS = 9
-local HOTBAR_SIZE = 60
+local WEAPON_BIG = 84
+local WEAPON_SMALL = 52
 
 local function card(props: { size: UDim2, position: UDim2, anchorPoint: Vector2?, children: any })
 	return e("Frame", {
@@ -632,63 +633,136 @@ local function Minimap()
 	})
 end
 
--- Hotbar ---------------------------------------------------------------------------------------------------
+-- Weapons and meds (4.9) ----------------------------------------------------------------------------------
 
-local function Hotbar()
-	local inventory = hooks.useSection("inventory")
-	local held = if inventory then inventory.held else 0
-	local slots: { [string]: any } = {
-		Layout = e("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 6),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			VerticalAlignment = Enum.VerticalAlignment.Bottom,
-		}),
-	}
-	for index = 1, HOTBAR_SLOTS do
-		local slot = if inventory then inventory.pockets[index] else nil
-		local def = if slot and slot.count > 0 then Content.Items[slot.itemId] else nil
-		slots[`Slot{index}`] = e(ItemSlot, {
-			itemId = if slot then slot.itemId else nil,
-			count = if slot then slot.count else 0,
-			durability = if def
-					and def.durability
-					and slot
-					and slot.durability
-				then slot.durability / def.durability
-				else nil,
-			selected = held == index,
-			hotkey = tostring(index),
-			size = HOTBAR_SIZE,
-			layoutOrder = index,
-			onActivated = function()
-				Actions.hotbar(index)
-			end,
-		})
+-- Healing items carried, and the strongest one's id.
+local function medsCount(inventory: any): (number, string?)
+	local count, bestId, bestHeal = 0, nil, 0
+	for _, container in { inventory.pockets, inventory.backpack } do
+		for _, slot in container do
+			local def = if slot.count > 0 then Content.Items[slot.itemId] else nil
+			local heal = if def and def.consume then def.consume.health or 0 else 0
+			if heal > 0 then
+				count += slot.count
+				if heal > bestHeal then
+					bestId, bestHeal = slot.itemId, heal
+				end
+			end
+		end
 	end
-	local heldSlot = if inventory and held > 0 then inventory.pockets[held] else nil
-	local heldName = if heldSlot and heldSlot.count > 0 then format.itemName(heldSlot.itemId) else nil
+	return count, bestId
+end
+
+local function weaponSlot(inventory: any, n: number): any
+	return if n == 1 then inventory.equipment.weapon else inventory.equipment.weapon2
+end
+
+local function WeaponBar()
+	local inventory = hooks.useSection("inventory")
+	if not inventory then
+		return nil
+	end
+	local active = inventory.activeWeapon or 1
+	local other = if active == 1 then 2 else 1
+	local function durabilityOf(slot: any): number?
+		local def = if slot and slot.count > 0 then Content.Items[slot.itemId] else nil
+		return if def and def.durability and slot.durability then slot.durability / def.durability else nil
+	end
+	local activeSlot, otherSlot = weaponSlot(inventory, active), weaponSlot(inventory, other)
+	local meds, medId = medsCount(inventory)
 	return e("Frame", {
-		Size = UDim2.fromOffset(HOTBAR_SLOTS * (HOTBAR_SIZE + 6), HOTBAR_SIZE + 34),
-		Position = UDim2.new(0.5, 0, 1, -14),
-		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(WEAPON_BIG + WEAPON_SMALL * 2 + 30, WEAPON_BIG + 26),
+		Position = UDim2.new(1, -16, 1, -140),
+		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 1,
 	}, {
-		Held = heldName and e(Label, {
-			text = heldName,
-			style = "body",
-			tone = "highlight",
-			size = UDim2.new(1, 0, 0, 22),
-			alignX = Enum.TextXAlignment.Center,
-			stroke = true,
+		Layout = e("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
+			Padding = UDim.new(0, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
-		Row = e("Frame", {
-			Size = UDim2.new(1, 0, 0, HOTBAR_SIZE),
-			Position = UDim2.fromScale(0, 1),
-			AnchorPoint = Vector2.new(0, 1),
-			BackgroundTransparency = 1,
-		}, slots),
+		Meds = e(
+			"Frame",
+			{ Size = UDim2.fromOffset(WEAPON_SMALL, WEAPON_SMALL), LayoutOrder = 1, BackgroundTransparency = 1 },
+			{
+				Slot = e(ItemSlot, {
+					itemId = medId,
+					count = if medId then 1 else 0,
+					size = WEAPON_SMALL,
+					placeholder = "Meds",
+					onActivated = Actions.useMeds,
+				}),
+				Grey = meds == 0 and e("Frame", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundColor3 = Theme.colors.shadow,
+					BackgroundTransparency = 0.45,
+					ZIndex = 5,
+				}, { Corner = e("UICorner", { CornerRadius = Theme.radius }) }),
+				Count = meds > 0 and e("TextLabel", {
+					Size = UDim2.fromOffset(22, 22),
+					Position = UDim2.fromOffset(-4, -4),
+					BackgroundColor3 = Color3.fromHex("C8473A"),
+					FontFace = Theme.fonts.header,
+					Text = tostring(meds),
+					TextSize = Theme.textSize.caption,
+					TextColor3 = Theme.colors.text,
+					ZIndex = 6,
+				}, { Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }) }),
+				Key = e(KeyChip, { text = "H", position = UDim2.new(1, 2, 0, -2), anchorPoint = Vector2.new(1, 0) }),
+			}
+		),
+		Other = e(
+			"Frame",
+			{ Size = UDim2.fromOffset(WEAPON_SMALL, WEAPON_SMALL), LayoutOrder = 2, BackgroundTransparency = 1 },
+			{
+				Slot = e(ItemSlot, {
+					itemId = if otherSlot and otherSlot.count > 0 then otherSlot.itemId else nil,
+					count = if otherSlot and otherSlot.count > 0 then 1 else 0,
+					durability = durabilityOf(otherSlot),
+					size = WEAPON_SMALL,
+					placeholder = "weapon",
+					onActivated = Actions.swapWeapon,
+				}),
+				Key = e(
+					KeyChip,
+					{ text = tostring(other), position = UDim2.new(1, 2, 0, -2), anchorPoint = Vector2.new(1, 0) }
+				),
+			}
+		),
+		Active = e(
+			"Frame",
+			{ Size = UDim2.fromOffset(WEAPON_BIG, WEAPON_BIG + 22), LayoutOrder = 3, BackgroundTransparency = 1 },
+			{
+				Slot = e(ItemSlot, {
+					itemId = if activeSlot and activeSlot.count > 0 then activeSlot.itemId else nil,
+					count = if activeSlot and activeSlot.count > 0 then 1 else 0,
+					durability = durabilityOf(activeSlot),
+					selected = true,
+					size = WEAPON_BIG,
+					placeholder = "weapon",
+					onActivated = function()
+						Actions.selectWeapon(active)
+					end,
+				}),
+				Key = e(
+					KeyChip,
+					{ text = tostring(active), position = UDim2.new(1, 2, 0, -2), anchorPoint = Vector2.new(1, 0) }
+				),
+				Swap = e(KeyChip, { text = "F", position = UDim2.fromOffset(-2, -2), anchorPoint = Vector2.new(0, 0) }),
+				Name = e(Label, {
+					text = if activeSlot and activeSlot.count > 0 then format.itemName(activeSlot.itemId) else "Fists",
+					style = "caption",
+					tone = "highlight",
+					size = UDim2.new(1, 0, 0, 18),
+					position = UDim2.fromScale(0, 1),
+					anchorPoint = Vector2.new(0, 1),
+					alignX = Enum.TextXAlignment.Center,
+					stroke = true,
+				}),
+			}
+		),
 	})
 end
 
@@ -956,7 +1030,7 @@ local function HUD()
 			TextSize = Theme.textSize.caption,
 			TextColor3 = Theme.colors.textOnAccent,
 		}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
-		Hotbar = ui.panel ~= "build" and e(Hotbar),
+		Weapons = playing and e(WeaponBar),
 		Actions = (playing or ui.panel == "build") and e(ActionBar),
 	})
 end

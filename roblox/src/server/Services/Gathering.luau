@@ -282,12 +282,11 @@ local function gather(player: Player, key: string)
 	if view == nil then
 		return
 	end
-	local toolIndex, reason =
-		GatheringMath.pickTool(node.def, view.pockets, Inventory.heldIndex(player), Content.Items :: any)
-	if toolIndex == nil then
+	local toolRef, reason = GatheringMath.pickTool(node.def, view, Content.Items :: any)
+	if toolRef == nil then
 		local needed = node.def.tool :: Types.ToolStats
 		local name = toolName(needed.kind, needed.tier)
-		Sync.notice(player, if reason == "toolTier" then `Needs a better {name}` else `Needs a {name} in your pockets`)
+		Sync.notice(player, if reason == "toolTier" then `Needs a better {name}` else `Needs a {name}`)
 		Sync.fx(player, "gatherDenied", { key = key, reason = reason })
 		return
 	end
@@ -320,18 +319,19 @@ local function gather(player: Player, key: string)
 	local toolItem = ""
 	local broke = false
 	-- Swap to the tool (or empty hands for a pickup), then back after a short idle.
-	Inventory.holdForAction(player, toolIndex, SWAP_BACK_SECONDS)
+	Inventory.holdForAction(player, toolRef, SWAP_BACK_SECONDS)
 	Net.fireAllClients(
 		"Fx",
 		"act",
 		{ userId = player.UserId, action = ACTION_BY_TOOL[if node.def.tool then node.def.tool.kind else "hand"] }
 	)
-	if toolIndex > 0 then
-		local slot = (Inventory.view(player) :: Types.Inventory).pockets[toolIndex]
+	local toolSlot = if toolRef ~= "" then Inventory.slotAt(player, toolRef) else nil
+	if toolSlot then
+		local slot = toolSlot
 		toolItem = slot.itemId
 		local worn, didBreak = Slots.wear(slot, tuning.gathering.durabilityPerHit)
 		broke = didBreak
-		Inventory.setPocket(player, toolIndex, worn)
+		Inventory.setAt(player, toolRef, worn)
 		local def = Content.Items[toolItem]
 		local max = if def then def.durability else nil
 		if broke then

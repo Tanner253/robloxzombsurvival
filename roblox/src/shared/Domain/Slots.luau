@@ -29,7 +29,9 @@ export type ItemLookup = {
 export type Reason = "empty" | "badSlot" | "same" | "wrongSlot" | "noSpace" | "count"
 
 -- Equipment slot order; also the slot indices clients send for "equipment".
-Slots.EQUIP_ORDER = { "head", "body", "legs", "feet", "weapon", "bag" } :: { Types.EquipSlot }
+-- weapon is the primary and weapon2 the secondary weapon (checklist 4.9: LDoE's two
+-- weapon slots); both take items whose equipSlot is "weapon".
+Slots.EQUIP_ORDER = { "head", "body", "legs", "feet", "weapon", "weapon2", "bag" } :: { Types.EquipSlot }
 
 -- Categories "Put all" leaves in the inventory: gear, food and ammo stay with you.
 Slots.KEEP_ON_PUT_ALL = {
@@ -361,7 +363,13 @@ end
 
 -- The `accepts` list for an equipment Side.
 function Slots.equipmentAccepts(): { Types.EquipSlot }
-	return table.clone(Slots.EQUIP_ORDER)
+	local list = table.clone(Slots.EQUIP_ORDER)
+	for index, name in list do
+		if name == "weapon2" then
+			list[index] = "weapon"
+		end
+	end
+	return list
 end
 
 -- Wears a slot by `amount` durability. Returns the new slot and whether it broke

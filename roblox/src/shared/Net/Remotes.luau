@@ -132,12 +132,26 @@ Remotes.list = {
 		validate = Check.args(ref, slot),
 		description = "(ref, index) eats, drinks or reads the item in that slot",
 	},
-	HotbarSelect = {
+	WeaponSelect = {
 		kind = "event",
 		clientCanSend = true,
 		rateLimit = MOVES,
-		validate = Check.args(Check.integer(0, 10)),
-		description = "(index) holds pocket slot `index` (0 = empty hands)",
+		validate = Check.args(Check.integer(1, 2)),
+		description = "(n) makes weapon slot n (1 primary, 2 secondary) active and holds it (4.9)",
+	},
+	WeaponSwap = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = MOVES,
+		validate = Check.args(),
+		description = "() swaps to the other weapon slot (4.9)",
+	},
+	UseMeds = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(),
+		description = "() uses the carried consumable that heals the most (the meds button, 4.9)",
 	},
 
 	-- Gathering ---------------------------------------------------------------------------

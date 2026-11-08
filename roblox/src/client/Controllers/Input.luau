@@ -21,23 +21,21 @@ local Interaction = require("./Interaction")
 
 local Input = {}
 
-local HOTBAR_KEYS: { [Enum.KeyCode]: number } = {
+local WEAPON_KEYS: { [Enum.KeyCode]: number } = {
 	[Enum.KeyCode.One] = 1,
 	[Enum.KeyCode.Two] = 2,
-	[Enum.KeyCode.Three] = 3,
-	[Enum.KeyCode.Four] = 4,
-	[Enum.KeyCode.Five] = 5,
-	[Enum.KeyCode.Six] = 6,
-	[Enum.KeyCode.Seven] = 7,
-	[Enum.KeyCode.Eight] = 8,
-	[Enum.KeyCode.Nine] = 9,
 }
 
 local function onKey(key: Enum.KeyCode)
 	local ui = State.ui()
-	local hotbar = HOTBAR_KEYS[key]
-	if hotbar then
-		Actions.hotbar(hotbar)
+	local playing = ui.panel == "none"
+	local weapon = WEAPON_KEYS[key]
+	if weapon and playing then
+		Actions.selectWeapon(weapon)
+	elseif key == Enum.KeyCode.F and playing then
+		Actions.swapWeapon()
+	elseif key == Enum.KeyCode.H and playing then
+		Actions.useMeds()
 	elseif key == Enum.KeyCode.Tab then
 		Actions.toggleInventory()
 	elseif key == Enum.KeyCode.B then
@@ -45,7 +43,7 @@ local function onKey(key: Enum.KeyCode)
 	elseif key == Enum.KeyCode.E then
 		-- Like LDoE's action button: tap to use, hold to keep gathering (walking to the next node).
 		Actions.interact()
-		if ui.panel == "none" then
+		if playing then
 			Actions.setGathering(true)
 		end
 	elseif key == Enum.KeyCode.Q then
@@ -124,8 +122,7 @@ function Input.start()
 			end
 		end
 	end)
-	-- The mouse wheel zooms (Camera); the hotbar is on 1-9 (checklist 2.2: the developer
-	-- expects the wheel to zoom).
+	-- The mouse wheel only zooms (Camera, checklist 2.2); weapons are on 1, 2 and F (4.9).
 	UserInputService.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			Building.setPainting(false)

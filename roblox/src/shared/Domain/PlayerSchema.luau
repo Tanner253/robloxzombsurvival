@@ -20,7 +20,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 5
+PlayerSchema.VERSION = 6
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -31,6 +31,7 @@ export type Equipment = {
 	legs: Types.Slot,
 	feet: Types.Slot,
 	weapon: Types.Slot,
+	weapon2: Types.Slot, -- the secondary weapon (4.9)
 	bag: Types.Slot,
 }
 
@@ -161,6 +162,7 @@ function PlayerSchema.template(): PlayerData
 				legs = Inventory.emptySlot(),
 				feet = Inventory.emptySlot(),
 				weapon = Inventory.emptySlot(),
+				weapon2 = Inventory.emptySlot(),
 				bag = Inventory.emptySlot(),
 			},
 		},
@@ -226,6 +228,17 @@ PlayerSchema.migrations = {
 	[4] = function(data)
 		if type(data.homeNodes) ~= "table" then
 			data.homeNodes = {}
+		end
+	end,
+	-- v6: a secondary weapon slot (the 1-9 hotbar became two weapon slots, 4.9).
+	[5] = function(data)
+		local inventory = data.inventory
+		if
+			type(inventory) == "table"
+			and type(inventory.equipment) == "table"
+			and inventory.equipment.weapon2 == nil
+		then
+			inventory.equipment.weapon2 = { itemId = "", count = 0 }
 		end
 	end,
 } :: Migrations.Steps

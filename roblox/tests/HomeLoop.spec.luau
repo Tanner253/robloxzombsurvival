@@ -73,6 +73,16 @@ return function(test: TestKit.Register)
 		TestKit.equal(Slots.toEquipment(newEquipment :: any).head.itemId, "item.hood", "record round trip")
 	end)
 
+	test("two weapon slots (4.9): both take weapons, the record keeps weapon2", function()
+		local accepts = Slots.equipmentAccepts()
+		local primary = table.find(Slots.EQUIP_ORDER, "weapon") :: number
+		local secondary = table.find(Slots.EQUIP_ORDER, "weapon2") :: number
+		TestKit.equal(accepts[primary], "weapon")
+		TestKit.equal(accepts[secondary], "weapon", "the secondary slot takes weapons too")
+		local record = Slots.toEquipment(Slots.fromEquipment({}))
+		TestKit.truthy(record.weapon2 ~= nil, "weapon2 round-trips")
+	end)
+
 	test("Slots.split, addTo and transfer", function()
 		local split = Slots.split(container(slot("item.wood", 7), E), 1)
 		TestKit.equal((split :: any)[1].count, 4)
@@ -128,13 +138,23 @@ return function(test: TestKit.Register)
 	-- Gathering -----------------------------------------------------------------------------
 	test("Gathering picks the right tool and depletes and respawns nodes", function()
 		local tree = Content.Nodes["node.pine_tree"]
-		local pockets = container(slot("item.pick", 1, 50), slot("item.axe", 1, 50), slot("item.axe2", 1, 80))
-		TestKit.equal((Gathering.pickTool(tree, pockets, 2, ITEMS)), 2, "held axe works")
-		TestKit.equal((Gathering.pickTool(tree, pockets, 1, ITEMS)), 3, "best axe when holding a pick")
-		local none, why = Gathering.pickTool(tree, container(slot("item.pick", 1, 50)), 1, ITEMS)
+		local pockets = container(slot("item.pick", 1, 50), slot("item.axe", 1, 50))
+		local backpack = container(E, slot("item.axe2", 1, 80))
+		-- Tools never take a weapon slot (4.9): the best one anywhere in the bag is used.
+		TestKit.equal((Gathering.pickTool(tree, { pockets = pockets, backpack = {} }, ITEMS)), "p2", "the pocket axe")
+		TestKit.equal(
+			(Gathering.pickTool(tree, { pockets = pockets, backpack = backpack }, ITEMS)),
+			"b2",
+			"the better axe in the backpack"
+		)
+		local none, why = Gathering.pickTool(tree, { pockets = container(slot("item.pick", 1, 50)) }, ITEMS)
 		TestKit.equal(none, nil)
 		TestKit.equal(why, "needsTool")
-		TestKit.equal((Gathering.pickTool(Content.Nodes["node.fallen_branches"], {}, 0, ITEMS)), 0, "by hand")
+		TestKit.equal(
+			(Gathering.pickTool(Content.Nodes["node.fallen_branches"], { pockets = {} }, ITEMS)),
+			"",
+			"by hand"
+		)
 
 		local rng = Rng.new(7)
 		local node = Gathering.new(tree)

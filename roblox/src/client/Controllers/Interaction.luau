@@ -250,7 +250,7 @@ local function harvestable(model: Model): boolean
 	if def == nil or not inventory then
 		return false
 	end
-	if GatheringMath.pickTool(def, inventory.pockets, inventory.held or 0, Items) == nil then
+	if GatheringMath.pickTool(def, { pockets = inventory.pockets, backpack = inventory.backpack }, Items) == nil then
 		return false
 	end
 	local view = { pockets = inventory.pockets, backpack = inventory.backpack }
