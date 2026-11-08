@@ -286,6 +286,76 @@ local function fitEdge(model: Model)
 	end
 end
 
+-- Structure (ART_DIRECTION §4, one material per tier): walls, doorways, windows and doors
+-- are exact geometry in the tier's deck material, built here, never generated meshes.
+-- A piece spans one cell edge, pivot at its base centre, length along X, thickness along Z.
+-- Its ends stop half a post short of the cell's corners, where Seams stands a post.
+local STRUCTURE = {
+	thickness = 0.8,
+	cap = 0.35, -- the top cap's height; it is a little thicker than the panel
+	post = 1.0,
+	doorWidth = 3.6,
+	doorHeight = 6.6,
+	windowWidth = 3.4,
+	windowSill = 3.0,
+	windowTop = 5.8,
+}
+
+local function slab(model: Model, size: Vector3, centre: Vector3, tier: number): Part
+	local deck = Art.decks[math.clamp(tier, 1, #Art.decks)]
+	local p = part(model, size, CFrame.new(centre), deck.base, deck.tint)
+	p.MaterialVariant = deck.variant
+	return p
+end
+
+-- One panel of plank wall from x0 to x1 (piece-local), y0 to y1.
+local function panel(model: Model, x0: number, x1: number, y0: number, y1: number, tier: number)
+	if x1 - x0 < 0.05 or y1 - y0 < 0.05 then
+		return
+	end
+	slab(model, Vector3.new(x1 - x0, y1 - y0, STRUCTURE.thickness), Vector3.new((x0 + x1) / 2, (y0 + y1) / 2, 0), tier)
+end
+
+function Models.structure(def: Types.BuildPieceDef): Model?
+	local tier = def.tier
+	local model = newModel(def.id)
+	local half = (CELL - STRUCTURE.post) / 2
+	local top = Art.WALL_HEIGHT - STRUCTURE.cap
+	if def.kind == "door" then
+		-- A plank leaf in the doorway's opening, hinged at its left edge (WorldFx swings it).
+		local leaf = newModel("Leaf")
+		local w, h = STRUCTURE.doorWidth - 0.2, STRUCTURE.doorHeight - 0.15
+		slab(leaf, Vector3.new(w, h, 0.4), Vector3.new(0, 0.05 + h / 2, 0), tier)
+		leaf.WorldPivot = CFrame.new(-w / 2, 0, 0)
+		leaf.Parent = model
+		return finish(model)
+	end
+	if def.kind == "doorway" then
+		local d = STRUCTURE.doorWidth / 2
+		panel(model, -half, -d, 0, top, tier)
+		panel(model, d, half, 0, top, tier)
+		panel(model, -d, d, STRUCTURE.doorHeight, top, tier)
+	elseif def.kind == "window" then
+		local w = STRUCTURE.windowWidth / 2
+		panel(model, -half, -w, 0, top, tier)
+		panel(model, w, half, 0, top, tier)
+		panel(model, -w, w, 0, STRUCTURE.windowSill, tier)
+		panel(model, -w, w, STRUCTURE.windowTop, top, tier)
+	elseif def.kind == "wall" then
+		panel(model, -half, half, 0, top, tier)
+	else
+		return nil
+	end
+	-- The top cap along the whole run.
+	slab(
+		model,
+		Vector3.new(half * 2, STRUCTURE.cap, STRUCTURE.thickness + 0.25),
+		Vector3.new(0, top + STRUCTURE.cap / 2, 0),
+		tier
+	)
+	return finish(model)
+end
+
 -- A build piece's model: the material deck for foundations, else its approved kit
 -- model, or nil while it has none (the piece is then hidden from the build menu and
 -- can't be placed; there are no stand-in builds, checklist §0).
@@ -294,6 +364,13 @@ function Models.piece(def: Types.BuildPieceDef): Model?
 		local deck = Models.deck(def.tier)
 		deck.Name = def.id
 		return deck
+	end
+	if Art.exactPiece(def.id, def.kind) then
+		local built = Models.structure(def)
+		if built then
+			built.Name = def.id
+		end
+		return built
 	end
 	local names = Art.pieces[def.id]
 	local kit = if names then Models.kit(names) else nil

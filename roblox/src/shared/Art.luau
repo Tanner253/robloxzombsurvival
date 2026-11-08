@@ -24,16 +24,7 @@ Art.WALL_HEIGHT = 8.6
 -- Foundations are not kit meshes: they are cell-sized deck slabs (Art.decks) with a
 -- hairline seam between them; World/Seams adds trim and (scrap/reinforced) corner posts.
 Art.pieces = {
-	["build.wall_wood"] = { "EO_WallTimber" }, -- solid plank wall with a top cap
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
-	["build.wall_scrap"] = { "WallScrap" },
-	["build.wall_reinforced"] = { "WallReinforced" },
-	["build.window_scrap"] = { "WindowScrap" },
-	-- Wood doorway and window: the palisade family pieces (graded A) until the plank-wall
-	-- doorway and window from the timber sheet are converted. Art gap: doors (the palisade
-	-- leaf needs its hinge fit to the opening), reinforced windows.
-	["build.doorway_wood"] = { "EO_DoorwayTimber", "EO_PalisadeDoorway" },
-	["build.window_wood"] = { "EO_WindowTimber", "EO_PalisadeWindow" },
 	["build.workbench"] = { "Workbench" },
 	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
@@ -131,15 +122,10 @@ Art.approved = {
 	EO_SpikedClub = true,
 	EO_Scrapblade = true,
 	-- Family conversions graded A in the lineup (captures 95-101):
-	EO_WallTimber = true,
-	EO_PalisadeDoorway = true,
-	EO_PalisadeWindow = true,
 	EO_LanternPost = true,
 	EO_BareBranches = true,
 	EO_RockCluster = true,
 	-- Batch 2 (captures 105-107):
-	EO_WindowTimber = true,
-	EO_DoorwayTimber = true, -- B: smoother texture than the wall; a regen is queued (rooms need a doorway)
 	EO_StorageCrate = true,
 	EO_RecyclerStation = true,
 	EO_BarrelCluster = true,
@@ -186,8 +172,17 @@ end
 
 -- Whether a build piece can be offered: foundations are material decks; everything
 -- else needs an approved kit model.
+-- Walls, doorways, windows and doors are exact geometry in their tier's one material
+-- (Models.structure), always ready. The Defense fence keeps its kit palisade.
+local EXACT_KINDS = { wall = true, doorway = true, window = true, door = true }
+local KIT_ONLY = { ["build.fence_wood"] = true }
+
+function Art.exactPiece(pieceId: string, kind: string?): boolean
+	return kind ~= nil and EXACT_KINDS[kind] == true and not KIT_ONLY[pieceId]
+end
+
 function Art.pieceReady(pieceId: string, kind: string?): boolean
-	if kind == "foundation" then
+	if kind == "foundation" or Art.exactPiece(pieceId, kind) then
 		return true
 	end
 	return anyApproved(Art.pieces[pieceId])

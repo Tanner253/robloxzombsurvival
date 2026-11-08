@@ -10,9 +10,9 @@
 	  outside its deck edge and is exactly one cell long, so beams abut end to end.
 	  At an inside corner the east/west beam owns the shared square and the
 	  north/south beam stops short of it; an outside corner gets one corner block.
-	- A corner post stands at every grid vertex a wall, doorway or window touches,
-	  covering the joint where walls meet and the open end of a run (scrap and
-	  reinforced tiers; wood walls carry their own end stakes).
+	- A plain corner post stands at every grid vertex a wall, doorway or window touches,
+	  covering the joint where walls meet and the open end of a run. Trim and posts
+	  wear the tier's one material (the deck's).
 
 	Rebuilt as one model per plot whenever the layout changes; it's cheap (a plot is
 	10 x 10 cells).
@@ -32,36 +32,28 @@ local BEAM_HEIGHT = 1.2
 local RIM = 0.18 -- the trim stands this far proud of the deck
 local SINK = 0.05 -- detail layers sit at least this far off any surface they meet
 
-type Trim = { material: Enum.Material, color: Color3, post: "none" | "box", postSize: number }
+-- One material per building tier (ART_DIRECTION §4): trim and posts wear the tier's deck
+-- material, the same one its floors, walls, doorways, doors and windows use.
+type Trim = { material: Enum.Material, variant: string, color: Color3, postSize: number }
 
-local TRIMS: { Trim } = {
-	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "none", postSize = 0 },
-	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 0.95 },
-	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 1.1 },
-}
-local CAP = { Color3.fromRGB(62, 44, 32), Color3.fromRGB(70, 72, 76), Color3.fromRGB(70, 72, 76) }
-local CAP_MATERIAL = { Enum.Material.Wood, Enum.Material.DiamondPlate, Enum.Material.DiamondPlate }
+local POST_SIZE = { 1.0, 0.95, 1.1 }
 
 local function trimFor(tier: number): Trim
-	return TRIMS[math.clamp(tier, 1, #TRIMS)]
+	local index = math.clamp(tier, 1, #Art.decks)
+	local deck = Art.decks[index]
+	return { material = deck.base, variant = deck.variant, color = deck.tint, postSize = POST_SIZE[index] }
 end
 
-local function add(
-	model: Model,
-	size: Vector3,
-	cframe: CFrame,
-	material: Enum.Material,
-	color: Color3,
-	shape: Enum.PartType?
-): Part
+local function add(model: Model, size: Vector3, cframe: CFrame, trim: Trim, shape: Enum.PartType?): Part
 	local p = Instance.new("Part")
 	p.Anchored = true
 	p.CanQuery = false
 	p.CanTouch = false
 	p.Size = size
 	p.CFrame = cframe
-	p.Material = material
-	p.Color = color
+	p.Material = trim.material
+	p.MaterialVariant = trim.variant
+	p.Color = trim.color
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	if shape then
@@ -104,54 +96,25 @@ local function beam(
 		elseif side == "s" then Vector3.new(x0 + mid, y, z0 + CELL + BEAM_DEPTH / 2)
 		elseif side == "w" then Vector3.new(x0 - BEAM_DEPTH / 2, y, z0 + CELL / 2)
 		else Vector3.new(x0 + CELL + BEAM_DEPTH / 2, y, z0 + CELL / 2)
-	local part = add(model, size, CFrame.new(origin + centre), trim.material, trim.color)
+	local part = add(model, size, CFrame.new(origin + centre), trim)
 	part.CanCollide = false
 end
 
 -- The square block that closes an outside corner of the frame, at plot-local (cx, cz).
 local function corner(model: Model, origin: Vector3, cx: number, cz: number, trim: Trim)
 	local y = Art.FLOOR_HEIGHT + RIM - BEAM_HEIGHT / 2
-	local part = add(
-		model,
-		Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, BEAM_DEPTH),
-		CFrame.new(origin + Vector3.new(cx, y, cz)),
-		trim.material,
-		trim.color
-	)
+	local part =
+		add(model, Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, BEAM_DEPTH), CFrame.new(origin + Vector3.new(cx, y, cz)), trim)
 	part.CanCollide = false
 end
 
 local function post(model: Model, origin: Vector3, vx: number, vz: number, base: number, tier: number)
 	local trim = trimFor(tier)
-	local height = Art.WALL_HEIGHT + 0.3 -- caps just over the wall line
+	local height = Art.WALL_HEIGHT + 0.3 -- just over the wall's top cap
 	local at = origin + Vector3.new(vx * CELL, base, vz * CELL)
 	local s = trim.postSize
-	if trim.post == "none" then
-		return -- wood walls bring their own end stakes and close their own corners (QA2)
-	else
-		-- The body starts SINK below the floor so its base never shares a plane with the collar's.
-		add(
-			model,
-			Vector3.new(s, height + SINK, s),
-			CFrame.new(at + Vector3.new(0, (height - SINK) / 2, 0)),
-			trim.material,
-			trim.color
-		)
-		add(
-			model,
-			Vector3.new(s + 0.3, 0.4, s + 0.3),
-			CFrame.new(at + Vector3.new(0, height + 0.2, 0)),
-			CAP_MATERIAL[tier],
-			CAP[tier]
-		)
-		add(
-			model,
-			Vector3.new(s + 0.3, 0.6, s + 0.3),
-			CFrame.new(at + Vector3.new(0, 0.3, 0)),
-			CAP_MATERIAL[tier],
-			CAP[tier]
-		)
-	end
+	-- A plain square post in the tier's material; it starts SINK below the floor.
+	add(model, Vector3.new(s, height + SINK, s), CFrame.new(at + Vector3.new(0, (height - SINK) / 2, 0)), trim)
 end
 
 -- The seam model for a plot: trim along the outside of each group of foundations,
