@@ -133,13 +133,22 @@ local function dress(model: Model)
 		wisps.Drag = 1
 		wisps.Parent = torso
 	end
+	-- Only the root is pinned (PivotTo drives it); the limbs hang off Motor6Ds so the
+	-- Animator can move them. Views are client-only: no collisions, no state machine.
+	local root = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart")
 	for _, part in model:GetDescendants() do
 		if part:IsA("BasePart") then
-			part.Anchored = true
+			part.Anchored = part == root
 			part.CanCollide = false
 			part.CanQuery = false
 			part.CanTouch = false
 		end
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.EvaluateStateMachine = false
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	end
 end
 
