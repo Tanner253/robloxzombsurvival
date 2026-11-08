@@ -12,7 +12,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
-local CraftingMath = require(ReplicatedStorage.Shared.Domain.Crafting)
+local ConverterMath = require(ReplicatedStorage.Shared.Domain.Converter)
 local Players = game:GetService("Players")
 local Net = require("../Net")
 local Animations = require("./Animations")
@@ -83,19 +83,14 @@ local function announceAway(stations: any)
 		return
 	end
 	announcedAway = true
-	local now = State.now()
+	-- The server catches stations up as it syncs them, so the output is what finished.
 	local parts: { string } = {}
 	for _, station in stations do
 		local def = Content.Stations[station.stationId]
 		if def then
-			local done = 0
-			for _, job in CraftingMath.status(station, def, now) do
-				if job.done then
-					done += 1
-				end
-			end
+			local done = ConverterMath.ready(station)
 			if done > 0 then
-				table.insert(parts, if done > 1 then `{def.name} ({done})` else def.name)
+				table.insert(parts, `{def.name} ({done})`)
 			end
 		end
 	end
@@ -107,7 +102,7 @@ end
 
 function Session.start()
 	Net.on("Sync", function(section: string, value: any)
-		State.set(section, value)
+		State.receive(section, value)
 		if section == "stations" then
 			announceAway(value)
 		end
@@ -119,7 +114,7 @@ function Session.start()
 			local ok, snapshot = pcall(Net.invoke, "SyncRequest")
 			if ok and type(snapshot) == "table" and snapshot.inventory then
 				for section, value in snapshot do
-					State.set(section, value)
+					State.receive(section, value)
 				end
 				announceAway(snapshot.stations)
 				return

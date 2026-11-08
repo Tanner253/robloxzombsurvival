@@ -9,6 +9,11 @@
 	upgrade (U, hover a piece) and demolish (X, click twice to confirm). On touch,
 	the ghost follows the last tap and the build menu's Place button confirms.
 	A faint grid overlay shows the plot's cells while building.
+
+	LDoE build mode (LDOE_PARITY #25, #27): with no piece picked, clicking a placed piece
+	selects it for its floating actions (move, demolish, upgrade); Move lifts an object
+	(station, crate) and the ghost carries it to its new spot, keeping what it holds. The
+	"hide upper walls" toggle fades walls and doors so the rooms below stay readable.
 ]]
 
 local Players = game:GetService("Players")
@@ -57,6 +62,8 @@ local painting = false
 local lastPaint = 0
 local lastPaintKey = ""
 local touchPoint: Vector2? = nil
+local moving: string? = nil -- the uid of the object being moved
+local wallsFaded = false
 
 local cachedSaved: any = nil
 local cachedLayout: Grid.Layout? = nil
@@ -97,9 +104,11 @@ end
 local function progress(): BuildRules.Progress
 	local p = State.get("progression")
 	local unlocks = State.get("unlocks")
+	local quests = State.get("quests")
 	return {
 		level = if p then p.level else 1,
 		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
+		quests = if type(quests) == "table" then quests else nil,
 	}
 end
 
@@ -115,7 +124,7 @@ end
 
 -- Why something can't be built or upgraded, with have/need and unlock details.
 local function why(reason: string?, def: any): string
-	return BuildRules.explain(reason, def, inventory(), Content.Items :: any, Pieces :: any)
+	return BuildRules.explain(reason, def, inventory(), Content.Items :: any, Pieces :: any, Content.Quests :: any)
 end
 
 -- Ghost -------------------------------------------------------------------------------------------
@@ -322,8 +331,67 @@ local function hover(uid: string?, color: Color3?)
 	end
 end
 
+-- Hide upper walls (#25): fades every wall, doorway, window and door on my plot.
+local function fadeWalls(hidden: boolean)
+	wallsFaded = hidden
+	local info = plot()
+	local pieces = Building.piecesFolder(if info then info.index else 0)
+	if pieces == nil then
+		return
+	end
+	for _, model in pieces:GetChildren() do
+		local layer = model:GetAttribute("Layer")
+		if layer == "frame" or layer == "fill" then
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.LocalTransparencyModifier = if hidden then 0.85 else 0
+				end
+			end
+		end
+	end
+end
+
+-- The model of a placed piece on my plot (the floating piece actions sit on it).
+function Building.pieceModel(uid: string): Model?
+	local info = plot()
+	local pieces = Building.piecesFolder(if info then info.index else 0)
+	if pieces == nil then
+		return nil
+	end
+	for _, model in pieces:GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("Uid") == uid then
+			return model
+		end
+	end
+	return nil
+end
+
+-- Move (#27): lifts an object so the ghost carries it; confirm puts it down.
+function Building.beginMove(uid: string)
+	local placed = layout()
+	local piece = placed and placed.pieces[uid]
+	if piece == nil or piece.layer ~= "object" then
+		return
+	end
+	moving = uid
+	rotation = piece.rot
+	State.patch({ buildPiece = piece.pieceId, buildMode = "place" })
+	State.clear("pieceActions")
+end
+
+function Building.cancelMove()
+	if moving then
+		moving = nil
+		State.clear("buildPiece")
+	end
+end
+
 local function step(dt: number)
 	local ui = State.ui()
+	local fade = ui.panel == "build" and ui.hideUpperWalls == true
+	if fade ~= wallsFaded then
+		fadeWalls(fade)
+	end
 	local info = plot()
 	local currentLayout = layout()
 	local ctx = context()
@@ -334,6 +402,7 @@ local function step(dt: number)
 			hover(nil)
 			current = nil
 		end
+		moving = nil
 		return
 	end
 	if overlay == nil then
@@ -401,7 +470,12 @@ local function step(dt: number)
 		return
 	end
 	local target = targetFor(def, px, pz)
-	local ok, reason = BuildRules.canPlace(currentLayout, pieceId, target, ctx, progress(), inventory())
+	local ok: boolean, reason: string?
+	if moving then
+		ok, reason = BuildRules.canMove(currentLayout, moving, target, ctx)
+	else
+		ok, reason = BuildRules.canPlace(currentLayout, pieceId, target, ctx, progress(), inventory())
+	end
 	current = { target = target, valid = ok, reason = reason }
 	local goal = PlotSpace.target(info.origin, currentLayout, Grid.layerOf(def), target, def)
 	ghostCFrame = if ghostCFrame then (ghostCFrame :: CFrame):Lerp(goal, 1 - math.exp(-GHOST_RATE * dt)) else goal
@@ -410,9 +484,10 @@ local function step(dt: number)
 		highlight.FillColor = if ok then VALID else INVALID
 		highlight.OutlineColor = if ok then VALID else INVALID
 	end
-	setHint(if ok then `{def.name}: {costText(def.cost)}` else why(reason, def))
+	local placeText = if moving then `Move the {def.name} here` else `{def.name}: {costText(def.cost)}`
+	setHint(if ok then placeText else why(reason, def))
 
-	if painting and ok and (def.kind == "foundation" or def.kind == "wall") then
+	if painting and ok and not moving and (def.kind == "foundation" or def.kind == "wall") then
 		local key = targetKey(target)
 		if key ~= lastPaintKey and os.clock() - lastPaint >= PAINT_SECONDS then
 			lastPaint, lastPaintKey = os.clock(), key
@@ -432,7 +507,18 @@ function Building.confirm()
 	if ui.buildMode == "place" then
 		local pieceId = ui.buildPiece
 		local pending = current
-		if pieceId == nil or pending == nil then
+		if pieceId == nil then
+			-- Nothing picked: a click on a placed piece selects it for its actions (#27).
+			local uid = pieceUnderCursor()
+			if uid then
+				State.patch({ pieceActions = uid })
+				Sfx.play("uiClick")
+			else
+				State.clear("pieceActions")
+			end
+			return
+		end
+		if pending == nil then
 			return
 		end
 		if not pending.valid then
@@ -441,6 +527,12 @@ function Building.confirm()
 			return
 		end
 		local target = pending.target
+		if moving then
+			Net.fire("BuildMove", moving, target.x, target.z, target.rot or 0)
+			moving = nil
+			State.clear("buildPiece")
+			return
+		end
 		lastPaintKey = targetKey(target)
 		lastPaint = os.clock()
 		Net.fire("BuildPlace", pieceId, target.x, target.z, target.axis, target.rot)

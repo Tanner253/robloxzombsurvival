@@ -394,6 +394,36 @@ Art.glyphs = {
 	trash = "rbxassetid://120304458961712",
 	storage = "rbxassetid://104605090820806",
 	campfire = "rbxassetid://139250651894110",
+	-- Sheet C (S1b, LDOE_PARITY HUD and screens): requested from the orchestrator. Until
+	-- each is uploaded it is "" and draws nothing, and the UI gate flags it as missing.
+	axe = "", -- context button: chop
+	pick = "", -- context button: mine
+	talk = "", -- context button: talk
+	crew = "", -- menu bar
+	pass = "", -- menu bar
+	chat = "",
+	expand = "",
+	sort = "",
+	split = "",
+	upgrade = "", -- the green upgrade arrow
+	brush = "", -- storage label colour
+	recipes = "", -- ALL RECIPES
+	defense = "", -- armor stat; Defense tray tab
+	sun = "",
+	moon = "",
+	walls = "", -- hide upper walls
+	move = "",
+	rotate = "",
+	chevron = "", -- tracker collapse
+	check = "", -- objective done
+	timer = "",
+	furniture = "", -- tray tab
+	station = "", -- tray tab and station headers
+	vehicle = "", -- the wrecked hauler
+	event = "", -- top-right strip (S3)
+	offer = "",
+	gift = "",
+	fill = "", -- FILL UP
 } :: { [string]: string }
 
 -- The HUD meters' glyph names.

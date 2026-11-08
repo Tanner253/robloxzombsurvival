@@ -1,0 +1,511 @@
+--!strict
+--[[
+	Build: LDoE's build mode (LDOE_PARITY #25-28; rec2_07, rec2_08).
+	- The HUD hides (the Ember Trail tracker stays); a round "hide upper walls" toggle sits
+	  at the top left.
+	- The tray along the bottom: icon tabs (Building, Stations, Storage, Defense; Furniture
+	  & decor and the starred tab join when they have pieces) with the active tab's name, a
+	  CLOSE at the right, and a row of cards: the piece's real model, its name, cost chips
+	  with have/need, "Installed x/y" on placeables, a NEW ribbon on pieces a quest just
+	  unlocked, and the lock text naming the quest.
+	- Click a placed piece (with no card picked) for its floating actions: move (objects),
+	  demolish (red) and upgrade (green, with the next tier's have/need). R, U and X stay.
+	- The cursor hint sits above the tray.
+]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local React = require(ReplicatedStorage.Packages.React)
+local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+local Art = require(ReplicatedStorage.Shared.Art)
+local Content = require(ReplicatedStorage.Shared.Data)
+local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
+local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
+local Actions = require("../../../Actions")
+local Building = require("../../../Controllers/Building")
+local Net = require("../../../Net")
+local State = require("../../../State")
+local Theme = require("../../theme")
+local hooks = require("../../hooks")
+local format = require("../../format")
+local mark = require("../../mark")
+local CostChip = require("../../components/CostChip")
+local Glyph = require("../../components/Glyph")
+local IconButton = require("../../components/IconButton")
+local Layout = require("../../components/Layout")
+local ModelView = require("../../components/ModelView")
+
+local e = React.createElement
+local H = Theme.hud
+
+local TABS: { { id: string, label: string, glyph: string, kinds: { [string]: boolean } } } = {
+	{
+		id = "building",
+		label = "Building",
+		glyph = "build",
+		kinds = { foundation = true, wall = true, doorway = true, door = true, gate = true, window = true, roof = true },
+	},
+	{ id = "stations", label = "Stations", glyph = "station", kinds = { station = true } },
+	{ id = "storage", label = "Storage", glyph = "storage", kinds = { storage = true } },
+	{ id = "furniture", label = "Furniture & decor", glyph = "furniture", kinds = { furniture = true } },
+	{ id = "defense", label = "Defense", glyph = "defense", kinds = {} },
+}
+
+local CARD = Vector2.new(132, 156)
+
+local function pieceModel(pieceId: string): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	local pieces = assets and assets:FindFirstChild("Pieces")
+	local model = pieces and pieces:FindFirstChild(pieceId)
+	return if model and model:IsA("Model") then model else nil
+end
+
+local function tabOf(def: any): string
+	if def.tab then
+		return def.tab
+	end
+	for _, tab in TABS do
+		if tab.kinds[def.kind] then
+			return tab.id
+		end
+	end
+	return "building"
+end
+
+local function progressNow(): Unlocks.Progress
+	local p = State.get("progression")
+	local unlocks = State.get("unlocks")
+	local quests = State.get("quests")
+	return {
+		level = if p then p.level else 1,
+		unlocks = if type(unlocks) == "table" then unlocks else { recipes = {}, blueprints = {} },
+		quests = if type(quests) == "table" then quests else nil,
+	}
+end
+
+-- Pieces a quest unlocked this session, until their card is picked (the NEW ribbon).
+local fresh: { [string]: boolean } = {}
+State.fx:Connect(function(kind: any, payload: any)
+	if kind == "questDone" and type(payload) == "table" then
+		for _, pieceId in payload.pieces or {} do
+			fresh[pieceId] = true
+		end
+	end
+end)
+
+local function Card(props: { def: any, pooled: any, layout: any, selected: boolean, layoutOrder: number })
+	local def = props.def
+	local progress = progressNow()
+	local unlocked = BuildRules.isUnlocked(def, progress)
+	local lock = if unlocked
+		then nil
+		else Unlocks.text(def.unlock, { items = Content.Items :: any, quests = Content.Quests :: any })
+	local limit = BuildRules.limitOf(def.id, Content.BuildPieces)
+	local installed = if props.layout then BuildRules.countChain(props.layout, def.id, Content.BuildPieces) else 0
+	local placeable = def.kind == "station" or def.kind == "storage"
+	local model = pieceModel(def.id)
+	local costs: { [string]: any } = {}
+	for index, stack in def.cost do
+		costs[`C{index}`] = e(CostChip, {
+			itemId = stack.itemId,
+			have = format.count(props.pooled, stack.itemId),
+			need = stack.count,
+			size = 20,
+			layoutOrder = index,
+		})
+	end
+	return e("TextButton", {
+		Size = UDim2.fromOffset(CARD.X, CARD.Y),
+		AutoButtonColor = false,
+		Text = "",
+		LayoutOrder = props.layoutOrder,
+		BackgroundColor3 = if props.selected
+			then Theme.colors.panelRaised:Lerp(Theme.colors.chip, 0.35)
+			else Theme.colors.panelRaised,
+		BackgroundTransparency = if unlocked then 0.05 else 0.4,
+		[React.Event.Activated] = function()
+			if unlocked then
+				fresh[def.id] = nil
+				Building.cancelMove()
+				Actions.selectPiece(def.id)
+			end
+		end,
+	}, {
+		Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+		Stroke = e("UIStroke", {
+			Color = if props.selected then Theme.colors.badge else Theme.colors.strokeWarm,
+			Thickness = if props.selected then 3 else 1,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		}),
+		Column = e(Layout.Stack, {
+			gap = 2,
+			alignX = Enum.HorizontalAlignment.Center,
+			padding = 6,
+			children = {
+				Preview = e("Frame", {
+					Size = UDim2.new(1, 0, 0, 62),
+					BackgroundTransparency = 1,
+					LayoutOrder = 1,
+				}, {
+					View = model and e(ModelView, { model = model, size = UDim2.fromScale(1, 1) }),
+				}),
+				Name = e("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 18),
+					BackgroundTransparency = 1,
+					FontFace = Theme.fonts.header,
+					Text = def.name,
+					TextSize = Theme.textSize.caption,
+					TextColor3 = if unlocked then Theme.colors.text else Theme.colors.disabledText,
+					TextWrapped = true,
+					LayoutOrder = 2,
+				}),
+				Costs = unlocked and e(Layout.Stack, {
+					direction = "row",
+					gap = 4,
+					alignX = Enum.HorizontalAlignment.Center,
+					wraps = true,
+					size = UDim2.new(1, 0, 0, 44),
+					layoutOrder = 3,
+					children = costs,
+				}),
+				Lock = lock and e("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 44),
+					BackgroundTransparency = 1,
+					FontFace = Theme.fonts.body,
+					Text = lock,
+					TextSize = Theme.textSize.caption,
+					TextColor3 = Theme.colors.locked,
+					TextWrapped = true,
+					LayoutOrder = 3,
+				}),
+				Installed = placeable and limit and e("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 14),
+					BackgroundTransparency = 1,
+					FontFace = Theme.fonts.body,
+					Text = `Installed {installed}/{limit}`,
+					TextSize = Theme.textSize.caption,
+					TextColor3 = if installed >= limit then Theme.colors.locked else Theme.colors.textMuted,
+					LayoutOrder = 4,
+				}),
+			},
+		}),
+		New = fresh[def.id] and e("TextLabel", {
+			-- LDoE's corner ribbon: a NEW tag over the card's top-right corner.
+			Size = UDim2.fromOffset(40, 16),
+			Position = UDim2.new(1, -2, 0, 2),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundColor3 = Theme.colors.badge,
+			FontFace = Theme.fonts.header,
+			Text = "NEW",
+			TextSize = Theme.textSize.caption - 2,
+			TextColor3 = Theme.colors.text,
+			ref = mark.overlay,
+		}),
+	})
+end
+
+-- The floating actions on a selected placed piece (#27), on a billboard over it.
+local function PieceActions(props: { uid: string, layout: any, pooled: any })
+	local model = Building.pieceModel(props.uid)
+	local piece = props.layout and props.layout.pieces[props.uid]
+	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	if model == nil or piece == nil or playerGui == nil then
+		return nil
+	end
+	local def = Content.BuildPieces[piece.pieceId]
+	local nextDef = if def.upgradesTo then Content.BuildPieces[def.upgradesTo] else nil
+	local costs: { [string]: any } = {}
+	if nextDef then
+		for index, stack in nextDef.cost do
+			costs[`C{index}`] = e(CostChip, {
+				itemId = stack.itemId,
+				have = format.count(props.pooled, stack.itemId),
+				need = stack.count,
+				size = 22,
+				layoutOrder = index,
+			})
+		end
+	end
+	local buttons: { [string]: any } = {
+		Move = piece.layer == "object" and e(IconButton, {
+			glyph = "move",
+			size = 52,
+			ring = Theme.colors.badge,
+			active = true,
+			layoutOrder = 1,
+			onPress = function()
+				Building.beginMove(props.uid)
+			end,
+		}),
+		Demolish = e(IconButton, {
+			glyph = "trash",
+			size = 52,
+			ring = Theme.colors.danger,
+			active = true,
+			layoutOrder = 2,
+			onPress = function()
+				Net.fire("BuildDemolish", props.uid)
+				State.clear("pieceActions")
+			end,
+		}),
+		Upgrade = nextDef and e(Layout.Stack, {
+			direction = "row",
+			gap = 4,
+			alignY = Enum.VerticalAlignment.Center,
+			size = UDim2.fromOffset(0, 52),
+			autoSize = Enum.AutomaticSize.X,
+			layoutOrder = 3,
+			children = {
+				Button = e(IconButton, {
+					glyph = "upgrade",
+					size = 52,
+					ring = Theme.colors.upgrade,
+					active = true,
+					layoutOrder = 1,
+					onPress = function()
+						Net.fire("BuildUpgrade", props.uid)
+					end,
+				}),
+				Costs = e(Layout.Stack, {
+					gap = 2,
+					size = UDim2.fromOffset(70, 52),
+					layoutOrder = 2,
+					children = costs,
+				}),
+			},
+		}),
+	}
+	return ReactRoblox.createPortal({
+		EO_PieceActions = e("BillboardGui", {
+			Adornee = model,
+			Size = UDim2.fromOffset(280, 64),
+			StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y + 1.5, 0),
+			AlwaysOnTop = true,
+			LightInfluence = 0,
+			Active = true,
+			ResetOnSpawn = false,
+		}, {
+			Row = e(Layout.Stack, {
+				direction = "row",
+				gap = 8,
+				alignX = Enum.HorizontalAlignment.Center,
+				alignY = Enum.VerticalAlignment.Center,
+				children = buttons,
+			}),
+		}),
+	}, playerGui)
+end
+
+local function Build()
+	local ui = hooks.useUi()
+	local saved = hooks.useSection("layout")
+	hooks.useSection("quests")
+	local pooled = hooks.usePooled()
+	local tab, setTab = React.useState("building")
+	local open = ui.panel == "build"
+	local layout = React.useMemo(function()
+		return if type(saved) == "table" then Grid.deserialize(saved, Content.BuildPieces :: any) else nil
+	end, { saved })
+	if not open then
+		return nil
+	end
+
+	local byTab: { [string]: { any } } = {}
+	for _, def in BuildRules.catalog(Content.BuildPieces) do
+		if Art.pieceReady(def.id, def.kind) then
+			local id = tabOf(def)
+			byTab[id] = byTab[id] or {}
+			table.insert(byTab[id], def)
+		end
+	end
+	local tabs: { [string]: any } = {}
+	local order = 0
+	for _, entry in TABS do
+		local list = byTab[entry.id]
+		if list and #list > 0 then
+			order += 1
+			local active = entry.id == tab
+			tabs[entry.id] = e("TextButton", {
+				Size = UDim2.fromOffset(if active then 0 else 44, 40),
+				AutomaticSize = if active then Enum.AutomaticSize.X else nil,
+				BackgroundTransparency = 1,
+				Text = "",
+				LayoutOrder = order,
+				[React.Event.Activated] = function()
+					setTab(entry.id)
+				end,
+			}, {
+				Row = e(Layout.Stack, {
+					direction = "row",
+					gap = 6,
+					alignY = Enum.VerticalAlignment.Center,
+					size = UDim2.fromScale(0, 1),
+					autoSize = Enum.AutomaticSize.X,
+					children = {
+						Icon = e(Glyph, {
+							name = entry.glyph,
+							size = UDim2.fromOffset(28, 28),
+							color = if active then Theme.colors.text else Theme.colors.textMuted,
+							layoutOrder = 1,
+						}),
+						Label = active and e("TextLabel", {
+							Size = UDim2.fromOffset(0, 28),
+							AutomaticSize = Enum.AutomaticSize.X,
+							BackgroundTransparency = 1,
+							FontFace = Theme.fonts.header,
+							Text = string.upper(entry.label),
+							TextSize = Theme.textSize.section,
+							TextColor3 = Theme.colors.text,
+							LayoutOrder = 2,
+						}),
+					},
+				}),
+				Underline = active and e("Frame", {
+					Size = UDim2.new(1, 0, 0, 3),
+					Position = UDim2.fromScale(0, 1),
+					AnchorPoint = Vector2.new(0, 1),
+					BackgroundColor3 = Theme.colors.badge,
+					BorderSizePixel = 0,
+				}),
+			})
+		end
+	end
+
+	local cards: { [string]: any } = {}
+	local shown: { any } = byTab[tab] or {}
+	for index, def in shown do
+		cards[def.id] = e(Card, {
+			def = def,
+			pooled = pooled,
+			layout = layout,
+			selected = ui.buildPiece == def.id,
+			layoutOrder = index,
+		})
+	end
+
+	return e("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = Theme.layers.hud,
+	}, {
+		HideWalls = e(IconButton, {
+			glyph = "walls",
+			size = 64,
+			active = ui.hideUpperWalls == true,
+			position = UDim2.fromOffset(H.edge, H.edge),
+			onPress = function()
+				State.patch({ hideUpperWalls = not State.ui().hideUpperWalls })
+			end,
+		}),
+		Hint = ui.buildHint and e("TextLabel", {
+			Size = UDim2.fromOffset(0, 32),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Position = UDim2.new(0.5, 0, 1, -(H.trayHeight + 52 + Theme.spacing.md)),
+			AnchorPoint = Vector2.new(0.5, 1),
+			BackgroundColor3 = Theme.colors.panel,
+			BackgroundTransparency = 0.15,
+			FontFace = Theme.fonts.body,
+			Text = ui.buildHint,
+			TextSize = Theme.textSize.body,
+			TextColor3 = Theme.colors.text,
+		}, {
+			Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+			Padding = Layout.pad(0, { left = 12, right = 12 }),
+		}),
+		Tray = e(Layout.Stack, {
+			size = UDim2.new(1, 0, 0, H.trayHeight + 52),
+			position = UDim2.fromScale(0, 1),
+			anchorPoint = Vector2.new(0, 1),
+			children = {
+				Tabs = e("Frame", {
+					Size = UDim2.new(1, 0, 0, 48),
+					BackgroundColor3 = Theme.colors.panel,
+					BackgroundTransparency = 0.25,
+					BorderSizePixel = 0,
+					LayoutOrder = 1,
+				}, {
+					Row = e(Layout.Stack, {
+						direction = "row",
+						gap = Theme.spacing.lg,
+						alignY = Enum.VerticalAlignment.Center,
+						padding = Theme.spacing.sm,
+						children = {
+							Tabs = e(Layout.Fill, {
+								direction = "row",
+								layoutOrder = 1,
+								children = {
+									Row = e(Layout.Stack, {
+										direction = "row",
+										gap = Theme.spacing.lg,
+										alignY = Enum.VerticalAlignment.Center,
+										children = tabs,
+									}),
+								},
+							}),
+							Close = e("TextButton", {
+								Size = UDim2.fromOffset(120, 40),
+								BackgroundTransparency = 1,
+								Text = "",
+								LayoutOrder = 2,
+								[React.Event.Activated] = function()
+									Building.cancelMove()
+									State.clear("pieceActions")
+									Actions.toggleBuild()
+								end,
+							}, {
+								Row = e(Layout.Stack, {
+									direction = "row",
+									gap = 6,
+									alignX = Enum.HorizontalAlignment.Right,
+									alignY = Enum.VerticalAlignment.Center,
+									children = {
+										Label = e("TextLabel", {
+											Size = UDim2.fromOffset(70, 28),
+											BackgroundTransparency = 1,
+											FontFace = Theme.fonts.header,
+											Text = "CLOSE",
+											TextSize = Theme.textSize.section,
+											TextColor3 = Theme.colors.text,
+											LayoutOrder = 1,
+										}),
+										X = e(Glyph, {
+											name = "close",
+											size = UDim2.fromOffset(24, 24),
+											layoutOrder = 2,
+										}),
+									},
+								}),
+							}),
+						},
+					}),
+				}),
+				Cards = e("ScrollingFrame", {
+					Size = UDim2.new(1, 0, 0, H.trayHeight + 4),
+					CanvasSize = UDim2.fromScale(0, 0),
+					AutomaticCanvasSize = Enum.AutomaticSize.X,
+					ScrollingDirection = Enum.ScrollingDirection.X,
+					ScrollBarThickness = 4,
+					BackgroundColor3 = Theme.colors.panel,
+					BackgroundTransparency = 0.35,
+					BorderSizePixel = 0,
+					LayoutOrder = 2,
+				}, {
+					Row = e(Layout.Stack, {
+						direction = "row",
+						gap = Theme.spacing.sm,
+						alignY = Enum.VerticalAlignment.Center,
+						padding = Theme.spacing.sm,
+						size = UDim2.fromScale(0, 1),
+						autoSize = Enum.AutomaticSize.X,
+						children = cards,
+					}),
+				}),
+			},
+		}),
+		Actions = ui.pieceActions and e(PieceActions, { uid = ui.pieceActions, layout = layout, pooled = pooled }),
+	})
+end
+
+return Build

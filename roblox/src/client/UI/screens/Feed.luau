@@ -16,6 +16,8 @@ local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Flags = require(ReplicatedStorage.Shared.Flags)
+local Layout = require("../components/Layout")
 local State = require("../../State")
 local Theme = require("../theme")
 local offers = require("../offers")
@@ -119,10 +121,12 @@ local function Toasts()
 	for _, notice in ui.notices do
 		children[`N{notice.id}`] = e(Toast, { text = notice.text, tone = notice.tone, layoutOrder = notice.id })
 	end
+	-- With the LDoE HUD the top centre holds the target bar (LDOE_PARITY #8): toasts sit below it.
+	local top = if Flags.on("ldoeHud") then 18 + 56 else 18
 	return e("Frame", {
 		ZIndex = 30,
 		Size = UDim2.fromOffset(600, 200),
-		Position = UDim2.new(0.5, 0, 0, 18),
+		Position = UDim2.new(0.5, 0, 0, top),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
 	}, children)
@@ -163,6 +167,9 @@ end
 
 local function Rewards()
 	local ui = hooks.useUi()
+	if Flags.on("ldoeHud") then
+		return nil -- pickups float over the survivor instead (LDOE_PARITY #9, screens/ldoe/Hud)
+	end
 	local children: { [string]: any } = {
 		Layout = e("UIListLayout", {
 			Padding = UDim.new(0, 6),
@@ -400,12 +407,109 @@ local function Prompt()
 	)
 end
 
+-- An Ember Trail quest completing (LDOE_PARITY #50): the reward pop. Its rewards are already
+-- in the inbox; the blueprints it unlocked are named. The next quest is on the tracker.
+local function QuestDone()
+	local shown, setShown = React.useState(nil :: any)
+	React.useEffect(function()
+		local connection = State.fx:Connect(function(kind: any, payload: any)
+			if kind == "questDone" and type(payload) == "table" then
+				setShown({ payload = payload, at = os.clock() })
+			end
+		end)
+		return function()
+			connection:Disconnect()
+		end
+	end, {})
+	hooks.useClock(0.5)
+	if shown == nil or os.clock() - shown.at > 4.5 then
+		return nil
+	end
+	local payload = shown.payload
+	local quest = Content.Quests[payload.questId]
+	local names: { string } = {}
+	for _, recipeId in payload.recipes or {} do
+		local recipe = Content.Recipes[recipeId]
+		if recipe then
+			table.insert(names, format.itemName(recipe.outputs[1].itemId))
+		end
+	end
+	for _, pieceId in payload.pieces or {} do
+		local piece = Content.BuildPieces[pieceId]
+		if piece then
+			table.insert(names, piece.name)
+		end
+	end
+	local rewards: { [string]: any } = {}
+	for index, stack in payload.items or {} do
+		rewards[`R{index}`] = e(Layout.Stack, {
+			direction = "row",
+			gap = 4,
+			alignY = Enum.VerticalAlignment.Center,
+			size = UDim2.fromOffset(0, 36),
+			autoSize = Enum.AutomaticSize.X,
+			layoutOrder = index,
+			children = {
+				Icon = e("Frame", { Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, LayoutOrder = 1 }, {
+					Icon = e(ItemIcon, { itemId = stack.itemId }),
+				}),
+				Count = e(Label, { text = `x{stack.count}`, style = "body", autoWidth = true, layoutOrder = 2 }),
+			},
+		})
+	end
+	return e("Frame", {
+		Size = UDim2.fromOffset(520, 150),
+		Position = UDim2.new(0.5, 0, 0, 150),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundColor3 = Theme.colors.panel,
+		BackgroundTransparency = 0.08,
+		ZIndex = Theme.layers.toast,
+	}, {
+		Corner = e("UICorner", { CornerRadius = Theme.radius }),
+		Stroke = e("UIStroke", { Color = Theme.colors.accentSoft, Thickness = 2 }),
+		Column = e(Layout.Stack, {
+			gap = 4,
+			alignX = Enum.HorizontalAlignment.Center,
+			padding = Theme.spacing.md,
+			children = {
+				Title = e(Label, {
+					text = `QUEST COMPLETE  ·  {if quest then string.upper(quest.name) else ""}`,
+					style = "title",
+					tone = "highlight",
+					alignX = Enum.TextXAlignment.Center,
+					layoutOrder = 1,
+				}),
+				Rewards = e(Layout.Stack, {
+					direction = "row",
+					gap = Theme.spacing.md,
+					alignX = Enum.HorizontalAlignment.Center,
+					size = UDim2.new(1, 0, 0, 36),
+					layoutOrder = 2,
+					children = rewards,
+				}),
+				Note = e(Label, {
+					text = if #names > 0
+						then `New blueprints: {table.concat(names, ", ")}`
+						else "Rewards are in your inbox",
+					style = "caption",
+					tone = "muted",
+					alignX = Enum.TextXAlignment.Center,
+					wrap = true,
+					size = UDim2.new(1, 0, 0, 34),
+					layoutOrder = 3,
+				}),
+			},
+		}),
+	})
+end
+
 local function Feed()
 	usePrune()
 	return e(React.Fragment, nil, {
 		Toasts = e(Toasts),
 		Rewards = e(Rewards),
 		LevelUp = e(LevelUp),
+		QuestDone = e(QuestDone),
 		Prompt = e(Prompt),
 	})
 end

@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local Crafting = require(ReplicatedStorage.Shared.Domain.Crafting)
 local ItemSources = require(ReplicatedStorage.Shared.Domain.ItemSources)
 local Actions = require("../../Actions")
@@ -69,14 +70,7 @@ local function outputDef(recipe: any): any
 end
 
 local function lockText(recipe: any): string
-	local gate = recipe.unlock
-	if gate.kind == "level" then
-		return `Reach level {gate.level}`
-	elseif gate.kind == "blueprint" then
-		local def = Content.Items[gate.itemId]
-		return `Read the {if def then def.name else "blueprint"}`
-	end
-	return ""
+	return Unlocks.text(recipe.unlock, { items = Content.Items :: any, quests = Content.Quests :: any }) or ""
 end
 
 -- Stations the player can build (their piece has an approved model, checklist §0).
@@ -545,12 +539,14 @@ local function CraftingScreen()
 	local pooled = hooks.usePooled()
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
+	local questsState = hooks.useSection("quests")
 	local marks = hooks.useSection("recipeMarks")
 	local tab, setTab = React.useState("all")
 	local selectedId, setSelected = React.useState(nil :: string?)
 	local progress = {
 		level = if progression then progression.level else 1,
 		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
+		quests = if type(questsState) == "table" then questsState else nil,
 	}
 	local favourites = if type(marks) == "table" then marks.favourites or {} else {}
 	local seen = if type(marks) == "table" then marks.seen or {} else {}

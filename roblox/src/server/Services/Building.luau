@@ -27,6 +27,7 @@ local Grid = require(Domain.Grid)
 local BuildRules = require(Domain.BuildRules)
 local InventoryMath = require(Domain.Inventory)
 local Net = require("../Net")
+local Events = require("../Events")
 local Models = require("../World/Models")
 local Seams = require("../World/Seams")
 local Analytics = require("./Analytics")
@@ -35,6 +36,7 @@ local Inventory = require("./Inventory")
 local Materials = require("./Materials")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
+local Quests = require("./Quests")
 local Stations = require("./Stations")
 local Sync = require("./Sync")
 
@@ -54,7 +56,7 @@ local function progressOf(player: Player): BuildRules.Progress?
 	if data == nil then
 		return nil
 	end
-	return { level = data.progression.level, unlocks = data.unlocks }
+	return Quests.progress(data)
 end
 
 -- The last refusal per player, so Studio dev commands can report why a build failed.
@@ -139,6 +141,19 @@ local function renderAll(player: Player, plot: Plots.Plot)
 				Stations.refresh(player, uid)
 			elseif def.kind == "storage" and data.storage[uid] == nil then
 				data.storage[uid] = InventoryMath.newContainer(def.storageSlots or 0)
+			elseif def.kind == "storage" and #data.storage[uid] > (def.storageSlots or 0) then
+				-- The crate got smaller (v7: LDoE's 15-slot Small Box): the extra slots'
+				-- items wait in the inbox, never lost.
+				local crate = table.clone(data.storage[uid])
+				local spill: { Types.Slot } = {}
+				for index = #crate, (def.storageSlots or 0) + 1, -1 do
+					if crate[index].count > 0 then
+						table.insert(spill, crate[index])
+					end
+					crate[index] = nil :: any
+				end
+				data.storage[uid] = crate
+				Inbox.grant(player, spill, "Update", true)
 			end
 		end
 	end
@@ -193,6 +208,7 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 	end
 	Analytics.custom(player, "BuildPlace", 1, { pieceId })
 	Sync.fx(player, "built", { uid = piece.uid, pieceId = pieceId })
+	Events.played:Fire(player, { kind = "build", pieceId = pieceId, count = 1 })
 end
 
 local function upgrade(player: Player, uid: string)
@@ -233,6 +249,38 @@ local function upgrade(player: Player, uid: string)
 	renderSeams(plot)
 	Analytics.custom(player, "BuildUpgrade", 1, { nextDef.id })
 	Sync.fx(player, "upgraded", { uid = uid, pieceId = nextDef.id })
+	Events.played:Fire(player, { kind = "build", pieceId = nextDef.id, count = 1 })
+end
+
+-- Move (LDOE_PARITY #27): an object moves or turns, keeping its uid, so a station keeps its
+-- converter and a crate its items.
+local function move(player: Player, uid: string, x: number, z: number, rot: number)
+	local plot = Plots.of(player)
+	if plot == nil then
+		return
+	end
+	local piece = plot.layout.pieces[uid]
+	if piece == nil then
+		deny(player, "notFound")
+		return
+	end
+	local target: Grid.Target = { x = x, z = z, rot = rot }
+	local ctx = Plots.context(plot, player)
+	local ok, reason = BuildRules.canMove(plot.layout, uid, target, ctx)
+	if not ok then
+		deny(player, reason)
+		return
+	end
+	local layout, why = Grid.move(plot.layout, uid, target, ctx)
+	if layout == nil then
+		deny(player, why)
+		return
+	end
+	Plots.setLayout(player, layout)
+	render(plot, layout.pieces[uid], true)
+	reseatObjects(plot)
+	Analytics.custom(player, "BuildMove", 1, { piece.pieceId })
+	Sync.fx(player, "moved", { uid = uid, pieceId = piece.pieceId })
 end
 
 local function isEmptyContainer(container: Types.Container?): boolean
@@ -264,7 +312,7 @@ local function demolish(player: Player, uid: string)
 		return
 	end
 	if def.kind == "station" and Stations.isBusy(player, uid) then
-		Sync.notice(player, "Collect or cancel the station's jobs first")
+		Sync.notice(player, "Take everything out of the station first")
 		return
 	end
 	local layout, removal, reason = Grid.demolish(plot.layout, uid, Plots.context(plot, player))
@@ -289,6 +337,7 @@ local function demolish(player: Player, uid: string)
 			Stations.remove(player, gone.uid)
 		elseif goneDef.kind == "storage" then
 			data.storage[gone.uid] = nil
+			data.storageLabels[gone.uid] = nil
 		end
 	end
 	renderSeams(plot)
@@ -309,6 +358,7 @@ function Building.init()
 	Net.onEvent("BuildPlace", place)
 	Net.onEvent("BuildUpgrade", upgrade)
 	Net.onEvent("BuildDemolish", demolish)
+	Net.onEvent("BuildMove", move)
 end
 
 function Building.start()

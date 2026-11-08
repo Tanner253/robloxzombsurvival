@@ -94,6 +94,7 @@ export type Status = {
 }
 
 local EPSILON = 1e-6
+local DEFAULT_GATE: Types.UnlockGate = { kind = "default" }
 
 local function emptySlot(): Types.Slot
 	return { itemId = "", count = 0 }
@@ -168,7 +169,7 @@ function Converter.lines(def: Types.StationDef, recipes: { [string]: Types.Recip
 			})
 		end
 	end
-	for _, salvage in def.salvage or {} do
+	for _, salvage in (def.salvage or {}) :: { Types.SalvageDef } do
 		local outputs: { Types.ItemStack } = {}
 		for _, output in salvage.outputs do
 			table.insert(outputs, { itemId = output.itemId, count = output.max })
@@ -181,7 +182,7 @@ function Converter.lines(def: Types.StationDef, recipes: { [string]: Types.Recip
 			salvage = salvage,
 			seconds = salvage.seconds,
 			stationLevel = 1,
-			unlock = { kind = "default" },
+			unlock = DEFAULT_GATE,
 		})
 	end
 	table.sort(result, function(a: Line, b: Line)
@@ -437,7 +438,9 @@ function Converter.advance(state: State, ctx: Context, now: number): (State, { T
 		if result.input.count <= 0 then
 			result.input = emptySlot()
 		end
-		local outputs = if line.salvage then rollSalvage(line.salvage, ctx, result, cond) else line.outputs
+		local outputs: { Types.ItemStack } = if line.salvage
+			then rollSalvage(line.salvage, ctx, result, cond)
+			else line.outputs
 		local cap = Converter.slotCap(ctx.def, result.level)
 		addOutputs(result.output, outputs, cap, ctx.items)
 		for _, stack in outputs do
@@ -450,7 +453,7 @@ end
 
 -- What the station panel shows at `now` (advance the state to `now` first).
 function Converter.status(state: State, ctx: Context): Status
-	local line, activity = readiness(state, ctx)
+	local line: Line?, activity: Activity = readiness(state, ctx)
 	local cap = Converter.slotCap(ctx.def, state.level)
 	local batchSeconds = if line then Converter.batchSeconds(line, ctx.def, state.level) else 0
 	local burnTotal = Converter.burnSeconds(ctx.def, state.burnItem)
@@ -574,7 +577,8 @@ function Converter.putFuel(
 	if accepted <= 0 then
 		return nil, 0, "fuelFull"
 	end
-	result.fuel = { itemId = itemId, count = result.fuel.count + accepted }
+	local filled: Types.Slot = { itemId = itemId, count = result.fuel.count + accepted }
+	result.fuel = filled
 	return result, accepted, nil
 end
 
@@ -585,7 +589,7 @@ function Converter.takeFuel(state: State, ctx: Context, count: number?, now: num
 	if taken <= 0 then
 		return result, emptySlot()
 	end
-	local slot = { itemId = result.fuel.itemId, count = taken }
+	local slot: Types.Slot = { itemId = result.fuel.itemId, count = taken }
 	result.fuel.count -= taken
 	if result.fuel.count <= 0 then
 		result.fuel = emptySlot()

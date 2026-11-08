@@ -459,12 +459,12 @@ local function readyBadge(model: Model): BillboardGui
 	gui.MaxDistance = 80
 	local badge = Instance.new("TextLabel")
 	badge.Size = UDim2.fromScale(1, 1)
-	badge.BackgroundColor3 = Theme.colors.accent
+	badge.BackgroundColor3 = Theme.colors.badge -- LDoE's teal ready-count badge (LDOE_PARITY #23)
 	badge.FontFace = Theme.fonts.header
 	badge.Name = "Count"
-	badge.Text = "Ready"
+	badge.Text = ""
 	badge.TextSize = Theme.textSize.title
-	badge.TextColor3 = Theme.colors.textOnAccent
+	badge.TextColor3 = Theme.colors.text
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0.5, 0)
 	corner.Parent = badge
@@ -478,7 +478,7 @@ local function readyBadge(model: Model): BillboardGui
 	return gui
 end
 
-local function updateStations(now: number)
+local function updateStations(_now: number)
 	for model in stations do
 		if not model:IsDescendantOf(workspace) then
 			stations[model] = nil
@@ -486,8 +486,7 @@ local function updateStations(now: number)
 			progressBars[model] = nil
 			continue
 		end
-		local fuelEndsAt = model:GetAttribute("FuelEndsAt")
-		local burning = type(fuelEndsAt) == "number" and now < fuelEndsAt
+		local burning = model:GetAttribute("Burning") == true
 		local core = model:FindFirstChild("FireCore", true)
 		if core then
 			local flame = core:FindFirstChild("Flame") :: Fire?
@@ -501,7 +500,8 @@ local function updateStations(now: number)
 			end
 		end
 		local mine = model:GetAttribute("OwnerUserId") == player.UserId
-		local ready = mine and model:GetAttribute("Ready") == true
+		local readyCount = model:GetAttribute("Ready")
+		local ready = mine and type(readyCount) == "number" and readyCount > 0
 		local badge: BillboardGui? = badges[model]
 		if ready and badge == nil then
 			badges[model] = readyBadge(model)
@@ -510,19 +510,18 @@ local function updateStations(now: number)
 			badges[model] = nil
 		end
 		if badge then
-			-- How many are ready, e.g. "3" (checklist 5.12).
-			local count = model:GetAttribute("ReadyCount")
+			-- How many are waiting in the output, e.g. "3" (checklist 5.12, LDOE_PARITY #23).
 			local label = badge:FindFirstChild("Count") :: TextLabel?
 			if label then
-				label.Text = if type(count) == "number" and count > 0 then tostring(count) else "Ready"
+				label.Text = tostring(readyCount)
 			end
 			badge.StudsOffsetWorldSpace =
 				Vector3.new(0, model:GetExtentsSize().Y + 1.5 + math.sin(os.clock() * 3) * 0.3, 0)
 		end
-		local progress = model:GetAttribute("JobProgress")
-		local remaining = model:GetAttribute("JobRemaining")
+		local progress = model:GetAttribute("BatchProgress")
+		local remaining = model:GetAttribute("BatchRemaining")
 		local bar: BillboardGui? = progressBars[model]
-		if mine and type(progress) == "number" and type(remaining) == "number" and not ready then
+		if mine and type(progress) == "number" and type(remaining) == "number" then
 			local shown = bar or progressBar(model)
 			progressBars[model] = shown
 			local track = shown:FindFirstChild("Track")

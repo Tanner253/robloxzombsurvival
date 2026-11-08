@@ -51,8 +51,10 @@ function DevSpeed.apply(content: Types.Content, factor: number)
 		node.respawnSeconds = math.max(1, math.floor(node.respawnSeconds / factor))
 	end
 	for _, station in content.Stations do
-		for _, salvage in station.salvage or {} do
-			salvage.seconds = math.max(1, math.floor(salvage.seconds / factor))
+		if station.salvage then
+			for _, salvage in station.salvage do
+				salvage.seconds = math.max(1, math.floor(salvage.seconds / factor))
+			end
 		end
 	end
 	content.Tuning.energy.secondsPerPoint = math.max(1, math.floor(content.Tuning.energy.secondsPerPoint / factor))

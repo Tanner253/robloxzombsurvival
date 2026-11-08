@@ -350,4 +350,26 @@ return function(test: TestKit.Register)
 		local reach = SURVIVOR_HEIGHT + Content.Tuning.movement.hopHeight
 		TestKit.truthy(wall > reach + 0.5, `walls {wall} vs reach {reach}`)
 	end)
+
+	test("objects move and turn in place, keeping their uid; walls don't move", function()
+		local layout = Grid.new()
+		for x = 0, 2 do
+			layout = (Grid.place(layout, "build.foundation_wood", { x = x, z = 0 }, ctx())) :: any
+		end
+		layout = (Grid.place(layout, "build.crate_wood", { x = 0, z = 0, rot = 0 }, ctx())) :: any
+		local crateUid = tostring(layout.nextUid - 1)
+		local moved, why = Grid.move(layout, crateUid, { x = 8, z = 1, rot = 1 }, ctx())
+		TestKit.equal(why, nil)
+		local crate = (moved :: any).pieces[crateUid]
+		TestKit.equal(crate.x, 8)
+		TestKit.equal(crate.rot, 1)
+		TestKit.equal(Grid.objectAt(moved :: any, 0, 0), nil, "the old spot is free")
+		TestKit.equal((Grid.objectAt(moved :: any, 8, 1) :: any).uid, crateUid)
+		local _, offPlot = Grid.move(layout, crateUid, { x = 20, z = 0, rot = 0 }, ctx())
+		TestKit.equal(offPlot, "needsFoundation")
+		layout = (Grid.place(layout, "build.wall_wood", { x = 0, z = 0, axis = "h" }, ctx())) :: any
+		local wallUid = tostring(layout.nextUid - 1)
+		TestKit.equal(select(2, Grid.move(layout, wallUid, { x = 1, z = 0, axis = "h" }, ctx())), "badTarget")
+		TestKit.truthy((BuildRules.canMove(layout, crateUid, { x = 4, z = 0, rot = 0 }, ctx())), "BuildRules agrees")
+	end)
 end

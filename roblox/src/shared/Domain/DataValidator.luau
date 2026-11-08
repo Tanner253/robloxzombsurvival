@@ -391,7 +391,8 @@ local function checkStations(errors: Errors, content: Types.Content)
 			push(errors, `{where}: outputSlots must be a positive integer`)
 		end
 		local outputs = station.outputSlots or 1
-		for _, salvage in station.salvage or {} do
+		local salvageList: { Types.SalvageDef } = station.salvage or {}
+		for _, salvage in salvageList do
 			if #salvage.outputs > outputs then
 				push(errors, `{where}: '{salvage.inputItemId}' breaks into more items than its {outputs} output slots`)
 			end

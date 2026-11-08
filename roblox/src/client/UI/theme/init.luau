@@ -38,6 +38,10 @@ Theme.colors = {
 	threat = Color3.fromHex("9FE7FF"),
 	fog = Color3.fromHex("6E8291"),
 
+	-- LDoE's teal count badges (menu bar, station ready counts) and red NEW badges.
+	badge = Color3.fromHex("1E9E8F"),
+	badgeNew = Color3.fromHex("C8402E"),
+
 	shadow = Color3.fromHex("0B0D10"),
 	shadowTransparency = 0.55,
 	track = Color3.fromHex("14161A"),
@@ -103,8 +107,60 @@ Theme.spacing = {
 	xl = 24,
 }
 
+-- The App's current UI scale (set each render by UI/App), for converting Roblox's screen
+-- pixel zones (the touch jump button) into design pixels.
+Theme.currentScale = 1
+
 -- Minimum tap target in pixels (mobile first).
 Theme.tapTarget = 44
+
+-- Upgrade arrows (LDoE's green), and the dim behind full-screen panels.
+Theme.colors.upgrade = Color3.fromHex("3E9E4A")
+Theme.colors.dim = Color3.fromHex("0B0D10")
+Theme.colors.dimTransparency = 0.35
+Theme.colors.chip = Color3.fromHex("1E6F66") -- the teal name chip on station and storage headers
+Theme.colors.danger = Color3.fromHex("B8442F") -- demolish, trash
+
+-- Draw order. Siblings never overlap (the UI gate, checklist 4.19), so these only
+-- order separate layers: the HUD, full-screen panels, modals, toasts and tooltips.
+Theme.layers = {
+	hud = 1,
+	panel = 20,
+	modal = 40,
+	toast = 60,
+	tooltip = 80,
+	drag = 100,
+}
+
+-- The LDoE HUD (LDOE_PARITY #1-12), in design pixels at 1366 x 768.
+Theme.hud = {
+	edge = 16, -- gap from the safe area's edge
+	weaponBig = 96, -- the active-weapon circle, also the attack button
+	weaponSmall = 64, -- the second weapon
+	meds = 56,
+	context = 84, -- the context button (hand, axe, pick...)
+	sprint = 60,
+	auto = 64,
+	menuIcon = 44, -- bottom menu bar icons
+	levelBar = 6, -- the level bar's track height
+	minimap = 168,
+	stripIcon = 44, -- the top-right event/offers/gift strip
+	nameWidth = 240, -- top-left name and HP
+	tracker = 260, -- quest tracker width
+	trayHeight = 168, -- the build tray's card row
+	closeStrip = 72, -- the CLOSE strip at the right edge of full-screen panels
+}
+
+-- Full-screen panels (LDoE's two-pane screens, #11 and #13).
+Theme.panel = {
+	pane = 420, -- each pane's width
+	gap = 32, -- between the panes
+	header = 44,
+	actionBar = 52,
+	slot = 72, -- inventory slots in the two-pane screen
+	slotGap = 6,
+	columns = 5, -- LDoE: pockets 2 x 5, backpack and storage 5 wide
+}
 
 Theme.slotSize = 64
 

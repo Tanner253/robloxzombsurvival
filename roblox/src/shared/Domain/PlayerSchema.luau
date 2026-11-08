@@ -75,6 +75,9 @@ export type PlayerData = {
 		equipment: Equipment,
 	},
 	storage: { [string]: Types.Container }, -- keyed by placed storage piece UID
+	-- The icon a crate's lid shows when the player pinned one (LDOE_PARITY #16's brush),
+	-- by crate UID; otherwise the lid shows what the crate holds most of.
+	storageLabels: { [string]: string },
 	-- The item inbox (checklist 4.15): rewards, purchases and overflow, no capacity
 	-- limit, never raidable, never expires. inboxSeq numbers its rows.
 	inbox: { Types.InboxEntry },
@@ -164,6 +167,7 @@ function PlayerSchema.template(): PlayerData
 			},
 		},
 		storage = {},
+		storageLabels = {},
 		inbox = {},
 		inboxSeq = 0,
 		stations = {},
@@ -292,7 +296,7 @@ local LEGACY_RECIPES: { [string]: { inputs: { Types.ItemStack }, outputs: { Type
 	Nothing is lost: every item that no longer fits lands in the inbox (source "Update").
 ]]
 function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
-	local inbox = if type(data.inbox) == "table" then data.inbox else {}
+	local inbox: { any } = if type(data.inbox) == "table" then data.inbox :: any else {}
 	data.inbox = inbox
 	local seq = if type(data.inboxSeq) == "number" then data.inboxSeq else 0
 	local function toInbox(itemId: any, count: any, durability: number?)
@@ -311,7 +315,7 @@ function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
 	end
 
 	-- Stations: settle each v6 queue, then restart as a converter.
-	local stations = if type(data.stations) == "table" then data.stations else {}
+	local stations: { [string]: any } = if type(data.stations) == "table" then data.stations :: any else {}
 	for uid, record in stations do
 		local def = if type(record) == "table" then Stations[record.stationId] else nil
 		if def == nil then
@@ -328,7 +332,8 @@ function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
 			local legacy = LEGACY_RECIPES[job.id]
 			if legacy then
 				local finished = type(job.endsAt) == "number" and job.endsAt <= cutoff
-				for _, stack in (if finished then legacy.outputs else legacy.inputs) do
+				local given: { Types.ItemStack } = if finished then legacy.outputs else legacy.inputs
+				for _, stack in given do
 					toInbox(stack.itemId, stack.count)
 				end
 			else
@@ -372,7 +377,7 @@ function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
 		end
 		local bag = if type(equipment.bag) == "table" then Items[equipment.bag.itemId] else nil
 		local capacity = Tuning.inventory.backpackSlots + (if bag and bag.bagSlots then bag.bagSlots else 0)
-		local backpack = if type(inventory.backpack) == "table" then inventory.backpack else {}
+		local backpack: { any } = if type(inventory.backpack) == "table" then inventory.backpack :: any else {}
 		for index = #backpack, capacity + 1, -1 do
 			local slot = backpack[index]
 			if type(slot) == "table" then
@@ -391,6 +396,9 @@ function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
 		end
 	end
 
+	if type(data.storageLabels) ~= "table" then
+		data.storageLabels = {}
+	end
 	data.homeNodes = nil
 	data.inboxSeq = seq
 end

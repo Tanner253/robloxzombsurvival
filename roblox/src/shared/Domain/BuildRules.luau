@@ -182,6 +182,33 @@ function BuildRules.canPlace(
 	return true, nil
 end
 
+-- Whether an object may move to `target` (LDOE_PARITY #27): where it fits once lifted, on
+-- a floor of its tier. Returns true, or false and a reason.
+function BuildRules.canMove(
+	layout: Grid.Layout,
+	uid: string,
+	target: Grid.Target,
+	ctx: Grid.Context
+): (boolean, Reason?)
+	local piece = layout.pieces[uid]
+	if piece == nil then
+		return false, "notFound"
+	end
+	local def = ctx.pieces[piece.pieceId]
+	local lifted = Grid.without(layout, uid, ctx.pieces)
+	local ok: boolean, reason: Grid.Reason? = Grid.canPlace(lifted, piece.pieceId, target, ctx)
+	if not ok then
+		return false, reason
+	end
+	if piece.layer ~= "object" then
+		return false, "badTarget"
+	end
+	if not foundationOk(lifted, def, target, ctx.pieces) then
+		return false, "floorTier"
+	end
+	return true, nil
+end
+
 --[[
 	Whether the player may upgrade piece `uid`. Pass `inventory` to also check
 	the upgrade price. Returns true and the next tier's definition, or false,

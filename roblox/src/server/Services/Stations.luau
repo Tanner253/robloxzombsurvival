@@ -1,15 +1,20 @@
 --!strict
 --[[
-	Stations: crafting at the Workbench, Campfire and Recycler, plus hand crafting
-	(Domain/Crafting, Domain/Salvage; M1 step 3).
+	Stations: LDoE converter stations and hand crafting (Domain/Converter, Domain/Crafting;
+	LDOE_PARITY #18-23).
 
-	Station state lives in the profile (PlayerSchema.StationState, keyed by the
-	placed piece's UID) as absolute timestamps, so queues keep running while the
-	player is offline and are simply collected when they come back. The Building
-	service creates and removes station records; this service runs them.
+	A placed station's state lives in the profile (PlayerSchema.StationState, keyed by the
+	piece's UID) as a timestamped converter, so it keeps converting while the player is
+	offline and simply catches up when it is next read. The Building service creates and
+	removes station records; this service runs them:
+	- drag a stack from the inventory into the input (StationPutInput) or the fuel slot
+	  (StationPutFuel); take the input, fuel or output back out; upgrade in place (paid
+	  from the home pool, checklist 5.13);
+	- hand crafting (gear, tools, bags, food mixes) from the catalogue (HandCraft).
 
-	Station models get attributes for the client: FuelEndsAt (the fire burns
-	until then), Ready (a job waits to be collected) and Level.
+	Station models get attributes for the client: Level, Ready (items waiting in the
+	output, the teal badge #23), Working (converting now), Burning (fuel lit), and the
+	batch in progress (BatchProgress 0..1, BatchRemaining seconds, BatchItem).
 ]]
 
 local Players = game:GetService("Players")
@@ -18,18 +23,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Domain = ReplicatedStorage.Shared.Domain
+local Converter = require(Domain.Converter)
 local Crafting = require(Domain.Crafting)
-local Salvage = require(Domain.Salvage)
-local Slots = require(Domain.Slots)
-local InventoryMath = require(Domain.Inventory)
 local Rng = require(Domain.Rng)
 local Net = require("../Net")
+local Events = require("../Events")
 local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Materials = require("./Materials")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
+local Quests = require("./Quests")
 local Sync = require("./Sync")
 
 local Stations = {}
@@ -41,39 +46,51 @@ local tuning = Content.Tuning
 
 local REASON_TEXT: { [string]: string } = {
 	locked = "Not unlocked yet",
-	wrongStation = "Craft that at another station",
+	wrongStation = "Make that at its station",
 	stationLevel = "Upgrade this station first",
 	missingInputs = "Not enough materials",
-	queueFull = "The queue is full",
 	inventoryFull = "Make room in your bag",
-	notFound = "That job is gone",
-	finished = "That job is done; collect it",
-	noFuel = "This station doesn't burn fuel",
+	notConvertible = "This station can't use that",
+	inputBusy = "Take the current input out first",
+	inputFull = "The input slot is full",
 	notFuel = "That won't burn",
-	busy = "Collect or cancel its jobs before upgrading",
-	maxLevel = "Already at the top level",
-	notSalvageable = "The Recycler can't break that down",
+	noFuelSlot = "This station doesn't burn fuel",
+	fuelBusy = "Burn the current fuel first, or take it out",
 	fuelFull = "The fuel slot is full",
+	busy = "Let it finish, or take the input out, before upgrading",
+	maxLevel = "Already at the top level",
+	empty = "Nothing to take",
 }
 
 local rng = Rng.new(Random.new():NextInteger(1, 2 ^ 31 - 2))
+
+local function context(def: Types.StationDef): Converter.Context
+	return {
+		def = def,
+		recipes = Recipes,
+		items = Items,
+		rng = rng,
+		scalesChance = tuning.salvage.durabilityScalesChance,
+	}
+end
 
 -- Station records ------------------------------------------------------------------------------
 
 -- Creates the record for a newly placed station.
 function Stations.create(player: Player, uid: string, stationId: Types.StationId)
 	local data = PlayerData.get(player)
-	if data and data.stations[uid] == nil then
-		data.stations[uid] = Crafting.newStation(stationId)
+	local def = Content.Stations[stationId]
+	if data and def and data.stations[uid] == nil then
+		data.stations[uid] = Converter.new(def, os.time())
 		Sync.mark(player, "stations")
 	end
 end
 
--- Whether a station has queued or uncollected jobs (it can't be demolished then).
+-- Whether a station holds anything (it can't be demolished then: take it out first).
 function Stations.isBusy(player: Player, uid: string): boolean
 	local data = PlayerData.get(player)
 	local station = data and data.stations[uid]
-	return station ~= nil and #station.queue > 0
+	return station ~= nil and not Converter.isEmpty(station)
 end
 
 -- Removes a demolished station's record.
@@ -85,41 +102,40 @@ function Stations.remove(player: Player, uid: string)
 	end
 end
 
+-- Brings a station up to now (catching up offline time) and returns it.
+local function current(data: any, uid: string): Converter.State?
+	local station = data.stations[uid]
+	local def = station and Content.Stations[station.stationId]
+	if station == nil or def == nil then
+		return nil
+	end
+	local now = os.time()
+	if station.at <= 0 then
+		station.at = now -- migrated or freshly loaded: the clock starts now
+	end
+	local advanced = Converter.advance(station, context(def), now)
+	data.stations[uid] = advanced
+	return advanced
+end
+
 local function updateModel(player: Player, uid: string)
 	local plot = Plots.of(player)
 	local data = PlayerData.get(player)
 	local model = plot and plot.pieceModels[uid]
-	local station = data and data.stations[uid]
+	local station = data and current(data, uid)
 	if model == nil or station == nil then
 		return
 	end
 	local def = Content.Stations[station.stationId]
-	local now = os.time()
-	local ready = false
-	local readyCount = 0 -- output units waiting to be collected (the count badge, 5.12)
-	local workingUntil = 0
-	local current: any = nil -- the job running now, for the progress bar above the station
-	for _, job in Crafting.status(station, def, now) do
-		if job.done then
-			ready = true
-			local recipe = Recipes[job.recipeId]
-			readyCount += if recipe and recipe.outputs[1] then recipe.outputs[1].count else 1
-		elseif not job.stalled then
-			workingUntil = math.max(workingUntil, station.queue[job.index].endsAt)
-			if current == nil then
-				current = job
-			end
-		end
-	end
+	local status = Converter.status(station, context(def))
+	local working = status.activity == "working"
 	model:SetAttribute("Level", station.level)
-	model:SetAttribute("FuelEndsAt", station.fuelEndsAt)
-	model:SetAttribute("Ready", ready)
-	model:SetAttribute("ReadyCount", readyCount)
-	-- When the queue's running jobs finish, so clients can animate and sound the station meanwhile.
-	model:SetAttribute("WorkingUntil", workingUntil)
-	model:SetAttribute("JobProgress", if current then current.progress else nil)
-	model:SetAttribute("JobRemaining", if current then current.remaining else nil)
-	model:SetAttribute("JobRecipe", if current then current.recipeId else nil)
+	model:SetAttribute("Ready", status.ready)
+	model:SetAttribute("Working", working)
+	model:SetAttribute("Burning", working and def.fuel ~= nil)
+	model:SetAttribute("BatchProgress", if working then status.progress else nil)
+	model:SetAttribute("BatchRemaining", if working then status.batchRemaining else nil)
+	model:SetAttribute("BatchItem", if status.line then status.line.outputs[1].itemId else nil)
 end
 
 -- Refreshes a station's model attributes and the player's synced stations.
@@ -132,13 +148,14 @@ end
 
 type Context = {
 	data: any,
-	station: Crafting.Station,
+	station: Converter.State,
 	def: Types.StationDef,
+	ctx: Converter.Context,
 }
 
 local function open(player: Player, uid: string): Context?
 	local data = PlayerData.get(player)
-	local station = data and data.stations[uid]
+	local station = data and current(data, uid)
 	if data == nil or station == nil then
 		return nil
 	end
@@ -147,201 +164,187 @@ local function open(player: Player, uid: string): Context?
 		Sync.notice(player, "Move closer to the station")
 		return nil
 	end
-	return { data = data, station = station, def = Content.Stations[station.stationId] }
+	local def = Content.Stations[station.stationId]
+	return { data = data, station = station, def = def, ctx = context(def) }
 end
 
 local function refuse(player: Player, reason: string?)
 	Sync.notice(player, REASON_TEXT[reason or ""] or "Can't do that")
+	Sync.fx(player, "denied", { reason = reason })
 end
 
-local function progressOf(data: any): Crafting.Progress
-	return { level = data.progression.level, unlocks = data.unlocks }
-end
-
-local function save(player: Player, ctx: Context, uid: string, station: Crafting.Station)
-	ctx.data.stations[uid] = station
+local function save(player: Player, c: Context, uid: string, station: Converter.State)
+	c.data.stations[uid] = station
 	Stations.refresh(player, uid)
 end
 
--- Handlers ------------------------------------------------------------------------------------------
+-- Gives taken slots back to the bag; returns what didn't fit.
+local function giveBack(player: Player, slots: { Types.Slot }): { Types.Slot }
+	local _, leftover = Inventory.giveSlots(player, slots)
+	return leftover
+end
 
-local function craft(player: Player, uid: string, recipeId: string, count: number)
-	local ctx = open(player, uid)
-	local recipe = Recipes[recipeId]
-	if ctx == nil or recipe == nil then
+-- Handlers: the converter ------------------------------------------------------------------------
+
+-- (uid, ref, index, count?) drags up to `count` of a carried stack into the input.
+local function putInput(player: Player, uid: string, ref: string, index: number, count: number?)
+	local c = open(player, uid)
+	local slot = Inventory.peekSlot(player, ref, index)
+	if c == nil or slot == nil or slot.count <= 0 then
 		return
 	end
-	-- Checks run against the whole home pool; the inputs then come out of it (5.13).
-	local pool = Materials.virtual(player) :: Types.Inventory
-	local checked, station, reason =
-		Crafting.start(pool, ctx.station, ctx.def, recipe, progressOf(ctx.data), os.time(), count)
-	if checked == nil or station == nil then
+	local offered =
+		{ itemId = slot.itemId, count = math.min(count or slot.count, slot.count), durability = slot.durability }
+	local station, accepted, reason = Converter.putInput(c.station, c.ctx, Quests.progress(c.data), offered, os.time())
+	if station == nil or accepted <= 0 then
 		refuse(player, reason)
 		return
 	end
-	local inputs: { Types.ItemStack } = {}
-	for _, stack in recipe.inputs do
-		table.insert(inputs, { itemId = stack.itemId, count = stack.count * count })
-	end
-	if not Materials.take(player, inputs, "Crafting") then
-		refuse(player, "missingInputs")
+	if Inventory.takeFromSlot(player, ref, index, accepted) == nil then
 		return
 	end
-	save(player, ctx, uid, station)
-	Sync.fx(player, "craftStarted", { uid = uid, recipeId = recipeId, count = count })
+	save(player, c, uid, station)
+	Analytics.economy(player, "sink", slot.itemId, accepted, 0, "Station")
+	Sync.fx(player, "stationInput", { uid = uid, itemId = slot.itemId, count = accepted })
 end
 
-local function salvage(player: Player, uid: string, ref: string, index: number)
-	local ctx = open(player, uid)
-	if ctx == nil or (ref ~= "pockets" and ref ~= "backpack") then
+-- (uid, ref, index, count?) drags fuel into the fuel slot.
+local function putFuel(player: Player, uid: string, ref: string, index: number, count: number?)
+	local c = open(player, uid)
+	local slot = Inventory.peekSlot(player, ref, index)
+	if c == nil or slot == nil or slot.count <= 0 then
 		return
 	end
-	local view = Inventory.view(player) :: Types.Inventory
-	local container = if ref == "pockets" then view.pockets else view.backpack
-	local slot = container[index]
-	if slot == nil or slot.count <= 0 then
-		return
-	end
-	local one = { itemId = slot.itemId, count = 1, durability = slot.durability }
-	local station, reason = Salvage.start(ctx.station, ctx.def, one, Items, os.time())
-	if station == nil then
+	local amount = math.min(count or slot.count, slot.count)
+	local station, accepted, reason = Converter.putFuel(c.station, c.ctx, slot.itemId, amount, os.time())
+	if station == nil or accepted <= 0 then
 		refuse(player, reason)
 		return
 	end
-	local fresh = table.clone(container)
-	fresh[index] = if slot.count > 1
-		then { itemId = slot.itemId, count = slot.count - 1, durability = slot.durability }
-		else InventoryMath.emptySlot()
-	Inventory.commit(player, {
-		pockets = if ref == "pockets" then fresh else view.pockets,
-		backpack = if ref == "backpack" then fresh else view.backpack,
-	})
-	save(player, ctx, uid, station)
-	Analytics.economy(player, "sink", slot.itemId, 1, 0, "Salvage")
-	Sync.fx(player, "craftStarted", { uid = uid, recipeId = "", count = 1 })
-end
-
-local function collect(player: Player, uid: string)
-	local ctx = open(player, uid)
-	if ctx == nil then
+	if Inventory.takeFromSlot(player, ref, index, accepted) == nil then
 		return
 	end
-	local view = Inventory.view(player) :: Types.Inventory
+	save(player, c, uid, station)
+	Analytics.economy(player, "sink", slot.itemId, accepted, 0, "Fuel")
+	Sync.fx(player, "fuelled", { uid = uid, itemId = slot.itemId, count = accepted })
+end
+
+-- (uid) takes the whole input back out (the batch in progress is lost).
+local function takeInput(player: Player, uid: string)
+	local c = open(player, uid)
+	if c == nil then
+		return
+	end
+	local station, slot = Converter.takeInput(c.station, c.ctx, nil, os.time())
+	if slot.count <= 0 then
+		return
+	end
+	local leftover = giveBack(player, { slot })
+	if #leftover > 0 then
+		-- What didn't fit goes back in, so nothing is lost.
+		station = (Converter.putInput(station, c.ctx, Quests.progress(c.data), leftover[1], os.time()) or station)
+		Sync.notice(player, REASON_TEXT.inventoryFull)
+	end
+	save(player, c, uid, station)
+end
+
+-- (uid) takes the unlit fuel back out.
+local function takeFuel(player: Player, uid: string)
+	local c = open(player, uid)
+	if c == nil then
+		return
+	end
+	local station, slot = Converter.takeFuel(c.station, c.ctx, nil, os.time())
+	if slot.count <= 0 then
+		return
+	end
+	local leftover = giveBack(player, { slot })
+	if #leftover > 0 then
+		station = (Converter.putFuel(station, c.ctx, slot.itemId, leftover[1].count, os.time()) or station)
+		Sync.notice(player, REASON_TEXT.inventoryFull)
+	end
+	save(player, c, uid, station)
+end
+
+-- (uid, index) takes output slot `index` (0: every output slot) into the bag, as much as fits.
+local function takeOutput(player: Player, uid: string, index: number)
+	local c = open(player, uid)
+	if c == nil then
+		return
+	end
 	local now = os.time()
-	local station, inventory, collected
-	if ctx.def.salvage then
-		station, inventory, collected = Salvage.collect(ctx.station, ctx.def, view, Items, rng, now, tuning.salvage)
-	else
-		station, inventory, collected = Crafting.collect(ctx.station, ctx.def, view, Recipes, Items, now)
+	local station = c.station
+	local taken: { Types.Slot } = {}
+	local first, last = index, index
+	if index == 0 then
+		first, last = 1, #station.output
 	end
-	if #collected == 0 then
-		local anyDone = false
-		for _, job in Crafting.status(ctx.station, ctx.def, now) do
-			anyDone = anyDone or job.done
+	local full = false
+	for slotIndex = first, last do
+		local slot = station.output[slotIndex]
+		if slot and slot.count > 0 then
+			local nextStation, out = Converter.takeOutput(station, c.ctx, slotIndex, nil, now)
+			local given, leftover = Inventory.giveSlots(player, { out })
+			station = nextStation
+			if #leftover > 0 then
+				-- Put back what didn't fit, in the same slot.
+				station.output[slotIndex] = {
+					itemId = out.itemId,
+					count = leftover[1].count,
+					durability = out.durability,
+				}
+				full = true
+			end
+			for _, slotGiven in given do
+				table.insert(taken, slotGiven)
+			end
 		end
-		if anyDone then
+	end
+	if #taken == 0 then
+		if full then
 			refuse(player, "inventoryFull")
 		end
 		return
 	end
-	Inventory.commit(player, inventory)
-	save(player, ctx, uid, station)
-	for _, stack in collected do
-		Analytics.economy(
-			player,
-			"source",
-			stack.itemId,
-			stack.count,
-			InventoryMath.count(inventory, stack.itemId),
-			"Crafting"
-		)
+	save(player, c, uid, station)
+	if full then
+		Sync.notice(player, REASON_TEXT.inventoryFull)
 	end
-	Sync.fx(player, "items", { items = collected, source = "station", uid = uid })
-end
-
-local function cancel(player: Player, uid: string, index: number)
-	local ctx = open(player, uid)
-	if ctx == nil then
-		return
-	end
-	local view = Inventory.view(player) :: Types.Inventory
-	local now = os.time()
-	if ctx.def.salvage then
-		local station, refund, reason = Salvage.cancel(ctx.station, index, Items, now)
-		if station == nil or refund == nil then
-			refuse(player, reason)
-			return
+	-- Quest progress: batches of each converter line taken.
+	for _, slot in taken do
+		Analytics.economy(player, "source", slot.itemId, slot.count, 0, "Station")
+		for _, line in Converter.lines(c.def, Recipes) do
+			if line.recipeId and line.outputs[1].itemId == slot.itemId then
+				local batches = math.max(1, slot.count // line.outputs[1].count)
+				Events.played:Fire(player, { kind = "craft", recipeId = line.recipeId, count = batches })
+			end
 		end
-		local after, left = Slots.addTo({ view.pockets, view.backpack }, refund, Items)
-		if left > 0 then
-			refuse(player, "inventoryFull")
-			return
-		end
-		Inventory.commit(player, { pockets = after[1], backpack = after[2] })
-		save(player, ctx, uid, station)
-		return
 	end
-	local station, inventory, reason = Crafting.cancel(ctx.station, ctx.def, index, view, Recipes, Items, now)
-	if station == nil or inventory == nil then
-		refuse(player, reason)
-		return
-	end
-	Inventory.commit(player, inventory)
-	save(player, ctx, uid, station)
-end
-
-local function fuel(player: Player, uid: string, itemId: string, count: number)
-	local ctx = open(player, uid)
-	local fuelDef = ctx and ctx.def.fuel
-	if ctx == nil then
-		return
-	end
-	if fuelDef == nil then
-		refuse(player, "noFuel")
-		return
-	end
-	local now = os.time()
-	local burn = Crafting.burnSeconds(ctx.def, itemId)
-	local capacity = fuelDef.maxUnits * burn
-	local room = math.floor((capacity - Crafting.fuelRemaining(ctx.station, ctx.def, now)) / burn)
-	local amount = math.min(count, room)
-	if amount < 1 then
-		refuse(player, "fuelFull")
-		return
-	end
-	local view = Inventory.view(player) :: Types.Inventory
-	local station, inventory, reason = Crafting.addFuel(ctx.station, ctx.def, view, itemId, amount, now)
-	if station == nil or inventory == nil then
-		refuse(player, reason)
-		return
-	end
-	Inventory.commit(player, inventory)
-	save(player, ctx, uid, station)
-	Analytics.economy(player, "sink", itemId, amount, InventoryMath.count(inventory, itemId), "Fuel")
-	Sync.fx(player, "fuelled", { uid = uid, itemId = itemId, count = amount })
+	Sync.fx(player, "items", { items = taken, source = "station", uid = uid })
 end
 
 local function upgrade(player: Player, uid: string)
-	local ctx = open(player, uid)
-	if ctx == nil then
+	local c = open(player, uid)
+	if c == nil then
 		return
 	end
-	local nextLevel = ctx.def.levels[ctx.station.level + 1]
-	if nextLevel and (nextLevel.requiredLevel or 1) > ctx.data.progression.level then
-		Sync.notice(player, `Reach level {nextLevel.requiredLevel} to upgrade`)
-		return
-	end
-	local view = Inventory.view(player) :: Types.Inventory
-	local station, inventory, reason = Crafting.upgradeStation(ctx.station, ctx.def, view)
-	if station == nil or inventory == nil then
+	local nextLevel = Converter.nextLevel(c.def, c.station.level)
+	local station, reason = Converter.upgrade(c.station, c.ctx, os.time())
+	if station == nil or nextLevel == nil then
 		refuse(player, reason)
 		return
 	end
-	Inventory.commit(player, inventory)
-	save(player, ctx, uid, station)
-	Analytics.progression(player, ctx.def.id, "complete", station.level)
+	-- Paid from the whole home pool (5.13).
+	if not Materials.take(player, nextLevel.upgradeCost, "StationUpgrade") then
+		refuse(player, "missingInputs")
+		return
+	end
+	save(player, c, uid, station)
+	Analytics.progression(player, c.def.id, "complete", station.level)
 	Sync.fx(player, "stationUpgraded", { uid = uid, level = station.level })
 end
+
+-- Handlers: the crafting catalogue -----------------------------------------------------------------
 
 local function handCraft(player: Player, recipeId: string, count: number)
 	local data = PlayerData.get(player)
@@ -349,13 +352,9 @@ local function handCraft(player: Player, recipeId: string, count: number)
 	if data == nil or recipe == nil then
 		return
 	end
-	if recipe.stationId then
-		refuse(player, "wrongStation")
-		return
-	end
 	-- Inputs come from the home pool (5.13); what doesn't fit the bag goes to the inbox.
 	local pool = Materials.virtual(player) :: Types.Inventory
-	local ok, reason = Crafting.check(recipe, pool, progressOf(data), nil, nil, count)
+	local ok, reason = Crafting.check(recipe, pool, Quests.progress(data), count)
 	if not ok then
 		refuse(player, reason)
 		return
@@ -376,6 +375,7 @@ local function handCraft(player: Player, recipeId: string, count: number)
 	Inbox.grant(player, leftover :: any, "Overflow")
 	Analytics.custom(player, "HandCraft", count, { recipeId })
 	Sync.fx(player, "items", { items = made, source = "craft" })
+	Events.played:Fire(player, { kind = "craft", recipeId = recipeId, count = count })
 end
 
 -- The crafting catalogue's favourites and NEW marks (5.9).
@@ -393,7 +393,7 @@ local function seen(player: Player)
 	if data == nil then
 		return
 	end
-	local progress = progressOf(data)
+	local progress = Quests.progress(data)
 	for id, recipe in Recipes do
 		if Crafting.isUnlocked(recipe, progress) then
 			data.recipeMarks.seen[id] = true
@@ -405,11 +405,11 @@ end
 -- Lifecycle -------------------------------------------------------------------------------------------
 
 function Stations.init()
-	Net.onEvent("StationCraft", craft)
-	Net.onEvent("StationSalvage", salvage)
-	Net.onEvent("StationCollect", collect)
-	Net.onEvent("StationCancel", cancel)
-	Net.onEvent("StationFuel", fuel)
+	Net.onEvent("StationPutInput", putInput)
+	Net.onEvent("StationPutFuel", putFuel)
+	Net.onEvent("StationTakeInput", takeInput)
+	Net.onEvent("StationTakeFuel", takeFuel)
+	Net.onEvent("StationTakeOutput", takeOutput)
 	Net.onEvent("StationUpgrade", upgrade)
 	Net.onEvent("HandCraft", handCraft)
 	Net.onEvent("RecipeFavourite", favourite)
@@ -425,15 +425,25 @@ function Stations.start()
 		local data = PlayerData.get(player)
 		return if data then data.stations else false
 	end)
-	-- Ready badges and fires follow the clock; refresh station models each second.
+	-- Ready badges, fires and batch bars follow the clock: refresh station models each
+	-- second. The synced section is re-sent only when something visibly changed.
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			for _, player in Players:GetPlayers() do
 				local data = PlayerData.get(player)
 				if data and Plots.of(player) then
-					for uid in data.stations do
+					local changed = false
+					for uid, before in data.stations do
+						local ready, input = Converter.ready(before), before.input.count
 						updateModel(player, uid)
+						local after = data.stations[uid]
+						if after and (Converter.ready(after) ~= ready or after.input.count ~= input) then
+							changed = true
+						end
+					end
+					if changed then
+						Sync.mark(player, "stations")
 					end
 				end
 			end
