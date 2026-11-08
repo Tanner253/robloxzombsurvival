@@ -80,7 +80,7 @@ Art.tints = {
 Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
 Art.nodes = {
-	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
+	["node.pine_tree"] = { names = { "EO_PineConifer", "EO_PineTree" }, height = 22 },
 	["node.boulder"] = { names = { "EO_RockCluster", "EO_Boulder" }, height = 3.1 },
 	["node.loose_stones"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.8 },
 	["node.fallen_branches"] = { names = { "EO_BareBranches", "EO_FallenBranches" }, height = 0.94 },
@@ -113,7 +113,8 @@ Art.remnants = {
 -- (Loose stones and reeds wait on re-uploads: art/tools/glb_floaters.py found a
 -- floating stone and detached blade fragments in their meshes; the fixed GLBs pass.)
 Art.approved = {
-	EO_PineTree = true,
+	-- EO_PineTree (flat khaki leaf cards, C) is retired: EO_PineConifer replaces it.
+	EO_PineConifer = true, -- tiered spruce from the conifer sheet (Tripo P2; capture 119)
 	EO_FatwoodStump = true,
 	WallWood = true, -- the outpost kit (the lineup's exemplars)
 	WallScrap = true,
@@ -164,6 +165,7 @@ Art.uploaded = {
 	EO_RainCollector = { id = 96623096328279, yaw = 0, axis = "Y", size = 5 },
 	EO_Signpost = { id = 129379454140930, yaw = 0, axis = "Y", size = 7 },
 	EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
+	EO_PineConifer = { id = 130639495990824, yaw = 0, axis = "Y", size = 22 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean

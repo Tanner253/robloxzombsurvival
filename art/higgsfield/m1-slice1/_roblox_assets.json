@@ -87,5 +87,9 @@
   "glb": "workbench_hunyuan3d.glb",
   "assetId": 95157826685519,
   "note": "A/B loser"
+ },
+ "EO_PineConifer": {
+  "glb": "pine_medium_p2.glb",
+  "assetId": 130639495990824
  }
 }

@@ -415,14 +415,24 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 	local function tree(x: number, z: number)
 		-- About one in seven is a dead pine: a broken grey trunk among the living ones.
 		local dead = random:NextNumber() < 0.15
-		local model = Models.kit(if dead then { "EO_DeadTree", "EO_PineTree" } else { "EO_PineTree" })
+		local model = Models.kit(if dead then { "EO_DeadTree", "EO_PineConifer" } else { "EO_PineConifer" })
 		if model == nil then
 			return
 		end
 		local height = model:GetExtentsSize().Y
 		if height > 0.01 then
-			local wanted = if model.Name == "EO_DeadTree" then random:NextNumber(18, 24) else random:NextNumber(26, 36)
+			local wanted = if model.Name == "EO_DeadTree" then random:NextNumber(18, 24) else random:NextNumber(20, 36)
 			model:ScaleTo(model:GetScale() * wanted / height)
+			-- Slimmer and fuller trees from one model: squash its width about the trunk.
+			local girth = random:NextNumber(0.82, 1.15)
+			local pivot = model:GetPivot()
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") then
+					local offset = pivot:PointToObjectSpace(part.Position)
+					part.Size = Vector3.new(part.Size.X * girth, part.Size.Y, part.Size.Z * girth)
+					part.Position = pivot:PointToWorldSpace(Vector3.new(offset.X * girth, offset.Y, offset.Z * girth))
+				end
+			end
 		end
 		model:PivotTo(
 			CFrame.new(origin + Vector3.new(x, -0.3, z)) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)

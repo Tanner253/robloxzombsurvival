@@ -2,7 +2,7 @@
 
 Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-109 this pass).
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-120 this pass).
 
 Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
 solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
@@ -31,6 +31,41 @@ re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
   lamp, tool rack, shelf, cot, planter and car are soft generated meshes), so nothing was added. It
   lands with the Camp family once uploads work.
 - **Generation:** this pass 2.75 (timber sheet) + 12 (timber wall); the pool is about 375 of 500.
+
+### Every visible object, graded (my grade, default C; orchestrator grades noted)
+
+| Object | Grade | Notes |
+|---|---|---|
+| Survivor | B | Finger tips and armpit clip; model-level fix open |
+| Held tools (hatchet, pick, club, scrapblade) | A | Natural grips |
+| Workbench (Tripo P2) | A | Crisp tools and vise, warm wood, working side to the room (117) |
+| Storage crate | A- | Family crate (107) |
+| Recycler station | A- | Model ready; piece behind its tier rule |
+| Timber deck (floor) | A | Orchestrator: the material reference |
+| Timber walls, doorway, door, window (exact geometry, deck material) | B+ | One material; plain flat panels (110, 111) |
+| Seams trim and corner posts (deck material, no bands) | B+ | Plain |
+| Scrap tier pieces (riveted scrap plate) | B+ | (112) |
+| Reinforced tier pieces (concrete) | B | Pale, big chevron mark; no steel plate yet (112) |
+| Palisade fence (Defense) | A- | Warm tint fixed its only named flaw |
+| Lantern post (lit) | A- | (108, 109) |
+| Barrels, supply sacks (dressing and drop) | A- | (108) |
+| Dead pine (edge) | A- | |
+| Pine tree (node and edge) | A- | Conifer from the new sheet (Tripo P2): tiered needles, dark green, trunk (119, 120); one model, sizes 20-36 and girth 0.82-1.15 for variety |
+| Fatwood stump (pine remnant) | B | Resin colour |
+| Bare branches (Gather Sticks) | A- | Bark-brown now (118) |
+| Rock cluster (boulder) | C | Gated; re-conversion queued (stone unreachable meanwhile) |
+| Grass, gravel earth, paths | A- | Orchestrator: near A |
+| Leaf litter (clover) | B | No banding at max zoom (113) |
+| Dirt road | B | Ruts toned to the dirt |
+| Dry grass | B | Grass tile, straw tint |
+| Material borders | B | 4-stud voxel lobes |
+| Minimap | B+ | Terrain, base, trees, nodes (114) |
+| HUD layout, hotbar icons | A | Orchestrator: keep |
+| Canopy fade | B+ | |
+| Day lighting | B+ | Exposure +0.3 |
+| Night lighting | B | Readable; lantern pools (109) |
+| Fog banks | C | Volumetric layers open |
+| Gated, not visible | — | Campfire ring, torch, dry spring (B); rain collector (B+); signpost (B); reed stubble (C); palisade door (hinge fit) |
 
 ### Family models uploaded (the worktrees folder is approved now)
 
