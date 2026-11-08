@@ -12,7 +12,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://112405725173171",
 	},
 	["item.stone"] = {
 		id = "item.stone",
@@ -21,7 +21,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://75186630558712",
 	},
 	["item.scrap"] = {
 		id = "item.scrap",
@@ -30,7 +30,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 50,
-		icon = "",
+		icon = "rbxassetid://80608996498459",
 	},
 	["item.fiber"] = {
 		id = "item.fiber",
@@ -39,7 +39,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://132663482751916",
 	},
 	["item.fatwood"] = {
 		id = "item.fatwood",
@@ -48,7 +48,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://126388118275319",
 	},
 	["item.murky_water"] = {
 		id = "item.murky_water",
@@ -57,7 +57,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://98682343534917",
 		consume = { thirst = 15 },
 	},
 
@@ -69,7 +69,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://101508503044625",
 	},
 	["item.rope"] = {
 		id = "item.rope",
@@ -78,7 +78,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://82985276552297",
 	},
 	["item.cloth"] = {
 		id = "item.cloth",
@@ -87,7 +87,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://130934022159688",
 	},
 	["item.stone_block"] = {
 		id = "item.stone_block",
@@ -96,7 +96,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "common",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://128812261824827",
 	},
 	["item.scrap_plate"] = {
 		id = "item.scrap_plate",
@@ -105,7 +105,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://125799632435564",
 	},
 
 	-- Parts -----------------------------------------------------------------
@@ -116,7 +116,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://81409102699048",
 	},
 	["item.rivets"] = {
 		id = "item.rivets",
@@ -125,7 +125,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 30,
-		icon = "",
+		icon = "rbxassetid://77120206061042",
 	},
 	["item.coil_spring"] = {
 		id = "item.coil_spring",
@@ -134,7 +134,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://90352231746072",
 	},
 	["item.brass_gear"] = {
 		id = "item.brass_gear",
@@ -143,7 +143,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "rare",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://124141806161311",
 	},
 
 	-- Junk (Recycler fodder) ----------------------------------------------------
@@ -154,7 +154,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://130902464275946",
 	},
 	["item.snarled_wire"] = {
 		id = "item.snarled_wire",
@@ -163,7 +163,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://129120482133580",
 	},
 	["item.seized_motor"] = {
 		id = "item.seized_motor",
@@ -172,7 +172,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 5,
-		icon = "",
+		icon = "rbxassetid://103599862759407",
 	},
 
 	-- Tools -----------------------------------------------------------------
@@ -184,7 +184,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "common",
 		stackSize = 1,
 		durability = 60,
-		icon = "",
+		icon = "rbxassetid://76006509682187",
 		tool = { kind = "hatchet", tier = 1 },
 	},
 	["item.stone_pick"] = {
@@ -195,7 +195,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "common",
 		stackSize = 1,
 		durability = 60,
-		icon = "",
+		icon = "rbxassetid://93490362412249",
 		tool = { kind = "pick", tier = 1 },
 	},
 
@@ -208,7 +208,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "common",
 		stackSize = 1,
 		durability = 110,
-		icon = "",
+		icon = "rbxassetid://130094172132646",
 		equipSlot = "weapon",
 		weapon = { kind = "melee", damage = 14, attacksPerSecond = 1.0, range = 6 },
 	},
@@ -220,7 +220,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 120,
-		icon = "",
+		icon = "rbxassetid://133473045968137",
 		equipSlot = "weapon",
 		weapon = { kind = "melee", damage = 24, attacksPerSecond = 1.3, range = 7 },
 	},
@@ -232,7 +232,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 60,
-		icon = "",
+		icon = "rbxassetid://78122730028517",
 		equipSlot = "weapon",
 		weapon = { kind = "ranged", damage = 18, attacksPerSecond = 0.8, range = 60, ammoItemId = "item.arrow" },
 	},
@@ -243,7 +243,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 40,
-		icon = "",
+		icon = "rbxassetid://80248638313104",
 	},
 
 	-- Armor -------------------------------------------------------------------
@@ -255,7 +255,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "common",
 		stackSize = 1,
 		durability = 120,
-		icon = "",
+		icon = "rbxassetid://76447712786468",
 		equipSlot = "head",
 		armor = { defense = 3 },
 	},
@@ -267,7 +267,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 150,
-		icon = "",
+		icon = "rbxassetid://129117819249762",
 		equipSlot = "body",
 		armor = { defense = 6 },
 	},
@@ -280,7 +280,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 1,
-		icon = "",
+		icon = "rbxassetid://100067350903297",
 		equipSlot = "bag",
 		bagSlots = 6,
 	},
@@ -291,7 +291,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 1,
-		icon = "",
+		icon = "rbxassetid://116089210743966",
 		equipSlot = "bag",
 		bagSlots = 12,
 	},
@@ -304,7 +304,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://133721763482122",
 		consume = { health = 3, hunger = 4, thirst = 2 },
 	},
 	["item.ashroot"] = {
@@ -314,7 +314,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://122739222508009",
 		consume = { health = 2, hunger = 6 },
 	},
 	["item.roasted_ashroot"] = {
@@ -324,7 +324,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://107994886381735",
 		consume = { health = 15, hunger = 30, energy = 2 },
 	},
 	["item.sealed_tin"] = {
@@ -334,7 +334,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://113148496121260",
 		consume = { health = 10, hunger = 25, thirst = 5 },
 	},
 	["item.hearth_stew"] = {
@@ -344,7 +344,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://79468384157212",
 		consume = { health = 40, hunger = 60, thirst = 15, energy = 8 },
 	},
 	["item.boiled_water"] = {
@@ -354,7 +354,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://124968108734684",
 		consume = { thirst = 45 },
 	},
 	["item.ember_tea"] = {
@@ -364,7 +364,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://128895150537019",
 		consume = { health = 5, hunger = 5, thirst = 35, energy = 3 },
 	},
 	["item.field_dressing"] = {
@@ -374,7 +374,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 10,
-		icon = "",
+		icon = "rbxassetid://115717781115072",
 		consume = { health = 40 },
 	},
 	["item.ember_tonic"] = {
@@ -384,7 +384,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 5,
-		icon = "",
+		icon = "rbxassetid://91302770344790",
 		flags = { ignoresFoodEnergyCap = true },
 		consume = { energy = 25 },
 	},
@@ -397,7 +397,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 5,
-		icon = "",
+		icon = "rbxassetid://140630898641024",
 	},
 	["item.bp_reinforced"] = {
 		id = "item.bp_reinforced",
@@ -406,7 +406,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "epic",
 		stackSize = 5,
-		icon = "",
+		icon = "rbxassetid://92477519102534",
 	},
 }
 

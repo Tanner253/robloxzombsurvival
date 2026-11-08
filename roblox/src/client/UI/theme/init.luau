@@ -52,6 +52,18 @@ Theme.meters = {
 	xp = Color3.fromHex("FF8A3D"),
 }
 
+-- Item slot backplates by kind, so a glance at the bag sorts food from tools.
+-- Subtle tints behind the icon; rarity still owns the border.
+Theme.itemKind = {
+	food = Color3.fromHex("C98A3C"),
+	medical = Color3.fromHex("C9706A"),
+	tool = Color3.fromHex("7A8A99"),
+	gear = Color3.fromHex("7C8A5C"),
+	material = Color3.fromHex("8C7F6E"),
+	junk = Color3.fromHex("9A6A4A"),
+	blueprint = Color3.fromHex("5C86B8"),
+} :: { [string]: Color3 }
+
 Theme.radius = UDim.new(0, 8)
 Theme.strokeThickness = 2
 Theme.shadowOffset = 4

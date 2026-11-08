@@ -1,0 +1,32 @@
+icons_a 6fd34c19-a851-4b11-b9c4-f9bebe245cca
+icons_b 75daf5e4-7848-432b-93ed-6baeacd0cafc
+icons_c d0464340-0669-48ef-b680-2b55f6dfcb04
+icons_d 1f7b7da5-cfcd-4fa7-b327-950cc6d29b13
+nodes_a f22f6f69-a34b-4e1f-961c-41cf31b832e9
+nodes_b 6792ca30-02d5-4dfa-99c8-91432a8a16ae
+tools_a 0023260f-6f00-4454-9efe-ca252b85b509
+3d pine_tree 9614818e-6e98-4483-96da-b8b775377bd5
+3d boulder c0aa00b9-1523-4faf-96fd-b1b6abbee03c
+3d loose_stones 2464c353-8f45-4015-9d31-19857345864e
+3d fallen_branches c1e957d7-0395-403e-a8d8-30ba1078adc7
+3d ember_bush 9f083b94-9bd5-4a4d-a235-6054b7667ea0
+3d reed_patch 051c5c6b-85aa-4cfb-b4a2-8917f9bd195e
+3d fatwood_stump 03ee9aaa-234d-47ab-9526-3abf956faced
+3d scrap_heap 553ed0de-ceae-4847-b7b1-cb4e5dd8e6b4
+3d stone_hatchet 993affd4-9336-454f-9f75-8e0d2f2b188d
+3d stone_pick fcda320d-d144-4748-af08-3ae33b6e3f01
+3d spiked_club 1f8cbb2b-5dc5-467b-b96f-b8ce8f252b35
+3d scrapblade bd158f98-9e5f-4fe4-a8d1-2788eb97876a
+icons_v2 89559c4b-ade2-44a2-ad10-d483df8fe58e
+roblox EO_PineTree 118779507512576
+roblox EO_Boulder 74504286918510
+roblox EO_LooseStones 81045779859200
+roblox EO_FallenBranches 74341323373762
+roblox EO_EmberBush 127927334455409
+roblox EO_Reeds 133926655520860
+roblox EO_FatwoodStump 82347894052501
+roblox EO_ScrapHeap 74203943258657
+roblox EO_StoneHatchet 106528582836538
+roblox EO_StonePick 111417634803672
+roblox EO_SpikedClub 106164493087995
+roblox EO_Scrapblade 72317369810952

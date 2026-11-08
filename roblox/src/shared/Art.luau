@@ -39,22 +39,24 @@ Art.pieces = {
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
 Art.nodes = {
-	["node.pine_tree"] = { names = { "PineTree", "Gen_tree" }, height = 15 },
-	["node.boulder"] = { names = { "Boulder", "RockClump" }, height = 4.4 },
-	["node.loose_stones"] = { names = { "Gen_pebbles", "Pebbles" }, height = 1.9 },
-	["node.fallen_branches"] = { names = { "Branches", "Gen_firewood" }, height = 2.6 },
-	["node.reed_patch"] = { names = { "Reeds", "GrassClump" }, height = 3.4 },
-	["node.ember_bush"] = { names = { "EmberBush", "Bush" }, height = 3.4 },
+	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 17 },
+	["node.boulder"] = { names = { "EO_Boulder", "RockClump" }, height = 4.6 },
+	["node.loose_stones"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.8 },
+	["node.fallen_branches"] = { names = { "EO_FallenBranches", "Gen_firewood" }, height = 1.8 },
+	["node.reed_patch"] = { names = { "EO_Reeds", "GrassClump" }, height = 4.2 },
+	["node.ember_bush"] = { names = { "EO_EmberBush" }, height = 4 },
 	["node.spring_pool"] = { names = { "SpringPool" }, height = 1 },
-	["node.fatwood_stump"] = { names = { "Stump" }, height = 2.4 },
-	["node.scrap_heap"] = { names = { "ScrapHeap", "Rubble" }, height = 3.5 },
+	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 3 },
+	["node.scrap_heap"] = { names = { "EO_ScrapHeap" }, height = 3.8 },
 	["node.ashroot_mound"] = { names = { "AshrootMound" }, height = 1.6 },
 } :: { [string]: { names: { string }, height: number } }
 
 -- Items -> kit names for the model held in hand and the rendered 3D icon.
 Art.items = {
-	["item.stone_hatchet"] = { "Hatchet", "Gen_axe" },
-	["item.stone_pick"] = { "Pickaxe", "Pick" },
+	["item.stone_hatchet"] = { "EO_StoneHatchet", "Gen_axe" },
+	["item.spiked_club"] = { "EO_SpikedClub" },
+	["item.scrapblade"] = { "EO_Scrapblade" },
+	["item.stone_pick"] = { "EO_StonePick" },
 	["item.timber"] = { "Gen_firewood" },
 	["item.satchel"] = { "Gen_backpack" },
 	["item.pack_frame"] = { "Raw_Backpack", "Gen_backpack" },

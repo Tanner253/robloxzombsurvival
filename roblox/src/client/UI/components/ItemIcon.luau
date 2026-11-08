@@ -1,8 +1,8 @@
 --!strict
 --[[
 	ItemIcon: an item's picture. In order of preference:
-	1. a rendered 3D icon of the item's model (ReplicatedStorage.Assets.Icons),
-	2. the ItemDef.icon image,
+	1. the ItemDef.icon image (the painted icon set),
+	2. a rendered 3D icon of the item's model (ReplicatedStorage.Assets.Icons),
 	3. a fallback badge: a rarity-tinted disc with the item's glyph (Art.glyphs).
 ]]
 
@@ -37,16 +37,6 @@ local function ItemIcon(props: Props)
 	if def == nil then
 		return nil
 	end
-	local model = iconModel(props.itemId)
-	if model then
-		return React.createElement(ModelView, {
-			model = model,
-			size = size,
-			position = position,
-			anchorPoint = anchor,
-			zIndex = props.zIndex,
-		})
-	end
 	if def.icon ~= "" then
 		return React.createElement("ImageLabel", {
 			Size = size,
@@ -56,6 +46,16 @@ local function ItemIcon(props: Props)
 			Image = def.icon,
 			ScaleType = Enum.ScaleType.Fit,
 			ZIndex = props.zIndex,
+		})
+	end
+	local model = iconModel(props.itemId)
+	if model then
+		return React.createElement(ModelView, {
+			model = model,
+			size = size,
+			position = position,
+			anchorPoint = anchor,
+			zIndex = props.zIndex,
 		})
 	end
 	local tint = Theme.rarity[def.rarity] or Theme.rarity.common

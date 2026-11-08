@@ -30,6 +30,24 @@ export type Props = {
 	layoutOrder: number?,
 }
 
+-- Which Theme.itemKind backplate an item gets.
+local function kindOf(def: any): string
+	local category = def.category
+	if category == "consumable" then
+		local effect = def.consume or {}
+		return if (effect.hunger or 0) > 0 or (effect.thirst or 0) > 0 then "food" else "medical"
+	elseif category == "tool" or category == "weapon" or category == "ammo" then
+		return "tool"
+	elseif category == "armor" or category == "bag" then
+		return "gear"
+	elseif category == "junk" then
+		return "junk"
+	elseif category == "blueprint" then
+		return "blueprint"
+	end
+	return "material"
+end
+
 local function ItemSlot(props: Props)
 	local itemId = props.itemId
 	local empty = itemId == nil or itemId == "" or (props.count or 0) <= 0
@@ -109,6 +127,23 @@ local function ItemSlot(props: Props)
 		Shade = not empty and React.createElement("UIGradient", {
 			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 186, 180)),
 			Rotation = 90,
+		}),
+		Backplate = def and React.createElement("Frame", {
+			Size = UDim2.fromScale(0.86, 0.86),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Theme.itemKind[kindOf(def)] or Theme.colors.panelRaised,
+			BackgroundTransparency = 0.25,
+			BorderSizePixel = 0,
+		}, {
+			Corner = React.createElement("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+			Fade = React.createElement("UIGradient", {
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.35),
+					NumberSequenceKeypoint.new(0.7, 0.85),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}),
 		}),
 		Icon = not empty and React.createElement(ItemIcon, { itemId = itemId :: string }),
 		Dim = props.dim and not empty and React.createElement("Frame", {
