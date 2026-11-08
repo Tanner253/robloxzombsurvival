@@ -242,7 +242,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	-- Stations -----------------------------------------------------------------------------
 	["build.workbench"] = {
 		id = "build.workbench",
-		footprint = { w = 2, d = 2 }, -- quarter cells (3 studs)
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
 		name = "Workbench",
 		kind = "station",
 		tier = 1,
@@ -259,7 +259,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	},
 	["build.campfire"] = {
 		id = "build.campfire",
-		footprint = { w = 2, d = 2 }, -- quarter cells (3 studs)
+		footprint = { w = 3, d = 3 }, -- quarter cells (2 studs)
 		name = "Campfire",
 		kind = "station",
 		tier = 1,
@@ -275,7 +275,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	},
 	["build.recycler"] = {
 		id = "build.recycler",
-		footprint = { w = 2, d = 2 }, -- quarter cells (3 studs)
+		footprint = { w = 3, d = 3 }, -- quarter cells (2 studs)
 		name = "Recycler",
 		kind = "station",
 		tier = 2,
@@ -296,7 +296,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	-- Storage --------------------------------------------------------------------------------
 	["build.crate_wood"] = {
 		id = "build.crate_wood",
-		footprint = { w = 1, d = 2 }, -- quarter cells (3 studs)
+		footprint = { w = 2, d = 3 }, -- quarter cells (2 studs)
 		name = "Timber Crate",
 		kind = "storage",
 		tier = 1,
@@ -313,7 +313,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	},
 	["build.crate_banded"] = {
 		id = "build.crate_banded",
-		footprint = { w = 1, d = 2 }, -- quarter cells (3 studs)
+		footprint = { w = 2, d = 3 }, -- quarter cells (2 studs)
 		name = "Banded Crate",
 		kind = "storage",
 		tier = 2,

@@ -402,26 +402,23 @@ return function(test: TestKit.Register)
 		TestKit.equal(select(2, Grid.deserialize(unknown, DEFS)), "corrupt", "unknown piece id")
 	end)
 
-	test("version 1 layouts move objects from whole cells to the sub-grid", function()
-		local layout = build({ { "build.floor_wood", { x = 2, z = 1 } }, { "build.chest", { x = 8, z = 5 } } })
-		local saved = Grid.serialize(layout)
-		-- Rewrite it as version 1 did: the chest on cell (2, 1).
-		saved.v = 1
-		saved.d = table.clone(saved.d)
-		saved.d[8 + 4], saved.d[8 + 5] = 2, 1
-		local loaded = Grid.deserialize(saved, DEFS) :: Grid.Layout
-		local chest = Grid.pieceAt(loaded, "object", 2, 1) :: Grid.Piece
-		TestKit.equal(chest.x, 9, "2 x 1 footprint centred in quarters 8..11")
-		TestKit.equal(chest.z, 5)
-		TestKit.equal(Grid.objectAt(loaded, 10, 5), chest)
-		TestKit.equal(Grid.serialize(loaded).v, Grid.LAYOUT_VERSION, "saves as the current version")
+	test("layouts from the retired 12-stud grid reset to an empty plot", function()
+		local layout = build({ { "build.floor_wood", { x = 2, z = 1 } } })
+		for _, version in { 1, 2 } do
+			local saved = Grid.serialize(layout)
+			saved.v = version
+			local loaded = Grid.deserialize(saved, DEFS) :: Grid.Layout
+			TestKit.deepEqual(loaded, Grid.new(), `v{version} resets`)
+		end
+		TestKit.equal(Grid.serialize(layout).v, 3, "saves as version 3")
 	end)
 
 	test("stud helpers snap positions to cells and edges", function()
-		TestKit.deepEqual({ Grid.cellAt(13, 30) }, { 1, 2 })
-		TestKit.deepEqual({ Grid.cellCenter(1, 2) }, { 18, 30 })
-		TestKit.deepEqual({ Grid.edgeCenter("v", 1, 2) }, { 12, 30, 90 })
-		TestKit.deepEqual({ Grid.edgeNear(18, 25) }, { "h", 1, 2 }, "near the south side of (1,2)")
-		TestKit.deepEqual({ Grid.edgeNear(23, 30) }, { "v", 2, 2 }, "near the east side of (1,2)")
+		local c = Grid.CELL_STUDS -- 8
+		TestKit.deepEqual({ Grid.cellAt(c + 1, 2.5 * c) }, { 1, 2 })
+		TestKit.deepEqual({ Grid.cellCenter(1, 2) }, { 1.5 * c, 2.5 * c })
+		TestKit.deepEqual({ Grid.edgeCenter("v", 1, 2) }, { c, 2.5 * c, 90 })
+		TestKit.deepEqual({ Grid.edgeNear(1.5 * c, 2.1 * c) }, { "h", 1, 2 }, "near the south side of (1,2)")
+		TestKit.deepEqual({ Grid.edgeNear(1.9 * c, 2.5 * c) }, { "v", 2, 2 }, "near the east side of (1,2)")
 	end)
 end

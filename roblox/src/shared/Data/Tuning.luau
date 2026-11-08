@@ -79,9 +79,9 @@ local Tuning: Types.TuningDef = {
 		keepPockets = false, -- LDoE drops everything carried; equipment is always kept
 	},
 	building = {
-		gridStuds = 12,
+		gridStuds = 8, -- a wall segment about 1.4 survivor heights: rooms read as rooms (LDoE scale)
 		wallHeightStuds = 12,
-		plotCells = 10,
+		plotCells = 15, -- 15 x 8 studs: the same 120-stud plot
 		refundGraceSeconds = 30,
 		lateRefundFraction = 0.5,
 	},

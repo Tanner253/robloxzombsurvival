@@ -26,17 +26,17 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Seams = {}
 
 local CELL = Grid.CELL_STUDS
-local BEAM_DEPTH = 0.8
-local BEAM_HEIGHT = 1.7
+local BEAM_DEPTH = 0.6
+local BEAM_HEIGHT = 1.2
 local RIM = 0.18 -- the trim stands this far proud of the deck
 local SINK = 0.05 -- detail layers sit at least this far off any surface they meet
 
 type Trim = { material: Enum.Material, color: Color3, post: "log" | "box", postSize: number }
 
 local TRIMS: { Trim } = {
-	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "log", postSize = 2.3 },
-	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 1.6 },
-	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 2 },
+	{ material = Enum.Material.Wood, color = Color3.fromRGB(112, 86, 62), post = "log", postSize = 1.7 },
+	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 1.3 },
+	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 1.5 },
 }
 local CAP = { Color3.fromRGB(62, 44, 32), Color3.fromRGB(70, 72, 76), Color3.fromRGB(70, 72, 76) }
 local CAP_MATERIAL = { Enum.Material.Wood, Enum.Material.DiamondPlate, Enum.Material.DiamondPlate }

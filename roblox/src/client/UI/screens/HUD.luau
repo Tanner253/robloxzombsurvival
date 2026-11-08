@@ -402,7 +402,7 @@ local function Minimap()
 		return nil
 	end
 	local cells = plot.cells
-	local scale = MAP_SIZE / (cells * 12)
+	local scale = MAP_SIZE / (cells * Grid.CELL_STUDS)
 	local layout = Grid.deserialize(saved, Content.BuildPieces :: any)
 	if layout == nil then
 		return nil
@@ -417,16 +417,21 @@ local function Minimap()
 		end
 		if piece.layer == "floor" then
 			children[`F{uid}`] = e("Frame", {
-				Size = UDim2.fromOffset(12 * scale, 12 * scale),
-				Position = UDim2.fromOffset(piece.x * 12 * scale, piece.z * 12 * scale),
+				Size = UDim2.fromOffset(Grid.CELL_STUDS * scale, Grid.CELL_STUDS * scale),
+				Position = UDim2.fromOffset(piece.x * Grid.CELL_STUDS * scale, piece.z * Grid.CELL_STUDS * scale),
 				BackgroundColor3 = Color3.fromRGB(122, 96, 70),
 				BorderSizePixel = 0,
 			})
 		elseif piece.layer == "frame" then
 			local horizontal = piece.axis == "h"
 			children[`W{uid}`] = e("Frame", {
-				Size = if horizontal then UDim2.fromOffset(12 * scale, 3) else UDim2.fromOffset(3, 12 * scale),
-				Position = UDim2.fromOffset(piece.x * 12 * scale - 1, piece.z * 12 * scale - 1),
+				Size = if horizontal
+					then UDim2.fromOffset(Grid.CELL_STUDS * scale, 3)
+					else UDim2.fromOffset(3, Grid.CELL_STUDS * scale),
+				Position = UDim2.fromOffset(
+					piece.x * Grid.CELL_STUDS * scale - 1,
+					piece.z * Grid.CELL_STUDS * scale - 1
+				),
 				BackgroundColor3 = Theme.colors.text,
 				BorderSizePixel = 0,
 				ZIndex = 2,
@@ -458,7 +463,7 @@ local function Minimap()
 		local id = node:GetAttribute("NodeId")
 		if node:IsA("Model") and id then
 			local at = node:GetPivot().Position - plot.origin
-			if at.X >= 0 and at.Z >= 0 and at.X <= cells * 12 and at.Z <= cells * 12 then
+			if at.X >= 0 and at.Z >= 0 and at.X <= cells * Grid.CELL_STUDS and at.Z <= cells * Grid.CELL_STUDS then
 				children[`N{index}`] = e("Frame", {
 					Size = UDim2.fromOffset(5, 5),
 					Position = UDim2.fromOffset(at.X * scale, at.Z * scale),

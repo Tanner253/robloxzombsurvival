@@ -18,7 +18,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local Models = {}
 
-local CELL = 12
+local CELL = require(ReplicatedStorage.Shared.Domain.Grid).CELL_STUDS
 -- Deck slabs reach this far down so uneven ground never shows under them.
 local DECK_DEPTH = 2.4
 
@@ -197,6 +197,34 @@ function Models.deck(tier: number): Model
 	return finish(model)
 end
 
+-- Stretches a wall-layer kit model (authored for the old 12-stud cell) to span exactly one
+-- cell and stand WALL_HEIGHT tall, about its pivot (base centre, length along X).
+local function fitEdge(model: Model)
+	local pivot = model:GetPivot()
+	local size = model:GetExtentsSize()
+	if size.X < 0.01 or size.Y < 0.01 then
+		return
+	end
+	local sx, sy = CELL / size.X, Art.WALL_HEIGHT / size.Y
+	local function along(axis: Vector3): number
+		local a = pivot:VectorToObjectSpace(axis)
+		return math.abs(a.X) * sx + math.abs(a.Y) * sy + math.abs(a.Z)
+	end
+	for _, piece in model:GetDescendants() do
+		if piece:IsA("BasePart") then
+			local local_ = pivot:ToObjectSpace(piece.CFrame)
+			local offset = local_.Position
+			local moved = Vector3.new(offset.X * sx, offset.Y * sy, offset.Z)
+			piece.Size = Vector3.new(
+				piece.Size.X * along(piece.CFrame.RightVector),
+				piece.Size.Y * along(piece.CFrame.UpVector),
+				piece.Size.Z * along(piece.CFrame.LookVector)
+			)
+			piece.CFrame = pivot * (CFrame.new(moved) * local_.Rotation)
+		end
+	end
+end
+
 -- A build piece's model: the material deck for foundations, else its approved kit
 -- model, or nil while it has none (the piece is then hidden from the build menu and
 -- can't be placed; there are no stand-in builds, checklist §0).
@@ -210,6 +238,15 @@ function Models.piece(def: Types.BuildPieceDef): Model?
 	local kit = if names then Models.kit(names) else nil
 	if kit == nil then
 		return nil
+	end
+	if
+		def.kind == "wall"
+		or def.kind == "window"
+		or def.kind == "doorway"
+		or def.kind == "door"
+		or def.kind == "gate"
+	then
+		fitEdge(kit)
 	end
 	if def.id == "build.crate_banded" and kit.Name ~= "CrateBanded" then
 		band(kit)

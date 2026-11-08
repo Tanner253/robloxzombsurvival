@@ -42,16 +42,19 @@
 	to charge (BuildPieceDef.cost), `demolish` what to refund.
 ]]
 
+local Tuning = require("../Data/Tuning")
 local Types = require("../Types")
 
 local Grid = {}
 
-Grid.CELL_STUDS = 12
+Grid.CELL_STUDS = Tuning.building.gridStuds
 -- Quarter cells per cell side: the furniture sub-grid.
 Grid.SUB = 4
 Grid.SUB_STUDS = Grid.CELL_STUDS / Grid.SUB
--- 2: objects moved from whole cells to quarter cells (migrated on load).
-Grid.LAYOUT_VERSION = 2
+-- 2: objects moved from whole cells to quarter cells.
+-- 3: the cell shrank from 12 to 8 studs. Older layouts are reset to an empty plot on
+--    load (nothing was live; their cell coordinates no longer mean the same place).
+Grid.LAYOUT_VERSION = 3
 
 export type Axis = "h" | "v"
 export type Layer = "floor" | "frame" | "fill" | "roof" | "object"
@@ -870,7 +873,10 @@ end
 	footprint centred on that cell (as near as the sub-grid allows).
 ]]
 function Grid.deserialize(saved: any, defs: Defs): (Layout?, string?)
-	if type(saved) ~= "table" or (saved.v ~= Grid.LAYOUT_VERSION and saved.v ~= 1) then
+	if type(saved) == "table" and (saved.v == 1 or saved.v == 2) then
+		return Grid.new(), nil -- laid out on the retired 12-stud grid: start fresh
+	end
+	if type(saved) ~= "table" or saved.v ~= Grid.LAYOUT_VERSION then
 		return nil, "unsupportedVersion"
 	end
 	local data, palette = saved.d, saved.p
