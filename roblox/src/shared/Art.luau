@@ -16,7 +16,7 @@ local Art = {}
 -- top centre, walls and props at their bottom centre (look-test v2 conform pass).
 -- Low enough to walk onto: characters can't jump (Survival turns jumping off),
 -- so the rest of each foundation sits in the ground.
-Art.FLOOR_HEIGHT = 1
+Art.FLOOR_HEIGHT = 0.5 -- deck tops sit 0.45 above the ground: a step, not a stage
 -- Wall height for fallback walls (kit walls are 8.2 to 8.9 studs).
 Art.WALL_HEIGHT = 8.6
 
@@ -43,7 +43,9 @@ Art.pieces = {
 -- runtime. Their 12-stud tile matches the cell, so the texture runs on unbroken
 -- across neighbouring foundations.
 Art.decks = {
-	{ base = Enum.Material.WoodPlanks, variant = "EO_Deck_Wood", tint = Color3.fromRGB(196, 168, 140) },
+	-- Wood uses Roblox's own wide, calm planks: the generated variant read as a noisy
+	-- barcode at the gameplay camera (QA).
+	{ base = Enum.Material.WoodPlanks, variant = "", tint = Color3.fromRGB(150, 116, 84) },
 	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
@@ -52,7 +54,7 @@ Art.decks = {
 Art.dropModels = { "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
 Art.nodes = {
-	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 17 },
+	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
 	["node.boulder"] = { names = { "EO_Boulder", "RockClump" }, height = 4.6 },
 	["node.loose_stones"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.8 },
 	["node.fallen_branches"] = { names = { "EO_FallenBranches", "Gen_firewood" }, height = 1.8 },
@@ -67,7 +69,7 @@ Art.nodes = {
 -- What a depleted node leaves behind until it regrows (LDoE leaves stumps and rubble):
 -- a kit model scaled to `height`. Small pickups (branches, loose stones) leave nothing.
 Art.remnants = {
-	["node.pine_tree"] = { names = { "EO_FatwoodStump" }, height = 1.5 },
+	["node.pine_tree"] = { names = { "EO_FatwoodStump" }, height = 2.3 },
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 0.55 },
 	["node.boulder"] = { names = { "EO_LooseStones" }, height = 1.1 },
 	["node.scrap_heap"] = { names = { "EO_ScrapHeap" }, height = 0.9 },

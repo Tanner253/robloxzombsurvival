@@ -17,6 +17,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Crafting = require(ReplicatedStorage.Shared.Domain.Crafting)
 local ItemSources = require(ReplicatedStorage.Shared.Domain.ItemSources)
@@ -77,10 +78,24 @@ local function lockText(recipe: any): string
 	return ""
 end
 
+-- Stations the player can build (their piece has an approved model, checklist §0).
+local function stationBuildable(stationId: string): boolean
+	for id, piece in Content.BuildPieces do
+		if piece.stationId == stationId and Art.pieceReady(id, piece.kind) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Every recipe the player could ever make now: hand recipes, and station recipes whose
+-- station can be built (a missing station hides its recipes rather than teasing them).
 local function allRecipes(): { any }
 	local list = {}
 	for _, recipe in Content.Recipes do
-		table.insert(list, recipe)
+		if recipe.stationId == nil or stationBuildable(recipe.stationId) then
+			table.insert(list, recipe)
+		end
 	end
 	return list
 end

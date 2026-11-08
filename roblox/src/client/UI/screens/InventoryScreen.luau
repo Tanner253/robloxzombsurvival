@@ -808,8 +808,8 @@ local function InboxList(props: { rows: { any } })
 		TakeAll = e(Button, {
 			text = "Take all",
 			disabled = shown == 0,
-			size = UDim2.fromOffset(110, 44),
-			position = UDim2.new(1, 0, 0, -8),
+			size = UDim2.fromOffset(110, 34),
+			position = UDim2.fromScale(1, 0),
 			anchorPoint = Vector2.new(1, 0),
 			onActivated = function()
 				Net.fire("InboxTakeAll", filter)
@@ -908,7 +908,7 @@ local function InventoryScreen()
 				-- Big bags scroll inside the window instead of spilling over the hotbar.
 				Backpack = if #inventory.backpack > BACKPACK_VISIBLE_SLOTS
 					then e("ScrollingFrame", {
-						Size = UDim2.fromOffset(6 * (SLOT + GAP) + 6, 2.5 * (SLOT + GAP)),
+						Size = UDim2.fromOffset(6 * (SLOT + GAP) + 6, 3 * (SLOT + GAP)), -- whole rows
 						BackgroundTransparency = 1,
 						BorderSizePixel = 0,
 						ScrollBarThickness = 4,

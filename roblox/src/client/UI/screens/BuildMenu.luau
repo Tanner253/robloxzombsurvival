@@ -315,9 +315,9 @@ local function BuildMenu()
 			subtitle = "LMB place · drag to paint floors and walls",
 			closeKey = "B",
 			onClose = Actions.toggleBuild,
-			size = UDim2.fromOffset(1180, 250),
-			position = UDim2.new(0.5, 0, 1, -8),
-			anchorPoint = Vector2.new(0.5, 1),
+			size = UDim2.fromOffset(960, 250), -- leaves the action bar (bottom right) uncovered
+			position = UDim2.new(0, 16, 1, -8),
+			anchorPoint = Vector2.new(0, 1),
 			rise = 40,
 		}, {
 			Tabs = e("Frame", { Size = UDim2.new(1, -420, 0, 30), BackgroundTransparency = 1 }, tabs),
@@ -348,7 +348,7 @@ local function BuildMenu()
 				}),
 				Demolish = e(ModeButton, {
 					label = "Demolish",
-					keyName = "X",
+					keyName = "Del",
 					active = ui.buildMode == "demolish",
 					layoutOrder = 2,
 					onActivated = function()

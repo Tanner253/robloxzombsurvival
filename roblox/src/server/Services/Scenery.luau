@@ -22,6 +22,7 @@
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Models = require("../World/Models")
@@ -134,7 +135,7 @@ local TERRAIN_COLORS: { [Enum.Material]: Color3 } = {
 	[Enum.Material.Grass] = Color3.fromRGB(82, 92, 62),
 	[Enum.Material.LeafyGrass] = Color3.fromRGB(74, 84, 58),
 	[Enum.Material.Ground] = Color3.fromRGB(104, 90, 70),
-	[Enum.Material.Mud] = Color3.fromRGB(76, 68, 58),
+	[Enum.Material.Mud] = Color3.fromRGB(88, 78, 64),
 	[Enum.Material.Rock] = Color3.fromRGB(110, 112, 112),
 	[Enum.Material.Slate] = Color3.fromRGB(88, 89, 86),
 	[Enum.Material.Pavement] = Color3.fromRGB(120, 118, 112),
@@ -167,11 +168,8 @@ local function terrain(origin: Vector3, random: Random)
 	-- worn paths), then macro zones from layered noise, drying to dead grass toward
 	-- the fog. Nothing here changes the height.
 	local function surface(x: number, z: number): Enum.Material
-		local fromHearth = math.sqrt(x * x + z * z)
-		if fromHearth < 10 then
-			return Enum.Material.Basalt -- ash
-		elseif fromHearth < 16 then
-			return Enum.Material.Ground -- scorched, trodden earth
+		if math.sqrt(x * x + z * z) < 14 then
+			return Enum.Material.Ground -- the trodden plaza where the Hearth will stand
 		end
 		local ragged = math.noise(x / 9, 0, 3.3) * 2.5
 		if math.abs(z) < roadHalf + ragged and math.abs(x) < HALF_WIDTH + 60 then
@@ -212,7 +210,7 @@ local function terrain(origin: Vector3, random: Random)
 			return Enum.Material.Rock
 		elseif patches > 0.38 then
 			return Enum.Material.Ground
-		elseif patches < -0.42 then
+		elseif patches < -0.55 and edge < 0 then
 			return Enum.Material.Mud
 		elseif zones > 0.18 then
 			return Enum.Material.LeafyGrass
@@ -351,37 +349,46 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 			end
 		end
 	end
-	-- Pines along the edges and a wrecked car by the west road.
+	-- A dense line of tall pines in front of the fog on every side (the neighbourhood's
+	-- boundary), scaled by height: the kit pine's own scale is about a stud.
 	local edges = Instance.new("Folder")
 	edges.Name = "Edges"
 	edges.Parent = root
-	for _ = 1, 22 do
-		local x = random:NextNumber(-HALF_WIDTH - 40, HALF_WIDTH + 40)
-		local z = (if random:NextNumber() < 0.5 then -1 else 1) * random:NextNumber(HALF_DEPTH + 30, HALF_DEPTH + 50)
-		place(
-			edges,
-			{ "Gen_tree", "EO_PineTree" },
-			origin + Vector3.new(x, -0.1, z),
-			random:NextInteger(-180, 180),
-			random:NextNumber(0.9, 1.3),
-			true
+	local function tree(x: number, z: number)
+		local model = Models.kit({ "EO_PineTree" })
+		if model == nil then
+			return
+		end
+		local height = model:GetExtentsSize().Y
+		if height > 0.01 then
+			model:ScaleTo(model:GetScale() * random:NextNumber(26, 36) / height)
+		end
+		model:PivotTo(
+			CFrame.new(origin + Vector3.new(x, -0.3, z)) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
 		)
+		for _, descendant in model:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant.CanCollide = false
+				descendant.CanTouch = false
+			end
+		end
+		model.Parent = edges
 	end
-	for _ = 1, 8 do
-		local x = (if random:NextNumber() < 0.5 then -1 else 1) * random:NextNumber(HALF_WIDTH + 40, HALF_WIDTH + 60)
-		local z = random:NextNumber(-HALF_DEPTH, HALF_DEPTH)
-		if math.abs(z) > tuning.rowGapStuds then
-			place(
-				edges,
-				{ "Gen_tree", "EO_PineTree" },
-				origin + Vector3.new(x, -0.1, z),
-				random:NextInteger(-180, 180),
-				random:NextNumber(0.9, 1.3),
-				true
-			)
+	for row = 0, 2 do
+		local depthOut = HALF_DEPTH + 26 + row * 11
+		local widthOut = HALF_WIDTH + 30 + row * 11
+		local step = 9 + row * 2
+		for x = -widthOut, widthOut, step do
+			tree(x + random:NextNumber(-3, 3), -depthOut + random:NextNumber(-3, 3))
+			tree(x + random:NextNumber(-3, 3), depthOut + random:NextNumber(-3, 3))
+		end
+		for z = -depthOut, depthOut, step do
+			if math.abs(z) > tuning.rowGapStuds * 0.6 then -- leave the road open to the Trailhead
+				tree(-widthOut + random:NextNumber(-3, 3), z + random:NextNumber(-3, 3))
+				tree(widthOut + random:NextNumber(-3, 3), z + random:NextNumber(-3, 3))
+			end
 		end
 	end
-	place(edges, { "Car" }, origin + Vector3.new(-HALF_WIDTH - 20, 0, 5), 78, 15.5, true)
 	root.Parent = world
 end
 
@@ -485,6 +492,10 @@ end
 
 local function hearth(world: Instance, origin: Vector3)
 	if world:FindFirstChild("Hearth") then
+		return
+	end
+	-- No light without its source: the Hearth appears with its fire model (checklist §0).
+	if not Art.approved.Hearth then
 		return
 	end
 	local folder = Instance.new("Folder")

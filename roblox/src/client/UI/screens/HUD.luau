@@ -9,6 +9,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
@@ -112,7 +113,9 @@ local function Status()
 	local progression = hooks.useSection("progression")
 	local energy = hooks.useSection("energy")
 	local now = hooks.useClock(1)
-	local hours = Clock.hoursAt(now)
+	-- Studio's pinned hour (ClockOverride) shows on the chip too, so captures agree.
+	local pinned = if RunService:IsStudio() then workspace:GetAttribute("ClockOverride") else nil
+	local hours = if type(pinned) == "number" then pinned else Clock.hoursAt(now)
 
 	local level = if progression then progression.level else 1
 	local into, span, fraction = 0, 0, 0
@@ -405,7 +408,6 @@ local function Minimap()
 		return nil
 	end
 	local children: { [string]: any } = {
-		Corner = e("UICorner", { CornerRadius = Theme.radius }),
 		Stroke = e("UIStroke", { Color = Theme.colors.strokeWarm, Thickness = Theme.strokeThickness }),
 	}
 	for uid, piece in layout.pieces do
@@ -440,7 +442,47 @@ local function Minimap()
 			}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 		end
 	end
-	-- You: an arrow that turns with the survivor.
+	-- Resource nodes and trees standing on your plot (8.11).
+	local nodesFolder: Instance? = nil
+	local world = workspace:FindFirstChild("World")
+	local plotsFolder = world and world:FindFirstChild("Plots")
+	for _, plotModel in (if plotsFolder then plotsFolder:GetChildren() else {}) do
+		local nodes = plotModel:FindFirstChild("Nodes")
+		local sample = nodes and nodes:FindFirstChildWhichIsA("Model")
+		if sample and sample:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId then
+			nodesFolder = nodes
+		end
+	end
+	local nodeList: { Instance } = if nodesFolder then (nodesFolder :: Instance):GetChildren() else {}
+	for index, node in nodeList do
+		local id = node:GetAttribute("NodeId")
+		if node:IsA("Model") and id then
+			local at = node:GetPivot().Position - plot.origin
+			if at.X >= 0 and at.Z >= 0 and at.X <= cells * 12 and at.Z <= cells * 12 then
+				children[`N{index}`] = e("Frame", {
+					Size = UDim2.fromOffset(5, 5),
+					Position = UDim2.fromOffset(at.X * scale, at.Z * scale),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundColor3 = if id == "node.pine_tree"
+						then Color3.fromRGB(70, 110, 64)
+						else Theme.colors.textMuted,
+					ZIndex = 2,
+				}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+			end
+		end
+	end
+	children.North = e("TextLabel", {
+		Size = UDim2.fromOffset(18, 18),
+		Position = UDim2.new(0.5, 0, 0, 4),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundTransparency = 1,
+		FontFace = Theme.fonts.header,
+		Text = "N",
+		TextSize = Theme.textSize.caption,
+		TextColor3 = Theme.colors.highlight,
+		ZIndex = 5,
+	})
+	-- You: an arrow that turns with the survivor; off the plot it waits on the rim.
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
@@ -461,14 +503,21 @@ local function Minimap()
 			ZIndex = 4,
 		})
 	end
-	return e("Frame", {
-		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
-		Position = UDim2.new(1, -16, 0, 80),
-		AnchorPoint = Vector2.new(1, 0),
-		BackgroundColor3 = Color3.fromRGB(46, 58, 44),
-		BackgroundTransparency = 0.1,
-		ClipsDescendants = true,
-	}, children)
+	return e(
+		"Frame",
+		{
+			Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
+			Position = UDim2.new(1, -16, 0, 80),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundColor3 = Color3.fromRGB(46, 58, 44),
+			BackgroundTransparency = 0.1,
+			ClipsDescendants = true,
+		},
+		(function()
+			children.Round = e("UICorner", { CornerRadius = UDim.new(1, 0) })
+			return children
+		end)()
+	)
 end
 
 -- Hotbar ---------------------------------------------------------------------------------------------------
@@ -615,7 +664,7 @@ local function ActionButton(
 		}),
 		Badge = (props.badge or 0) > 0 and e("TextLabel", {
 			Size = UDim2.fromOffset(24, 24),
-			Position = UDim2.fromOffset(-4, -4),
+			Position = UDim2.fromOffset(6, -12), -- above the icon, clear of the neighbour's key chip and the label
 			BackgroundColor3 = Theme.colors.locked,
 			FontFace = Theme.fonts.header,
 			Text = if (props.badge or 0) > 99 then "99+" else tostring(props.badge),
@@ -693,7 +742,7 @@ local function ActionBar()
 		Auto = ui.panel == "none" and e(ActionButton, {
 			label = if ui.auto then "Auto on" else "Auto",
 			keyName = "Q",
-			glyph = "⟳",
+			glyph = "🔁",
 			primary = ui.auto,
 			size = 64,
 			layoutOrder = 0,

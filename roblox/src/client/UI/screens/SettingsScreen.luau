@@ -35,6 +35,7 @@ local KEYS = {
 	{ "1-9 / wheel", "Hotbar" },
 	{ "Ctrl + wheel", "Zoom" },
 	{ "Tab", "Inventory" },
+	{ "C", "Crafting" },
 	{ "B", "Build" },
 	{ "R / U / X", "Rotate / upgrade / demolish" },
 	{ "F / G", "Take all / Put all at a crate" },

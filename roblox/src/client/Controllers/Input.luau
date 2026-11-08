@@ -66,7 +66,7 @@ local function onKey(key: Enum.KeyCode)
 			Actions.rotate()
 		elseif key == Enum.KeyCode.U then
 			Actions.buildMode("upgrade")
-		elseif key == Enum.KeyCode.X then
+		elseif key == Enum.KeyCode.Delete or key == Enum.KeyCode.X then
 			Actions.buildMode("demolish")
 		end
 	elseif ui.panel == "inventory" then

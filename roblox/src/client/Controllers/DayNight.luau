@@ -44,10 +44,11 @@ local DAY: Key = {
 	decay = Color3.fromRGB(104, 118, 134),
 }
 local NIGHT: Key = {
-	brightness = 1,
-	exposure = 0.5,
-	ambient = Color3.fromRGB(58, 66, 92),
-	outdoor = Color3.fromRGB(92, 104, 142),
+	brightness = 1.2,
+	exposure = 0.55,
+	-- Blue moonlight fill: trees, nodes and the base stay readable at night (QA).
+	ambient = Color3.fromRGB(78, 88, 122),
+	outdoor = Color3.fromRGB(112, 126, 172),
 	tint = Color3.fromRGB(198, 212, 240),
 	haze = Color3.fromRGB(46, 54, 72),
 	decay = Color3.fromRGB(34, 40, 58),
@@ -56,7 +57,7 @@ local DUSK_TINT = Color3.fromRGB(255, 212, 172) -- golden hour, strongest mid-tr
 -- A soft light on your own survivor: by night it keeps you readable in the dark; by day a
 -- smaller, dimmer one lifts the shadowed side so you never sink into the ground (2.2).
 local READ_LIGHT =
-	{ color = Color3.fromRGB(255, 214, 170), range = 16, brightness = 0.75, dayRange = 7, dayBrightness = 0.45 }
+	{ color = Color3.fromRGB(255, 214, 170), range = 24, brightness = 0.95, dayRange = 7, dayBrightness = 0.45 }
 
 local cues = {
 	{ hour = 18.5, text = "Night is coming. Keep your fire fed.", tone = "warn" },
