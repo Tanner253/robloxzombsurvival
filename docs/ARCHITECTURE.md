@@ -145,7 +145,8 @@ A feature is done only when all of these hold:
 3. Selene, StyLua and luau-lsp are clean.
 4. It has been playtested in Studio through MCP, with screenshots at phone framing that meet ART_DIRECTION.md.
 5. Analytics events for the feature are logged.
-6. The orchestrator has reviewed the diff and the screenshots.
+6. **Every row its slice owns in [PLAYER_EXPERIENCE_CHECKLIST.md](PLAYER_EXPERIENCE_CHECKLIST.md) is audited** (✅/⚠️/❌), and the feature-feel rule (§0 there) holds. The audit table goes in the report.
+7. The orchestrator has reviewed the diff and the screenshots, and re-checked the checklist rows.
 
 ## 11. Worker workflow
 
