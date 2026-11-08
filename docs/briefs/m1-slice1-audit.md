@@ -13,9 +13,21 @@ Updated as work lands; the final version goes into the slice report.
 6. ~~Building: seamless tiling + posts, furniture sub-grid, wall fade, explained refusals~~
 7. ~~Inventory: drag and drop, drop, sort, NEW badges, full flash, wheel hotbar~~
 8. ~~Stations: progress above the station, offline toast~~
-9. HUD: ~~level-up unlocks, day/night + cue + clock, settings, hop~~; loading screen
-10. World-as-code: WorldBuilder, KitLoader, Lighting from code, look-test leftovers, fresh-build test
-11. LDoE side-by-sides, gate captures, report
+9. ~~HUD: level-up unlocks, day/night + cue + clock, settings, hop, loading screen~~
+10. ~~World-as-code: Scenery (lighting, terrain, dressing, Trailhead, fog wall, Hearth), leftovers removed,
+    in-playtest fresh-build test~~; kit masters still live in the place (see below)
+11. ~~LDoE side-by-sides, gate captures~~ (docs/milestones/m1-slice1/40-62)
+
+## World as code: what is and isn't in the repo yet
+- In the repo and rebuilt by code: all scripts, data, UI; lighting and effects; terrain (when empty); dressing,
+  Trailhead, fog wall, Hearth; deck and kit MaterialVariants (place/materials); the loading screen.
+- Still only in the place: the kit masters (ServerStorage.EO_Kit, LT_Gen: meshes with SurfaceAppearances).
+  Scripts can't create SurfaceAppearance maps at runtime, so they come into the repo as .rbxm files extracted
+  by Lune from a local copy of the place. That needs the place saved to a file once (a dialog only the
+  developer can click).
+- Unsaved in the place until Ctrl+S: EO_Kit.EO_Campfire, MaterialService.EO_Materials, ReplicatedFirst.Loading,
+  the look-test deletions. `rojo serve` must restart to sync the new MaterialService / ReplicatedFirst /
+  Workspace nodes (the plugin then needs one Connect click).
 
 ## Audit table
 
@@ -46,7 +58,7 @@ Updated as work lands; the final version goes into the slice report.
 | 3.8 | ✅ | Wear per hit, one "about to break" warning, break snap sound + splinter burst + toast. |
 | 3.9 | ✅ | AUTO respects tools, walks node to node, stops when the bag is full or nothing is left. |
 | 3.10 | ⚠️ | Sticks icon painted; the Fallen Branches world model still has leafy mats (replacement needs ~6 credits over the cap; asked). |
-| 4.1 | ⚠️ | Root cause fixed (no CanvasGroup at rest, 1/8 scale steps); the 200% comparison vs the Esc menu is still to capture. |
+| 4.1 | ⚠️ | Root cause fixed (no CanvasGroup at rest, 1/8 scale steps); 200% crop in 45_ui_200pct_crop.png. Roblox's Esc menu can't be opened by synthetic input, and captures arrive downscaled as JPEG, so a pixel-exact side-by-side needs a real screenshot at 1920x1080. |
 | 4.2 | ✅ | Pockets, backpack and gear paper-doll. |
 | 4.3 | ✅ | Icon, count, durability bar, rarity frame, NEW badge. |
 | 4.4 | ✅ | Drag and drop (Shift: half), drag out to drop, right-click split, Shift+click quick-move. |
@@ -83,15 +95,15 @@ Updated as work lands; the final version goes into the slice report.
 | 8.4 | ✅ | NEW dot on the Bag button. |
 | 8.5 | ✅ | Sun/moon clock chip; "Night is coming" / "Dawn breaks". |
 | 8.6 | ✅ | Settings: five volumes, camera shake, interface size, key list; saved (PlayerSchema v3). |
-| 9.1 | ⚠️ | Ground layers exist in the place from the look test; not yet rebuilt from code (world-as-code). |
-| 9.2 | ⚠️ | Dressing exists in the place; not yet from code. |
-| 9.3 | ❌ | Fog wall and Trailhead: world-as-code work. |
-| 9.4 | ❌ | Hearth light radius: world-as-code work. |
+| 9.1 | ✅ | Scenery: grass slab with seeded leafy/earth/mud patches, mud road, earth pads; place colours set in code. |
+| 9.2 | ✅ | Scenery dressing by rule: lamps at plot fronts, camp props, tufts/rocks/pebbles ring, edge pines, wrecked car. |
+| 9.3 | ✅ | Rolling fog banks around the edge (open at the Trailhead); Trailhead with lamps, props and a lit sign. |
+| 9.4 | ⚠️ | The Hearth's light and a warm ground disc mark its radius (61_hearth_radius_dusk.jpg); fog doesn't yet visibly retreat from light. |
 | 9.5 | ✅ | 24-minute cycle; every lighting value eases; sun timed to the eased dusk; no jumps. |
 | 9.6 | ❌ | Wind (grass sway, drifting leaves) not done. |
 | 9.7 | ✅ | Day farmland/air beds, night crickets + low drone, fire crackle and saw loops near stations. |
 | 9.8 | ✅ | Sparse calm day track / night drone; level-up sting (quest sting with S3 quests). |
-| 10.1 | ❌ | Loading screen: next. |
+| 10.1 | ✅ | ReplicatedFirst loader: key art, title, rotating tips, real progress; fades only when world, survivor and HUD are ready. |
 | 10.2 | ⚠️ | ProfileStore autosave and save-on-leave; real rejoin test skipped by decision (unit tests + mock). |
 
 Out of S1 scope but noticed: quest completion and claiming (the tracker shows objectives met but nothing completes) is S3 (10.4).
