@@ -2,7 +2,7 @@
 
 Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-92 this pass).
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-94 this pass).
 
 Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
 solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
@@ -48,7 +48,7 @@ have not been re-graded.
 | Texture scale | C (2x) | B (rut tile) | Rut tile fixed |
 | Ground palette | C (rust, pink, green) | C (three families, murky noon) | One muted palette, midday exposure +0.3 |
 | Stray white patch | — | C (snow-like blotch) | Bare Rock replaced by gravel (91) |
-| Wooden deck | C (laminate, brightest surface) | C (grout seams) | Rough planks with dark gaps, per-plank colour (89) |
+| Wooden deck | C (laminate, brightest surface) | C (grout seams) | 89 (LT_Timber3) was a louder regression (orchestrator: C) and is reverted. Now calm honey-tan planks benchmarked on rec8, with a thin seam on the 8-stud grid (93; 94 compares rec8, 86, 89 and 93) |
 | Palisade fence | B (dark band) | B (blue-grey vs deck) | Warm tint to the deck palette |
 | Log posts | B (too thick) | C (primitive cylinders) | Removed for the wood tier; walls close their corners |
 | Workbench | B (blue-grey) | B (muddy texture) | Warm tint; texture needs a regenerated model |
@@ -187,7 +187,7 @@ have not been re-graded.
 | 6.8 | ✅ | Wall height test. |
 | 6.9 | ✅ | Seamless decks; trim frame outside the decks, beams abut end to end, one corner block per outside corner (64, 71-72). |
 | 6.10 | ✅ | Quarter-cell furniture, flush to walls. |
-| 6.11 | ✅ | Scan 0 hits (re-run on the 8-stud grid: 0); tiles abut with zero overlap; trim and posts offset ≥ 0.05; deck tops 0.95 above terrain; closest/farthest zoom captures from two angles (71-72). |
+| 6.11 | ✅ | Scan 0 hits (re-run on the 8-stud grid with 0.1 deck seams: 0); tiles sit 0.1 apart (a seam on the grid), never overlapping; trim and posts offset ≥ 0.05; deck tops 0.95 above terrain; closest/farthest zoom captures from two angles (71-72). |
 | 6.12 | ✅ | Kit pivots at the base centre, up +Y (Studio check); the workbench source model turned so its working side faces the pivot front (tools/conform_pivots.luau); against a wall it stands on its legs, worktop up, back to the wall, working side to the room (74). Other placeables are gated until their models land and go through the same lineup. |
 | 7.1 | ✅ | Bars drain smoothly, pulse when low. |
 | 7.2 | ✅ | Starvation/dehydration damage and regen. |

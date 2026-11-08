@@ -75,7 +75,55 @@ local function prepare(model: Model)
 end
 
 -- A clone of the first kit master found under any of `names`, or nil.
+-- Loads an uploaded family model (Art.uploaded) into EO_Kit when the place lacks it, and
+-- conforms it: turned by yaw, scaled so its world axis measures `size`, pivot at the base
+-- centre. Yields once per model per server; nil if the asset can't load.
+local loading: { [string]: boolean } = {}
+local function loadUploaded(name: string): Model?
+	local entry = Art.uploaded[name]
+	local kit = ServerStorage:FindFirstChild("EO_Kit")
+	if entry == nil or kit == nil or loading[name] then
+		return nil
+	end
+	loading[name] = true
+	local ok, container = pcall(function()
+		return game:GetService("InsertService"):LoadAsset(entry.id)
+	end)
+	local model = if ok then container:FindFirstChildWhichIsA("Model") else nil
+	if model == nil then
+		warn(`[Models] couldn't load {name} ({entry.id})`)
+		return nil
+	end
+	local box = model:GetBoundingBox()
+	model.WorldPivot = CFrame.new(box.Position)
+	model:PivotTo(CFrame.new(box.Position) * CFrame.Angles(0, math.rad(entry.yaw), 0))
+	model.WorldPivot = CFrame.new(model.WorldPivot.Position) -- axis-aligned: measure in world axes
+	local _, size = model:GetBoundingBox()
+	local current = if entry.axis == "X" then size.X elseif entry.axis == "Y" then size.Y else size.Z
+	model:ScaleTo(model:GetScale() * entry.size / current)
+	local centre, fitted = model:GetBoundingBox()
+	model.WorldPivot = CFrame.new(centre.Position - Vector3.new(0, fitted.Y / 2, 0))
+	model:PivotTo(CFrame.new())
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.Anchored = true
+		end
+	end
+	model.Name = name
+	model.Parent = kit
+	container:Destroy()
+	return model
+end
+
 function Models.kit(names: { string }): Model?
+	for _, name in names do
+		if Art.approved[name] and Art.uploaded[name] then
+			local kit = ServerStorage:FindFirstChild("EO_Kit")
+			if kit and kit:FindFirstChild(name, true) == nil then
+				loadUploaded(name)
+			end
+		end
+	end
 	for _, folder in sources() do
 		for _, name in names do
 			if not Art.approved[name] then

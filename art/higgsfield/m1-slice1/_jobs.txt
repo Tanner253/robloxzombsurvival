@@ -60,3 +60,5 @@ image structure_sheet_v1 bb3d6e99-5652-4642-9c4d-4f6c0e4e4ea5 (2.75)
 image gear_silhouettes ee77eb57-7079-4914-9011-c38e92fe4d54 (medium 2k)
 image timber_wall_sheet_v1 5a265105-2b55-48a9-af97-ea6bc2376320 (2.75)
 3d timber_wall 278017ea-a6ed-4860-bf55-abc35ea11ed8 (12) media 565f48b2-1ba5-445a-bb7d-b4d46d2bf77f
+3d timber_doorway 7ab966cf-e357-457d-b65d-6dfea04cad02 (12) media f0bc09f8-ddef-497e-98a8-e699880f4fa6
+3d timber_window 028656e4-c13a-4ce0-a0b8-d6a2e003d6f2 (12) media c674bd2c-8b4d-4047-bf8b-66ad1ad3bc9e

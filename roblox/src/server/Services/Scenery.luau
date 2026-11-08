@@ -280,6 +280,38 @@ end
 
 -- Places a kit model (bottom pivot) at a world position, turned, at an absolute scale
 -- (the scale the hand-built Neighbourhood used for that kit mesh).
+-- Places a family kit model (already conformed to its game size) standing at a position.
+local function placeFamily(folder: Instance, names: { string }, at: Vector3, yaw: number, solid: boolean): boolean
+	local model = Models.kit(names)
+	if model == nil then
+		return false
+	end
+	model:PivotTo(CFrame.new(at) * CFrame.Angles(0, math.rad(yaw), 0))
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.CanCollide = solid
+			descendant.CanTouch = false
+		end
+	end
+	local mesh = model:FindFirstChildWhichIsA("BasePart", true)
+	if model.Name == "EO_LanternPost" and mesh then
+		-- The lantern hangs from the arm about two thirds up: a warm glow from there.
+		local _, size = model:GetBoundingBox()
+		local glow = Instance.new("Attachment")
+		glow.Name = "Glow"
+		glow.WorldPosition = model:GetPivot().Position + Vector3.new(0, size.Y * 0.62, 0)
+		glow.Parent = mesh
+		local lamp = Instance.new("PointLight")
+		lamp.Range = 18
+		lamp.Brightness = 0.9
+		lamp.Color = Color3.fromRGB(255, 196, 140)
+		lamp.Shadows = false
+		lamp.Parent = glow
+	end
+	model.Parent = folder
+	return true
+end
+
 local function place(folder: Instance, names: { string }, at: Vector3, yaw: number, scale: number, solid: boolean)
 	local model = Models.kit(names)
 	if model == nil then
@@ -316,8 +348,13 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 		local base = origin + Vector3.new(centre.x, 0, 0)
 		-- Lamps flank the plot's road edge; two camp props sit near them.
 		local facing = if centre.front > 0 then 0 else 180
-		place(folder, { "Lamp" }, base + Vector3.new(-9, 0, frontZ), facing, 12.5, true)
-		place(folder, { "Lamp" }, base + Vector3.new(9, 0, frontZ), facing, 12.5, true)
+		-- A lantern post either side of the plot front (the family lantern, graded A).
+		if not placeFamily(folder, { "EO_LanternPost" }, base + Vector3.new(-9, 0, frontZ), facing, true) then
+			place(folder, { "Lamp" }, base + Vector3.new(-9, 0, frontZ), facing, 12.5, true)
+		end
+		if not placeFamily(folder, { "EO_LanternPost" }, base + Vector3.new(9, 0, frontZ), facing + 180, true) then
+			place(folder, { "Lamp" }, base + Vector3.new(9, 0, frontZ), facing, 12.5, true)
+		end
 		for slot = 1, 2 do
 			local name = CAMP_PROPS[random:NextInteger(1, #CAMP_PROPS)]
 			local side = if slot == 1 then -1 else 1
@@ -434,8 +471,12 @@ local function trailhead(world: Instance, origin: Vector3)
 	local folder = Instance.new("Folder")
 	folder.Name = "Trailhead"
 	local at = origin + Vector3.new(-HALF_WIDTH - 60, 0, 0)
-	place(folder, { "Lamp" }, at + Vector3.new(0, 0, -12), 90, 12.5, true)
-	place(folder, { "Lamp" }, at + Vector3.new(0, 0, 12), 90, 12.5, true)
+	if not placeFamily(folder, { "EO_LanternPost" }, at + Vector3.new(0, 0, -12), 90, true) then
+		place(folder, { "Lamp" }, at + Vector3.new(0, 0, -12), 90, 12.5, true)
+	end
+	if not placeFamily(folder, { "EO_LanternPost" }, at + Vector3.new(0, 0, 12), 270, true) then
+		place(folder, { "Lamp" }, at + Vector3.new(0, 0, 12), 90, 12.5, true)
+	end
 	place(folder, { "CrateStack" }, at + Vector3.new(6, 0, -20), 20, 5.5, true)
 	place(folder, { "Barrels" }, at + Vector3.new(4, 0, 19), -40, 5.17, true)
 	local sign = anchorPart("Sign", at + Vector3.new(0, 9, 0), folder)

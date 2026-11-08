@@ -24,12 +24,16 @@ Art.WALL_HEIGHT = 8.6
 -- Foundations are not kit meshes: they are cell-sized deck slabs (Art.decks) with a
 -- hairline seam between them; World/Seams adds trim and (scrap/reinforced) corner posts.
 Art.pieces = {
-	["build.wall_wood"] = { "WallTimber" }, -- solid plank wall with a top cap (art pending)
+	["build.wall_wood"] = { "EO_WallTimber" }, -- solid plank wall with a top cap
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
 	["build.wall_scrap"] = { "WallScrap" },
 	["build.wall_reinforced"] = { "WallReinforced" },
 	["build.window_scrap"] = { "WindowScrap" },
-	-- art gap: doorways, doors, wood and reinforced windows (kit door is merged into its doorway)
+	-- Wood doorway and window: the palisade family pieces (graded A) until the plank-wall
+	-- doorway and window from the timber sheet are converted. Art gap: doors (the palisade
+	-- leaf needs its hinge fit to the opening), reinforced windows.
+	["build.doorway_wood"] = { "EO_PalisadeDoorway" },
+	["build.window_wood"] = { "EO_PalisadeWindow" },
 	["build.workbench"] = { "Workbench" },
 	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
 	["build.recycler"] = { "Recycler", "Generator" }, -- art gap: Generator stands in
@@ -43,12 +47,12 @@ Art.pieces = {
 -- (place/materials -> MaterialService.EO_Materials); scripts can't create them at
 -- runtime. Each slab stops DECK_SEAM short of its cell, so a thin dark seam marks the
 -- 8-stud grid between foundations, the way LDoE's floor tiles read (rec8_base_017s).
-Art.DECK_SEAM = 0.1
+Art.DECK_SEAM = 0.05 -- QA: at 0.1 the grid line was darker than the board gaps
 Art.decks = {
 	-- Wood: wide, calm honey-tan boards, low contrast, dark seams, one 8-stud tile per
 	-- cell (benchmarked against rec8_base_017s; Roblox's planks read as laminate with
 	-- grout lines, LT_Timber3 as loud cartoon streaks).
-	{ base = Enum.Material.WoodPlanks, variant = "EO_Deck_Planks", tint = Color3.fromRGB(228, 210, 160) },
+	{ base = Enum.Material.WoodPlanks, variant = "EO_Deck_Planks", tint = Color3.fromRGB(236, 214, 150) },
 	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
@@ -70,6 +74,10 @@ Art.ground = {
 Art.tints = {
 	Workbench = Color3.fromRGB(255, 226, 192),
 	WallWood = Color3.fromRGB(255, 226, 192), -- QA2: the palisade's blue-grey wood vs the deck
+	EO_WallTimber = Color3.fromRGB(255, 226, 192),
+	EO_PalisadeDoorway = Color3.fromRGB(255, 226, 192),
+	EO_PalisadeWindow = Color3.fromRGB(255, 226, 192),
+	EO_PalisadeDoor = Color3.fromRGB(255, 226, 192),
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
@@ -77,9 +85,9 @@ Art.dropModels = { "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
 Art.nodes = {
 	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
-	["node.boulder"] = { names = { "EO_Boulder", "RockClump" }, height = 4.6 },
+	["node.boulder"] = { names = { "EO_RockCluster", "EO_Boulder" }, height = 3.1 },
 	["node.loose_stones"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.8 },
-	["node.fallen_branches"] = { names = { "EO_FallenBranches", "Gen_firewood" }, height = 1.8 },
+	["node.fallen_branches"] = { names = { "EO_BareBranches", "EO_FallenBranches" }, height = 0.94 },
 	["node.reed_patch"] = { names = { "EO_Reeds" }, height = 4.2 },
 	["node.ember_bush"] = { names = { "EO_EmberBush" }, height = 4 },
 	["node.spring_pool"] = { names = { "SpringPool" }, height = 1 },
@@ -120,7 +128,32 @@ Art.approved = {
 	EO_StonePick = true,
 	EO_SpikedClub = true,
 	EO_Scrapblade = true,
+	-- Family conversions graded A in the lineup (captures 95-101):
+	EO_WallTimber = true,
+	EO_PalisadeDoorway = true,
+	EO_PalisadeWindow = true,
+	EO_LanternPost = true,
+	EO_BareBranches = true,
+	EO_RockCluster = true,
 } :: { [string]: boolean }
+
+-- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
+-- A place built by Rojo alone lacks them in ServerStorage.EO_Kit, so the first lookup
+-- loads the asset (the creator's own) and conforms it as the Studio pass did: turned by
+-- `yaw`, scaled so its world `axis` measures `size` studs, pivot at its base centre.
+Art.uploaded = {
+	EO_BareBranches = { id = 131242296768407, yaw = 90, axis = "X", size = 5 },
+	EO_WallTimber = { id = 124343239589548, yaw = 90, axis = "X", size = 8 },
+	EO_PalisadeDoorway = { id = 94082431833572, yaw = 90, axis = "X", size = 8 },
+	EO_PalisadeDoor = { id = 87138652228163, yaw = 90, axis = "Y", size = 6.4 },
+	EO_PalisadeWindow = { id = 87647223753915, yaw = 90, axis = "X", size = 8 },
+	EO_CampfireRing = { id = 81464877202205, yaw = 0, axis = "X", size = 4.6 },
+	EO_SpringBasin = { id = 121429807141566, yaw = 0, axis = "X", size = 9 },
+	EO_ReedStubbleMesh = { id = 73755966799812, yaw = 0, axis = "Y", size = 1.4 },
+	EO_RockCluster = { id = 112631953002450, yaw = 0, axis = "X", size = 7 },
+	EO_LanternPost = { id = 115765948750615, yaw = 0, axis = "Y", size = 9 },
+	EO_StandingTorch = { id = 76894774227727, yaw = 0, axis = "Y", size = 6 },
+} :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean
 	local list: { string } = names or {}
