@@ -18,13 +18,13 @@ local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local State = {}
 
-export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "project" | "shop"
+export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "project" | "shop" | "haven"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
 export type Target = {
-	kind: "node" | "station" | "storage" | "drop",
-	key: string, -- node key, piece UID or drop id
+	kind: "node" | "station" | "storage" | "drop" | "haven",
+	key: string, -- node key, piece UID, drop id or Haven Square HavenId
 	label: string,
 	verb: string, -- "Chop", "Open", ...
 	model: Model,
@@ -63,6 +63,8 @@ export type Ui = {
 	settingsView: string?, -- the Settings sheet's page: nil (settings) or "credits"
 	guide: string?, -- the HUD button the first-session guide points at: "craft", "build", "inventory", "map"
 	guideLocation: string?, -- the location the guide sends you to (the Fog map marks its pin and Run)
+	havenId: string?, -- who or what on Haven Square the "haven" panel is talking to
+	havenTab: string?, -- the Trader's tab: "buy" (default) or "sell"
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
 	-- and safe-area insets instead of the real window.
 	gate: { width: number, height: number, top: number, left: number, right: number, bottom: number, touch: boolean }?,

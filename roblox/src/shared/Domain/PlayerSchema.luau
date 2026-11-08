@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 7
+PlayerSchema.VERSION = 8
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -100,7 +100,22 @@ export type PlayerData = {
 	purchases: { receiptIds: { string }, counts: { [string]: number }, backpackSlots: number },
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 	settings: Settings,
+	haven: HavenSave,
 }
+
+-- Haven Square (Services/Haven): coins from the Trader and contracts, today's contract
+-- deliveries (Domain/Contracts), chapters handed in to the Trail Keeper (chapter -> UTC
+-- time) and the UTC day of the last VIP crate.
+export type HavenSave = {
+	coins: number,
+	contracts: { day: number, done: { [string]: boolean } },
+	chapters: { [string]: number },
+	vipCrateDay: number,
+}
+
+function PlayerSchema.freshHaven(): HavenSave
+	return { coins = 0, contracts = { day = 0, done = {} }, chapters = {}, vipCrateDay = 0 }
+end
 
 -- Player settings (checklist 8.6): mixer volumes 0..1, camera shake, UI scale.
 export type Settings = {
@@ -186,6 +201,7 @@ function PlayerSchema.template(): PlayerData
 		purchases = { receiptIds = {}, counts = {}, backpackSlots = 0 },
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
+		haven = PlayerSchema.freshHaven(),
 	}
 end
 
@@ -471,6 +487,12 @@ PlayerSchema.migrations = {
 	-- v7: LDoE parity (LDOE_PARITY.md). See migrateToV7.
 	[6] = function(data)
 		PlayerSchema.migrateToV7(data, os.time())
+	end,
+	-- v8: Haven Square (coins, contracts, chapter hand-ins, the VIP crate).
+	[7] = function(data)
+		if type(data.haven) ~= "table" then
+			data.haven = PlayerSchema.freshHaven()
+		end
 	end,
 } :: Migrations.Steps
 

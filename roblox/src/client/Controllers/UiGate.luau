@@ -138,9 +138,26 @@ local function fixtureLayout(): any
 	return Grid.serialize(layout)
 end
 
+local function fixtureHaven(): any
+	return {
+		coins = 144,
+		contracts = {
+			{ id = "contract.timber", itemId = "item.timber", count = 30, coins = 60, xp = 150, done = false },
+			{ id = "contract.scrap", itemId = "item.scrap", count = 15, coins = 75, xp = 180, done = true },
+			{ id = "contract.rope", itemId = "item.rope", count = 6, coins = 60, xp = 150, done = false },
+		},
+		resetsAt = workspace:GetServerTimeNow() + 5 * 3600 + 720,
+		chapters = { "Ashes and Embers" },
+		vip = false,
+		vipPrice = 399,
+		crateAt = 0,
+	}
+end
+
 local function baseSections(): { [string]: any }
 	return {
 		inventory = fixtureInventory(),
+		haven = fixtureHaven(),
 		survival = {
 			health = 84,
 			maxHealth = 100,
@@ -225,6 +242,32 @@ local function scenes(): { Scene }
 		{ name = "settings", ui = { panel = "settings" } },
 		{ name = "settings.credits", ui = { panel = "settings", settingsView = "credits" } },
 		{ name = "shop", ui = { panel = "shop" } },
+		{ name = "haven.trader", ui = { panel = "haven", havenId = "npc.trader" } },
+		{
+			name = "haven.trader.sell",
+			ui = {
+				panel = "haven",
+				havenId = "npc.trader",
+				havenTab = "sell",
+				selected = { ref = "pockets", index = 1 },
+			},
+		},
+		{ name = "haven.keeper", ui = { panel = "haven", havenId = "npc.keeper" } },
+		{ name = "haven.board", ui = { panel = "haven", havenId = "board.contracts" } },
+		{ name = "haven.vip", ui = { panel = "haven", havenId = "npc.warden" } },
+		{
+			name = "haven.vip.member",
+			sections = {
+				haven = (function()
+					local haven = fixtureHaven()
+					haven.vip = true
+					haven.crateAt = workspace:GetServerTimeNow() + 6 * 3600
+					return haven
+				end)(),
+			},
+			ui = { panel = "haven", havenId = "npc.warden" },
+		},
+		{ name = "haven.notice", ui = { panel = "haven", havenId = "board.notice" } },
 		{ name = "shop.focus", ui = { panel = "shop", shopFocus = "product.resource_pack" } },
 		{ name = "project.hauler", ui = { panel = "project", projectId = "project.hauler" } },
 		{ name = "build", ui = { panel = "build", buildMode = "place" } },
@@ -348,7 +391,9 @@ local function run()
 				"pieceActions",
 				"inventoryTab",
 				"shopFocus",
-				"settingsView"
+				"settingsView",
+				"havenId",
+				"havenTab"
 			)
 			table.clear(Boundary.failures)
 			State.patch(scene.ui)
@@ -403,7 +448,9 @@ local function run()
 		"pieceActions",
 		"inventoryTab",
 		"shopFocus",
-		"settingsView"
+		"settingsView",
+		"havenId",
+		"havenTab"
 	)
 	for name in touched do
 		State.set(name, savedSections[name])

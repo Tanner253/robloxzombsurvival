@@ -5,7 +5,8 @@
 
 	Regeneration is computed from the saved timestamp, so the client draws the
 	countdown itself from the synced { value, updatedAt }. Food and drink energy
-	counts toward Tuning.energy.foodDailyCap per UTC day.
+	counts toward Tuning.energy.foodDailyCap per UTC day. VIP Lounge members (the VIP
+	attribute, Services/Haven) have a cap Data/Haven.vip.energyCapBonus higher.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,8 +20,14 @@ local Sync = require("./Sync")
 local Energy = {}
 
 local config: EnergyMath.Config = Content.Tuning.energy :: any
+local vipConfig: EnergyMath.Config = table.clone(config)
+vipConfig.cap = math.floor(config.cap * (1 + Content.Haven.vip.energyCapBonus))
 local foodDailyCap = Content.Tuning.energy.foodDailyCap
 local DAY = 24 * 60 * 60
+
+local function configFor(player: Player): EnergyMath.Config
+	return if player:GetAttribute("VIP") == true then vipConfig else config
+end
 
 local function sync(player: Player)
 	Sync.mark(player, "energy")
@@ -32,7 +39,7 @@ function Energy.current(player: Player): EnergyMath.State?
 	if data == nil then
 		return nil
 	end
-	return EnergyMath.current(data.energy, os.time(), config)
+	return EnergyMath.current(data.energy, os.time(), configFor(player))
 end
 
 --[[
@@ -44,7 +51,7 @@ function Energy.restore(player: Player, amount: number, mode: EnergyMath.Restore
 	if data == nil or amount <= 0 then
 		return 0
 	end
-	local state, added = EnergyMath.restore(data.energy, os.time(), config, math.floor(amount), mode)
+	local state, added = EnergyMath.restore(data.energy, os.time(), configFor(player), math.floor(amount), mode)
 	if state == nil then
 		return 0
 	end
@@ -77,7 +84,7 @@ end
 -- Whether an energy item ("item" mode) would be accepted now.
 function Energy.belowCap(player: Player): boolean
 	local state = Energy.current(player)
-	return state ~= nil and state.value < config.cap
+	return state ~= nil and state.value < configFor(player).cap
 end
 
 -- Fog Runs (slice 2): writes a new state computed by Domain/Travel or Domain/Energy
@@ -106,9 +113,9 @@ end
 function Energy.state(player: Player): (EnergyMath.State?, EnergyMath.Config)
 	local data = PlayerData.get(player)
 	if data == nil then
-		return nil, config
+		return nil, configFor(player)
 	end
-	return { value = data.energy.value, updatedAt = data.energy.updatedAt }, config
+	return { value = data.energy.value, updatedAt = data.energy.updatedAt }, configFor(player)
 end
 
 function Energy.start()
@@ -120,7 +127,7 @@ function Energy.start()
 		return {
 			value = state.value,
 			updatedAt = state.updatedAt,
-			cap = config.cap,
+			cap = configFor(player).cap,
 			secondsPerPoint = config.secondsPerPoint,
 		}
 	end)

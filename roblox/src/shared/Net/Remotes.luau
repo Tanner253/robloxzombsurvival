@@ -151,6 +151,42 @@ Remotes.list = {
 		validate = Check.args(Check.contentId("product")),
 		description = "(productId) asks the server to prompt that developer product, if it is on offer",
 	},
+	-- Haven Square (Services/Haven) -----------------------------------------------------------
+	HavenBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("item"), Check.integer(1, 99)),
+		description = "(itemId, count) buys from the Trader's stock for coins, standing by her",
+	},
+	HavenSell = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("item"), Check.integer(1, 99)),
+		description = "(itemId, count) sells items from the bag to the Trader for coins",
+	},
+	ContractDeliver = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("contract")),
+		description = "(contractId) delivers one of today's contracts at the Trail Keeper's board",
+	},
+	ChapterClaim = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.string(64)),
+		description = "(chapter) hands a finished Ember Trail chapter in to the Trail Keeper",
+	},
+	VipBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(),
+		description = "() prompts the VIP Lounge game pass",
+	},
 	WeaponSelect = {
 		kind = "event",
 		clientCanSend = true,

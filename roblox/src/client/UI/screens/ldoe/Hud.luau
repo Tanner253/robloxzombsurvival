@@ -57,6 +57,7 @@ local FULL_SCREEN: { [string]: boolean } = {
 	crafting = true,
 	settings = true,
 	shop = true,
+	haven = true,
 }
 
 -- Top left: name, HP and the food and water warnings --------------------------------------------------
@@ -459,6 +460,8 @@ local function contextGlyph(target: State.Target?): string
 		return "station"
 	elseif target.kind == "storage" then
 		return "storage"
+	elseif target.kind == "haven" then
+		return "talk"
 	end
 	return "interact"
 end
