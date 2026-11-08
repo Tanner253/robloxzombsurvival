@@ -88,10 +88,9 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 5,
 		chapter = HOME,
 		name = "Keep the Fire",
-		description = "Light a Campfire, feed it fuel, and boil water you can safely drink.",
+		description = "Feed the old campfire at the shelter, boil water you can safely drink, and drink it.",
 		prerequisite = "quest.tools_of_survival",
 		objectives = {
-			{ kind = "build", pieceId = "build.campfire", count = 1 },
 			{ kind = "craft", recipeId = "recipe.boiled_water", count = 1 },
 			{ kind = "consume", itemId = "item.boiled_water", count = 1 },
 		},

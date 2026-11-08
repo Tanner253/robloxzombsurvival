@@ -71,30 +71,34 @@ local function settle(player: Player, event: QuestsMath.Event?)
 		return
 	end
 	local flags = Flags.snapshot()
-	local state: QuestsMath.State = data.quests :: any
 	if event then
-		state = QuestsMath.record(state, Content.Quests, flags, event)
+		data.quests = QuestsMath.record(data.quests :: any, Content.Quests, flags, event) :: any
 	end
-	local done
-	state, done = QuestsMath.settle(state, Content.Quests, flags, facts(data), os.time())
-	data.quests = state :: any
 	Sync.mark(player, "quests")
 	if settling[player] then
-		return -- a reward's level-up settles again once this pass returns
+		-- Called back from a reward (its XP levelled the player up): the pass below
+		-- settles again after paying, so nothing completes unpaid.
+		return
 	end
 	settling[player] = true
-	for _, questId in done do
-		pay(player, questId)
-	end
-	settling[player] = nil
-	if #done > 0 then
-		-- Rewards may have changed the facts (XP -> level); settle what that completes.
-		local settled, again = QuestsMath.settle(data.quests :: any, Content.Quests, flags, facts(data), os.time())
-		data.quests = settled :: any
-		for _, questId in again do
-			pay(player, questId)
+	local ok, err = pcall(function()
+		-- Completing a quest can complete the next (a reward's level-up meets reachLevel):
+		-- settle and pay until nothing more completes.
+		for _ = 1, 20 do
+			local state, done = QuestsMath.settle(data.quests :: any, Content.Quests, flags, facts(data), os.time())
+			data.quests = state :: any
+			if #done == 0 then
+				break
+			end
+			for _, questId in done do
+				pay(player, questId)
+			end
 		end
-		Sync.mark(player, "quests")
+	end)
+	settling[player] = nil
+	Sync.mark(player, "quests")
+	if not ok then
+		warn(`Quests: settling for {player.UserId} failed: {err}`)
 	end
 end
 

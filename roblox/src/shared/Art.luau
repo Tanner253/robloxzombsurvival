@@ -25,7 +25,14 @@ Art.WALL_HEIGHT = 8.6
 -- hairline seam between them; World/Seams adds trim and (scrap/reinforced) corner posts.
 Art.pieces = {
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
-	["build.workbench"] = { "EO_WorkbenchP2", "Workbench" },
+	-- The LDoE station roster (LDOE_PARITY #19). The P2 carpentry bench (saw, chisels,
+	-- vise) is the Woodworking Bench; the slice-1 kit bench serves as the parts Workbench
+	-- until its own model passes the lineup (S1b Phase B checks it beside rec8). The
+	-- Stonecutter and Smelter have no approved model yet, so they stay hidden.
+	["build.woodworking_bench"] = { "EO_WorkbenchP2" },
+	["build.workbench"] = { "Workbench" },
+	["build.stonecutter"] = {},
+	["build.smelter"] = {},
 	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },

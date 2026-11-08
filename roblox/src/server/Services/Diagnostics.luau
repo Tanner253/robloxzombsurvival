@@ -12,6 +12,8 @@
 	  ("testbase") builds a furnished test base, ("rebuildworld") rebuilds
 	  the Neighbourhood from code,
 	  ("bag", slots) resizes the backpack. place/upgrade return "ok" or the refusal reason.
+	  ("quests", order?) completes every Ember Trail quest up to that order (default all),
+	  unlocking their blueprints, as a playtest shortcut (no rewards are paid).
 	  ("clock", hours).
 ]]
 
@@ -22,6 +24,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Content = require(ReplicatedStorage.Shared.Data)
 local InventoryMath = require(ReplicatedStorage.Shared.Domain.Inventory)
 local Net = require("../Net")
 local Building = require("./Building")
@@ -72,7 +75,8 @@ local TEST_BASE: { { any } } = {
 	{ "build.wall_wood", 3, 3, "v" },
 	{ "build.wall_wood", 3, 4, "v" },
 	{ "build.wall_wood", 3, 5, "v" },
-	{ "build.workbench", 12, 16, nil, 3 }, -- back to the west wall, working side to the room
+	{ "build.woodworking_bench", 12, 12, nil, 3 }, -- back to the west wall, working side to the room
+	{ "build.workbench", 12, 16, nil, 3 },
 	{ "build.campfire", 19, 18, nil, 0 },
 }
 local TEST_STOCK = {
@@ -122,6 +126,7 @@ local function devCommand(command: string, ...: any): any
 			Inventory.commit(player, resized)
 		end
 		Progression.grantXp(player, 50_000, "Dev")
+		devCommand("quests", 8) -- the home chapter's blueprints
 		Inventory.give(player, TEST_STOCK)
 		local failed: { string } = {}
 		for _, step in TEST_BASE do
@@ -169,6 +174,23 @@ local function devCommand(command: string, ...: any): any
 		Sync.mark(player, "pool")
 	elseif command == "inboxgrant" then
 		Inbox.grant(player, { { itemId = args[1], count = args[2] or 1 } }, args[3] or "Event")
+	elseif command == "quests" then
+		local data = PlayerData.get(player)
+		if data == nil then
+			return "no data"
+		end
+		local QuestsMath = require(ReplicatedStorage.Shared.Domain.Quests)
+		local upTo = args[1] or math.huge
+		local state = data.quests :: any
+		for id, quest in Content.Quests do
+			if quest.order <= upTo then
+				state.completed[id] = os.time()
+				state.active[id] = nil
+			end
+		end
+		data.quests = QuestsMath.open(state, Content.Quests) :: any
+		Sync.mark(player, "quests")
+		return "ok"
 	elseif command == "xp" then
 		Progression.grantXp(player, args[1], "Dev")
 	elseif command == "clock" then

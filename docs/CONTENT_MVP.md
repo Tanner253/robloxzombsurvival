@@ -273,7 +273,7 @@ LDoE calls its own questline "Survivor's Path"; ours is the **Ember Trail** (#48
 | 2 | Tools of Survival | 1 | craft the Stone Hatchet and Stone Pick | 150 XP, 6 fiber | Campfire, boiled water, roasted ashroot |
 | 3 | Claim the Ground | 2 | build 2 foundations, 2 walls | 200 XP, 10 timber, 4 cord | Woodworking Bench, planks, doorway, door |
 | 4 | A Place to Work | 3 | build the Woodworking Bench, make planks | 250 XP, 2 murky water, 2 ashroot | Stonecutter, stone blocks, window wall, palisade |
-| 5 | Keep the Fire | 2 | build a Campfire, boil water, drink it | 250 XP, 6 fatwood | Workbench, cloth, dressings, ember tea, pitch glue |
+| 5 | Keep the Fire | 2 | boil water at the shelter's campfire, drink it | 250 XP, 6 fatwood | Workbench, cloth, dressings, ember tea, pitch glue |
 | 6 | The Crash Site | 5 | craft and equip a satchel; *(Fog)* reach the crash site | 300 XP, 2 dressings, 6 scrap | Smelter, scrap plate, Spiked Club |
 | 7 | Hold the Door | 4 | build a doorway, a door and a Timber Crate | 350 XP, 6 planks, 4 cloth | Banded Crate, rivets, Padded Hood, Hearth Stew |
 | 8 | Stand Your Ground | 6 | craft and equip a Spiked Club; *(Fog)* put down 5 Hollow | 400 XP, Padded Hood | Scrap tier, Shortbow, arrows, Padded Vest |
