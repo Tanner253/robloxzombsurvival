@@ -345,6 +345,27 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		maxPerPlot = 20,
 		unlock = { kind = "level", level = 9 },
 	},
+	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns and its model grades A.
+	["build.ammo_press"] = {
+		id = "build.ammo_press",
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
+		name = "Ammo Press",
+		kind = "station",
+		tier = 2,
+		hp = 450,
+		cost = {
+			{ itemId = "item.plank", count = 10 },
+			{ itemId = "item.scrap_plate", count = 8 },
+			{ itemId = "item.rivets", count = 6 },
+			{ itemId = "item.coil_spring", count = 2 },
+		},
+		breachCost = 2,
+		stationId = "station.ammo_press",
+		minFoundationTier = 2,
+		maxPerPlot = 1,
+		unlock = { kind = "level", level = 10 }, -- day 2, with Workbench level 2 (Scrap tier)
+		feature = "fogRuns",
+	},
 }
 
 return BuildPieces

@@ -127,7 +127,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		description = "Grow strong enough to face the Dense fog, then reach the Sunken Quarry.",
 		prerequisite = "quest.hold_the_door",
 		objectives = {
-			{ kind = "reachLevel", level = 4 },
+			{ kind = "reachLevel", level = 8 }, -- the Dense fog's level gate (GAME_DESIGN, slice 2)
 			{ kind = "travel", locationId = "loc.sunken_quarry" },
 		},
 		rewards = {

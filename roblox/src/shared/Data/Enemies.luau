@@ -1,8 +1,13 @@
 --!strict
--- The Hollow: enemy definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
+-- The Hollow: enemy definitions, keyed by permanent ID. See docs/CONTENT_MVP.md and,
+-- for slice 2's perception and fear fields, docs/CONTENT_S2.md.
 -- Rated Mild: the Hollow dissolve into ash when killed and leave their loot behind.
 -- Player walk speed is 16 and sprint is 22 (Tuning.player), so a Runner can be outrun
 -- only by sprinting.
+-- M1 ships three archetypes (shambler, runner, bloater; checklist 13.1). The brute and
+-- the fog wraith (ART_DIRECTION §6) come back with their own rigs in M2.
+-- HP and damage here are the "Thin" band; Tuning.lobby.bands scales them as the Fog
+-- meter rises.
 
 local Types = require("../Types")
 
@@ -18,6 +23,8 @@ local Enemies: { [Types.EnemyId]: Types.EnemyDef } = {
 		aggroRadius = 28,
 		xp = 10,
 		lootTableId = "loot.enemy_shambler",
+		hearing = 1,
+		lightFear = 0.35, -- shies from a lantern; a flare scatters them
 	},
 	["enemy.runner"] = {
 		id = "enemy.runner",
@@ -30,18 +37,57 @@ local Enemies: { [Types.EnemyId]: Types.EnemyDef } = {
 		aggroRadius = 42,
 		xp = 25,
 		lootTableId = "loot.enemy_runner",
+		hearing = 1.25, -- the one that comes running when you fire
+		lightFear = 0.7, -- only a flare's core turns it
 	},
-	["enemy.brute"] = {
-		id = "enemy.brute",
-		name = "Brute",
-		hp = 220,
-		damage = 18,
-		attackSeconds = 2.4,
-		attackRange = 6,
-		moveSpeed = 10,
-		aggroRadius = 34,
-		xp = 80,
-		lootTableId = "loot.enemy_brute",
+	["enemy.bloater"] = {
+		id = "enemy.bloater",
+		name = "Bloater",
+		hp = 60,
+		damage = 4, -- a weak shove; the burst is the threat
+		attackSeconds = 2,
+		attackRange = 4,
+		moveSpeed = 7,
+		aggroRadius = 24,
+		xp = 30,
+		lootTableId = "loot.enemy_bloater",
+		hearing = 0.8,
+		lightFear = 0.5,
+		-- Pops when it reaches you, or when it dies: kill it at range, or dodge the cloud.
+		-- 6 HP/s for 6 s is 36 HP if you stand in it, about a third of your health.
+		burst = { triggerRange = 5, fuseSeconds = 0.8, radius = 9, damagePerSecond = 6, cloudSeconds = 6 },
+	},
+
+	-- Wildlife in Light fog (LDOE_PARITY #35): meat and hide. Same brain, other instincts.
+	["enemy.deer"] = {
+		id = "enemy.deer",
+		name = "Fog Deer",
+		hp = 30,
+		damage = 2, -- a panicked kick if you corner it
+		attackSeconds = 2,
+		attackRange = 3,
+		moveSpeed = 20, -- faster than a sprint: catch it with a bow or a quiet approach
+		aggroRadius = 30,
+		xp = 15,
+		lootTableId = "loot.animal_deer",
+		hearing = 1.5,
+		lightFear = 0.9,
+		wildlife = { temperament = "skittish", spookRadius = 18 },
+	},
+	["enemy.wolf"] = {
+		id = "enemy.wolf",
+		name = "Ash Wolf",
+		hp = 55,
+		damage = 7,
+		attackSeconds = 1.1,
+		attackRange = 4,
+		moveSpeed = 19,
+		aggroRadius = 36,
+		xp = 30,
+		lootTableId = "loot.animal_wolf",
+		hearing = 1.2,
+		lightFear = 0.6, -- wolves keep their distance from fire
+		wildlife = { temperament = "predator", spookRadius = 0 },
 	},
 }
 

@@ -80,6 +80,37 @@ function Energy.belowCap(player: Player): boolean
 	return state ~= nil and state.value < config.cap
 end
 
+-- Fog Runs (slice 2): writes a new state computed by Domain/Travel or Domain/Energy
+-- (a Run's cost or a refund) and logs the change. `delta` is negative for a spend.
+function Energy.set(player: Player, state: EnergyMath.State, delta: number, reason: string)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return
+	end
+	data.energy.value = state.value
+	data.energy.updatedAt = state.updatedAt
+	sync(player)
+	if delta ~= 0 then
+		Analytics.economy(
+			player,
+			if delta < 0 then "sink" else "source",
+			"Energy",
+			math.abs(delta),
+			state.value,
+			reason
+		)
+	end
+end
+
+-- The saved state and config, for Domain/Travel contexts.
+function Energy.state(player: Player): (EnergyMath.State?, EnergyMath.Config)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return nil, config
+	end
+	return { value = data.energy.value, updatedAt = data.energy.updatedAt }, config
+end
+
 function Energy.start()
 	Sync.provide("energy", function(player: Player)
 		local state = Energy.current(player)

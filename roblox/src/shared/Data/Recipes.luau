@@ -222,6 +222,173 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		craftSeconds = 8 * 60,
 		unlock = { kind = "level", level = 8 },
 	},
+
+	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns ----------------------------
+	-- Pacing (GAME_DESIGN free-player targets, about 2-3 h a day): level 10 and Workbench
+	-- level 2 arrive on day 2; the Trigger Group (Dense/Black, late in a run) is the wait.
+	-- That puts the Pipe Pistol on day 3, the Flare Pistol on day 4 and the Shotgun on days
+	-- 4-5: "the first firearm, days 3-5". A paying player buys parts and gets there day 1.
+	["recipe.machete"] = {
+		id = "recipe.machete",
+		inputs = {
+			{ itemId = "item.scrap_plate", count = 5 },
+			{ itemId = "item.rivets", count = 3 },
+			{ itemId = "item.cloth", count = 2 },
+		},
+		outputs = { { itemId = "item.machete", count = 1 } },
+		stationId = "station.workbench",
+		craftSeconds = 10 * 60,
+		unlock = { kind = "level", level = 10 }, -- the melee step after the Scrapblade (day 2)
+		feature = "fogRuns",
+	},
+	["recipe.fire_axe"] = {
+		id = "recipe.fire_axe",
+		inputs = {
+			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.steel_pipe", count = 1 },
+		},
+		outputs = { { itemId = "item.fire_axe", count = 1 } },
+		stationId = "station.workbench",
+		stationLevel = 2,
+		craftSeconds = 15 * 60,
+		unlock = { kind = "level", level = 12 }, -- day 3-4, alongside the first guns
+		feature = "fogRuns",
+	},
+	["recipe.pipe_pistol"] = {
+		id = "recipe.pipe_pistol",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 1 },
+			{ itemId = "item.trigger_group", count = 1 },
+			{ itemId = "item.plank", count = 2 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.coil_spring", count = 1 },
+		},
+		outputs = { { itemId = "item.pipe_pistol", count = 1 } },
+		stationId = "station.workbench",
+		stationLevel = 2,
+		craftSeconds = 20 * 60,
+		unlock = { kind = "level", level = 11 }, -- the first firearm: day 3 (target days 3-5)
+		feature = "fogRuns",
+	},
+	["recipe.flare_pistol"] = {
+		id = "recipe.flare_pistol",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 1 },
+			{ itemId = "item.trigger_group", count = 1 },
+			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.pitch_glue", count = 2 },
+		},
+		outputs = { { itemId = "item.flare_pistol", count = 1 } },
+		stationId = "station.workbench",
+		stationLevel = 2,
+		craftSeconds = 20 * 60,
+		unlock = { kind = "level", level = 12 }, -- day 4: the light weapon follows the first gun
+		feature = "fogRuns",
+	},
+	["recipe.scrap_shotgun"] = {
+		id = "recipe.scrap_shotgun",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 2 },
+			{ itemId = "item.trigger_group", count = 2 },
+			{ itemId = "item.plank", count = 4 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.rivets", count = 6 },
+		},
+		outputs = { { itemId = "item.scrap_shotgun", count = 1 } },
+		stationId = "station.workbench",
+		stationLevel = 2,
+		craftSeconds = 45 * 60,
+		unlock = { kind = "level", level = 14 }, -- days 4-5: two Trigger Groups is the grind
+		feature = "fogRuns",
+	},
+
+	-- Ammo Press: the steady ammo sink (GAME_DESIGN "Combat and the arsenal").
+	["recipe.blackpowder"] = {
+		id = "recipe.blackpowder",
+		inputs = {
+			{ itemId = "item.niter", count = 2 },
+			{ itemId = "item.fatwood", count = 1 },
+		},
+		outputs = { { itemId = "item.blackpowder", count = 2 } },
+		stationId = "station.ammo_press",
+		craftSeconds = 6 * 60,
+		unlock = { kind = "level", level = 10 },
+		feature = "fogRuns",
+	},
+	["recipe.light_rounds"] = {
+		id = "recipe.light_rounds",
+		inputs = {
+			{ itemId = "item.scrap", count = 2 },
+			{ itemId = "item.blackpowder", count = 1 },
+		},
+		outputs = { { itemId = "item.light_rounds", count = 6 } },
+		stationId = "station.ammo_press",
+		craftSeconds = 4 * 60, -- a full 3-job queue is 18 rounds: about one Dense run's shooting
+		unlock = { kind = "level", level = 11 },
+		feature = "fogRuns",
+	},
+	["recipe.flare"] = {
+		id = "recipe.flare",
+		inputs = {
+			{ itemId = "item.blackpowder", count = 2 },
+			{ itemId = "item.pitch_glue", count = 1 },
+			{ itemId = "item.cloth", count = 1 },
+		},
+		outputs = { { itemId = "item.flare", count = 2 } },
+		stationId = "station.ammo_press",
+		craftSeconds = 8 * 60,
+		unlock = { kind = "level", level = 12 },
+		feature = "fogRuns",
+	},
+	["recipe.shells"] = {
+		id = "recipe.shells",
+		inputs = {
+			{ itemId = "item.scrap", count = 3 },
+			{ itemId = "item.blackpowder", count = 2 },
+			{ itemId = "item.cloth", count = 1 },
+		},
+		outputs = { { itemId = "item.shells", count = 4 } },
+		stationId = "station.ammo_press",
+		craftSeconds = 6 * 60,
+		unlock = { kind = "level", level = 14 },
+		feature = "fogRuns",
+	},
+
+	-- LDoE parity (slice 2): wildlife and the respawn mat ---------------------------------------
+	["recipe.cooked_meat"] = {
+		id = "recipe.cooked_meat",
+		inputs = { { itemId = "item.raw_meat", count = 2 } },
+		outputs = { { itemId = "item.cooked_meat", count = 2 } },
+		stationId = "station.campfire",
+		craftSeconds = 3 * 60,
+		unlock = { kind = "default" },
+		feature = "fogRuns",
+	},
+	["recipe.leather"] = {
+		id = "recipe.leather",
+		inputs = {
+			{ itemId = "item.hide", count = 3 },
+			{ itemId = "item.pitch_glue", count = 1 },
+		},
+		outputs = { { itemId = "item.leather", count = 2 } },
+		stationId = "station.workbench",
+		craftSeconds = 8 * 60,
+		unlock = { kind = "level", level = 4 },
+		feature = "fogRuns",
+	},
+	["recipe.doormat"] = {
+		id = "recipe.doormat",
+		inputs = {
+			{ itemId = "item.fiber", count = 8 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		outputs = { { itemId = "item.doormat", count = 1 } },
+		craftSeconds = 10,
+		unlock = { kind = "level", level = 3 },
+		feature = "fogRuns",
+	},
 }
 
 return Recipes
