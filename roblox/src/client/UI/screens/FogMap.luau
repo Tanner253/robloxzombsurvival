@@ -17,6 +17,7 @@
 ]]
 
 local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
@@ -27,6 +28,7 @@ local Net = require("../../Net")
 local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
+local mark = require("../mark")
 local Button = require("../components/Button")
 local Glyph = require("../components/Glyph")
 local ItemSlot = require("../components/ItemSlot")
@@ -145,7 +147,7 @@ local function EnergyCard(props: { energy: any, rations: number })
 	local now = hooks.useClock(1)
 	local value, cap, nextIn = energyNow(props.energy, now)
 	return card({
-		size = UDim2.fromOffset(300, 92),
+		size = UDim2.fromOffset(300, 108),
 		position = UDim2.fromOffset(16, 16),
 		children = {
 			Icon = e(Glyph, {
@@ -186,12 +188,13 @@ local function EnergyCard(props: { energy: any, rations: number })
 				text = if nextIn then `+1 in {clock(nextIn)}` else "Full",
 				style = "caption",
 				tone = "muted",
-				position = UDim2.fromOffset(12, 58),
+				position = UDim2.fromOffset(12, 66),
 				size = UDim2.fromOffset(140, 22),
 			}),
 			Rations = e("Frame", {
+				-- Below the bar: the 44 px + button stays clear of it.
 				Size = UDim2.fromOffset(120, 26),
-				Position = UDim2.new(1, -12, 0, 56),
+				Position = UDim2.new(1, -12, 0, 64),
 				AnchorPoint = Vector2.new(1, 0),
 				BackgroundTransparency = 1,
 			}, {
@@ -235,10 +238,16 @@ local function MapTiles()
 				Image = image,
 				ScaleType = Enum.ScaleType.Stretch,
 				ZIndex = 2,
+				ref = mark.backdrop, -- the map runs under Roblox's top bar on purpose
 			})
 		end
 	end
-	return e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2 }, children)
+	-- The painted map is the backplate everything else sits on.
+	return e(
+		"Frame",
+		{ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2, ref = mark.backdrop },
+		children
+	)
 end
 
 local function Pin(props: { location: any, selected: boolean, onSelect: () -> () })
@@ -290,7 +299,9 @@ local function Pin(props: { location: any, selected: boolean, onSelect: () -> ()
 end
 
 -- The route home -> the chosen pin, as a dashed line of chevrons (11.4).
-local function Route(props: { from: Vector2, to: Vector2, size: Vector2 })
+-- `clear` is a box (in map pixels) the dashes stay out of: the pin, its name and the
+-- Run and Walk buttons under it.
+local function Route(props: { from: Vector2, to: Vector2, size: Vector2, clear: Rect? })
 	local a = Vector2.new(props.from.X * props.size.X, props.from.Y * props.size.Y)
 	local b = Vector2.new(props.to.X * props.size.X, props.to.Y * props.size.Y)
 	local delta = b - a
@@ -301,6 +312,10 @@ local function Route(props: { from: Vector2, to: Vector2, size: Vector2 })
 		local count = math.floor(length / 26)
 		for index = 1, count - 1 do
 			local p = a + delta * (index / count)
+			local clear = props.clear
+			if clear and p.X > clear.Min.X and p.X < clear.Max.X and p.Y > clear.Min.Y and p.Y < clear.Max.Y then
+				continue
+			end
 			children[`D{index}`] = e("Frame", {
 				Size = UDim2.fromOffset(12, 4),
 				Position = UDim2.fromOffset(p.X, p.Y),
@@ -432,6 +447,7 @@ local function Panel(props: { location: any, onClose: () -> () })
 		Art = e("ImageLabel", {
 			Size = UDim2.new(1, 0, 0, 150),
 			BackgroundColor3 = Theme.colors.panelRaised,
+			ref = mark.decor, -- the header picture the name and Close sit on
 			Image = art or "",
 			ScaleType = Enum.ScaleType.Crop,
 			ZIndex = 6,
@@ -567,6 +583,21 @@ local function WalkBar(props: { travel: any })
 	})
 end
 
+-- The frame's size in UI units (offsets), not screen pixels: the App's UIScale makes the
+-- two differ, and the pins, the route and the panel are all laid out in offsets.
+local function uiSize(frame: GuiObject): Vector2
+	local scale = 1
+	local holder = frame.Parent
+	while holder and not holder:IsA("LayerCollector") do
+		local found = holder:FindFirstChildOfClass("UIScale")
+		if found then
+			scale *= found.Scale
+		end
+		holder = holder.Parent
+	end
+	return frame.AbsoluteSize / scale
+end
+
 local function FogMap()
 	local ui = hooks.useUi()
 	local energy = hooks.useSection("energy")
@@ -582,7 +613,19 @@ local function FogMap()
 	local location = if selected then Content.Locations[selected] else nil
 	local ready = atDeparture()
 	local pins: { [string]: any } = {}
+	local home = Art.fogMap.home
+	local at = if location then Art.fogMap.pins[location.id] else nil
+	local shift = 0
+	if at then
+		local visible = size.X - PANEL_WIDTH
+		shift = math.clamp(visible / 2 - at.X * size.X, -PANEL_WIDTH, 0)
+	end
 	for _, each in locations() do
+		-- Pins the open panel would cover are left off (the chosen one is always in view).
+		local spot = Art.fogMap.pins[each.id]
+		if at and spot and spot.X * size.X + shift > size.X - PANEL_WIDTH - PIN then
+			continue
+		end
 		pins[each.id] = e(Pin, {
 			location = each,
 			selected = each.id == selected,
@@ -591,21 +634,16 @@ local function FogMap()
 			end,
 		})
 	end
-	local home = Art.fogMap.home
-	local at = if location then Art.fogMap.pins[location.id] else nil
 	local energyValue = energyNow(energy, State.now())
-	local shift = 0
-	if at then
-		local visible = size.X - PANEL_WIDTH
-		shift = math.clamp(visible / 2 - at.X * size.X, -PANEL_WIDTH, 0)
-	end
 	local walking = type(travel) == "table" and travel.mode == "walk"
+	local topInset = GuiService:GetGuiInset().Y
 	return e("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.colors.shadow,
 		ZIndex = 2,
+		ref = mark.backdrop,
 		[React.Change.AbsoluteSize] = function(rbx: Frame)
-			setSize(rbx.AbsoluteSize)
+			setSize(uiSize(rbx))
 		end,
 	}, {
 		Map = e("Frame", {
@@ -616,7 +654,17 @@ local function FogMap()
 			ZIndex = 2,
 		}, {
 			Tiles = e(MapTiles),
-			Route = at and e(Route, { from = home, to = at, size = size }),
+			Route = at and e(Route, {
+				from = home,
+				to = at,
+				size = size,
+				clear = Rect.new(
+					at.X * size.X - (ROUND + 26),
+					at.Y * size.Y - PIN / 2 - 6,
+					at.X * size.X + (ROUND + 26),
+					at.Y * size.Y + PIN / 2 + 30 + ROUND + 46
+				),
+			}),
 			Home = e("Frame", {
 				Size = UDim2.fromOffset(38, 38),
 				Position = UDim2.fromScale(home.X, home.Y),
@@ -683,34 +731,54 @@ local function FogMap()
 				}),
 			}),
 		}),
-		Energy = e(EnergyCard, { energy = energy, rations = countOf(inventory, "item.rations") }),
-		Panel = location and e(Panel, {
-			location = location,
-			onClose = function()
-				setSelected(nil :: any)
-			end,
+		-- The panel's header colour carried up under Roblox's top bar, so the panel reads
+		-- as full height and the slid map's empty edge never shows.
+		PanelCap = location and e("Frame", {
+			Size = UDim2.new(0, PANEL_WIDTH, 0, topInset),
+			Position = UDim2.fromScale(1, 0),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundColor3 = Theme.colors.panelRaised,
+			BorderSizePixel = 0,
+			ZIndex = 6,
+			ref = mark.backdrop,
 		}),
-		CloseMap = location == nil and e(Button, {
-			text = "Close",
-			glyph = "close",
-			variant = "secondary",
-			size = UDim2.fromOffset(48, 48),
-			position = UDim2.new(1, -16, 0, 16),
-			anchorPoint = Vector2.new(1, 0),
-			onActivated = Actions.toggleFogMap,
-		}),
-		Key = location == nil
-			and e(KeyChip, { text = "M", position = UDim2.new(1, -70, 0, 20), anchorPoint = Vector2.new(1, 0) }),
-		Walk = walking and e(WalkBar, { travel = travel }),
-		Hint = not ready and not walking and e(Label, {
-			text = "Plan your trip here. Set out from the Trailhead or the fog's edge.",
-			style = "body",
-			tone = "muted",
-			position = UDim2.new(0.5, if location then -PANEL_WIDTH / 2 else 0, 1, -24),
-			anchorPoint = Vector2.new(0.5, 1),
-			size = UDim2.fromOffset(620, 24),
-			alignX = Enum.TextXAlignment.Center,
-			stroke = true,
+		-- Everything over the map sits in one layer drawn above it, below Roblox's top bar
+		-- (the App ignores the inset; checklist 4.18).
+		Chrome = e("Frame", {
+			Size = UDim2.new(1, 0, 1, -topInset),
+			Position = UDim2.fromOffset(0, topInset),
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+		}, {
+			Energy = e(EnergyCard, { energy = energy, rations = countOf(inventory, "item.rations") }),
+			Panel = location and e(Panel, {
+				location = location,
+				onClose = function()
+					setSelected(nil :: any)
+				end,
+			}),
+			CloseMap = location == nil and e(Button, {
+				text = "Close",
+				glyph = "close",
+				variant = "secondary",
+				size = UDim2.fromOffset(48, 48),
+				position = UDim2.new(1, -16, 0, 16),
+				anchorPoint = Vector2.new(1, 0),
+				onActivated = Actions.toggleFogMap,
+			}),
+			Key = location == nil
+				and e(KeyChip, { text = "M", position = UDim2.new(1, -70, 0, 20), anchorPoint = Vector2.new(1, 0) }),
+			Walk = walking and e(WalkBar, { travel = travel }),
+			Hint = not ready and not walking and e(Label, {
+				text = "Plan your trip here. Set out from the Trailhead or the fog's edge.",
+				style = "body",
+				tone = "muted",
+				position = UDim2.new(0.5, if location then -PANEL_WIDTH / 2 else 0, 1, -24),
+				anchorPoint = Vector2.new(0.5, 1),
+				size = UDim2.fromOffset(620, 24),
+				alignX = Enum.TextXAlignment.Center,
+				stroke = true,
+			}),
 		}),
 	})
 end

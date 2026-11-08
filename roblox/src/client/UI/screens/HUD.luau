@@ -24,6 +24,7 @@ local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Actions = require("../../Actions")
 local Theme = require("../theme")
 local hooks = require("../hooks")
+local mark = require("../mark")
 local format = require("../format")
 local ItemSlot = require("../components/ItemSlot")
 local Glyph = require("../components/Glyph")
@@ -804,16 +805,24 @@ local function WeaponBar()
 				),
 				Swap = e(KeyChip, { text = "F", position = UDim2.fromOffset(-2, -2), anchorPoint = Vector2.new(0, 0) }),
 				-- Rounds loaded / carried on a gun (13.6).
-				Ammo = ammoText and e(Label, {
-					text = ammoText,
-					style = "caption",
-					tone = "highlight",
-					size = UDim2.fromOffset(WEAPON_BIG - 8, 18),
-					position = UDim2.new(0.5, 0, 0, WEAPON_BIG - 22),
-					anchorPoint = Vector2.new(0.5, 0),
-					alignX = Enum.TextXAlignment.Center,
-					stroke = true,
-					zIndex = 6,
+				-- An overlay on the weapon circle, like a badge (the UI gate's Overlay).
+				Ammo = ammoText and e("Frame", {
+					Size = UDim2.fromOffset(WEAPON_BIG - 8, 18),
+					Position = UDim2.new(0.5, 0, 0, WEAPON_BIG - 22),
+					AnchorPoint = Vector2.new(0.5, 0),
+					BackgroundTransparency = 1,
+					ZIndex = 6,
+					ref = mark.overlay,
+				}, {
+					Text = e(Label, {
+						text = ammoText,
+						style = "caption",
+						tone = "highlight",
+						size = UDim2.fromScale(1, 1),
+						alignX = Enum.TextXAlignment.Center,
+						stroke = true,
+						zIndex = 6,
+					}),
 				}),
 				Name = e(Label, {
 					text = if activeSlot and activeSlot.count > 0 then format.itemName(activeSlot.itemId) else "Fists",

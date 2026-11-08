@@ -12,6 +12,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
 local Theme = require("../theme")
+local mark = require("../mark")
 local hooks = require("../hooks")
 local Button = require("../components/Button")
 local ItemSlot = require("../components/ItemSlot")
@@ -117,16 +118,24 @@ local function LootPane(props: { loot: any })
 				layoutOrder = 4,
 			}),
 		}),
-		TakeAll = e(Button, {
-			text = "Take all",
-			disabled = empty,
-			size = UDim2.new(1, 0, 0, 44),
-			position = UDim2.new(0, 0, 1, -44),
-			onActivated = function()
-				Actions.takeLoot(nil)
-			end,
+		-- The button and its key chip are one graphic (the chip sits on the corner).
+		TakeAll = e("Frame", {
+			Size = UDim2.new(1, 0, 0, 50),
+			Position = UDim2.new(0, 0, 1, -50),
+			BackgroundTransparency = 1,
+			ref = mark.composite,
+		}, {
+			Button = e(Button, {
+				text = "Take all",
+				disabled = empty,
+				size = UDim2.new(1, 0, 0, 44),
+				position = UDim2.new(0, 0, 1, -44),
+				onActivated = function()
+					Actions.takeLoot(nil)
+				end,
+			}),
+			Key = e(KeyChip, { text = "F", position = UDim2.new(1, -2, 0, 0), anchorPoint = Vector2.new(1, 0) }),
 		}),
-		TakeKey = e(KeyChip, { text = "F", position = UDim2.new(1, -2, 1, -50), anchorPoint = Vector2.new(1, 0) }),
 	})
 end
 

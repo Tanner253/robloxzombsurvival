@@ -15,6 +15,7 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -26,6 +27,7 @@ local Net = require("../../Net")
 local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
+local mark = require("../mark")
 local Button = require("../components/Button")
 local Glyph = require("../components/Glyph")
 local ItemSlot = require("../components/ItemSlot")
@@ -223,6 +225,7 @@ function RunHud.RunMinimap()
 		Position = UDim2.new(1, -16, 0, 80),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 1,
+		ref = mark.composite, -- one graphic: the map, its dots and ring, the Fog meter
 	}, {
 		Map = e("CanvasGroup", {
 			Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
@@ -386,7 +389,12 @@ local function Hurt()
 		})
 	end
 	local _ = now
-	return e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 20 }, {
+	return e("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 20,
+		ref = mark.backdrop,
+	}, {
 		Left = edge(0, UDim2.fromScale(0.18, 1), UDim2.fromScale(0, 0), Vector2.zero),
 		Right = edge(180, UDim2.fromScale(0.18, 1), UDim2.fromScale(1, 0), Vector2.new(1, 0)),
 		Top = edge(90, UDim2.fromScale(1, 0.18), UDim2.fromScale(0, 0), Vector2.zero),
@@ -481,23 +489,33 @@ local function TravelBonus()
 				{ Size = UDim2.new(1, -32, 0, 56), Position = UDim2.fromOffset(16, 36), BackgroundTransparency = 1 },
 				slots
 			),
-			TakeAll = e(Button, {
-				text = "Take all: 1 Ration",
-				size = UDim2.new(0.62, -8, 0, 44),
-				position = UDim2.new(0, 16, 1, -54),
-				onActivated = function()
-					Net.fire("TravelBonusTakeAll")
-				end,
-			}),
-			Leave = e(Button, {
-				text = "Leave it",
-				variant = "secondary",
-				size = UDim2.new(0.38, -16, 0, 44),
-				position = UDim2.new(1, -16, 1, -54),
-				anchorPoint = Vector2.new(1, 0),
-				onActivated = function()
-					State.set("travelBonus", false)
-				end,
+			Buttons = e("Frame", {
+				Size = UDim2.new(1, -32, 0, 44),
+				Position = UDim2.new(0, 16, 1, -54),
+				BackgroundTransparency = 1,
+			}, {
+				Layout = e("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					Padding = UDim.new(0, 8),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+				}),
+				TakeAll = e(Button, {
+					text = "Take all: 1 Ration",
+					size = UDim2.new(0.62, -4, 1, 0),
+					layoutOrder = 1,
+					onActivated = function()
+						Net.fire("TravelBonusTakeAll")
+					end,
+				}),
+				Leave = e(Button, {
+					text = "Leave it",
+					variant = "secondary",
+					size = UDim2.new(0.38, -4, 1, 0),
+					layoutOrder = 2,
+					onActivated = function()
+						State.set("travelBonus", false)
+					end,
+				}),
 			}),
 		},
 	})
@@ -531,12 +549,29 @@ local function slotRow(stacks: { any }, max: number): any
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	}
-	for index, stack in stacks do
-		if index > max then
-			break
-		end
+	-- More than fit: the last tile says how many more there are, so nothing goes unseen.
+	local shown = if #stacks > max then max - 1 else #stacks
+	for index = 1, shown do
+		local stack = stacks[index]
 		children[`S{index}`] =
 			e(ItemSlot, { itemId = stack.itemId, count = stack.count, size = 56, layoutOrder = index })
+	end
+	if #stacks > shown then
+		children.More = e("Frame", {
+			Size = UDim2.fromOffset(56, 56),
+			BackgroundColor3 = Theme.colors.panelRaised,
+			LayoutOrder = max,
+		}, {
+			Corner = e("UICorner", { CornerRadius = Theme.radius }),
+			Stroke = e("UIStroke", { Color = Theme.colors.strokeWarm, Thickness = Theme.strokeThickness }),
+			Count = e(Label, {
+				text = `+{#stacks - shown}`,
+				style = "section",
+				tone = "highlight",
+				size = UDim2.fromScale(1, 1),
+				alignX = Enum.TextXAlignment.Center,
+			}),
+		})
 	end
 	return children
 end
@@ -563,6 +598,7 @@ local function DeathScreen()
 		BackgroundColor3 = Theme.colors.shadow,
 		BackgroundTransparency = 0.18,
 		ZIndex = 30,
+		ref = mark.backdrop,
 	}, {
 		Title = e(Label, {
 			text = "YOU DIED",
@@ -713,19 +749,24 @@ local function Loading()
 			}),
 		})
 	end
+	local top = GuiService:GetGuiInset().Y
 	return e("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromHex("1A1D21"),
 		ZIndex = 40,
+		ref = mark.backdrop,
 	}, {
 		Header = e("ImageLabel", {
-			Size = UDim2.new(1, 0, 0, 118),
+			-- The band runs under Roblox's top bar; its text starts below it.
+			Size = UDim2.new(1, 0, 0, 118 + top),
+			ref = mark.backdrop,
 			BackgroundColor3 = Theme.colors.panelRaised,
 			Image = if location then Art.fogMap.art[location.id] or "" else "",
 			ImageTransparency = 0.45,
 			ScaleType = Enum.ScaleType.Crop,
 			ZIndex = 40,
 		}, {
+			Inset = e("UIPadding", { PaddingTop = UDim.new(0, top) }),
 			Time = e(Label, {
 				text = string.format(
 					"%02d:%02d   %s fog",
@@ -815,12 +856,20 @@ function RunHud.Screen()
 	local ui = hooks.useUi()
 	local playing = ui.panel == "none"
 	local onRun = type(run) == "table"
+	local top = GuiService:GetGuiInset().Y
 	return e(React.Fragment, nil, {
-		Target = onRun and playing and e(TargetBar),
-		Progress = onRun and e(Progress),
+		-- Cards and bars sit below Roblox's top bar (the App ignores the inset; 4.18).
+		Safe = e("Frame", {
+			Size = UDim2.new(1, 0, 1, -top),
+			Position = UDim2.fromOffset(0, top),
+			BackgroundTransparency = 1,
+		}, {
+			Target = onRun and playing and e(TargetBar),
+			Progress = onRun and e(Progress),
+			Arrival = onRun and playing and e(Arrival),
+			Bonus = onRun and e(TravelBonus),
+		}),
 		Hurt = onRun and e(Hurt),
-		Arrival = onRun and playing and e(Arrival),
-		Bonus = onRun and e(TravelBonus),
 		Death = e(DeathScreen),
 		Result = e(ResultCard),
 		Loading = e(Loading),
