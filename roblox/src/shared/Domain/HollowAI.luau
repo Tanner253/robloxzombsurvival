@@ -288,4 +288,25 @@ function HollowAI.scaled(enemy: Types.EnemyDef, strength: number): (number, numb
 	return enemy.hp * strength, enemy.damage * strength
 end
 
+export type SpawnGroup = { enemyId: Types.EnemyId, count: number }
+
+--[[
+	Which Hollow join the lobby when the Fog meter enters `band`: band 1 spawns
+	every set without a minBand (or minBand 1); band n spawns the sets whose
+	minBand is n. Counts are rolled in each set's range; empty groups are left out.
+]]
+function HollowAI.spawnsForBand(spawns: { Types.EnemySpawn }, band: number, rng: Rng.Source): { SpawnGroup }
+	local groups: { SpawnGroup } = {}
+	for _, spawn in spawns do
+		local starts = math.max(1, spawn.minBand or 1)
+		if starts == band then
+			local count = rng:NextInteger(spawn.count.min, spawn.count.max)
+			if count > 0 then
+				table.insert(groups, { enemyId = spawn.enemyId, count = count })
+			end
+		end
+	end
+	return groups
+end
+
 return HollowAI

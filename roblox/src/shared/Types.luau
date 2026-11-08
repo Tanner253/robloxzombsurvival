@@ -437,6 +437,7 @@ export type TuningDef = {
 		runSeconds: number, -- loading time of a Run, after paying Energy
 		fogTierNames: { string },
 		reentryEnergyMultiplier: number, -- Fog Runs: re-entering an open lobby costs this share of the Run
+		departureStuds: number, -- Fog Runs: how near the Trailhead or the fog wall a trip may start
 	},
 	death: {
 		despawnSeconds: number, -- how long the dropped backpack waits at the location
@@ -603,6 +604,7 @@ export type LobbyTuning = {
 	bandTolerance: number, -- power bands a joiner may sit from the lobby's
 	bands: { MeterBand },
 	drops: { DropRule }, -- index = fog tier
+	ticketMaxAgeSeconds: number, -- a run ticket older than this is refused on arrival (Domain/RunTicket)
 }
 
 export type ExtractionTuning = {
@@ -621,6 +623,7 @@ export type MatchmakingTuning = {
 	newLobbyAfterSeconds: number, -- no lobby fits after this long: open a fresh one
 	weights: { weapon: number, armor: number, bag: number, companion: number },
 	aiBackfillTarget: number, -- M2 (features.aiRaiders): fill short lobbies to this many
+	maxPartySize: number,
 }
 
 export type ContainersTuning = {
@@ -688,6 +691,7 @@ export type HollowTuning = {
 	fleeSeconds: number,
 	maxActive: number, -- per lobby
 	spawnSpreadStuds: number, -- spawns at least this far from players
+	hitRadiusStuds: number, -- a Hollow's body for hit tests (Domain/Plane)
 }
 
 -- Everything in Data/, as one bundle (what the validator checks).

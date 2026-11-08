@@ -80,6 +80,7 @@ local Tuning: Types.TuningDef = {
 		-- Going back in for your bag costs half a Run (rounded up): enough that dying hurts,
 		-- not so much that a lost backpack is never worth fetching.
 		reentryEnergyMultiplier = 0.5,
+		departureStuds = 40, -- the Trailhead sign or the fog wall: travel starts only at the edge (GAME_DESIGN)
 	},
 	death = {
 		despawnSeconds = 2 * 60 * 60,
@@ -163,6 +164,7 @@ local Tuning: Types.TuningDef = {
 		warningSeconds = 60,
 		meterExponent = 1.2, -- quiet start, a sharper rise into the late-run scramble
 		reentryCutoffSeconds = 60, -- no re-entry once the 60 s warning sounds
+		ticketMaxAgeSeconds = 120,
 		bandTolerance = 1,
 		-- Loot gets better and the Hollow stronger as the meter rises; that pull toward
 		-- staying late is what makes extraction tense.
@@ -193,6 +195,7 @@ local Tuning: Types.TuningDef = {
 		newLobbyAfterSeconds = 12, -- nobody waits long: an empty lobby beats a queue
 		weights = { weapon = 40, armor = 12, bag = 10, companion = 0 }, -- companion: M3 hook
 		aiBackfillTarget = 8,
+		maxPartySize = 4, -- a crew (GAME_DESIGN "Crews")
 	},
 	containers = {
 		searchSeconds = 5, -- checklist 12.4
@@ -254,6 +257,7 @@ local Tuning: Types.TuningDef = {
 		fleeSeconds = 3,
 		maxActive = 60,
 		spawnSpreadStuds = 40,
+		hitRadiusStuds = 1.6,
 	},
 }
 

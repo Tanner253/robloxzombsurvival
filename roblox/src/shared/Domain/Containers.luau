@@ -254,4 +254,48 @@ function Containers.bandTables(bandLoot: { Types.BandLoot }, band: number): { Ty
 	return ids
 end
 
+export type Spot = { kind: string? } -- a container marker in the location's map
+export type Placement = { spot: number, entry: number } -- indices into spots and location.containers
+
+--[[
+	Which map spots hold which of the location's containers this lobby. Each entry
+	rolls its count; a spot of the entry's kind goes first, then a spot with no
+	kind. A lobby seed gives everyone in it the same layout, and a fresh lobby a
+	fresh one. When spots run out, the remaining containers are skipped.
+]]
+function Containers.layout(entries: { Types.LocationContainer }, spots: { Spot }, rng: Rng.Source): { Placement }
+	local free: { number } = {}
+	for index = 1, #spots do
+		table.insert(free, index)
+	end
+	-- A seeded shuffle so the same spots aren't always filled first.
+	for index = #free, 2, -1 do
+		local other = rng:NextInteger(1, index)
+		free[index], free[other] = free[other], free[index]
+	end
+	local placements: { Placement } = {}
+	local function take(entryIndex: number, wanted: string?, anyKind: boolean): boolean
+		for position, spotIndex in free do
+			local spotKind = spots[spotIndex].kind
+			if spotKind == wanted or (anyKind and spotKind == nil) then
+				table.insert(placements, { spot = spotIndex, entry = entryIndex })
+				table.remove(free, position)
+				return true
+			end
+		end
+		return false
+	end
+	for entryIndex, entry in entries do
+		for _ = 1, rng:NextInteger(entry.count.min, entry.count.max) do
+			if entry.kind == nil or not take(entryIndex, entry.kind, false) then
+				take(entryIndex, nil, true)
+			end
+		end
+	end
+	table.sort(placements, function(a: Placement, b: Placement): boolean
+		return a.spot < b.spot
+	end)
+	return placements
+end
+
 return Containers

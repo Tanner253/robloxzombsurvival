@@ -41,6 +41,9 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Containers", spec = require("./Containers.spec") },
 	{ name = "TravelBonus", spec = require("./TravelBonus.spec") },
 	{ name = "FogTravel", spec = require("./FogTravel.spec") },
+	{ name = "FogRunRemotes", spec = require("./FogRunRemotes.spec") },
+	{ name = "RunTicket", spec = require("./RunTicket.spec") },
+	{ name = "RunSetup", spec = require("./RunSetup.spec") },
 }
 
 local passed, failed = 0, 0
