@@ -9,8 +9,8 @@
 	store, one profile per player, so a big base never hits the profile limit.
 
 	The Studio place owns the world: when Workspace.World or its plots exist
-	there, their `Origin` attributes are used. Missing pieces (the folder, plots,
-	ground) are created here from Tuning so a bare place still plays.
+	there, their `Origin` attributes are used. A missing folder or plot is created
+	here from Tuning so a bare place still plays; the ground is Scenery's terrain.
 
 	Other services listen to `claimed` (render pieces, spawn nodes) and
 	`releasing` (clean up) and change the layout only through `setLayout`.
@@ -99,45 +99,6 @@ local function defaultOrigin(worldOrigin: Vector3, index: number): (Vector3, num
 	return worldOrigin + Vector3.new(x - GRID_STUDS / 2, 0, z - GRID_STUDS / 2), front
 end
 
-local function makeGround(world: Instance, worldOrigin: Vector3)
-	if world:FindFirstChild("Ground") then
-		return
-	end
-	local width = tuning.columns * tuning.spacingStuds + 2 * tuning.marginStuds
-	local depth = 2 * (GRID_STUDS + 2 * tuning.marginStuds) + tuning.rowGapStuds + 2 * tuning.marginStuds
-	local ground = Instance.new("Part")
-	ground.Name = "Ground"
-	ground.Anchored = true
-	ground.Material = Enum.Material.Grass
-	ground.Color = Color3.fromRGB(84, 92, 62)
-	ground.Size = Vector3.new(width, 4, depth)
-	ground.CFrame = CFrame.new(worldOrigin - Vector3.new(0, 2, 0))
-	ground.TopSurface = Enum.SurfaceType.Smooth
-	ground.Parent = world
-	local road = Instance.new("Part")
-	road.Name = "Road"
-	road.Anchored = true
-	road.Material = Enum.Material.Mud
-	road.Color = Color3.fromRGB(92, 78, 62)
-	road.Size = Vector3.new(width, 0.2, tuning.rowGapStuds * 0.7)
-	road.CFrame = CFrame.new(worldOrigin + Vector3.new(0, 0.05, 0))
-	road.Parent = world
-end
-
-local function makePad(model: Model, origin: Vector3)
-	if model:FindFirstChild("Pad") then
-		return
-	end
-	local pad = Instance.new("Part")
-	pad.Name = "Pad"
-	pad.Anchored = true
-	pad.Material = Enum.Material.Ground
-	pad.Color = Color3.fromRGB(96, 84, 66)
-	pad.Size = Vector3.new(GRID_STUDS, 0.2, GRID_STUDS)
-	pad.CFrame = CFrame.new(origin + Vector3.new(GRID_STUDS / 2, 0.06, GRID_STUDS / 2))
-	pad.Parent = model
-end
-
 -- A sign at the road edge showing who lives here.
 local function makeSign(plot: Plot)
 	local sign = plot.model:FindFirstChild("Sign")
@@ -208,7 +169,6 @@ local function buildWorld()
 		worldOrigin = DEFAULT_ORIGIN
 	end
 	local plotsFolder = child(world, "Plots", "Folder")
-	local createdAny = false
 	for index = 1, tuning.count do
 		local model = plotsFolder:FindFirstChild(`Plot{index}`) :: Model?
 		local origin, front = defaultOrigin(worldOrigin :: Vector3, index)
@@ -217,7 +177,6 @@ local function buildWorld()
 			made.Name = `Plot{index}`
 			made.Parent = plotsFolder
 			model = made
-			createdAny = true
 		end
 		local m = model :: Model
 		local savedOrigin = m:GetAttribute("Origin")
@@ -231,10 +190,6 @@ local function buildWorld()
 		m:SetAttribute("Front", front)
 		m:SetAttribute("Cells", building.plotCells)
 		m:SetAttribute("OwnerUserId", 0)
-		if createdAny then
-			-- Plots built in Studio bring their own ground; only runtime plots get a pad.
-			makePad(m, origin)
-		end
 		local plot: Plot = {
 			index = index,
 			origin = origin,
@@ -250,9 +205,6 @@ local function buildWorld()
 		}
 		plots[index] = plot
 		makeSign(plot)
-	end
-	if createdAny then
-		makeGround(world, worldOrigin :: Vector3)
 	end
 	spawnPoint = roadSpawn(world, worldOrigin :: Vector3)
 end

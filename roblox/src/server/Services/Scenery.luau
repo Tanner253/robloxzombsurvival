@@ -20,6 +20,7 @@
 ]]
 
 local Lighting = game:GetService("Lighting")
+local MaterialService = game:GetService("MaterialService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Art = require(ReplicatedStorage.Shared.Art)
@@ -130,23 +131,23 @@ local function groundIsEmpty(origin: Vector3): boolean
 	return true
 end
 
--- The muted palette the look test settled on (ART_DIRECTION §4).
+-- The muted palette the look test settled on (ART_DIRECTION §4). The ground materials
+-- take their variant and tint from Art.ground.
 local TERRAIN_COLORS: { [Enum.Material]: Color3 } = {
-	[Enum.Material.Grass] = Color3.fromRGB(82, 92, 62),
-	[Enum.Material.LeafyGrass] = Color3.fromRGB(74, 84, 58),
-	[Enum.Material.Ground] = Color3.fromRGB(104, 90, 70),
-	[Enum.Material.Mud] = Color3.fromRGB(88, 78, 64),
 	[Enum.Material.Rock] = Color3.fromRGB(110, 112, 112),
 	[Enum.Material.Slate] = Color3.fromRGB(88, 89, 86),
 	[Enum.Material.Pavement] = Color3.fromRGB(120, 118, 112),
 	[Enum.Material.Asphalt] = Color3.fromRGB(78, 82, 88),
-	[Enum.Material.Sand] = Color3.fromRGB(98, 94, 70), -- dead dry grass toward the fog
 	[Enum.Material.Basalt] = Color3.fromRGB(52, 48, 46), -- ash and scorch around the Hearth
 }
 
 local function terrain(origin: Vector3, random: Random)
 	for material, color in TERRAIN_COLORS do
 		workspace.Terrain:SetMaterialColor(material, color)
+	end
+	for material, look in Art.ground do
+		MaterialService:SetBaseMaterialOverride(material, look.variant)
+		workspace.Terrain:SetMaterialColor(material, look.tint)
 	end
 	if not groundIsEmpty(origin) then
 		return
@@ -168,7 +169,11 @@ local function terrain(origin: Vector3, random: Random)
 	-- worn paths), then macro zones from layered noise, drying to dead grass toward
 	-- the fog. Nothing here changes the height.
 	local function surface(x: number, z: number): Enum.Material
-		if math.sqrt(x * x + z * z) < 14 then
+		local fromHearth = math.sqrt(x * x + z * z)
+		if Art.approved.Hearth and fromHearth < 5 + math.noise(x / 4, z / 4, 6.6) * 1.5 then
+			return Enum.Material.Basalt -- ash and scorch under the Hearth's fire (with the Hearth only)
+		end
+		if fromHearth < 14 then
 			return Enum.Material.Ground -- the trodden plaza where the Hearth will stand
 		end
 		local ragged = math.noise(x / 9, 0, 3.3) * 2.5

@@ -51,6 +51,18 @@ Art.decks = {
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
 
+-- Ground (three layers, ART_DIRECTION §4): every terrain material the ground is painted
+-- with wears a generated PBR variant (place/materials -> MaterialService.EO_Materials),
+-- multiplied by its tint. The textures carry the small layer themselves: pebbles in the
+-- earth, leaf litter in the leafy ground, dry blades toward the fog. Sand is the dead grass.
+Art.ground = {
+	[Enum.Material.Grass] = { variant = "EO_Ground_Grass", tint = Color3.fromRGB(150, 158, 128) },
+	[Enum.Material.LeafyGrass] = { variant = "EO_Ground_Leafy", tint = Color3.fromRGB(160, 160, 140) },
+	[Enum.Material.Ground] = { variant = "EO_Ground_Earth", tint = Color3.fromRGB(150, 140, 126) },
+	[Enum.Material.Mud] = { variant = "EO_Ground_Mud", tint = Color3.fromRGB(176, 164, 144) },
+	[Enum.Material.Sand] = { variant = "EO_Ground_DryGrass", tint = Color3.fromRGB(172, 162, 128) },
+} :: { [Enum.Material]: { variant: string, tint: Color3 } }
+
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
 Art.dropModels = { "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
