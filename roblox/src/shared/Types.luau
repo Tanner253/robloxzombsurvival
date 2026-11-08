@@ -298,6 +298,7 @@ export type BuildPieceDef = {
 	-- (w along X, d along Z). nil means one whole cell.
 	footprint: { w: number, d: number }?,
 	maxPerPlot: number?, -- nil means no limit
+	tab: string?, -- build menu tab when it isn't the kind's own, e.g. "defense" for fences
 	unlock: UnlockGate?, -- nil means available from the start
 }
 

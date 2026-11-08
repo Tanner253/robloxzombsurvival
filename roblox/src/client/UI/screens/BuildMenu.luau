@@ -36,6 +36,7 @@ local TABS: { { id: string, label: string, kinds: { [string]: boolean } } } = {
 	{ id = "window", label = "Windows", kinds = { window = true } },
 	{ id = "station", label = "Stations", kinds = { station = true } },
 	{ id = "storage", label = "Storage", kinds = { storage = true } },
+	{ id = "defense", label = "Defense", kinds = {} },
 }
 
 local CARD_W, CARD_H = 124, 146 -- compact, like LDoE's build strip
@@ -281,7 +282,8 @@ local function BuildMenu()
 	}
 	for index, def in BuildRules.catalog(Content.BuildPieces) do
 		-- Pieces without an approved model stay out of the menu (checklist §0).
-		if current.kinds[def.kind] and Art.pieceReady(def.id, def.kind) then
+		local inTab = if def.tab then def.tab == current.id else current.kinds[def.kind] == true
+		if inTab and Art.pieceReady(def.id, def.kind) then
 			cards[def.id] = e(Card, {
 				def = def,
 				selected = ui.buildPiece == def.id and ui.buildMode == "place",

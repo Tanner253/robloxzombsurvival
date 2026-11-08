@@ -24,7 +24,8 @@ Art.WALL_HEIGHT = 8.6
 -- Foundations are not kit meshes: they are exact 12 x 12 deck slabs (Art.decks) so a
 -- group of tiles reads as one floor; World/Seams adds trim and corner posts.
 Art.pieces = {
-	["build.wall_wood"] = { "WallWood" },
+	["build.wall_wood"] = { "WallTimber" }, -- solid plank wall with a top cap (art pending)
+	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
 	["build.wall_scrap"] = { "WallScrap" },
 	["build.wall_reinforced"] = { "WallReinforced" },
 	["build.window_scrap"] = { "WindowScrap" },

@@ -43,6 +43,22 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 1,
 		upgradesTo = "build.wall_scrap",
 	},
+	-- The sharpened-stake palisade reads as an outdoor fence, not a room wall: it's a Defense
+	-- piece of its own. The Timber Wall gets a solid plank wall with a top cap.
+	["build.fence_wood"] = {
+		id = "build.fence_wood",
+		name = "Palisade Fence",
+		kind = "wall",
+		tab = "defense",
+		tier = 1,
+		hp = 300,
+		cost = {
+			{ itemId = "item.timber", count = 6 },
+			{ itemId = "item.rope", count = 1 },
+		},
+		breachCost = 1,
+		minFoundationTier = 1,
+	},
 	["build.doorway_wood"] = {
 		id = "build.doorway_wood",
 		name = "Timber Doorway",
