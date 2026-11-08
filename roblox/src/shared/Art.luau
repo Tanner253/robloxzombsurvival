@@ -82,11 +82,11 @@ Art.remnants = {
 -- Everything else (fallback builds, look-test and generated stand-ins, models with
 -- defects) stays out of the world, and the feature that needs it is hidden until its
 -- model is graded A and added here. Grades: docs/briefs/m1-slice1-audit.md.
+-- (Loose stones and reeds wait on re-uploads: art/tools/glb_floaters.py found a
+-- floating stone and detached blade fragments in their meshes; the fixed GLBs pass.)
 Art.approved = {
 	EO_PineTree = true,
-	EO_LooseStones = true,
 	EO_FatwoodStump = true,
-	EO_Reeds = true,
 	WallWood = true, -- the outpost kit (the lineup's exemplars)
 	WallScrap = true,
 	WallReinforced = true,
