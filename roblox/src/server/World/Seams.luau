@@ -95,18 +95,15 @@ local function beam(
 	local to = CELL - (if trimEnd then BEAM_DEPTH else 0)
 	local length = to - from
 	local mid = (from + to) / 2
-	local centre, size
-	if side == "n" then
-		centre, size = Vector3.new(x0 + mid, y, z0 - BEAM_DEPTH / 2), Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
-	elseif side == "s" then
-		centre, size =
-			Vector3.new(x0 + mid, y, z0 + CELL + BEAM_DEPTH / 2), Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
-	elseif side == "w" then
-		centre, size = Vector3.new(x0 - BEAM_DEPTH / 2, y, z0 + CELL / 2), Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, CELL)
-	else
-		centre, size =
-			Vector3.new(x0 + CELL + BEAM_DEPTH / 2, y, z0 + CELL / 2), Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, CELL)
-	end
+	local alongX = side == "n" or side == "s"
+	local size = if alongX
+		then Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
+		else Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, CELL)
+	local centre = if side == "n"
+		then Vector3.new(x0 + mid, y, z0 - BEAM_DEPTH / 2)
+		elseif side == "s" then Vector3.new(x0 + mid, y, z0 + CELL + BEAM_DEPTH / 2)
+		elseif side == "w" then Vector3.new(x0 - BEAM_DEPTH / 2, y, z0 + CELL / 2)
+		else Vector3.new(x0 + CELL + BEAM_DEPTH / 2, y, z0 + CELL / 2)
 	local part = add(model, size, CFrame.new(origin + centre), trim.material, trim.color)
 	part.CanCollide = false
 end

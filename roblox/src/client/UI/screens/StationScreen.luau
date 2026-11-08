@@ -27,6 +27,7 @@ local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
+local LockGlyph = require("../components/LockGlyph")
 local ProgressBar = require("../components/ProgressBar")
 local Sheet = require("../components/Sheet")
 
@@ -78,8 +79,9 @@ local function RecipeCard(props: {
 		Text = "",
 		BackgroundColor3 = if props.selected
 			then Theme.colors.panelRaised:Lerp(Theme.colors.accent, 0.15)
+			elseif props.locked then Theme.colors.disabled
 			else Theme.colors.panelRaised,
-		BackgroundTransparency = if props.locked then 0.45 else 0.05,
+		BackgroundTransparency = 0.05,
 		LayoutOrder = props.layoutOrder,
 		[React.Event.Activated] = props.onSelect,
 	}, {
@@ -95,6 +97,19 @@ local function RecipeCard(props: {
 			{ Size = UDim2.fromOffset(44, 44), Position = UDim2.fromOffset(6, 6), BackgroundTransparency = 1 },
 			{
 				Inner = e(ItemIcon, { itemId = output.itemId, size = UDim2.fromScale(1, 1) }),
+				-- Locked: the icon dims under a padlock.
+				Dim = props.locked and e("Frame", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundColor3 = Theme.colors.shadow,
+					BackgroundTransparency = 0.45,
+					ZIndex = 3,
+				}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
+				Lock = props.locked and e(LockGlyph, {
+					size = 18,
+					position = UDim2.fromScale(0.5, 0.5),
+					anchorPoint = Vector2.new(0.5, 0.5),
+					zIndex = 4,
+				}),
 			}
 		),
 		Name = e(Label, {
@@ -102,13 +117,14 @@ local function RecipeCard(props: {
 				then format.stack(output.itemId, output.count)
 				else format.itemName(output.itemId),
 			style = "body",
+			tone = if props.locked then "muted" else "text",
 			size = UDim2.new(1, -60, 0, 22),
 			position = UDim2.fromOffset(56, 6),
 		}),
 		Meta = e(Label, {
 			text = props.locked or format.duration(props.seconds),
 			style = "caption",
-			tone = if props.locked then "muted" elseif props.ok then "good" else "muted",
+			tone = if props.locked then "locked" elseif props.ok then "good" else "muted",
 			size = UDim2.new(1, -60, 0, 18),
 			position = UDim2.fromOffset(56, 30),
 		}),
@@ -655,7 +671,7 @@ local function StationScreen()
 			}, {
 				Title = e(
 					Label,
-					{ text = "QUEUE", style = "caption", tone = "accent", size = UDim2.new(0.5, 0, 0, 22) }
+					{ text = "QUEUE", style = "section", tone = "accent", size = UDim2.new(0.5, 0, 0, 22) }
 				),
 				Collect = anyDone and e(Button, {
 					text = "Collect all",

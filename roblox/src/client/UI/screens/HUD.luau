@@ -127,11 +127,12 @@ local function Status()
 		hungerMax, thirstMax, maxHealth = survival.hungerMax, survival.thirstMax, survival.maxHealth
 	end
 
-	local energyValue, energyCap, nextIn = 0, 100, 0
+	local energyValue, energyCap, nextIn, bonus = 0, 100, 0, 0
 	if energy then
 		local config = { cap = energy.cap, secondsPerPoint = energy.secondsPerPoint }
 		local state = EnergyMath.current({ value = energy.value, updatedAt = energy.updatedAt }, now, config)
 		energyValue, energyCap = state.value, energy.cap
+		bonus = math.max(0, state.value - energy.cap)
 		nextIn = if state.value < energy.cap then state.updatedAt + energy.secondsPerPoint - now else 0
 	end
 
@@ -210,11 +211,22 @@ local function Status()
 				BackgroundColor3 = Theme.colors.track,
 			}, {
 				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
-				Stroke = e("UIStroke", { Color = Theme.meters.energy, Thickness = 1, Transparency = 0.5 }),
+				Stroke = e("UIStroke", {
+					Color = if bonus > 0 then Theme.colors.bonus else Theme.meters.energy,
+					Thickness = if bonus > 0 then 2 else 1,
+					Transparency = if bonus > 0 then 0 else 0.5,
+				}),
+				-- Above the cap (level-up refills, rewards) the extra shows as an amber bonus.
 				Text = e(Label, {
-					text = if nextIn > 0
-						then `{Art.meterGlyphs.energy} {energyValue} / {energyCap}  ·  +1 in {format.duration(nextIn)}`
+					text = if bonus > 0
+						then `{Art.meterGlyphs.energy} {energyCap} / {energyCap}  <font color="#{Theme.colors.bonus:ToHex()}">+{bonus}</font>`
+						elseif
+							nextIn > 0
+						then `{Art.meterGlyphs.energy} {energyValue} / {energyCap}  ·  +1 in {format.duration(
+							nextIn
+						)}`
 						else `{Art.meterGlyphs.energy} {energyValue} / {energyCap}`,
+					richText = true,
 					style = "caption",
 					tone = "highlight",
 					size = UDim2.fromScale(1, 1),
@@ -257,7 +269,7 @@ local function QuestTracker()
 	end
 	local rows: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
-		Header = e(Label, { text = "SURVIVOR'S PATH", style = "caption", tone = "accent", layoutOrder = 0 }),
+		Header = e(Label, { text = "SURVIVOR'S PATH", style = "section", tone = "accent", layoutOrder = 0 }),
 		Name = e(Label, { text = quest.name, style = "title", layoutOrder = 1 }),
 	}
 	for index, objective in quest.objectives do

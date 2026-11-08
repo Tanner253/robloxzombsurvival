@@ -19,10 +19,20 @@ Theme.colors = {
 	accentSoft = Color3.fromHex("FFB547"), -- amber
 	highlight = Color3.fromHex("FFE3A3"), -- candle
 
-	-- Text: off-white and muted; never pure white.
-	text = Color3.fromHex("F2EBDD"),
-	textMuted = Color3.fromHex("A8A193"),
+	-- Text: off-white and muted; never pure white. Secondary text is never darker
+	-- than B8B2A6 so it holds contrast on the panel (checklist 4.1).
+	text = Color3.fromHex("F2EEE6"),
+	textMuted = Color3.fromHex("B8B2A6"),
 	textOnAccent = Color3.fromHex("1C1F24"),
+
+	-- Disabled controls are plainly grey (no half-transparent orange).
+	disabled = Color3.fromHex("3A3E45"),
+	disabledStroke = Color3.fromHex("4E535B"),
+	disabledText = Color3.fromHex("A19C93"),
+
+	-- Unlock conditions on locked recipes and pieces.
+	locked = Color3.fromHex("EE8A72"),
+	bonus = Color3.fromHex("FFC24D"), -- over-cap amounts, e.g. Energy above 100
 
 	-- Cold palette: cyan means danger.
 	threat = Color3.fromHex("9FE7FF"),
@@ -74,9 +84,13 @@ Theme.fonts = {
 	body = Font.fromName("BuilderSans", Enum.FontWeight.Medium),
 }
 
+-- Design pixels; the App scales the 1366 x 768 layout to fit (x1.375 at 1080p), so
+-- caption is 19 px and section 25 px on a 1080p screen (checklist 4.1: body >= 18,
+-- headers >= 24).
 Theme.textSize = {
 	header = 28,
 	title = 22,
+	section = 18,
 	body = 18,
 	caption = 14,
 }

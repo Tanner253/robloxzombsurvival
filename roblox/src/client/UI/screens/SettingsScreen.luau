@@ -119,7 +119,7 @@ local function SettingsScreen()
 
 	local left: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-		Title = e(Label, { text = "AUDIO", style = "caption", tone = "accent", size = UDim2.new(1, 0, 0, 22) }),
+		Title = e(Label, { text = "AUDIO", style = "section", tone = "accent", size = UDim2.new(1, 0, 0, 22) }),
 	}
 	for index, volume in VOLUMES do
 		left[volume.key] = e(Row, { label = volume.label, layoutOrder = index }, {
@@ -133,7 +133,7 @@ local function SettingsScreen()
 	end
 	left.ViewTitle = e(Label, {
 		text = "VIEW",
-		style = "caption",
+		style = "section",
 		tone = "accent",
 		size = UDim2.new(1, 0, 0, 22),
 		layoutOrder = 10,
@@ -166,7 +166,7 @@ local function SettingsScreen()
 
 	local keys: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
-		Title = e(Label, { text = "KEYS", style = "caption", tone = "accent", size = UDim2.new(1, 0, 0, 22) }),
+		Title = e(Label, { text = "KEYS", style = "section", tone = "accent", size = UDim2.new(1, 0, 0, 22) }),
 	}
 	for index, pair in KEYS do
 		keys[`K{index}`] = e("Frame", {

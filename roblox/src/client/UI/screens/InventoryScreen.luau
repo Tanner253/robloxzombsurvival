@@ -31,7 +31,9 @@ local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local ItemSlot = require("../components/ItemSlot")
 local KeyChip = require("../components/KeyChip")
+local TrashGlyph = require("../components/TrashGlyph")
 local Label = require("../components/Label")
+local LockGlyph = require("../components/LockGlyph")
 local Sheet = require("../components/Sheet")
 
 local e = React.createElement
@@ -63,8 +65,6 @@ local function dragLayer(): ScreenGui
 	layer = made
 	return made
 end
-local EQUIP_LABELS = { head = "Head", body = "Body", legs = "Legs", feet = "Feet", weapon = "Weapon", bag = "Bag" }
-
 -- Slot helpers ---------------------------------------------------------------------------------------
 
 local function containerOf(inventory: any, storage: any, stash: any, ref: string): { any }
@@ -387,7 +387,7 @@ local function Section(props: {
 	}, {
 		Title = e(
 			Label,
-			{ text = props.title, style = "caption", tone = "accent", autoWidth = true, size = UDim2.fromOffset(0, 22) }
+			{ text = props.title, style = "section", tone = "accent", autoWidth = true, size = UDim2.fromOffset(0, 22) }
 		),
 		Note = props.note and e(Label, {
 			text = props.note,
@@ -452,8 +452,8 @@ local function CraftRow(props: { recipe: any, inventory: any, progress: any, lay
 	local lockText = if gate.kind == "level" then `Level {gate.level}` else "Blueprint"
 	return e("Frame", {
 		Size = UDim2.new(1, -8, 0, 58),
-		BackgroundColor3 = Theme.colors.panelRaised,
-		BackgroundTransparency = if unlocked then 0.1 else 0.45,
+		BackgroundColor3 = if unlocked then Theme.colors.panelRaised else Theme.colors.disabled,
+		BackgroundTransparency = 0.1,
 		LayoutOrder = props.layoutOrder,
 	}, {
 		Corner = e("UICorner", { CornerRadius = Theme.radius }),
@@ -462,6 +462,18 @@ local function CraftRow(props: { recipe: any, inventory: any, progress: any, lay
 			{ Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(6, 6), BackgroundTransparency = 1 },
 			{
 				Inner = e(ItemIcon, { itemId = output.itemId, size = UDim2.fromScale(1, 1) }),
+				Dim = not unlocked and e("Frame", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundColor3 = Theme.colors.shadow,
+					BackgroundTransparency = 0.45,
+					ZIndex = 3,
+				}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),
+				Lock = not unlocked and e(LockGlyph, {
+					size = 18,
+					position = UDim2.fromScale(0.5, 0.5),
+					anchorPoint = Vector2.new(0.5, 0.5),
+					zIndex = 4,
+				}),
 			}
 		),
 		Name = e(Label, {
@@ -469,13 +481,14 @@ local function CraftRow(props: { recipe: any, inventory: any, progress: any, lay
 				then format.stack(output.itemId, output.count)
 				else format.itemName(output.itemId),
 			style = "body",
+			tone = if unlocked then "text" else "muted",
 			size = UDim2.new(1, -150, 0, 22),
 			position = UDim2.fromOffset(58, 6),
 		}),
 		Inputs = e(Label, {
 			text = if unlocked then table.concat(inputs, "  ·  ") else `Unlocks at {lockText}`,
 			style = "caption",
-			tone = "muted",
+			tone = if unlocked then "muted" else "locked",
 			richText = true,
 			size = UDim2.new(1, -150, 0, 18),
 			position = UDim2.fromOffset(58, 30),
@@ -504,7 +517,23 @@ local function CraftingList(props: { inventory: any })
 	local rows: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 	}
-	for index, recipe in handRecipes() do
+	-- Available first (what you can afford, then the rest), locked recipes last (5.1).
+	local recipes = handRecipes()
+	local rank: { [any]: number } = {}
+	for _, recipe in recipes do
+		local affordable = true
+		for _, stack in recipe.inputs do
+			affordable = affordable and format.count(props.inventory, stack.itemId) >= stack.count
+		end
+		rank[recipe] = if not CraftingMath.isUnlocked(recipe, progress) then 2 elseif affordable then 0 else 1
+	end
+	table.sort(recipes, function(a: any, b: any)
+		if rank[a] ~= rank[b] then
+			return rank[a] < rank[b]
+		end
+		return format.itemName(a.outputs[1].itemId) < format.itemName(b.outputs[1].itemId)
+	end)
+	for index, recipe in recipes do
 		rows[recipe.id] =
 			e(CraftRow, { recipe = recipe, inventory = props.inventory, progress = progress, layoutOrder = index })
 	end
@@ -552,6 +581,48 @@ local function describe(def: any, slot: any): string
 	return table.concat(lines, "\n")
 end
 
+-- Destroy a slot for good: the first press arms it (red, "Sure?"), a second press
+-- within CONFIRM_SECONDS destroys; anything else disarms it.
+local CONFIRM_SECONDS = 3
+
+local function TrashButton(props: { container: string, index: number, layoutOrder: number })
+	-- Keyed by slot in the action bar, so picking another item remounts it disarmed.
+	local armedUntil, setArmedUntil = React.useState(0)
+	local armed = os.clock() < armedUntil
+	return e("TextButton", {
+		Size = UDim2.fromOffset(if armed then 90 else 52, 44),
+		LayoutOrder = props.layoutOrder,
+		AutoButtonColor = false,
+		BackgroundColor3 = if armed then Theme.colors.locked else Theme.colors.panelRaised,
+		FontFace = Theme.fonts.header,
+		Text = if armed then "Sure?" else "",
+		TextSize = Theme.textSize.body,
+		TextColor3 = Theme.colors.textOnAccent,
+		[React.Event.Activated] = function()
+			if armed then
+				Net.fire("InventoryDestroy", props.container, props.index)
+				State.clear("selected")
+				setArmedUntil(0)
+				Sfx.play("toolBreak")
+			else
+				setArmedUntil(os.clock() + CONFIRM_SECONDS)
+				Sfx.play("uiClick")
+				task.delay(CONFIRM_SECONDS, function()
+					setArmedUntil(0)
+				end)
+			end
+		end,
+	}, {
+		Corner = e("UICorner", { CornerRadius = Theme.radius }),
+		Stroke = e("UIStroke", {
+			Color = if armed then Theme.colors.locked else Theme.colors.strokeWarm,
+			Thickness = Theme.strokeThickness,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		}),
+		Bin = not armed and e(TrashGlyph, { color = Theme.colors.textMuted }),
+	})
+end
+
 local function Details(props: { inventory: any, storage: any, stash: any })
 	local ui = hooks.useUi()
 	local focus = ui.hovered or ui.selected
@@ -596,39 +667,49 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 			position = UDim2.fromOffset(84, 26),
 			alignY = Enum.TextYAlignment.Top,
 		}),
-		Use = usable and (focus.ref == "pockets" or focus.ref == "backpack") and e(Button, {
-			text = verb,
-			size = UDim2.fromOffset(100, 44),
-			position = UDim2.new(1, -228, 0.5, 0),
-			anchorPoint = Vector2.new(1, 0.5),
-			onActivated = function()
-				useSlot(focus.ref, focus.index)
-			end,
-		}),
-		UseKey = usable
-			and (focus.ref == "pockets" or focus.ref == "backpack")
-			and e(KeyChip, { text = "RMB", position = UDim2.new(1, -332, 0.5, 0), anchorPoint = Vector2.new(1, 0.5) }),
-		Drop = droppable and e(Button, {
-			text = "Drop",
-			variant = "secondary",
-			size = UDim2.fromOffset(100, 44),
-			position = UDim2.new(1, -114, 0.5, 0),
-			anchorPoint = Vector2.new(1, 0.5),
-			onActivated = function()
-				Net.fire("InventoryDrop", focus.ref, focus.index)
-				State.clear("selected")
-				Sfx.play("pickup")
-			end,
-		}),
-		Split = slot.count > 1 and focus.ref ~= "equipment" and focus.ref ~= "stash" and e(Button, {
-			text = "Split",
-			variant = "secondary",
-			size = UDim2.fromOffset(100, 44),
-			position = UDim2.fromScale(1, 0.5),
-			anchorPoint = Vector2.new(1, 0.5),
-			onActivated = function()
-				Net.fire("InventorySplit", focus.ref, focus.index)
-			end,
+		-- The action bar (checklist 4.11): real buttons, right-aligned, no gaps.
+		Actions = e("Frame", {
+			Size = UDim2.new(0, 440, 0, 44),
+			Position = UDim2.fromScale(1, 0.5),
+			AnchorPoint = Vector2.new(1, 0.5),
+			BackgroundTransparency = 1,
+		}, {
+			Layout = e("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Right,
+				Padding = UDim.new(0, 8),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+			}),
+			Use = usable and (focus.ref == "pockets" or focus.ref == "backpack") and e(Button, {
+				text = verb,
+				size = UDim2.fromOffset(100, 44),
+				layoutOrder = 1,
+				onActivated = function()
+					useSlot(focus.ref, focus.index)
+				end,
+			}),
+			Split = slot.count > 1 and focus.ref ~= "equipment" and focus.ref ~= "stash" and e(Button, {
+				text = "Split",
+				variant = "secondary",
+				size = UDim2.fromOffset(90, 44),
+				layoutOrder = 2,
+				onActivated = function()
+					Net.fire("InventorySplit", focus.ref, focus.index)
+				end,
+			}),
+			Drop = droppable and e(Button, {
+				text = "Drop",
+				variant = "secondary",
+				size = UDim2.fromOffset(90, 44),
+				layoutOrder = 3,
+				onActivated = function()
+					Net.fire("InventoryDrop", focus.ref, focus.index)
+					State.clear("selected")
+					Sfx.play("pickup")
+				end,
+			}),
+			[`Destroy{focus.ref}{focus.index}`] = droppable
+				and e(TrashButton, { container = focus.ref, index = focus.index, layoutOrder = 4 }),
 		}),
 	})
 end
@@ -647,10 +728,8 @@ local function InventoryScreen()
 	local body: any = nil
 	if inventory then
 		local equipment = Slots.fromEquipment(inventory.equipment)
-		local placeholders = {}
-		for index, name in Slots.EQUIP_ORDER do
-			placeholders[index] = EQUIP_LABELS[name]
-		end
+		-- Each equip slot draws the silhouette of what goes there.
+		local placeholders = table.clone(Slots.EQUIP_ORDER) :: { any }
 		local stashCount = 0
 		for _, slot in stash or {} do
 			stashCount += if slot.count > 0 then 1 else 0

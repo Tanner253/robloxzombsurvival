@@ -43,13 +43,18 @@ local function Button(props: Props)
 		LayoutOrder = props.layoutOrder,
 		AutoButtonColor = false,
 		Active = not disabled,
-		BackgroundColor3 = if primary then Theme.colors.accent else Theme.colors.panelRaised,
-		BackgroundTransparency = if disabled then 0.5 else 0,
+		BackgroundColor3 = if disabled
+			then Theme.colors.disabled
+			elseif primary then Theme.colors.accent
+			else Theme.colors.panelRaised,
+		BackgroundTransparency = 0,
 		FontFace = Theme.fonts.header,
 		Text = props.text,
 		TextSize = Theme.textSize.body,
-		TextColor3 = if primary then Theme.colors.textOnAccent else Theme.colors.text,
-		TextTransparency = if disabled then 0.4 else 0,
+		TextColor3 = if disabled
+			then Theme.colors.disabledText
+			elseif primary then Theme.colors.textOnAccent
+			else Theme.colors.text,
 		[React.Event.Activated] = function()
 			if disabled then
 				Sfx.play("uiError")
@@ -75,7 +80,10 @@ local function Button(props: Props)
 	}, {
 		Corner = React.createElement("UICorner", { CornerRadius = Theme.radius }),
 		Stroke = React.createElement("UIStroke", {
-			Color = if primary then Theme.colors.accentSoft else Theme.colors.strokeWarm,
+			Color = if disabled
+				then Theme.colors.disabledStroke
+				elseif primary then Theme.colors.accentSoft
+				else Theme.colors.strokeWarm,
 			Thickness = Theme.strokeThickness,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),

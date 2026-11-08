@@ -168,6 +168,13 @@ Remotes.list = {
 		validate = Check.args(ref, slot),
 		description = "(ref, index) drops a whole slot on the ground at the player's feet",
 	},
+	InventoryDestroy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(ref, slot),
+		description = "(ref, index) destroys a whole slot for good (the trash button, after a confirm)",
+	},
 	PickupDrop = {
 		kind = "event",
 		clientCanSend = true,

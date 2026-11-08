@@ -54,7 +54,7 @@ Art.nodes = {
 	["node.boulder"] = { names = { "EO_Boulder", "RockClump" }, height = 4.6 },
 	["node.loose_stones"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.8 },
 	["node.fallen_branches"] = { names = { "EO_FallenBranches", "Gen_firewood" }, height = 1.8 },
-	["node.reed_patch"] = { names = { "EO_Reeds", "GrassClump" }, height = 4.2 },
+	["node.reed_patch"] = { names = { "EO_Reeds" }, height = 4.2 },
 	["node.ember_bush"] = { names = { "EO_EmberBush" }, height = 4 },
 	["node.spring_pool"] = { names = { "SpringPool" }, height = 1 },
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 3 },
@@ -252,6 +252,22 @@ Art.glyphs = {
 	["item.bp_pack_frame"] = "📜",
 	["item.bp_reinforced"] = "📜",
 } :: { [string]: string }
+
+-- Empty equipment slots show a silhouette of what goes there (checklist 4.1): one
+-- white-on-transparent atlas (art/higgsfield/m1-slice1/icons/gear/gear_atlas.png),
+-- 256 px cells, tinted by the UI.
+Art.gearSilhouettes = {
+	image = "rbxassetid://92488844905748",
+	cell = 256,
+	cells = {
+		head = Vector2.new(0, 0),
+		body = Vector2.new(1, 0),
+		legs = Vector2.new(2, 0),
+		feet = Vector2.new(0, 1),
+		bag = Vector2.new(1, 1),
+		weapon = Vector2.new(2, 1),
+	} :: { [string]: Vector2 },
+}
 
 -- HUD meter glyphs (placeholder until the icon set exists).
 Art.meterGlyphs = {

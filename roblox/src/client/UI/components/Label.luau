@@ -9,8 +9,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
 
-export type Style = "header" | "title" | "body" | "caption" | "number"
-export type Tone = "text" | "muted" | "accent" | "highlight" | "threat" | "onAccent" | "good" | "warn"
+export type Style = "header" | "title" | "section" | "body" | "caption" | "number"
+export type Tone =
+	"text"
+	| "muted"
+	| "accent"
+	| "highlight"
+	| "threat"
+	| "onAccent"
+	| "good"
+	| "warn"
+	| "locked"
+	| "bonus"
 
 export type Props = {
 	text: any, -- string or a binding
@@ -40,12 +50,15 @@ local TONES: { [string]: Color3 } = {
 	onAccent = Theme.colors.textOnAccent,
 	good = Theme.colors.durability,
 	warn = Theme.colors.accentSoft,
+	locked = Theme.colors.locked,
+	bonus = Theme.colors.bonus,
 }
 
 local function Label(props: Props)
 	local style = props.style or "body"
 	local font = if style == "header"
 			or style == "title"
+			or style == "section"
 			or style == "number"
 		then Theme.fonts.header
 		else Theme.fonts.body
@@ -59,7 +72,7 @@ local function Label(props: Props)
 		FontFace = font,
 		Text = props.text,
 		TextSize = textSize,
-		TextColor3 = props.color or TONES[props.tone or "text"],
+		TextColor3 = props.color or TONES[(props.tone or "text") :: string],
 		TextTransparency = props.transparency,
 		TextXAlignment = props.alignX or Enum.TextXAlignment.Left,
 		TextYAlignment = props.alignY or Enum.TextYAlignment.Center,

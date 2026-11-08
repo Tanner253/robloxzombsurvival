@@ -10,6 +10,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Theme = require("../theme")
 local hooks = require("../hooks")
@@ -21,7 +22,7 @@ export type Props = {
 	durability: number?, -- 0..1 of max; nil hides the bar
 	selected: boolean?,
 	hotkey: string?,
-	placeholder: string?, -- shown in an empty slot (equipment slot names)
+	placeholder: string?, -- an empty slot shows this: an equip slot's silhouette, or text
 	dim: boolean?,
 	size: number?,
 	isNew: boolean?, -- shows a NEW badge (gained since the inventory was last seen)
@@ -56,6 +57,7 @@ end
 local function ItemSlot(props: Props)
 	local itemId = props.itemId
 	local empty = itemId == nil or itemId == "" or (props.count or 0) <= 0
+	local silhouette: Vector2? = if props.placeholder then Art.gearSilhouettes.cells[props.placeholder] else nil
 	local def = if empty then nil else Content.Items[itemId :: string]
 	local hovering, setHovering = React.useState(false)
 	local size = props.size or Theme.slotSize
@@ -165,7 +167,19 @@ local function ItemSlot(props: Props)
 		}, {
 			Corner = React.createElement("UICorner", { CornerRadius = Theme.radius }),
 		}),
-		Placeholder = empty and props.placeholder and React.createElement("TextLabel", {
+		Silhouette = empty and silhouette and React.createElement("ImageLabel", {
+			Size = UDim2.fromScale(0.62, 0.62),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Image = Art.gearSilhouettes.image,
+			ImageRectOffset = (silhouette :: Vector2) * Art.gearSilhouettes.cell,
+			ImageRectSize = Vector2.one * Art.gearSilhouettes.cell,
+			ImageColor3 = Theme.colors.textMuted,
+			ImageTransparency = 0.35,
+			ScaleType = Enum.ScaleType.Fit,
+		}),
+		Placeholder = empty and props.placeholder and not silhouette and React.createElement("TextLabel", {
 			Size = UDim2.new(1, -8, 1, -8),
 			Position = UDim2.fromOffset(4, 4),
 			BackgroundTransparency = 1,
@@ -188,13 +202,13 @@ local function ItemSlot(props: Props)
 			ZIndex = 4,
 		}),
 		New = not empty and props.isNew and React.createElement("TextLabel", {
-			Size = UDim2.fromOffset(30, 14),
+			Size = UDim2.fromOffset(38, 18),
 			Position = UDim2.new(1, -3, 0, 3),
 			AnchorPoint = Vector2.new(1, 0),
 			BackgroundColor3 = Theme.colors.accent,
 			FontFace = Theme.fonts.header,
 			Text = "NEW",
-			TextSize = 10,
+			TextSize = Theme.textSize.caption,
 			TextColor3 = Theme.colors.textOnAccent,
 			ZIndex = 6,
 		}, {

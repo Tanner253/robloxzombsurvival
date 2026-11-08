@@ -241,9 +241,9 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 				true
 			)
 		end
-		-- A ring of tufts, rocks and pebbles around the pad (never on it).
+		-- A ring of rocks and pebbles around the pad (never on it). The look-test
+		-- GrassClump (a dirt chunk with straw that read as a mud blob) is gone.
 		local scatter: { { name: string, count: number, min: number, max: number, solid: boolean } } = {
-			{ name = "GrassClump", count = 19, min = 2.2, max = 3.9, solid = false },
 			{ name = "RockClump", count = 4, min = 2.8, max = 4.8, solid = true },
 			{ name = "Gen_pebbles", count = 3, min = 0.8, max = 1.4, solid = false },
 		}

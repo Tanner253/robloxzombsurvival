@@ -30,6 +30,11 @@ local function devCommand(command: string, ...: any): any
 		local args = { ... }
 		State.toggle(args[1], args[2])
 		return State.ui().panel
+	elseif command == "select" then
+		-- Selects a slot as a click would, e.g. ("select", "backpack", 2), for captures.
+		local args = { ... }
+		State.patch({ selected = { ref = args[1], index = args[2] } })
+		return "ok"
 	elseif command == "action" then
 		local args = { ... }
 		local fn: any = (Actions :: any)[args[1]]

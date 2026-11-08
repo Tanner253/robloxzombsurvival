@@ -733,6 +733,14 @@ function Inventory.init()
 	Net.onEvent("InventorySplit", split)
 	Net.onEvent("InventoryTransfer", transfer)
 	Net.onEvent("InventorySort", sort)
+	-- The trash button (checklist 4.11): the client confirms first; the slot is gone for good.
+	Net.onEvent("InventoryDestroy", function(player: Player, ref: string, index: number)
+		local slot = Inventory.takeSlot(player, ref, index)
+		if slot then
+			local def = Content.Items[slot.itemId]
+			Sync.notice(player, `Destroyed {if def then def.name else slot.itemId} ×{slot.count}`)
+		end
+	end)
 	Net.onEvent("StorageOpen", openCrate)
 	Net.onEvent("UseItem", use)
 	Net.onEvent("HotbarSelect", hold)
