@@ -50,6 +50,8 @@ local function onKey(key: Enum.KeyCode)
 		end
 	elseif key == Enum.KeyCode.Q then
 		Actions.toggleAuto()
+	elseif key == Enum.KeyCode.O then
+		Actions.toggleSettings()
 	elseif
 		ui.auto and (key == Enum.KeyCode.W or key == Enum.KeyCode.A or key == Enum.KeyCode.S or key == Enum.KeyCode.D)
 	then

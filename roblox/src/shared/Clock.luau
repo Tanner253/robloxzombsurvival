@@ -42,6 +42,31 @@ function Clock.daylight(hours: number): number
 	return x * x * (3 - 2 * x)
 end
 
+-- The sun's ClockTime for an hour. Roblox's sun sets at its own pace, which would
+-- darken the world before our dusk begins; this keeps the sun high through the day
+-- (08:00-16:00 sun for 07:00-17:30) and lays sunset and sunrise exactly over the
+-- eased dusk and dawn, with the moon up all night.
+local SUN_KEYS = {
+	{ 0, 0 },
+	{ 5, 4.5 },
+	{ 7, 8 },
+	{ 17.5, 16 },
+	{ 18.8, 17.4 },
+	{ 19.5, 19.6 },
+	{ 24, 24 },
+}
+function Clock.sunTime(hours: number): number
+	local t = hours % 24
+	for index = 2, #SUN_KEYS do
+		local a, b = SUN_KEYS[index - 1], SUN_KEYS[index]
+		if t <= b[1] then
+			local f = (t - a[1]) / (b[1] - a[1])
+			return (a[2] + (b[2] - a[2]) * f) % 24
+		end
+	end
+	return t
+end
+
 -- "14:35" for an hour value.
 function Clock.label(hours: number): string
 	local h = math.floor(hours) % 24

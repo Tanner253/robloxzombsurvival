@@ -66,11 +66,12 @@ return function(test: TestKit.Register)
 		TestKit.deepEqual(data.purchases.receiptIds, {}, "receipt log")
 	end)
 
-	test("v1 profiles migrate to v2 with full survival meters", function()
+	test("v1 profiles migrate up with full survival meters and default settings", function()
 		local data: { [string]: any } = { version = 1 }
 		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
 		TestKit.truthy(ok, reason)
-		TestKit.equal(data.version, 2, "version")
+		TestKit.equal(data.version, PlayerSchema.VERSION, "version")
+		TestKit.deepEqual(data.settings, PlayerSchema.defaultSettings(), "v3 settings")
 		TestKit.equal(data.survival.health, Tuning.player.maxHealth, "health")
 		TestKit.equal(data.survival.hunger, Tuning.survival.hunger.max, "hunger")
 		TestKit.equal(data.survival.thirst, Tuning.survival.thirst.max, "thirst")
@@ -118,5 +119,26 @@ return function(test: TestKit.Register)
 		}, 2)
 		TestKit.equal(ok, false)
 		TestKit.truthy(string.find(reason :: string, "boom", 1, true), reason)
+	end)
+
+	test("settings from the client are clamped and malformed ones refused", function()
+		local clean = PlayerSchema.cleanSettings({
+			master = 2,
+			music = -1,
+			ambience = 0.5,
+			sfx = 1,
+			ui = 0.3,
+			shake = false,
+			uiScale = 9,
+		}) :: any
+		TestKit.equal(clean.master, 1)
+		TestKit.equal(clean.music, 0)
+		TestKit.equal(clean.uiScale, 1.25)
+		TestKit.equal(clean.shake, false)
+		TestKit.equal(PlayerSchema.cleanSettings({ master = "loud" }), nil)
+		TestKit.equal(PlayerSchema.cleanSettings(nil), nil)
+		local nan = PlayerSchema.defaultSettings() :: any
+		nan.sfx = 0 / 0
+		TestKit.equal(PlayerSchema.cleanSettings(nan), nil, "NaN refused")
 	end)
 end

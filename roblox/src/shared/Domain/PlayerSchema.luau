@@ -20,7 +20,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 2
+PlayerSchema.VERSION = 3
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -86,7 +86,45 @@ export type PlayerData = {
 	unlocks: { recipes: { [string]: boolean }, blueprints: { [string]: boolean } },
 	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
+	settings: Settings,
 }
+
+-- Player settings (checklist 8.6): mixer volumes 0..1, camera shake, UI scale.
+export type Settings = {
+	master: number,
+	music: number,
+	ambience: number,
+	sfx: number,
+	ui: number,
+	shake: boolean,
+	uiScale: number,
+}
+
+-- Default settings, for new profiles and the v2 -> v3 migration.
+function PlayerSchema.defaultSettings(): Settings
+	return { master = 1, music = 0.7, ambience = 0.9, sfx = 1, ui = 0.9, shake = true, uiScale = 1 }
+end
+
+-- Settings from untrusted client input: known keys only, clamped; nil when malformed.
+function PlayerSchema.cleanSettings(input: any): Settings?
+	if type(input) ~= "table" then
+		return nil
+	end
+	local result = PlayerSchema.defaultSettings()
+	for _, key in { "master", "music", "ambience", "sfx", "ui" } do
+		local value = input[key]
+		if type(value) ~= "number" or value ~= value then
+			return nil
+		end
+		(result :: any)[key] = math.clamp(value, 0, 1)
+	end
+	if type(input.shake) ~= "boolean" or type(input.uiScale) ~= "number" or input.uiScale ~= input.uiScale then
+		return nil
+	end
+	result.shake = input.shake
+	result.uiScale = math.clamp(input.uiScale, 0.8, 1.25)
+	return result
+end
 
 -- Full health and meters, for new profiles and the v1 -> v2 migration.
 function PlayerSchema.freshSurvival(): SurvivalSave
@@ -128,6 +166,7 @@ function PlayerSchema.template(): PlayerData
 		unlocks = { recipes = {}, blueprints = {} },
 		purchases = { receiptIds = {} },
 		raid = { shieldUntil = 0, log = {} },
+		settings = PlayerSchema.defaultSettings(),
 	}
 end
 
@@ -141,6 +180,12 @@ PlayerSchema.migrations = {
 		if type(data.energy) == "table" then
 			data.energy.foodDay = data.energy.foodDay or 0
 			data.energy.foodGained = data.energy.foodGained or 0
+		end
+	end,
+	-- v3: player settings (volumes, camera shake, UI scale).
+	[2] = function(data)
+		if data.settings == nil then
+			data.settings = PlayerSchema.defaultSettings()
 		end
 	end,
 } :: Migrations.Steps

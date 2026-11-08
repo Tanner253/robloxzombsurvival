@@ -14,7 +14,6 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -69,7 +68,7 @@ end
 
 -- 1 in full day, 0 at night, easing through dawn and dusk (Shared/Clock).
 local function daylight(): number
-	return Clock.daylight(Lighting.ClockTime)
+	return Clock.daylight(Clock.hoursAt(State.now()))
 end
 
 local function fadeLayer(name: string, target: number, dt: number)

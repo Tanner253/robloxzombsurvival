@@ -8,7 +8,7 @@
 	- exposes ServerStorage.EO_Dev, a BindableFunction that tools and the command
 	  bar can invoke to drive the real services: ("place", pieceId, x, z, axis?, rot?),
 	  ("upgrade", uid), ("demolish", uid), ("give", itemId, count), ("xp", amount),
-	  ("learn", blueprintItemId),
+	  ("learn", blueprintItemId), ("testbase") builds a furnished test base,
 	  ("bag", slots) resizes the backpack. place/upgrade return "ok" or the refusal reason.
 	  ("clock", hours).
 ]]
@@ -43,6 +43,34 @@ local DEV_KIT = {
 	{ itemId = "item.fiber", count = 20 },
 }
 
+-- A small furnished base for captures: a 3 x 2 deck, an L of walls with a doorway,
+-- door and window, a workbench against the wall and a campfire.
+local TEST_BASE: { { any } } = {
+	{ "build.foundation_wood", 3, 3 },
+	{ "build.foundation_wood", 4, 3 },
+	{ "build.foundation_wood", 5, 3 },
+	{ "build.foundation_wood", 3, 4 },
+	{ "build.foundation_wood", 4, 4 },
+	{ "build.foundation_wood", 5, 4 },
+	{ "build.wall_wood", 3, 3, "h" },
+	{ "build.doorway_wood", 4, 3, "h" },
+	{ "build.door_wood", 4, 3, "h" },
+	{ "build.window_wood", 5, 3, "h" },
+	{ "build.wall_wood", 3, 3, "v" },
+	{ "build.wall_wood", 3, 4, "v" },
+	{ "build.workbench", 12, 18, nil, 1 },
+	{ "build.campfire", 17, 17, nil, 0 },
+}
+local TEST_STOCK = {
+	{ itemId = "item.timber", count = 200 },
+	{ itemId = "item.stone", count = 60 },
+	{ itemId = "item.plank", count = 80 },
+	{ itemId = "item.rope", count = 30 },
+	{ itemId = "item.scrap", count = 60 },
+	{ itemId = "item.fiber", count = 30 },
+	{ itemId = "item.sticks", count = 60 },
+}
+
 local function devCommand(command: string, ...: any): any
 	local player = Players:GetPlayers()[1]
 	if player == nil then
@@ -73,6 +101,23 @@ local function devCommand(command: string, ...: any): any
 			data.unlocks.blueprints[args[1]] = true
 			Sync.mark(player, "unlocks")
 		end
+	elseif command == "testbase" then
+		local view = Inventory.view(player)
+		local resized = view and InventoryMath.setBackpackCapacity(view, 60)
+		if resized then
+			Inventory.commit(player, resized)
+		end
+		Progression.grantXp(player, 50_000, "Dev")
+		Inventory.give(player, TEST_STOCK)
+		local failed: { string } = {}
+		for _, step in TEST_BASE do
+			Building.lastDenied[player] = nil
+			Building.place(player, step[1], step[2], step[3], step[4], step[5])
+			if Building.lastDenied[player] then
+				table.insert(failed, `{step[1]}: {Building.lastDenied[player]}`)
+			end
+		end
+		return if #failed > 0 then table.concat(failed, ", ") else "ok"
 	elseif command == "xp" then
 		Progression.grantXp(player, args[1], "Dev")
 	elseif command == "clock" then

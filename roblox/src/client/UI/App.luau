@@ -18,6 +18,8 @@ local HUD = require("./screens/HUD")
 local InventoryScreen = require("./screens/InventoryScreen")
 local KitPreview = require("./screens/KitPreview")
 local StationScreen = require("./screens/StationScreen")
+local SettingsScreen = require("./screens/SettingsScreen")
+local hooks = require("./hooks")
 
 local e = React.createElement
 
@@ -39,10 +41,12 @@ end
 
 -- The scale that fits the design frame into the viewport.
 local function useFitScale(): number
+	local settings = hooks.useSection("settings")
+	local preference = if type(settings) == "table" then settings.uiScale else 1
 	local function measure(): number
 		local camera = workspace.CurrentCamera
 		local viewport = if camera then camera.ViewportSize else Theme.designSize
-		local scale = math.min(viewport.X / Theme.designSize.X, viewport.Y / Theme.designSize.Y)
+		local scale = math.min(viewport.X / Theme.designSize.X, viewport.Y / Theme.designSize.Y) * preference
 		-- Snap to 1/8 steps so most edges land on whole pixels (crisp text and icons, 4.1).
 		return math.clamp(math.floor(scale * 8) / 8, MIN_SCALE, MAX_SCALE)
 	end
@@ -59,6 +63,10 @@ local function useFitScale(): number
 			connection:Disconnect()
 		end
 	end, {})
+	React.useEffect(function()
+		setScale(measure())
+		return function() end
+	end, { preference })
 	return scale
 end
 
@@ -77,6 +85,7 @@ local function App()
 		Inventory = e(Boundary, { name = "Inventory" }, { Screen = e(InventoryScreen) }),
 		Station = e(Boundary, { name = "Station" }, { Screen = e(StationScreen) }),
 		Build = e(Boundary, { name = "Build" }, { Screen = e(BuildMenu) }),
+		Settings = e(Boundary, { name = "Settings" }, { Screen = e(SettingsScreen) }),
 		KitPreview = RunService:IsStudio() and showKit and e(KitPreview),
 	})
 end

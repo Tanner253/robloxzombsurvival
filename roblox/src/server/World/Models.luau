@@ -248,27 +248,21 @@ local function stoneRing(model: Model, radius: number, count: number, size: numb
 	end
 end
 
--- Campfire: a stone ring and crossed logs, with a Fire, light and embers the
--- client switches on while fuel burns ("FuelEndsAt" attribute).
-local function campfire(): Model
-	local model = newModel("Campfire")
-	stoneRing(model, 1.9, 9, 1.1)
-	for index = 0, 2 do
-		local log = part(
-			model,
-			Vector3.new(3.4, 0.55, 0.55),
-			CFrame.new(0, 0.55, 0) * CFrame.Angles(0, index * math.pi / 3, math.rad(18)),
-			Enum.Material.Wood,
-			BARK,
-			Enum.PartType.Cylinder
-		)
-		log.Name = "Log"
-	end
-	local core =
-		part(model, Vector3.new(0.6, 0.6, 0.6), CFrame.new(0, 0.9, 0), Enum.Material.Neon, EMBER, Enum.PartType.Ball)
+-- The campfire's flame and glow (off until fuelled; WorldFx lights them), on an
+-- invisible core `height` studs above the model's pivot.
+local function addFireCore(model: Model, height: number)
+	local core = part(
+		model,
+		Vector3.new(0.6, 0.6, 0.6),
+		model:GetPivot() * CFrame.new(0, height, 0),
+		Enum.Material.Neon,
+		EMBER,
+		Enum.PartType.Ball
+	)
 	core.Name = "FireCore"
 	core.Transparency = 1
 	core.CanCollide = false
+	core.CanQuery = false
 	local fire = Instance.new("Fire")
 	fire.Name = "Flame"
 	fire.Enabled = false
@@ -285,6 +279,25 @@ local function campfire(): Model
 	light.Brightness = 1.6
 	light.Shadows = true
 	light.Parent = core
+end
+
+-- Campfire: a stone ring and crossed logs, with a Fire, light and embers the
+-- client switches on while fuel burns ("FuelEndsAt" attribute).
+local function campfire(): Model
+	local model = newModel("Campfire")
+	stoneRing(model, 1.9, 9, 1.1)
+	for index = 0, 2 do
+		local log = part(
+			model,
+			Vector3.new(3.4, 0.55, 0.55),
+			CFrame.new(0, 0.55, 0) * CFrame.Angles(0, index * math.pi / 3, math.rad(18)),
+			Enum.Material.Wood,
+			BARK,
+			Enum.PartType.Cylinder
+		)
+		log.Name = "Log"
+	end
+	addFireCore(model, 0.9)
 	return finish(model)
 end
 
@@ -379,6 +392,9 @@ function Models.piece(def: Types.BuildPieceDef): Model
 	if kit then
 		if def.id == "build.crate_banded" and kit.Name ~= "CrateBanded" then
 			band(kit)
+		end
+		if def.stationId == "station.campfire" and kit:FindFirstChild("FireCore", true) == nil then
+			addFireCore(kit, 1)
 		end
 		kit.Name = def.id
 		return kit

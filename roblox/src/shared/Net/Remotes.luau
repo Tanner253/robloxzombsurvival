@@ -139,6 +139,21 @@ Remotes.list = {
 	},
 
 	-- Gathering ---------------------------------------------------------------------------
+	SaveSettings = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = { count = 4, perSeconds = 2 },
+		validate = Check.args(
+			Check.number(0, 1),
+			Check.number(0, 1),
+			Check.number(0, 1),
+			Check.number(0, 1),
+			Check.number(0, 1),
+			Check.boolean(),
+			Check.number(0.8, 1.25)
+		),
+		description = "(master, music, ambience, sfx, ui, shake, uiScale) saves the player's settings",
+	},
 	InventorySort = {
 		kind = "event",
 		clientCanSend = true,

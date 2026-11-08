@@ -40,4 +40,18 @@ return function(test: TestKit.Register)
 		TestKit.truthy(dayTime > cycle * 0.6, "days are longer than nights")
 		TestKit.equal(Clock.label(6.5), "06:30")
 	end)
+
+	test("the sun stays high all day and sets during dusk", function()
+		TestKit.truthy(Clock.sunTime(9) >= 8 and Clock.sunTime(17) <= 16, "high sun by day")
+		TestKit.truthy(Clock.sunTime(18.5) > 16 and Clock.sunTime(18.5) < 19.6, "setting at dusk")
+		TestKit.truthy(math.abs(Clock.sunTime(23.99) - 23.99) < 0.05, "night follows the clock")
+		local last = Clock.sunTime(0)
+		for step = 1, 240 do
+			local now = Clock.sunTime(step / 10)
+			if step < 240 then
+				TestKit.truthy(now >= last, `sun time never runs backwards at {step / 10}`)
+			end
+			last = now
+		end
+	end)
 end

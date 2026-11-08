@@ -30,7 +30,7 @@ Art.pieces = {
 	["build.window_scrap"] = { "WindowScrap" },
 	-- art gap: doorways, doors, wood and reinforced windows (kit door is merged into its doorway)
 	["build.workbench"] = { "Workbench" },
-	["build.campfire"] = { "Campfire" }, -- art gap
+	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
 	["build.recycler"] = { "Recycler", "Generator" }, -- art gap: Generator stands in
 	["build.crate_wood"] = { "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },

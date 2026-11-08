@@ -32,8 +32,20 @@ local focus: Vector3? = nil
 local shakeAmount = 0
 
 -- A short camera jolt; `amount` is in studs (0.3 is a firm hit).
+local shakeEnabled = true
+
 function Camera.shake(amount: number)
-	shakeAmount = math.max(shakeAmount, amount)
+	if shakeEnabled then
+		shakeAmount = math.max(shakeAmount, amount)
+	end
+end
+
+-- The "Camera shake" setting (Controllers/Preferences).
+function Camera.setShakeEnabled(enabled: boolean)
+	shakeEnabled = enabled
+	if not enabled then
+		shakeAmount = 0
+	end
 end
 
 -- The camera's yaw, for camera-relative input (touch build cursor, aiming).

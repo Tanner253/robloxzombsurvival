@@ -398,15 +398,16 @@ local progressBars: { [Model]: BillboardGui } = {}
 local function progressBar(model: Model): BillboardGui
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "JobProgress"
-	gui.Size = UDim2.fromOffset(120, 30)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y + 1.2, 0)
-	gui.AlwaysOnTop = true
+	gui.Size = UDim2.fromOffset(160, 36)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, model:GetExtentsSize().Y * 0.5 + 2.5, 0)
+	-- Depth-sorted, not AlwaysOnTop: the camera looks down, so walls rarely hide it.
+	gui.AlwaysOnTop = false
 	gui.LightInfluence = 0
 	gui.MaxDistance = 90
 	local track = Instance.new("Frame")
 	track.Name = "Track"
-	track.Size = UDim2.new(1, 0, 0, 10)
-	track.Position = UDim2.fromOffset(0, 18)
+	track.Size = UDim2.new(1, 0, 0, 12)
+	track.Position = UDim2.fromOffset(0, 22)
 	track.BackgroundColor3 = Theme.colors.track
 	track.BorderSizePixel = 0
 	local corner = Instance.new("UICorner")
@@ -428,10 +429,10 @@ local function progressBar(model: Model): BillboardGui
 	track.Parent = gui
 	local label = Instance.new("TextLabel")
 	label.Name = "Time"
-	label.Size = UDim2.new(1, 0, 0, 16)
+	label.Size = UDim2.new(1, 0, 0, 20)
 	label.BackgroundTransparency = 1
 	label.FontFace = Theme.fonts.header
-	label.TextSize = Theme.textSize.caption
+	label.TextSize = Theme.textSize.body
 	label.TextColor3 = Theme.colors.text
 	label.TextStrokeColor3 = Theme.colors.shadow
 	label.TextStrokeTransparency = 0.3

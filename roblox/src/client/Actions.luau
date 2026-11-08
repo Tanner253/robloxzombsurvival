@@ -32,6 +32,34 @@ function Actions.toggleInventory()
 	Sfx.play(if State.ui().panel == "inventory" then "uiOpen" else "uiClose")
 end
 
+function Actions.toggleSettings()
+	State.toggle("settings")
+	Sfx.play(if State.ui().panel == "settings" then "uiOpen" else "uiClose")
+end
+
+-- Applies settings at once (Controllers/Preferences reads the section) and saves
+-- them after a short pause, so stepping a slider sends one request.
+local pendingSave: thread? = nil
+function Actions.saveSettings(settings: any)
+	State.set("settings", settings)
+	if pendingSave then
+		task.cancel(pendingSave)
+	end
+	pendingSave = task.delay(0.6, function()
+		pendingSave = nil
+		Net.fire(
+			"SaveSettings",
+			settings.master,
+			settings.music,
+			settings.ambience,
+			settings.sfx,
+			settings.ui,
+			settings.shake,
+			settings.uiScale
+		)
+	end)
+end
+
 function Actions.toggleBuild()
 	State.toggle("build")
 	Sfx.play(if State.ui().panel == "build" then "uiOpen" else "uiClose")

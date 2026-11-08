@@ -534,6 +534,27 @@ local function HUD()
 	local ui = hooks.useUi()
 	local playing = ui.panel == "none"
 	return e(React.Fragment, nil, {
+		Gear = playing and e("TextButton", {
+			Size = UDim2.fromOffset(52, 52),
+			Position = UDim2.new(1, -16, 0, 16),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundColor3 = Theme.colors.panel,
+			BackgroundTransparency = Theme.colors.panelTransparency,
+			FontFace = Theme.fonts.header,
+			Text = "⚙",
+			TextSize = 28,
+			TextColor3 = Theme.colors.text,
+			AutoButtonColor = true,
+			[React.Event.Activated] = Actions.toggleSettings,
+		}, {
+			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+			Stroke = e("UIStroke", {
+				Color = Theme.colors.strokeWarm,
+				Thickness = Theme.strokeThickness,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			}),
+			Key = e(KeyChip, { text = "O", position = UDim2.new(1, 2, 0, -2), anchorPoint = Vector2.new(1, 0) }),
+		}),
 		Status = e(Status),
 		Quest = playing and e(QuestTracker),
 		Hotbar = ui.panel ~= "build" and e(Hotbar),

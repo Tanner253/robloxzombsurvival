@@ -44,10 +44,10 @@ local DAY: Key = {
 	decay = Color3.fromRGB(104, 118, 134),
 }
 local NIGHT: Key = {
-	brightness = 0.9,
-	exposure = 0.35,
-	ambient = Color3.fromRGB(40, 46, 64),
-	outdoor = Color3.fromRGB(64, 74, 102),
+	brightness = 1,
+	exposure = 0.5,
+	ambient = Color3.fromRGB(58, 66, 92),
+	outdoor = Color3.fromRGB(92, 104, 142),
 	tint = Color3.fromRGB(198, 212, 240),
 	haze = Color3.fromRGB(46, 54, 72),
 	decay = Color3.fromRGB(34, 40, 58),
@@ -94,7 +94,7 @@ local function apply(hours: number)
 	local day = Clock.daylight(hours)
 	local t = 1 - day -- 0 day, 1 night
 	local golden = math.sin(day * math.pi) * 0.5 -- peaks at the middle of dawn and dusk
-	Lighting.ClockTime = hours
+	Lighting.ClockTime = Clock.sunTime(hours)
 	Lighting.Brightness = lerp(DAY.brightness, NIGHT.brightness, t)
 	Lighting.ExposureCompensation = lerp(DAY.exposure, NIGHT.exposure, t)
 	Lighting.Ambient = DAY.ambient:Lerp(NIGHT.ambient, t)
@@ -117,8 +117,14 @@ end
 
 function DayNight.start()
 	local lastHours = Clock.hoursAt(State.now())
+	local studio = RunService:IsStudio()
 	RunService.RenderStepped:Connect(function()
 		local hours = Clock.hoursAt(State.now())
+		-- Studio only: Workspace attribute ClockOverride (hours) pins the time for captures.
+		local override = if studio then workspace:GetAttribute("ClockOverride") else nil
+		if type(override) == "number" then
+			hours = override % 24
+		end
 		apply(hours)
 		for _, cue in cues do
 			local crossed = if hours >= lastHours
