@@ -253,26 +253,23 @@ Pets are also among Roblox's biggest genres, so companions are a major pillar fo
 
 **Later species:** cats (base buffs), crows (scouting) and mules (hauling), each a new collection to chase.
 
-## Procedural Fog Run maps (decided 2026-11-08)
+## The Fog map screen: generated from data (corrected 2026-11-08)
 
-The developer: "we wanna make it procedurally generated so we can expand the map or change it on the fly or produce map world events."
+The developer clarified: "we need map consistency. I just thought the current map was a 2D image and we should procedurally generate the map view page, as it will likely grow and evolve with time. Last Day on Earth does not have a changing map."
 
-**How a map is made:** seeded assembly, so handcrafted quality with endless variety. Every lobby gets a seed, and the same seed always builds the same map.
-1. **Biome per fog tier:** Light is farmland and forest, Dense is a roadside town, Black is a quarry and rail yard. Each biome sets the terrain noise, ground layers, vegetation mix, palette and fog density.
-2. **Terrain from noise:** gentle hills, a river or pond chance, and three-layer ground variation (ART_DIRECTION §4).
-3. **Handcrafted POI stamps:** prefab clusters authored as data, such as a farmhouse compound, gas station, hunter camp, crashed convoy, rail depot or quarry office. 3–5 are placed per map by rules (spacing, terrain fit, tier tags), so every POI is dense and good-looking.
-4. **Connectors:** paths and roads between POIs, fences and debris along them.
-5. **Fill:** forest, undergrowth, rocks and wrecks scattered by density maps. No empty lawns.
-6. **Edges:** a dense tree wall plus a fog bank, with the terrain continuing beyond, so no edge is ever visible.
-7. **Gameplay placement by rules:** containers (in POIs, weighted by the loot tier), Hollow spawn zones, extraction points (2–3, kept apart), the player entry and the exit zones.
+**Locations are fixed and handcrafted.** Every visit to Pine Hollow is the same place, with the same layout, as in LDoE. Only loot rolls and the Hollow vary. That replaces the earlier "seeded assembly" idea, which was a misreading of the developer.
 
-**World events:** event modules that spawn into a live map.
-- **v0.1:**
-  - a **Supply Drop**: a crate parachutes in with a flare plume and draws the Hollow
-  - a **Horde Surge**: when the Fog meter passes 70%, a pack converges on noise
-- **Later:** a burning building, a trader convoy, a fog storm, a boss Hollow, and a Blood Moon map variant.
+**The map SCREEN is drawn from data, not one painted image,** so it can grow:
+- A region data model describes the terrain zones (forest, fields, water, rock, ruins), roads and rivers, landmarks, and location pins with their coordinates, fog tier and unlock.
+- The UI composes the map from that data, using a small set of uploaded texture tiles and decorative icons (tree clusters, buildings, rocks), roads and rivers drawn as UI paths, and labels.
+- Adding a location, region or road means adding data, with no re-painting. Later regions extend the same canvas.
 
-**Expanding the world means adding data:** new POI stamps, new biomes, new events, and new map sizes for later regions. The Fog map can also rotate which biomes and modifiers are offered each day.
+**Dynamic layers on the map:**
+- **Neighbours' outposts** (M2): the players near you that you can visit or raid, filtered by level range. Online players can be raided live and defended live; offline players are raided against their defenses. Each marker shows level, defense, loot tier, shield and guild tag. This is the main thing that changes on the map.
+- **Event pins:** timed and rotating locations and supply-drop pins with countdowns (LDoE rec1 and rec3 style).
+- Your outpost, your death bag, and your crew's and guild's bases (M3).
+
+**Raiding (M2):** both **offline raids**, where the defender's turrets, traps and walls defend, and **online raids**, where the defender gets an alert and can join and defend live, along with guildmates. See "The Fog map: neighbours, raids, guilds".
 
 ## Fog Runs: shared lobbies and PvP
 
