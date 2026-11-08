@@ -110,6 +110,9 @@ Theme.spacing = {
 -- The App's current UI scale (set each render by UI/App), for converting Roblox's screen
 -- pixel zones (the touch jump button) into design pixels.
 Theme.currentScale = 1
+-- The design frame's size (the safe area in design pixels), set with it: sheets clamp to it
+-- so they fit a small phone's frame (about 1364 x 590 at 844 x 390).
+Theme.currentFrame = Vector2.new(1366, 768)
 
 -- Minimum tap target in pixels (mobile first).
 Theme.tapTarget = 44
@@ -149,6 +152,10 @@ Theme.hud = {
 	tracker = 260, -- quest tracker width
 	trayHeight = 168, -- the build tray's card row
 	closeStrip = 72, -- the CLOSE strip at the right edge of full-screen panels
+	-- Touch: Roblox's dynamic thumbstick claims the lower-left share of the screen, and the
+	-- jump button about this many screen pixels at the lower right (UiAudit.touchZones).
+	touchStickShare = 0.32,
+	touchJumpReserve = 110,
 }
 
 -- Full-screen panels (LDoE's two-pane screens, #11 and #13).

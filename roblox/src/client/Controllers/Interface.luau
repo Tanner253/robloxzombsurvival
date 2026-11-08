@@ -7,9 +7,13 @@
 	Roblox's own UI is respected (checklist 4.18): the App's ScreenGui uses the CoreUI safe
 	insets, so nothing of ours sits under the top-bar buttons or a device notch. With the
 	LDoE HUD on, the chat window docks at the bottom left above the level bar (LDOE_PARITY
-	#10), in the gap the HUD leaves for it.
+	#10), in the gap the HUD leaves for it. Opening any panel or build mode hides the HUD
+	(#11, #25), and the chat with it: Roblox draws chat above our panels. A panel also hides
+	Roblox's touch thumbstick and jump button, as LDoE hides its joystick; build mode keeps
+	them, since you still walk while building.
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
@@ -18,6 +22,7 @@ local TextChatService = game:GetService("TextChatService")
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Flags = require(ReplicatedStorage.Shared.Flags)
+local State = require("../State")
 local App = require("../UI/App")
 
 local Interface = {}
@@ -38,6 +43,44 @@ local function dockChat()
 	end)
 end
 
+-- Chat shows only while playing (no panel open); a panel or build mode hides it. Touch
+-- controls show while playing and building.
+local function followPanels()
+	local shown: boolean? = nil
+	local controls: boolean? = nil
+	local function apply()
+		local panel = State.ui().panel
+		local wantControls = panel == "none" or panel == "build"
+		if wantControls ~= controls then
+			controls = wantControls
+			pcall(function()
+				GuiService.TouchControlsEnabled = wantControls
+			end)
+		end
+		local want = panel == "none"
+		if want == shown then
+			return
+		end
+		shown = want
+		pcall(function()
+			local window = TextChatService:FindFirstChildOfClass("ChatWindowConfiguration")
+			local bar = TextChatService:FindFirstChildOfClass("ChatInputBarConfiguration")
+			if window then
+				window.Enabled = want
+			end
+			if bar then
+				bar.Enabled = want
+			end
+		end)
+	end
+	State.changed:Connect(function(key: any)
+		if key == "ui" then
+			apply()
+		end
+	end)
+	apply()
+end
+
 function Interface.start()
 	task.spawn(function()
 		for _, kind in REPLACED do
@@ -52,6 +95,7 @@ function Interface.start()
 	end)
 	if Flags.on("ldoeHud") then
 		dockChat()
+		followPanels()
 	end
 
 	local screen = Instance.new("ScreenGui")

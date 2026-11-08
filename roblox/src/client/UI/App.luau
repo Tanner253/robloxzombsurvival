@@ -108,6 +108,7 @@ local function App(props: Props)
 	local size = useSafeArea(props.screen, gate)
 	local scale = fitScale(size, preference)
 	Theme.currentScale = scale
+	Theme.currentFrame = Vector2.new(size.X / scale, size.Y / scale)
 	local ldoeHud = useFeature("ldoeHud")
 	local ldoeInventory = useFeature("ldoeInventory")
 	local ldoeBuild = useFeature("ldoeBuild")

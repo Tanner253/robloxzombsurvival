@@ -171,6 +171,9 @@ return function(test: TestKit.Register)
 		local names = { items = Content.Items :: any, quests = Content.Quests :: any }
 		TestKit.equal(Unlocks.text(gate, names), "Complete the 'Keep the Fire' quest")
 		TestKit.equal(Unlocks.text({ kind = "default" }, names), nil)
+		-- The tile's short form: the quest's place on the trail.
+		TestKit.equal(Unlocks.short(gate, names), `Ember Trail {Content.Quests["quest.keep_the_fire"].order}`)
+		TestKit.equal(Unlocks.short({ kind = "level", level = 6 }, names), "Level 6")
 		local recipes, pieces =
 			Unlocks.byQuest("quest.keep_the_fire", Content.Recipes :: any, Content.BuildPieces :: any)
 		TestKit.truthy(table.find(recipes, "recipe.cloth") ~= nil, "cloth")

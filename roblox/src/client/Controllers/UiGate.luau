@@ -238,21 +238,26 @@ local function scenes(): { Scene }
 end
 
 -- Zones of Roblox's own UI, in screen pixels (checklist 4.18).
-local function zones(profile: Profile, origin: Vector2, scale: number): { UiAudit.Zone }
+local function zones(profile: Profile, origin: Vector2, scale: number, panel: string): { UiAudit.Zone }
+	local playing = panel == "none"
 	local result: { UiAudit.Zone } = {}
 	local hud = Theme.hud
 	-- The docked chat bar (LDOE_PARITY #10): bottom left, right of AUTO, above the level bar.
+	-- Only while playing: a panel or build mode hides chat (Controllers/Interface).
 	local left = (hud.edge + hud.auto + Theme.spacing.md) * scale
-	table.insert(result, {
-		name = "Roblox chat bar",
-		rect = {
-			x = origin.X + profile.left + left,
-			y = origin.Y + profile.height - profile.bottom - (hud.edge + 18 + 48) * scale,
-			w = 300 * scale,
-			h = 40 * scale,
-		},
-	})
-	if profile.touch then
+	if playing then
+		table.insert(result, {
+			name = "Roblox chat bar",
+			rect = {
+				x = origin.X + profile.left + left,
+				y = origin.Y + profile.height - profile.bottom - (hud.edge + 18 + 48) * scale,
+				w = 300 * scale,
+				h = 40 * scale,
+			},
+		})
+	end
+	-- Touch controls show while playing and building; a panel hides them (Interface).
+	if profile.touch and (playing or panel == "build") then
 		for _, zone in UiAudit.touchZones(profile.width, profile.height) do
 			table.insert(result, {
 				name = zone.name,
@@ -344,7 +349,7 @@ local function run()
 				w = profile.width - profile.left - profile.right,
 				h = profile.height - profile.top - profile.bottom,
 			}
-			local flags, count = Gate.audit(safe, zones(profile, origin, scale))
+			local flags, count = Gate.audit(safe, zones(profile, origin, scale, State.ui().panel))
 			report.elements += count
 			report.counts[`{profile.name} | {scene.name}`] = #flags
 			for _, flag in flags do
@@ -376,13 +381,16 @@ local function run()
 			workspace:SetAttribute(`Flag_{name}`, nil)
 		end
 	end
-	print(`UIGATE {HttpService:JSONEncode({
+	local json = HttpService:JSONEncode({
 		pass = #report.flags == 0,
 		flagCount = #report.flags,
 		elements = report.elements,
 		flags = report.flags,
 		counts = report.counts,
-	})}`)
+	})
+	print(`UIGATE {json}`)
+	-- Also kept on the local player (UiGateResult), for tools whose console view truncates.
+	Players.LocalPlayer:SetAttribute("UiGateResult", json)
 	running = false
 end
 

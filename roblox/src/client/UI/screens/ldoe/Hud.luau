@@ -11,8 +11,8 @@
 	  second weapon (2 / F swaps), the active weapon circle (1, attack: held to gather here),
 	  the context button (its icon follows the target: hand, axe, pick, station, crate;
 	  greyed with nothing in range) and sprint (Shift).
-	- Bottom left: AUTO (Q). On touch it moves above Roblox's thumbstick zone and the
-	  cluster moves left of Roblox's jump button.
+	- Bottom left: AUTO (Q). On touch it moves above Roblox's thumbstick zone, the cluster
+	  moves left of Roblox's jump button and the level bar runs between the two.
 	- Bottom: the menu bar (Inventory with the inbox badge; Social, Crew, Quests, Pass, Shop
 	  and Map are reserved and switch on with their screens), the level bar "Lv N" with
 	  "+N xp" popping beside it, and a gap at the left for the docked chat bar.
@@ -596,7 +596,7 @@ local function MenuBar(props: { right: number })
 	})
 end
 
-local function LevelBar()
+local function LevelBar(props: { touch: boolean, touchRight: number })
 	local progression = hooks.useSection("progression")
 	local level = if progression then progression.level else 1
 	local fraction = 0
@@ -629,8 +629,12 @@ local function LevelBar()
 		direction = "row",
 		gap = Theme.spacing.sm,
 		alignY = Enum.VerticalAlignment.Center,
-		size = UDim2.new(1, -H.edge * 2, 0, 18),
-		position = UDim2.new(0, H.edge, 1, -2),
+		-- On touch the bar starts right of the thumbstick zone (the lower-left third of the
+		-- screen) and stops short of the jump button.
+		size = if props.touch
+			then UDim2.new(1 - H.touchStickShare, -(H.edge * 2 + props.touchRight), 0, 18)
+			else UDim2.new(1, -H.edge * 2, 0, 18),
+		position = if props.touch then UDim2.new(H.touchStickShare, H.edge, 1, -2) else UDim2.new(0, H.edge, 1, -2),
 		anchorPoint = Vector2.new(0, 1),
 		children = {
 			Level = e("TextLabel", {
@@ -753,7 +757,7 @@ local function Hud()
 	-- On touch the cluster stands left of Roblox's jump button and AUTO above the thumbstick
 	-- (design pixels; Theme.currentScale is the App's scale).
 	local scale = Theme.currentScale or 1
-	local touchRight = if touch then math.ceil(110 / scale) else 0
+	local touchRight = if touch then math.ceil(H.touchJumpReserve / scale) else 0
 	local clusterWidth = H.context + Theme.spacing.sm + H.sprint
 	return e("Frame", {
 		Size = UDim2.fromScale(1, 1),
@@ -782,13 +786,17 @@ local function Hud()
 			size = H.auto,
 			key = "Q",
 			active = ui.auto,
-			position = if touch then UDim2.new(0, H.edge, 0.45, 0) else UDim2.new(0, H.edge, 1, -(H.edge + 18)),
-			anchorPoint = Vector2.new(0, if touch then 0.5 else 1),
+			-- Touch: its bottom sits above the thumbstick zone (the screen's lower half; this
+			-- frame starts below the top inset, so 0.42 of it stays clear).
+			position = if touch
+				then UDim2.new(0, H.edge, 0.42, -Theme.spacing.md)
+				else UDim2.new(0, H.edge, 1, -(H.edge + 18)),
+			anchorPoint = Vector2.new(0, 1),
 			onPress = Actions.toggleAuto,
 		}),
 		Cluster = playing and e(Cluster, { touchRight = touchRight }),
 		Menu = playing and e(MenuBar, { right = H.edge + touchRight + clusterWidth + Theme.spacing.lg }),
-		Level = playing and e(LevelBar),
+		Level = playing and e(LevelBar, { touch = touch == true, touchRight = touchRight }),
 		Pickups = playing and Flags.on("ldoeHud") and e(Pickups),
 	})
 end

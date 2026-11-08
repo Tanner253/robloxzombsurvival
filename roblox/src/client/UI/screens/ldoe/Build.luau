@@ -385,6 +385,8 @@ local function Build()
 		})
 	end
 
+	local touch = ui.touch or (ui.gate ~= nil and ui.gate.touch)
+	local touchRight = if touch then math.ceil(H.touchJumpReserve / (Theme.currentScale or 1)) else 0
 	return e("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
@@ -414,9 +416,13 @@ local function Build()
 			Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 			Padding = Layout.pad(0, { left = 12, right = 12 }),
 		}),
+		-- On touch the tray runs between Roblox's thumbstick zone and its jump button: you
+		-- still walk while building.
 		Tray = e(Layout.Stack, {
-			size = UDim2.new(1, 0, 0, H.trayHeight + 52),
-			position = UDim2.fromScale(0, 1),
+			size = if touch
+				then UDim2.new(1 - H.touchStickShare, -touchRight, 0, H.trayHeight + 52)
+				else UDim2.new(1, 0, 0, H.trayHeight + 52),
+			position = if touch then UDim2.fromScale(H.touchStickShare, 1) else UDim2.fromScale(0, 1),
 			anchorPoint = Vector2.new(0, 1),
 			children = {
 				Tabs = e("Frame", {

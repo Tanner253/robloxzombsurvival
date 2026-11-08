@@ -54,6 +54,20 @@ function Unlocks.text(gate: Types.UnlockGate?, names: Names): string?
 	return `Read the {if item then item.name else "schematic"}`
 end
 
+-- The short form for a small tile: "Ember Trail 4" (the quest's place on the trail),
+-- "Level 6", "Schematic". Unlocks.text says it in full.
+function Unlocks.short(gate: Types.UnlockGate?, names: Names): string?
+	if gate == nil or gate.kind == "default" then
+		return nil
+	elseif gate.kind == "level" then
+		return `Level {gate.level}`
+	elseif gate.kind == "quest" then
+		local quest = names.quests[gate.questId] :: any
+		return if quest and quest.order then `Ember Trail {quest.order}` else "Ember Trail"
+	end
+	return "Schematic"
+end
+
 -- Every recipe and piece a quest unlocks, by id, sorted (the quest card's reward row and
 -- the "new blueprints" pop when it completes).
 function Unlocks.byQuest(

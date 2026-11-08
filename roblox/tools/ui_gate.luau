@@ -6,7 +6,8 @@
 	How (Roblox Studio MCP):
 	1. start_stop_play (start), wait for the player to spawn.
 	2. execute_luau with this file's body (it runs on the server and replicates the trigger).
-	3. get_console_output and read the line that starts with "UIGATE ". It is JSON:
+	3. get_console_output and read the line that starts with "UIGATE " (or, when the console
+	   view truncates, read Players.LocalPlayer's "UiGateResult" attribute on the Client). It is JSON:
 	   { pass, flagCount, elements, flags = { "<profile> | <state> | <kind>: <path> x <other>" },
 	     counts = { ["<profile> | <state>"] = n } }.
 	The client (Controllers/UiGate) renders every screen and state from fixtures at
