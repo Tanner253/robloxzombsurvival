@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("./theme")
+local Boundary = require("./components/Boundary")
 local BuildMenu = require("./screens/BuildMenu")
 local Feed = require("./screens/Feed")
 local HUD = require("./screens/HUD")
@@ -69,11 +70,12 @@ local function App()
 		BackgroundTransparency = 1,
 	}, {
 		Scale = e("UIScale", { Scale = scale }),
-		HUD = e(HUD),
-		Feed = e(Feed),
-		Inventory = e(InventoryScreen),
-		Station = e(StationScreen),
-		Build = e(BuildMenu),
+		-- Each screen has its own error boundary: one failing screen never blanks the rest.
+		HUD = e(Boundary, { name = "HUD" }, { Screen = e(HUD) }),
+		Feed = e(Boundary, { name = "Feed" }, { Screen = e(Feed) }),
+		Inventory = e(Boundary, { name = "Inventory" }, { Screen = e(InventoryScreen) }),
+		Station = e(Boundary, { name = "Station" }, { Screen = e(StationScreen) }),
+		Build = e(Boundary, { name = "Build" }, { Screen = e(BuildMenu) }),
 		KitPreview = RunService:IsStudio() and showKit and e(KitPreview),
 	})
 end

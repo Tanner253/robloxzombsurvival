@@ -175,6 +175,32 @@ local function makeSign(plot: Plot)
 	end
 end
 
+-- A spawn on the neighbourhood road, so players never start far away (with
+-- streaming) from their plot. The place's other spawns are left alone.
+local function roadSpawn(world: Instance, worldOrigin: Vector3): SpawnLocation
+	local existing = world:FindFirstChild("RoadSpawn")
+	if existing and existing:IsA("SpawnLocation") then
+		return existing
+	end
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "RoadSpawn"
+	spawn.Anchored = true
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.Size = Vector3.new(6, 0.2, 6)
+	spawn.Transparency = 1
+	spawn.CanCollide = false
+	spawn.CFrame = CFrame.new(worldOrigin + Vector3.new(0, 0.1, 0))
+	local decal = spawn:FindFirstChildOfClass("Decal")
+	if decal then
+		decal:Destroy()
+	end
+	spawn.Parent = world
+	return spawn
+end
+
+local spawnPoint: SpawnLocation? = nil
+
 local function buildWorld()
 	local world = worldFolder()
 	local worldOrigin = world:GetAttribute("Origin")
@@ -205,7 +231,10 @@ local function buildWorld()
 		m:SetAttribute("Front", front)
 		m:SetAttribute("Cells", building.plotCells)
 		m:SetAttribute("OwnerUserId", 0)
-		makePad(m, origin)
+		if createdAny then
+			-- Plots built in Studio bring their own ground; only runtime plots get a pad.
+			makePad(m, origin)
+		end
 		local plot: Plot = {
 			index = index,
 			origin = origin,
@@ -225,6 +254,7 @@ local function buildWorld()
 	if createdAny then
 		makeGround(world, worldOrigin :: Vector3)
 	end
+	spawnPoint = roadSpawn(world, worldOrigin :: Vector3)
 end
 
 -- Spawning --------------------------------------------------------------------------------------
@@ -244,7 +274,12 @@ local function moveToPlot(player: Player, character: Model)
 	end
 	local root = character:WaitForChild("HumanoidRootPart", 10)
 	if root and byPlayer[player] == plot then
-		character:PivotTo(Plots.spawnCFrame(plot))
+		local spawn = Plots.spawnCFrame(plot)
+		-- Streaming is on: load the plot around the player before moving them there.
+		pcall(player.RequestStreamAroundAsync, player, spawn.Position, 5)
+		if byPlayer[player] == plot and character.Parent then
+			character:PivotTo(spawn)
+		end
 	end
 end
 
@@ -421,11 +456,13 @@ function Plots.start()
 		claim(player)
 	end)
 	Players.PlayerAdded:Connect(function(player)
+		player.RespawnLocation = spawnPoint :: any
 		player.CharacterAdded:Connect(function(character)
 			moveToPlot(player, character)
 		end)
 	end)
 	for _, player in Players:GetPlayers() do
+		player.RespawnLocation = spawnPoint :: any
 		player.CharacterAdded:Connect(function(character)
 			moveToPlot(player, character)
 		end)

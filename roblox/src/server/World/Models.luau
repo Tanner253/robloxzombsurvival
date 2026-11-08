@@ -66,6 +66,7 @@ local function sources(): { Instance }
 end
 
 local function prepare(model: Model)
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	for _, descendant in model:GetDescendants() do
 		if descendant:IsA("BaseScript") or descendant:IsA("ModuleScript") then
 			descendant:Destroy()
@@ -122,8 +123,10 @@ local function newModel(name: string): Model
 end
 
 -- Pivot the model at the origin (the convention every builder below uses).
+-- Models stream in whole, so effects never see half a piece.
 local function finish(model: Model): Model
 	model.WorldPivot = CFrame.identity
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	return model
 end
 

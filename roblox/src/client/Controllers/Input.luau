@@ -41,7 +41,18 @@ local function onKey(key: Enum.KeyCode)
 	elseif key == Enum.KeyCode.B then
 		Actions.toggleBuild()
 	elseif key == Enum.KeyCode.E then
+		-- Like LDoE's action button: tap to use, hold to keep gathering (walking to the next node).
 		Actions.interact()
+		if ui.panel == "none" then
+			Actions.setGathering(true)
+		end
+	elseif key == Enum.KeyCode.Q then
+		Actions.toggleAuto()
+	elseif
+		ui.auto and (key == Enum.KeyCode.W or key == Enum.KeyCode.A or key == Enum.KeyCode.S or key == Enum.KeyCode.D)
+	then
+		-- Taking the wheel cancels AUTO.
+		Interaction.setAuto(false)
 	elseif key == Enum.KeyCode.LeftShift or key == Enum.KeyCode.RightShift then
 		Actions.setSprint(true)
 	elseif ui.panel == "build" then
@@ -61,7 +72,21 @@ local function onKey(key: Enum.KeyCode)
 	end
 end
 
+-- Walls must hold: the local character can't climb or jump (the server also sets JumpHeight 0).
+local function grounded(character: Model)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if humanoid and humanoid:IsA("Humanoid") then
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+	end
+end
+
 function Input.start()
+	local player = game:GetService("Players").LocalPlayer
+	player.CharacterAdded:Connect(grounded)
+	if player.Character then
+		task.spawn(grounded, player.Character)
+	end
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if input.UserInputType == Enum.UserInputType.Keyboard then
 			-- Tab is processed by the core player list; take it anyway.
@@ -88,6 +113,8 @@ function Input.start()
 			Actions.setGathering(false)
 		elseif input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
 			Actions.setSprint(false)
+		elseif input.KeyCode == Enum.KeyCode.E then
+			Actions.setGathering(false)
 		end
 	end)
 	UserInputService.TouchTap:Connect(function(positions, processed)

@@ -421,7 +421,7 @@ local function ActionBar()
 		then (if target.verb == "Chop" then "🪓" elseif target.verb == "Mine" then "⛏" else "✋")
 		else "✋"
 	return e("Frame", {
-		Size = UDim2.fromOffset(330, 110),
+		Size = UDim2.fromOffset(420, 110),
 		Position = UDim2.new(1, -16, 1, -16),
 		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 1,
@@ -441,6 +441,15 @@ local function ActionBar()
 			onPress = function()
 				Actions.setSprint(not ui.sprinting)
 			end,
+		}),
+		Auto = ui.panel == "none" and e(ActionButton, {
+			label = if ui.auto then "Auto on" else "Auto",
+			keyName = "Q",
+			glyph = "⟳",
+			primary = ui.auto,
+			size = 64,
+			layoutOrder = 0,
+			onPress = Actions.toggleAuto,
 		}),
 		Build = e(ActionButton, {
 			label = "Build",
@@ -467,7 +476,7 @@ local function ActionBar()
 			layoutOrder = 4,
 			onPress = function()
 				Actions.interact()
-				if target and target.kind == "node" then
+				if ui.panel == "none" then
 					Actions.setGathering(true)
 				end
 			end,

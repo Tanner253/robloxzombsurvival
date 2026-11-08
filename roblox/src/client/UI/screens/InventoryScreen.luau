@@ -133,19 +133,21 @@ end
 
 -- Grid of one container -------------------------------------------------------------------------------
 
-local function Grid(props: {
-	ref: string,
-	slots: { any },
-	columns: number,
-	inventory: any,
-	storage: any,
-	stash: any,
-	hotkeys: boolean?,
-	placeholders: { string }?,
-	accepts: { string }?,
-	position: UDim2?,
-	layoutOrder: number?,
-})
+local function Grid(
+	props: {
+		source: string, -- the container ref (not `ref`: React reserves it)
+		slots: { any },
+		columns: number,
+		inventory: any,
+		storage: any,
+		stash: any,
+		hotkeys: boolean?,
+		placeholders: { string }?,
+		accepts: { string }?,
+		position: UDim2?,
+		layoutOrder: number?,
+	}
+)
 	local ui = hooks.useUi()
 	local children: { [string]: any } = {
 		Layout = e("UIGridLayout", {
@@ -157,7 +159,7 @@ local function Grid(props: {
 	}
 	for index, slot in props.slots do
 		local def = if slot.count > 0 then Content.Items[slot.itemId] else nil
-		local selected = ui.selected ~= nil and ui.selected.ref == props.ref and ui.selected.index == index
+		local selected = ui.selected ~= nil and ui.selected.ref == props.source and ui.selected.index == index
 		children[`S{index}`] = e(ItemSlot, {
 			itemId = slot.itemId,
 			count = slot.count,
@@ -168,15 +170,15 @@ local function Grid(props: {
 			size = SLOT,
 			layoutOrder = index,
 			onActivated = function()
-				clickSlot(props.inventory, props.storage, props.stash, props.ref, index)
+				clickSlot(props.inventory, props.storage, props.stash, props.source, index)
 			end,
 			onSecondary = function()
-				useSlot(props.ref, index)
+				useSlot(props.source, index)
 			end,
 			onHover = function(hovering: boolean)
 				if hovering then
-					State.patch({ hovered = { ref = props.ref, index = index } })
-				elseif ui.hovered and ui.hovered.ref == props.ref and ui.hovered.index == index then
+					State.patch({ hovered = { ref = props.source, index = index } })
+				elseif ui.hovered and ui.hovered.ref == props.source and ui.hovered.index == index then
 					State.clear("hovered")
 				end
 			end,
@@ -437,7 +439,7 @@ local function InventoryScreen()
 				Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 				Title = e(Section, { title = "GEAR", layoutOrder = 0 }),
 				Grid = e(Grid, {
-					ref = "equipment",
+					source = "equipment",
 					slots = equipment,
 					columns = 2,
 					inventory = inventory,
@@ -455,7 +457,7 @@ local function InventoryScreen()
 				Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 				PocketsTitle = e(Section, { title = "POCKETS", note = "1-9 on the hotbar", layoutOrder = 0 }),
 				Pockets = e(Grid, {
-					ref = "pockets",
+					source = "pockets",
 					slots = inventory.pockets,
 					columns = 5,
 					inventory = inventory,
@@ -471,7 +473,7 @@ local function InventoryScreen()
 				}),
 				Backpack = if #inventory.backpack > 0
 					then e(Grid, {
-						ref = "backpack",
+						source = "backpack",
 						slots = inventory.backpack,
 						columns = 6,
 						inventory = inventory,
@@ -513,7 +515,7 @@ local function InventoryScreen()
 							CanvasSize = UDim2.new(),
 						}, {
 							Grid = e(Grid, {
-								ref = "storage",
+								source = "storage",
 								slots = crate.slots,
 								columns = 5,
 								inventory = inventory,
@@ -603,7 +605,7 @@ local function InventoryScreen()
 									CanvasSize = UDim2.new(),
 								}, {
 									Grid = e(Grid, {
-										ref = "stash",
+										source = "stash",
 										slots = stash or {},
 										columns = 5,
 										inventory = inventory,

@@ -50,6 +50,7 @@ export type Ui = {
 	rewards: { Reward },
 	levelUp: { level: number, rewards: { any }, at: number }?,
 	sprinting: boolean,
+	auto: boolean, -- AUTO gather is on
 	touch: boolean,
 }
 
@@ -73,6 +74,7 @@ local ui: Ui = {
 	rewards = {},
 	levelUp = nil,
 	sprinting = false,
+	auto = false,
 	touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled,
 }
 

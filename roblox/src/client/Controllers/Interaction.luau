@@ -19,6 +19,8 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local GatheringMath = require(ReplicatedStorage.Shared.Domain.Gathering)
+local InventoryMath = require(ReplicatedStorage.Shared.Domain.Inventory)
 local Net = require("../Net")
 local State = require("../State")
 
@@ -29,8 +31,16 @@ local TAGS: { [string]: string } = { node = "EO_Node", station = "EO_Station", s
 local SCAN_SECONDS = 0.1
 local VERB: { [string]: string } = { hatchet = "Chop", pick = "Mine" }
 
+-- Auto-gather (LDoE's context button and AUTO): holding the gather button walks
+-- to the nearest node within HOLD_RADIUS; AUTO keeps going within AUTO_RADIUS.
+local HOLD_RADIUS = 28
+local AUTO_RADIUS = 90
+local WALK_REFRESH = 0.35
+
 local player = Players.LocalPlayer
 local gathering = false
+local walkTarget: Model? = nil
+local lastWalk = 0
 local lastSwing = 0
 local scanElapsed = 0
 
@@ -178,10 +188,12 @@ end
 local function swingArm()
 	local character = player.Character
 	local arm = character and character:FindFirstChild("RightUpperArm")
-	local shoulder = arm and arm:FindFirstChild("RightShoulder") :: Motor6D?
-	if shoulder == nil then
+	local joint = arm and arm:FindFirstChild("RightShoulder")
+	-- Custom rigs may drive the shoulder with something other than a Motor6D.
+	if joint == nil or not joint:IsA("Motor6D") then
 		return
 	end
+	local shoulder = joint
 	local rest = shoulder:GetAttribute("RestC0")
 	if typeof(rest) ~= "CFrame" then
 		rest = shoulder.C0
@@ -211,10 +223,117 @@ local function swing(): boolean
 	end
 	lastSwing = now
 	face(target.model:GetPivot().Position)
-	swingArm()
 	Net.fire("Gather", target.key)
+	-- Cosmetic only; never let it stop the swing.
+	pcall(swingArm)
 	State.fx:Fire("swing", { key = target.key, model = target.model })
 	return true
+end
+
+-- Auto-gather ---------------------------------------------------------------------------------
+
+local Items: any = Content.Items
+
+-- Whether this client could harvest `model` now: own standing node, a tool in
+-- the pockets if it needs one, and room for its sure yields. Same Domain rules
+-- as the server, so auto never walks to something it can't take.
+local function harvestable(model: Model): boolean
+	if model:GetAttribute("Standing") ~= true or model:GetAttribute("OwnerUserId") ~= player.UserId then
+		return false
+	end
+	local def = Content.Nodes[model:GetAttribute("NodeId") :: string]
+	local inventory = State.get("inventory")
+	if def == nil or not inventory then
+		return false
+	end
+	if GatheringMath.pickTool(def, inventory.pockets, inventory.held or 0, Items) == nil then
+		return false
+	end
+	local view = { pockets = inventory.pockets, backpack = inventory.backpack }
+	for _, entry in def.yields do
+		if entry.chance == nil and InventoryMath.spaceFor(view, entry.itemId, Items) < entry.perHit then
+			return false
+		end
+	end
+	return true
+end
+
+local function nearestHarvestable(radius: number): Model?
+	local here = root()
+	if here == nil then
+		return nil
+	end
+	local best: Model? = nil
+	local bestDistance = radius
+	for _, instance in CollectionService:GetTagged(TAGS.node) do
+		if instance:IsA("Model") and instance:IsDescendantOf(workspace) then
+			local distance = flat(instance:GetPivot().Position, here.Position)
+			if distance < bestDistance and harvestable(instance) then
+				best, bestDistance = instance, distance
+			end
+		end
+	end
+	return best
+end
+
+local function stopWalking()
+	if walkTarget then
+		walkTarget = nil
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local here = root()
+		if humanoid and here then
+			humanoid:MoveTo(here.Position)
+		end
+	end
+end
+
+function Interaction.setAuto(on: boolean)
+	if State.ui().auto ~= on then
+		State.patch({ auto = on })
+	end
+	if not on then
+		stopWalking()
+	end
+end
+
+-- One step of gathering while the button is held or AUTO is on.
+local function autoStep()
+	local ui = State.ui()
+	local target = ui.target
+	if target and target.kind == "node" and harvestable(target.model) then
+		stopWalking()
+		swing()
+		return
+	end
+	local now = os.clock()
+	if now - lastWalk < WALK_REFRESH then
+		return
+	end
+	lastWalk = now
+	local goal = nearestHarvestable(if ui.auto then AUTO_RADIUS else HOLD_RADIUS)
+	if goal == nil then
+		stopWalking()
+		if ui.auto then
+			Interaction.setAuto(false)
+			State.notify("Nothing left to gather nearby", "info")
+		elseif target and target.kind == "node" then
+			swing() -- let the server say why (needs a tool, bag full)
+		end
+		return
+	end
+	walkTarget = goal
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local here = root()
+	if humanoid and here then
+		local at = goal:GetPivot().Position
+		local away = Vector3.new(here.Position.X - at.X, 0, here.Position.Z - at.Z)
+		local size = goal:GetExtentsSize()
+		local stand = math.max(size.X, size.Z) / 2 + 2
+		local offset = if away.Magnitude > 0.1 then away.Unit * stand else Vector3.new(stand, 0, 0)
+		humanoid:MoveTo(at + offset)
+	end
 end
 
 -- Uses the current target: opens stations and crates, swings at nodes.
@@ -239,7 +358,9 @@ end
 function Interaction.setGathering(held: boolean)
 	gathering = held
 	if held then
-		swing()
+		autoStep()
+	elseif not State.ui().auto then
+		stopWalking()
 	end
 end
 
@@ -268,8 +389,9 @@ function Interaction.start()
 			scanElapsed = 0
 			scan()
 		end
-		if gathering and State.ui().panel == "none" then
-			swing()
+		local ui = State.ui()
+		if (gathering or ui.auto) and ui.panel == "none" then
+			autoStep()
 		end
 	end)
 	-- Closing the inventory screen closes the crate on the server too.

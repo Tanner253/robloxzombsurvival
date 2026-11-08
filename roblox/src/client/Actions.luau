@@ -50,6 +50,13 @@ function Actions.setGathering(held: boolean)
 	Interaction.setGathering(held)
 end
 
+-- AUTO: gather nearby nodes hands-free until the bag is full or none are left.
+-- Free on the home plot; on Fog Runs this is a Shop lever (rewarded ad or pass), M1 step 11.
+function Actions.toggleAuto()
+	Interaction.setAuto(not State.ui().auto)
+	Sfx.play("uiClick")
+end
+
 -- Number keys / hotbar clicks: food and drink are used, tools are held.
 function Actions.hotbar(index: number)
 	local inventory = State.get("inventory")

@@ -126,6 +126,10 @@ local function setupCharacter(player: Player, character: Model)
 	end
 	humanoid.MaxHealth = maxHealth
 	humanoid.WalkSpeed = tuning.player.walkSpeed
+	-- No jumping or climbing: walls must hold (night defence, raids) and the
+	-- top-down game has no use for either. The client also disables the states.
+	humanoid.UseJumpPower = false
+	humanoid.JumpHeight = 0
 	if state.died then
 		state.died = false
 		state.meters = {

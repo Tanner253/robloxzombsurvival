@@ -14,7 +14,9 @@ local Art = {}
 
 -- Height of a foundation's top above the ground. Kit foundations pivot at their
 -- top centre, walls and props at their bottom centre (look-test v2 conform pass).
-Art.FLOOR_HEIGHT = 2.2
+-- Low enough to walk onto: characters can't jump (Survival turns jumping off),
+-- so the rest of each foundation sits in the ground.
+Art.FLOOR_HEIGHT = 1
 -- Wall height for fallback walls (kit walls are 8.2 to 8.9 studs).
 Art.WALL_HEIGHT = 8.6
 
@@ -37,11 +39,11 @@ Art.pieces = {
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
 Art.nodes = {
-	["node.pine_tree"] = { names = { "PineTree", "Tree", "DeadTree" }, height = 16 },
-	["node.boulder"] = { names = { "Boulder", "RockClump", "Rocks" }, height = 4.5 },
-	["node.loose_stones"] = { names = { "Gen_pebbles", "Pebbles" }, height = 1.2 },
-	["node.fallen_branches"] = { names = { "Firewood", "Branches" }, height = 1.4 },
-	["node.reed_patch"] = { names = { "Gen_grass", "GrassClump", "Reeds" }, height = 3.2 },
+	["node.pine_tree"] = { names = { "PineTree", "Gen_tree" }, height = 15 },
+	["node.boulder"] = { names = { "Boulder", "RockClump" }, height = 4.4 },
+	["node.loose_stones"] = { names = { "Gen_pebbles", "Pebbles" }, height = 1.9 },
+	["node.fallen_branches"] = { names = { "Branches", "Gen_firewood" }, height = 2.6 },
+	["node.reed_patch"] = { names = { "Reeds", "GrassClump" }, height = 3.4 },
 	["node.ember_bush"] = { names = { "EmberBush", "Bush" }, height = 3.4 },
 	["node.spring_pool"] = { names = { "SpringPool" }, height = 1 },
 	["node.fatwood_stump"] = { names = { "Stump" }, height = 2.4 },
@@ -51,11 +53,11 @@ Art.nodes = {
 
 -- Items -> kit names for the model held in hand and the rendered 3D icon.
 Art.items = {
-	["item.stone_hatchet"] = { "Axe", "Hatchet" },
+	["item.stone_hatchet"] = { "Hatchet", "Gen_axe" },
 	["item.stone_pick"] = { "Pickaxe", "Pick" },
-	["item.timber"] = { "Firewood" },
-	["item.satchel"] = { "Gen_backpack", "EO_Backpack" },
-	["item.pack_frame"] = { "EO_Backpack", "Gen_backpack" },
+	["item.timber"] = { "Gen_firewood" },
+	["item.satchel"] = { "Gen_backpack" },
+	["item.pack_frame"] = { "Raw_Backpack", "Gen_backpack" },
 } :: { [string]: { string } }
 
 -- Sound IDs. PLACEHOLDER: every "" is still to be chosen in Studio (Phase 2);
