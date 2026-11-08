@@ -2,7 +2,9 @@
 
 Splits each mesh into connected components (positions welded) and flags:
   - FLOAT: a component that touches neither the ground plane (the model's lowest point)
-    nor any other component (no vertex of it within EPS of another component), and
+    nor any other component: no vertex of it within EPS of another component's surface
+    (its triangles, not only its vertices: a bolt head resting on a wide plank face is
+    far from that face's few vertices but touches the face), and
   - CARD:  a near-flat component (thinnest extent under CARD_RATIO of its widest) whose
     underside sits above the ground by more than EPS while resting on other geometry
     only along an edge: a decal-like sheet hovering over the model (e.g. a leaf mat or a
@@ -58,6 +60,43 @@ def components(pos, idx):
     return lab[t[:, 0]]
 
 
+def surface_contact(pts, tris, eps):
+    """True when any point lies within eps of any triangle (tris: (T, 3, 3))."""
+    if len(tris) == 0 or len(pts) == 0:
+        return False
+    a, b, c = tris[:, 0], tris[:, 1], tris[:, 2]
+    n = np.cross(b - a, c - a)
+    area = np.linalg.norm(n, axis=1)
+    keep = area > 1e-12
+    a, b, c, n = a[keep], b[keep], c[keep], n[keep] / area[keep, None]
+    for start in range(0, len(pts), 64):
+        p = pts[start:start + 64][:, None, :]  # (P, 1, 3)
+        d = np.einsum('ptk,tk->pt', p - a[None], n)  # signed plane distance (P, T)
+        near = np.abs(d) <= eps
+        if not near.any():
+            continue
+        q = p - d[..., None] * n[None]  # projection onto each plane
+        # barycentric inside test with an eps margin on the edges
+        v0, v1 = (b - a)[None], (c - a)[None]
+        v2 = q - a[None]
+        d00 = np.einsum('ptk,ptk->pt', v0.repeat(len(p), 0), v0.repeat(len(p), 0))
+        d01 = np.einsum('ptk,ptk->pt', v0.repeat(len(p), 0), v1.repeat(len(p), 0))
+        d11 = np.einsum('ptk,ptk->pt', v1.repeat(len(p), 0), v1.repeat(len(p), 0))
+        d20 = np.einsum('ptk,ptk->pt', v2, v0.repeat(len(p), 0))
+        d21 = np.einsum('ptk,ptk->pt', v2, v1.repeat(len(p), 0))
+        den = d00 * d11 - d01 * d01
+        den = np.where(np.abs(den) < 1e-18, 1e-18, den)
+        v = (d11 * d20 - d01 * d21) / den
+        w = (d00 * d21 - d01 * d20) / den
+        u = 1 - v - w
+        span = np.sqrt(np.maximum(d00, d11))
+        tol = -eps / np.maximum(span, 1e-9)
+        inside = (u >= tol) & (v >= tol) & (w >= tol)
+        if np.any(near & inside):
+            return True
+    return False
+
+
 def check(path, fix=False):
     f, j, jl, bstart = load(path)
     prim = j['meshes'][0]['primitives'][0]
@@ -92,6 +131,13 @@ def check(path, fix=False):
                 continue
             d, _ = trees[o].query(pts, k=1, distance_upper_bound=eps)
             touching += int(np.isfinite(d).sum())
+            if touching == 0:
+                # Resting on a face rather than near its vertices: test the triangles.
+                otris = pos[idx[tri_comp == o]]
+                tlo, thi = otris.min(axis=1), otris.max(axis=1)
+                close = np.all(tlo <= hi + eps, axis=1) & np.all(thi >= lo - eps, axis=1)
+                if surface_contact(pts, otris[close], eps):
+                    touching += 1
         extent = hi - lo
         flat = extent.min() < CARD_RATIO * extent.max()
         if not on_ground and touching == 0:
