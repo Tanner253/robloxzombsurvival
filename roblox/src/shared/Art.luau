@@ -82,4 +82,57 @@ Art.sounds = {
 	drink = "", -- PLACEHOLDER
 } :: { [string]: string }
 
+-- Fallback icon glyphs (emoji) for items with no rendered icon model yet. Placeholder
+-- until every item has a 3D icon; kept to emoji Roblox renders everywhere.
+Art.glyphs = {
+	["item.timber"] = "🌲",
+	["item.stone"] = "🗿",
+	["item.scrap"] = "🔧",
+	["item.fiber"] = "🌾",
+	["item.fatwood"] = "🔥",
+	["item.murky_water"] = "💧",
+	["item.plank"] = "📏",
+	["item.rope"] = "➰",
+	["item.cloth"] = "🧵",
+	["item.stone_block"] = "🧱",
+	["item.scrap_plate"] = "🛡",
+	["item.pitch_glue"] = "🍯",
+	["item.rivets"] = "🔩",
+	["item.coil_spring"] = "🌀",
+	["item.brass_gear"] = "⚙",
+	["item.broken_lantern"] = "🏮",
+	["item.snarled_wire"] = "➿",
+	["item.seized_motor"] = "🔋",
+	["item.stone_hatchet"] = "🔨",
+	["item.stone_pick"] = "⛏",
+	["item.spiked_club"] = "🏏",
+	["item.scrapblade"] = "🗡",
+	["item.shortbow"] = "🏹",
+	["item.arrow"] = "➶",
+	["item.padded_hood"] = "🎓",
+	["item.padded_vest"] = "👕",
+	["item.satchel"] = "👜",
+	["item.pack_frame"] = "🎒",
+	["item.emberberry"] = "🍒",
+	["item.ashroot"] = "🥔",
+	["item.roasted_ashroot"] = "🍠",
+	["item.sealed_tin"] = "🥫",
+	["item.hearth_stew"] = "🍲",
+	["item.boiled_water"] = "🍶",
+	["item.ember_tea"] = "🍵",
+	["item.field_dressing"] = "🩹",
+	["item.ember_tonic"] = "🧪",
+	["item.bp_pack_frame"] = "📜",
+	["item.bp_reinforced"] = "📜",
+} :: { [string]: string }
+
+-- HUD meter glyphs (placeholder until the icon set exists).
+Art.meterGlyphs = {
+	health = "❤",
+	hunger = "🍖",
+	thirst = "💧",
+	energy = "⚡",
+	xp = "★",
+} :: { [string]: string }
+
 return Art

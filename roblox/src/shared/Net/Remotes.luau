@@ -80,7 +80,7 @@ Remotes.list = {
 	SyncRequest = {
 		kind = "function",
 		clientCanSend = true,
-		rateLimit = { count = 3, perSeconds = 30 },
+		rateLimit = { count = 6, perSeconds = 30 },
 		validate = Check.args(),
 		description = "() -> { [section]: value }: the full state, once the client is listening",
 	},

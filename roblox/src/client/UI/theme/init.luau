@@ -43,6 +43,15 @@ Theme.rarity = {
 	legendary = Color3.fromHex("FF8A3D"),
 } :: { [string]: Color3 } -- indexed by Types.Rarity
 
+-- HUD meters. Health is a warm red (never cyan: cyan is reserved for threats).
+Theme.meters = {
+	health = Color3.fromHex("D9573F"),
+	hunger = Color3.fromHex("FFB547"),
+	thirst = Color3.fromHex("4FA3E0"),
+	energy = Color3.fromHex("FFE3A3"),
+	xp = Color3.fromHex("FF8A3D"),
+}
+
 Theme.radius = UDim.new(0, 8)
 Theme.strokeThickness = 2
 Theme.shadowOffset = 4
@@ -72,5 +81,8 @@ Theme.spacing = {
 Theme.tapTarget = 44
 
 Theme.slotSize = 64
+
+-- The layout's design size; the App scales it to fit the screen (PC first, 16:9).
+Theme.designSize = Vector2.new(1366, 768)
 
 return Theme

@@ -16,6 +16,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Net = require("../Net")
+local PlayerData = require("./PlayerData")
 
 local Sync = {}
 
@@ -94,6 +95,12 @@ end
 
 function Sync.start()
 	RunService.Heartbeat:Connect(flush)
+	-- Send everything once the profile is loaded, so the HUD fills in at once.
+	PlayerData.loaded:Connect(function(player: Player)
+		for section in providers do
+			Sync.mark(player, section)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		dirty[player] = nil
 	end)
