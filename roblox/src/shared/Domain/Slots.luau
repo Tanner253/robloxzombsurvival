@@ -262,7 +262,11 @@ end
 function Slots.putAllFilter(items: ItemLookup): (slot: Slot) -> boolean
 	return function(slot: Slot): boolean
 		local def = items[slot.itemId]
-		return def ~= nil and not Slots.KEEP_ON_PUT_ALL[def.category or "misc"]
+		if def == nil then
+			return false
+		end
+		local category: string = def.category or "misc"
+		return not Slots.KEEP_ON_PUT_ALL[category]
 	end
 end
 

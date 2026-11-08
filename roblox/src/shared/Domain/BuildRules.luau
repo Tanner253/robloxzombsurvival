@@ -162,7 +162,7 @@ function BuildRules.canPlace(
 	if not BuildRules.isUnlocked(def, progress) then
 		return false, "locked"
 	end
-	local ok, reason = Grid.canPlace(layout, pieceId, target, ctx)
+	local ok: boolean, reason: Grid.Reason? = Grid.canPlace(layout, pieceId, target, ctx)
 	if not ok then
 		return false, reason
 	end
@@ -192,7 +192,7 @@ function BuildRules.canUpgrade(
 	progress: Progress,
 	inventory: Types.Inventory?
 ): (boolean, Types.BuildPieceDef?, Reason?)
-	local ok, reason = Grid.canUpgrade(layout, uid, ctx)
+	local ok: boolean, reason: Grid.Reason? = Grid.canUpgrade(layout, uid, ctx)
 	if not ok then
 		return false, nil, reason
 	end

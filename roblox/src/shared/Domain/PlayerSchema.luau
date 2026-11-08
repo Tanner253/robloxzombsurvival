@@ -79,7 +79,8 @@ export type PlayerData = {
 	stations: { [string]: StationState }, -- keyed by placed station UID
 	crops: { [string]: CropState }, -- keyed by placed plot UID
 	progression: { level: number, xp: number },
-	energy: { value: number, updatedAt: number },
+	-- foodDay is the UTC day number foodGained counts for (Tuning.energy.foodDailyCap).
+	energy: { value: number, updatedAt: number, foodDay: number, foodGained: number },
 	survival: SurvivalSave,
 	quests: { active: { [string]: QuestState }, completed: { [string]: number } },
 	unlocks: { recipes: { [string]: boolean }, blueprints: { [string]: boolean } },
@@ -121,7 +122,7 @@ function PlayerSchema.template(): PlayerData
 		stations = {},
 		crops = {},
 		progression = { level = 1, xp = 0 },
-		energy = { value = Tuning.energy.cap, updatedAt = 0 },
+		energy = { value = Tuning.energy.cap, updatedAt = 0, foodDay = 0, foodGained = 0 },
 		survival = PlayerSchema.freshSurvival(),
 		quests = { active = {}, completed = {} },
 		unlocks = { recipes = {}, blueprints = {} },
@@ -132,10 +133,14 @@ end
 
 -- steps[n] upgrades version n to n + 1.
 PlayerSchema.migrations = {
-	-- v2: health, hunger and thirst are saved.
+	-- v2: health, hunger and thirst are saved; food energy counts toward a daily cap.
 	[1] = function(data)
 		if data.survival == nil then
 			data.survival = PlayerSchema.freshSurvival()
+		end
+		if type(data.energy) == "table" then
+			data.energy.foodDay = data.energy.foodDay or 0
+			data.energy.foodGained = data.energy.foodGained or 0
 		end
 	end,
 } :: Migrations.Steps

@@ -46,7 +46,11 @@ end
 
 -- The salvage definition for an input item, if the station breaks it down.
 function Salvage.find(stationDef: Types.StationDef, itemId: Types.ItemId): Types.SalvageDef?
-	for _, def in stationDef.salvage or {} do
+	local list = stationDef.salvage
+	if list == nil then
+		return nil
+	end
+	for _, def in list do
 		if def.inputItemId == itemId then
 			return def
 		end

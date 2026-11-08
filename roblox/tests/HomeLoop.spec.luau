@@ -31,11 +31,7 @@ local function slot(itemId: string, count: number, durability: number?): any
 end
 
 local function container(...: any): any
-	local result = {}
-	for index, value in { ... } do
-		result[index] = value
-	end
-	return result
+	return { ... }
 end
 
 local E = slot("", 0)
