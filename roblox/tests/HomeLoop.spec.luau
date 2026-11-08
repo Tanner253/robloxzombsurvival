@@ -303,4 +303,14 @@ return function(test: TestKit.Register)
 		TestKit.equal(sorted[5].count, 0, "empties last; same size")
 		TestKit.equal(#sorted, 5)
 	end)
+
+	test("walls are taller than any point a survivor can reach (checklist 6.8)", function()
+		-- Art.luau uses Roblox enums, so read the constant from its source.
+		local fs = require("@lune/fs")
+		local source = fs.readFile("src/shared/Art.luau")
+		local wall = tonumber(string.match(source, "Art%.WALL_HEIGHT = ([%d%.]+)")) :: number
+		local SURVIVOR_HEIGHT = 5.6 -- the custom StarterCharacter
+		local reach = SURVIVOR_HEIGHT + Content.Tuning.movement.hopHeight
+		TestKit.truthy(wall > reach + 0.5, `walls {wall} vs reach {reach}`)
+	end)
 end

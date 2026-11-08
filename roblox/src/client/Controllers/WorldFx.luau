@@ -314,7 +314,14 @@ local function onGather(payload: any)
 	local top = model:GetPivot().Position + Vector3.new(0, math.min(model:GetExtentsSize().Y * 0.5, 4), 0)
 	Sfx.play((NODE_SOUNDS[payload.nodeId] or TOOL_SOUNDS[tool] or TOOL_SOUNDS.hand).hit, top)
 	if payload.broke then
+		-- The tool snaps: a splinter burst at the survivor's hand.
 		Sfx.play("toolBreak")
+		local character = player.Character
+		local hand = character and character:FindFirstChild("RightHand") :: BasePart?
+		if hand then
+			chips(hand.Position, CHIP_COLORS.hatchet, 10, Enum.Material.Wood)
+			puff(hand.Position, Color3.fromRGB(150, 132, 104), 8, 1.2)
+		end
 	end
 	for index, stack in payload.items or {} do
 		flyIcon(stack.itemId, top, (index - 1) * 0.12)
