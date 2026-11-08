@@ -188,6 +188,23 @@ Art.approved = {
 	EO_LooseStonesClean = true,
 	-- Ammo Press (13.12): cast-iron press, lever and powder can on a plank bench (slice 2B).
 	EO_AmmoPress = true,
+	-- Fog Run props from the slice 2 family sheets (lineup 2026-11-08: weathered, rusted,
+	-- floater gate clean).
+	EO_SedanWreck = true,
+	EO_PickupWreck = true,
+	EO_VanWreck = true,
+	EO_TractorWreck = true,
+	EO_AppleTree = true,
+	EO_HayBales = true,
+	EO_Boxcar = true,
+	EO_FuelPump = true,
+	-- Weapons (realistic per the developer, 2026-11-08): Zona's service pistol (CC0) and
+	-- sawn-off (CC-BY), its machete (CC0); our fire axe and shortbow.
+	EO_WornPistol = true,
+	EO_ScrapShotgun = true,
+	EO_Machete = true,
+	EO_FireAxe = true,
+	EO_Shortbow = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -222,6 +239,21 @@ Art.uploaded = {
 	EO_EmberBushClean = { id = 106896648014033, yaw = 0, axis = "Y", size = 4 },
 	EO_ScrapHeapClean = { id = 89747869389109, yaw = 0, axis = "Y", size = 3.8 },
 	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
+	-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
+	EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
+	EO_PickupWreck = { id = 112415392425301, yaw = 90, axis = "X", size = 16 },
+	EO_VanWreck = { id = 75377164376070, yaw = 0, axis = "X", size = 16 },
+	EO_TractorWreck = { id = 138754378882219, yaw = 0, axis = "X", size = 11 },
+	EO_AppleTree = { id = 119281991299964, yaw = 0, axis = "Y", size = 15 },
+	EO_HayBales = { id = 98372468469042, yaw = 90, axis = "X", size = 7 },
+	EO_Boxcar = { id = 133928155401070, yaw = 90, axis = "Y", size = 14 },
+	EO_FuelPump = { id = 130764128762105, yaw = 0, axis = "Y", size = 6 },
+	-- Held weapons (scaled again to Art.held lengths in the hand).
+	EO_WornPistol = { id = 137577727330156, yaw = 0, axis = "Y", size = 1 },
+	EO_ScrapShotgun = { id = 72894953650046, yaw = 0, axis = "Y", size = 1 },
+	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
+	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
+	EO_Shortbow = { id = 104799057457758, yaw = 0, axis = "Z", size = 3 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean
@@ -272,6 +304,13 @@ Art.items = {
 	["item.timber"] = { "Gen_firewood" },
 	["item.satchel"] = { "Gen_backpack" },
 	["item.pack_frame"] = { "Raw_Backpack", "Gen_backpack" },
+	-- Fog Run weapons (slice 2B): realistic guns and the machete from the Zona sources
+	-- (CREDITS.md), the fire axe and shortbow from the slice 2 family sheets.
+	["item.pipe_pistol"] = { "EO_WornPistol" },
+	["item.scrap_shotgun"] = { "EO_ScrapShotgun" },
+	["item.machete"] = { "EO_Machete" },
+	["item.fire_axe"] = { "EO_FireAxe" },
+	["item.shortbow"] = { "EO_Shortbow" },
 } :: { [string]: { string } }
 
 -- How each held item sits in the fist and on the body (checklist 1.5, 1.5b).
@@ -285,6 +324,9 @@ export type HeldArt = {
 	grip: number,
 	length: number,
 	holster: "back" | "belt",
+	-- Guns: how far the fist sits off the barrel line toward `edge` (down), as a share of
+	-- the gun's size along it (a pistol's grip hangs below the slide).
+	drop: number?,
 }
 
 Art.held = {
@@ -314,6 +356,47 @@ Art.held = {
 		edge = Vector3.new(0, -1, 1),
 		grip = 0.12,
 		length = 2,
+		holster = "back",
+	},
+	-- Guns: `axis` is the muzzle direction (the fist points it forward) and `edge` the
+	-- gun's underside; `length` is the gun's length (realistic, about 1.3x life size
+	-- against the 5.6-stud survivor) and `grip` how far from the butt the fist holds.
+	["item.pipe_pistol"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.22,
+		length = 1.1,
+		holster = "belt",
+		drop = 0.28,
+	},
+	["item.scrap_shotgun"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.2,
+		length = 2.4,
+		holster = "back",
+		drop = 0.22,
+	},
+	["item.machete"] = {
+		axis = Vector3.new(0, 1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.12,
+		length = 2.3,
+		holster = "belt",
+	},
+	["item.fire_axe"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, 1, 0),
+		grip = 0.12,
+		length = 2.9,
+		holster = "back",
+	},
+	-- The bow faces the way the arrow flies, limbs upright (its depth is `length`).
+	["item.shortbow"] = {
+		axis = Vector3.new(0, -1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.5,
+		length = 0.95,
 		holster = "back",
 	},
 } :: { [string]: HeldArt }
