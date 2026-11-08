@@ -89,6 +89,15 @@ local function fitDistance(model: Model, aspect: number, margin: number): (Vecto
 	return centre, need * margin
 end
 
+-- Poses the copy when asked and returns where the camera looks and how far back it sits.
+local function frameFor(copy: Model, pose: Pose?, aspect: number, margin: number): (Vector3, number)
+	if pose then
+		local length = posed(copy, pose)
+		return copy:GetBoundingBox().Position, fitPosed(length, aspect, margin)
+	end
+	return fitDistance(copy, aspect, margin)
+end
+
 local function ModelView(props: Props)
 	local frameRef = React.useRef(nil :: ViewportFrame?)
 
@@ -101,13 +110,7 @@ local function ModelView(props: Props)
 		local absolute = frame.AbsoluteSize
 		local aspect = if absolute.X > 0 and absolute.Y > 0 then absolute.X / absolute.Y else 1
 		local margin = props.margin or 1.04
-		local centre, distance
-		if props.pose then
-			local length = posed(copy, props.pose)
-			centre, distance = copy:GetBoundingBox().Position, fitPosed(length, aspect, margin)
-		else
-			centre, distance = fitDistance(copy, aspect, margin)
-		end
+		local centre, distance = frameFor(copy, props.pose, aspect, margin)
 		local camera = Instance.new("Camera")
 		camera.FieldOfView = FOV
 		camera.CFrame = CFrame.lookAt(centre + BACK * distance, centre)
