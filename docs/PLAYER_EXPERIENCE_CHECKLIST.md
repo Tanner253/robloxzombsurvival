@@ -110,6 +110,7 @@ Nothing player-facing is done until it has all ten:
 | 6.8 | Walls are taller than any reachable point (enforced by a test) | — | S1 |
 | 6.9 | **Seamless tiling:** adjacent foundations and walls mesh into one continuous surface with no gaps or seams. Use exact cell-sized geometry with world-aligned MaterialVariant textures, and trim meshes for character. Corner posts appear automatically where walls meet. | Seamless base | S1 |
 | 6.10 | **Free furniture placement:** stations, storage and decor sit anywhere on a foundation on a fine sub-grid (¼ cell). They snap flush against walls (back to the wall), rotate in 90° steps, are blocked by overlaps, and must be on a foundation. | Stations against walls | S1 |
+| 6.11 | **No z-fighting anywhere:** no two surfaces are coplanar where they overlap. Adjacent tiles abut exactly with zero overlap. Trim, decals and detail sit at least 0.05 studs proud of the surface under them. Foundation tops are at least 0.2 studs above the terrain. No duplicate stacked parts. Checked by an automated scan for coplanar overlapping faces, plus captures at the closest and farthest zoom while the camera moves. | — | S1 |
 
 ## 7. Survival meters
 

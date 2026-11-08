@@ -135,4 +135,8 @@ Every asset, animation, effect and UI element must pass this document. If someth
 1. **Look test in Studio:** a small in-engine scene from the game's fixed angled top-down camera (LDoE-style framing; see `docs/reference/ldoe-recordings/`). It covers the outpost by day and by night, a fog-zone corner, the Hollow and the HUD. Once approved, it becomes the visual reference everything is checked against.
 2. **Production:** Roblox `generate_mesh` / `generate_material`, Higgsfield 3D, or curated Creator Store assets. **Strip every script from inserted models**, because free models can contain malicious code.
 3. **Conform pass:** apply palette-locked MaterialVariants, fix scale and texel density, bevel edges, add LODs.
-4. **Gate:** screenshot the asset in context at day and at night, and at phone resolution. Compare it with the style frames. Reject it or fix it before showing the user.
+4. **Z-fighting check:**
+   - No coplanar overlapping surfaces, inside a model or against its neighbours: tiles, terrain, trim and decals.
+   - Detail layers sit at least 0.05 studs proud of the surface beneath.
+   - Watch the asset at the closest and farthest camera zoom while the camera moves, because flicker only shows in motion.
+5. **Gate:** screenshot the asset in context at day and at night, and at phone resolution. Compare it with the style frames. Reject it or fix it before showing the user.
