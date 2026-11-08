@@ -1,109 +1,135 @@
-# M1 slice 1: checklist audit (working file)
+# M1 slice 1: checklist audit
 
-Status against docs/PLAYER_EXPERIENCE_CHECKLIST.md rows owned by S1, on branch
+Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Updated as work lands; the final version goes into the slice report.
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures).
 
-## Work queue (in order)
-1. ~~Crisp UI root cause (4.1)~~ (code done; 200% comparison capture still to take)
-2. ~~Held tools, holsters, auto-swap, chop/mine/pickup animations~~
-3. ~~Sticks vs timber split~~ (sticks icon done; bare-branches model waits on a credit decision)
-4. ~~Real sound IDs, ambience, footsteps, music~~
-5. ~~Gathering feel: remnants, fly-to-bag, overflow drops, durability warning~~
-6. ~~Building: seamless tiling + posts, furniture sub-grid, wall fade, explained refusals~~
-7. ~~Inventory: drag and drop, drop, sort, NEW badges, full flash, wheel hotbar~~
-8. ~~Stations: progress above the station, offline toast~~
-9. ~~HUD: level-up unlocks, day/night + cue + clock, settings, hop, loading screen~~
-10. ~~World-as-code: Scenery (lighting, terrain, dressing, Trailhead, fog wall, Hearth), leftovers removed,
-    in-playtest fresh-build test~~; kit masters still live in the place (see below)
-11. ~~LDoE side-by-sides, gate captures~~ (docs/milestones/m1-slice1/40-62)
+Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
+solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
+test base plus an L, a diagonal and a scrap-tier deck): 102 parts, 1334 overlapping pairs, **0 hits**.
 
-## World as code: what is and isn't in the repo yet
-- In the repo and rebuilt by code: all scripts, data, UI; lighting and effects; terrain (when empty); dressing,
-  Trailhead, fog wall, Hearth; deck and kit MaterialVariants (place/materials); the loading screen.
-- Still only in the place: the kit masters (ServerStorage.EO_Kit, LT_Gen: meshes with SurfaceAppearances).
-  Scripts can't create SurfaceAppearance maps at runtime, so they come into the repo as .rbxm files extracted
-  by Lune from a local copy of the place. That needs the place saved to a file once (a dialog only the
-  developer can click).
-- Unsaved in the place until Ctrl+S: EO_Kit.EO_Campfire, MaterialService.EO_Materials, ReplicatedFirst.Loading,
-  the look-test deletions. `rojo serve` must restart to sync the new MaterialService / ReplicatedFirst /
-  Workspace nodes (the plugin then needs one Connect click).
+## Art consistency (ART_DIRECTION 10a v2)
+
+- Family sheets from the approved slice-1 crops: Nature (dead pine, bare branches, rock cluster, reed
+  stubble, grass clump, twig shrub), Camp (campfire, storage crate, recycler, spring basin, lantern
+  post, standing torch, barrels, supply sacks, rain collector) and Structure (palisade doorway,
+  palisade window, door leaf, signpost), drawn against the kit wall. art/higgsfield/m1-slice1/families/.
+- 17 converted with one fixed Tripo setting (18k faces, PBR, detailed texture); conform pass done
+  offline (textures to Roblox's 1024 cap, floaters stripped: reed stubble 98 triangles, barrels 68).
+  Grass clump and twig shrub are not converted (thin blades become blobs).
+- **Blocked:** the GLBs can't become Roblox models until the worktree's art folder is an approved
+  upload directory (one click, asked). Then: import, lineup capture (with the survivor and 3 kit
+  pieces, day and night, gameplay and close zoom), A/B/C grades to the orchestrator, and only A
+  replaces the off-pipeline models.
+- Off-pipeline models already removed from the world: the WaterCollector stone pit, the GrassClump
+  "mud blob" scatter, the squashed reed remnant. Still standing until their A-graded replacements
+  land: look-test Lamp, CrateStack, Barrels, Sacks, Generator, Car, RockClump, Gen_pebbles, Gen_tree,
+  the Hearth brazier, the generated campfire, the procedural doorway/window/door and the primitive
+  spring.
+- Spend this pass 213.25 credits (4 sheets + 17 conversions); pool total about 360 of 500.
 
 ## Audit table
 
 | # | Status | Notes |
 |---|---|---|
 | 1.1 | ✅ | Custom StarterCharacter. |
-| 1.2 | ⚠️ | Stopgap: custom action clips (chop, mine, pickup, eat) are ours; idle/walk/run still the Animator defaults until S3's set. |
-| 1.3 | ✅ | Faces the mouse aim (Interaction.aimAtMouse); touch faces movement. |
-| 1.4 | ✅ | 2.2-stud hop with 1.2 s cooldown; climbing off; node colliders and 8.6-stud walls out of reach (6.8 test). |
-| 1.5 | ⚠️ | Selected tool in hand, others holstered (belt/back). The shortbow has no 3D model yet, so it isn't shown. |
-| 1.5b | ✅ | Per-item grip data (Art.held); hatchet 1.7, pick 2.2; captures front/side. |
-| 1.6 | ⚠️ | Per-surface steps (grass, dirt, wood, stone/road) + sprint dust; metal floors share the stone step. |
-| 1.7 | ✅ | Soft warm readability light on your own survivor at night. |
-| 1.8 | ✅ | Roblox name tags on other players; none on your own. |
-| 1.10 | ✅ | Eat/drink clip + crunch/gulp sounds. |
+| 1.2 | ⚠️ | Custom chop, mine, pickup, eat clips; drink reuses eat; idle/walk/run are the Animator defaults until S3's set. |
+| 1.3 | ✅ | Faces the mouse aim; touch faces movement. |
+| 1.4 | ✅ | 2.2-stud hop, 1.2 s cooldown, climbing off; walls out of reach (Lune test). |
+| 1.5 | ⚠️ | Selected tool in hand, others holstered; the shortbow has no 3D model yet. |
+| 1.5b | ✅ | Per-item grips (Art.held). |
+| 1.6 | ⚠️ | Per-surface steps and sprint dust; metal floors share the stone step. |
+| 1.7 | ✅ | Readability light on your survivor, now by day too (smaller, dimmer). |
+| 1.8 | ✅ | Name tags on others only. |
+| 1.10 | ✅ | Eat/drink clip and sounds. |
 | 2.1 | ✅ | Fixed 45° yaw, steep pitch, smooth follow. |
-| 2.2 | ✅ | Ctrl+wheel and pinch zoom, clamped 22-70 (plain wheel cycles the hotbar, 4.9). |
-| 2.3 | ✅ | Walls, doors, windows and their corner posts between camera and survivor fade. |
-| 2.4 | ✅ | Build mode eases the camera out (BUILD_EXTRA) and back. |
-| 2.5 | ✅ | Shake on swings and tree falls; Settings toggle. |
-| 3.1 | ✅ | Outline + prompt with key and needed tool. |
-| 3.2 | ✅ | Auto-swap to the tool, chop/mine/pickup clip, swap back. |
-| 3.3 | ✅ | Chips by material + per-node hit sounds (chop variants, rock, branch snap, grass). |
-| 3.4 | ✅ | Wobble per hit + hit pips on the prompt. |
-| 3.5 | ✅ | Tree falls to a stump, boulder to rubble, reeds to stubble, bush to twigs; regrow fades in. |
-| 3.6 | ✅ | "+N" cards (merged), icon flies into the Bag button, "+XP" pop. |
-| 3.7 | ✅ | Tool refusal, overflow drops as a sack beside the node + toast, AUTO stops. |
-| 3.8 | ✅ | Wear per hit, one "about to break" warning, break snap sound + splinter burst + toast. |
-| 3.9 | ✅ | AUTO respects tools, walks node to node, stops when the bag is full or nothing is left. |
-| 3.10 | ⚠️ | Sticks icon painted; the Fallen Branches world model still has leafy mats (replacement needs ~6 credits over the cap; asked). |
-| 4.1 | ⚠️ | Root cause fixed (no CanvasGroup at rest, 1/8 scale steps); 200% crop in 45_ui_200pct_crop.png. Roblox's Esc menu can't be opened by synthetic input, and captures arrive downscaled as JPEG, so a pixel-exact side-by-side needs a real screenshot at 1920x1080. |
-| 4.2 | ✅ | Pockets, backpack and gear paper-doll. |
-| 4.3 | ✅ | Icon, count, durability bar, rarity frame, NEW badge. |
-| 4.4 | ✅ | Drag and drop (Shift: half), drag out to drop, right-click split, Shift+click quick-move. |
-| 4.5 | ✅ | Details strip: name, stats, durability; Eat/Drink/Equip/Hold, Split, Drop. |
-| 4.6 | ✅ | Crate panel beside the inventory with Take all / Put all (F/G) and Sort. |
-| 4.7 | ✅ | Sort (backpack, crate); full bag flashes the Bag button red + toast. |
-| 4.8 | ⚠️ | No premium currency exists in the data yet. Naming and pricing it is a monetisation call for the developer; the HUD and inventory have room for the chip. |
-| 4.9 | ✅ | 1-9, mouse wheel cycles tools, highlight, durability (ammo is S2). |
-| 4.10 | ⚠️ | Tweens and all sounds done; Tab/O/X close. Esc is Roblox's own menu key and can't be taken. |
-| 5.1 | ✅ | Recipe list, locked recipes show their unlock. |
-| 5.2 | ✅ | Ingredients with have/need, output, time. |
-| 5.3 | ✅ | Queue with timers, collect, reward pop. |
-| 5.4 | ⚠️ | Progress bar + time above a working station, ready badge, fire burns only while fuelled, workbench saw loop. The workbench model itself doesn't animate. |
-| 5.5 | ✅ | Fuel slot with burn time; jobs stall without fuel. |
-| 5.6 | ✅ | "Ready while you were away: Workbench (2), Campfire" on rejoin. |
-| 5.7 | ✅ | Upgrade arrow with cost on the station screen. |
-| 5.8 | ✅ | Hand crafting from the inventory. |
-| 6.1 | ✅ | B: grid overlay and tabs. |
-| 6.2 | ✅ | Green/red ghost with the reason ("Not enough Timber 3/8", "Unlocks at level 7", "Needs the ... blueprint"); costs show have/need. |
-| 6.3 | ✅ | R rotates; place snaps with dust and a thud. |
-| 6.4 | ⚠️ | Upgrade swaps the tier model with a clank; no "can be improved" marker on upgradable pieces yet. |
-| 6.5 | ✅ | Demolish confirms and shows the refund; hovering shows HP. |
-| 6.6 | ⚠️ | Doors swing with a creak for the local player; the server doesn't yet lock other players out (S3 crews). |
+| 2.2 | ✅ | Default zoom 26: the survivor stands about 1/6 of the screen (69); Ctrl+wheel 18-70; build mode eases out. |
+| 2.3 | ✅ | Walls, doors, windows and posts between camera and survivor fade. |
+| 2.4 | ✅ | Build mode eases the camera out and back. |
+| 2.5 | ✅ | Shake on swings and falls; Settings toggle. |
+| 3.1 | ✅ | Outline and prompt with key and tool. |
+| 3.2 | ✅ | Auto-swap, clip, swap back. |
+| 3.3 | ✅ | Chips and per-node hit sounds. |
+| 3.4 | ✅ | Wobble and hit pips. |
+| 3.5 | ⚠️ | Trees fall to stumps, boulders to rubble; reeds and bushes leave nothing until the stubble and bare-branch models pass the lineup (the old squashed copy read as a mud blob). |
+| 3.6 | ✅ | Merged "+N" cards, icon flies to the Bag, "+XP". |
+| 3.7 | ✅ | Tool refusal; overflow drops a sack plus toast; AUTO stops. |
+| 3.8 | ✅ | Wear, warning, break burst. |
+| 3.9 | ✅ | AUTO walks node to node and stops when full. |
+| 3.10 | ⚠️ | Bare-branches model converted (no leaf mats) and waiting on the upload click and lineup; the leafy model is still in the world. |
+| 4.1 | ✅ | Text F2EEE6 / B8B2A6; section headers 25 px and captions 19 px at 1080p; disabled buttons plain grey; locked text in red; crisp (no CanvasGroup). |
+| 4.2 | ✅ | Pockets, backpack, gear paper-doll with silhouettes (63). |
+| 4.3 | ✅ | Icon, count, durability, rarity, NEW badge at readable size. |
+| 4.4 | ✅ | Drag and drop, drag out to drop, split, quick-move. |
+| 4.5 | ✅ | Details: name, stat chips, category/tier and description, action bar. |
+| 4.6 | ✅ | Crate panel with Take all / Put all and Sort. |
+| 4.7 | ✅ | Sort; full-bag flash and toast. |
+| 4.8 | ⚠️ | No premium currency exists in data yet (S3 shop); the HUD has room for the chip. |
+| 4.9 | ✅ | 1-9, wheel cycles, highlight, durability. |
+| 4.10 | ⚠️ | Tweens and sounds; Esc is Roblox's own menu key. |
+| 4.11 | ✅ | Right-aligned action bar: Use/Equip, Split, Drop, trash with a two-press confirm (InventoryDestroy); Sort; storage Take all / Sort / Put all. |
+| 4.12 | ✅ | Crate header strip: slots now → next, cost have/need (home pool), Upgrade in place. |
+| 4.13 | ✅ | Crates show the icon of what they hold most of (67). |
+| 4.14 | ✅ | Stat icon + value chips in item details and the recipe card. |
+| 4.15 | ✅ | Unlimited inbox in the profile (schema v4 migrates the old stash): level-up rewards, refunds and crafts that don't fit; TAKE, USE in place, Take all, category filter; Bag badge counts rows and opens it (65). Quests/purchases route there when S3 grants them. |
+| 5.1 | ✅ | Locked recipes greyed under a padlock, red unlock condition, sorted last. |
+| 5.2 | ✅ | Inputs have/need (home pool), output, time; where each input comes from. |
+| 5.3 | ✅ | Queue, collect, reward pop. |
+| 5.4 | ⚠️ | Progress above the station, ready count, fire only while fuelled, saw loop; the workbench model doesn't animate. |
+| 5.5 | ✅ | Fuel slot and stalls. |
+| 5.6 | ✅ | "Ready while you were away". |
+| 5.7 | ✅ | Station upgrade with cost. |
+| 5.8 | ✅ | Hand crafting, now in the catalogue. |
+| 5.9 | ✅ | C opens the catalogue: tabs incl. Favourites ★, every recipe, NEW badges (profile marks), locked greyed with red condition (66). |
+| 5.10 | ✅ | Blueprint card, stat chips, description, ingredients have/need (red when short), source on hover (Domain/ItemSources, Lune), quantity bar with Max, Craft. |
+| 5.11 | ✅ | "Placed n/max" on build cards; limits enforced (BuildRules). |
+| 5.12 | ✅ | Count badge over stations with ready output (ReadyCount). |
+| 5.13 | ✅ | Pockets → backpack → crates → inbox, atomic (Domain/MaterialPool, Lune: order, partial, refusal); building, upgrades, station jobs and hand crafting; client counts include crates and inbox; Fog Runs carried only. Playtest: four foundations built from inbox timber with nothing carried. |
+| 6.1 | ✅ | Grid overlay and tabs. |
+| 6.2 | ✅ | Green/red ghost with the exact reason and have/need. |
+| 6.3 | ✅ | R rotates; snap, dust, thud. |
+| 6.4 | ⚠️ | Upgrade swaps the tier model; no "can be improved" marker. |
+| 6.5 | ✅ | Demolish confirm and refund (overflow to the inbox); HP on hover. |
+| 6.6 | ⚠️ | Doors swing locally; server lock is S3. |
 | 6.7 | ✅ | See 2.3. |
-| 6.8 | ✅ | Lune test: wall height > survivor + hop. |
-| 6.9 | ✅ | Exact 12x12 deck slabs with tiling PBR variants (wood/scrap/concrete), trim only on outer edges, a post at every wall junction; all tiers in rows and an L, day and night. |
-| 6.10 | ✅ | Quarter-cell sub-grid, footprints, flush-to-wall snap facing the room, R rotate, overlap refused, foundations required; layout v2 migration; tests. |
-| 7.1 | ✅ | Bars drain smoothly, pulse when low, heartbeat loop. |
-| 7.2 | ✅ | Starvation/dehydration damage and regen (Survival service). |
-| 7.3 | ⚠️ | Spring pool and boiling exist in data; not re-verified in a capture this pass. |
-| 8.1 | ⚠️ | Bars, level/XP, Energy, hotbar, quest tracker; premium currency chip waits on 4.8. |
-| 8.2 | ✅ | Toasts top centre, rewards right; never over the hotbar. |
-| 8.3 | ✅ | Burst, sting, rewards and "Unlocked: ..." list. |
-| 8.4 | ✅ | NEW dot on the Bag button. |
-| 8.5 | ✅ | Sun/moon clock chip; "Night is coming" / "Dawn breaks". |
-| 8.6 | ✅ | Settings: five volumes, camera shake, interface size, key list; saved (PlayerSchema v3). |
-| 9.1 | ✅ | Scenery: grass slab with seeded leafy/earth/mud patches, mud road, earth pads; place colours set in code. |
-| 9.2 | ✅ | Scenery dressing by rule: lamps at plot fronts, camp props, tufts/rocks/pebbles ring, edge pines, wrecked car. |
-| 9.3 | ✅ | Rolling fog banks around the edge (open at the Trailhead); Trailhead with lamps, props and a lit sign. |
-| 9.4 | ⚠️ | The Hearth's light and a warm ground disc mark its radius (61_hearth_radius_dusk.jpg); fog doesn't yet visibly retreat from light. |
-| 9.5 | ✅ | 24-minute cycle; every lighting value eases; sun timed to the eased dusk; no jumps. |
-| 9.6 | ❌ | Wind (grass sway, drifting leaves) not done. |
-| 9.7 | ✅ | Day farmland/air beds, night crickets + low drone, fire crackle and saw loops near stations. |
-| 9.8 | ✅ | Sparse calm day track / night drone; level-up sting (quest sting with S3 quests). |
-| 10.1 | ✅ | ReplicatedFirst loader: key art, title, rotating tips, real progress; fades only when world, survivor and HUD are ready. |
-| 10.2 | ⚠️ | ProfileStore autosave and save-on-leave; real rejoin test skipped by decision (unit tests + mock). |
+| 6.8 | ✅ | Wall height test. |
+| 6.9 | ✅ | Seamless decks; trim frame outside the decks, beams abut end to end, one corner block per outside corner (64, 71-72). |
+| 6.10 | ✅ | Quarter-cell furniture, flush to walls. |
+| 6.11 | ✅ | Scan 0 hits; tiles abut with zero overlap; trim and posts offset ≥ 0.05; deck tops 0.95 above terrain; closest/farthest zoom captures from two angles (71-72). |
+| 6.12 | ⚠️ | Workbench stands on its legs facing the room, crates upright, campfire flat, doors hinge, R turns about vertical only; the lineup capture of every placeable vs rec8 comes with the art lineup. |
+| 7.1 | ✅ | Bars drain smoothly, pulse when low. |
+| 7.2 | ✅ | Starvation/dehydration damage and regen. |
+| 7.3 | ⚠️ | Spring pool and boiling in data; the spring model is the primitive until the basin passes the lineup. |
+| 8.1 | ⚠️ | Bars, level/XP, Energy (amber +N over the cap), hotbar, tracker; premium currency chip waits on 4.8. |
+| 8.2 | ✅ | Toasts top centre, rewards right; inbox toast. |
+| 8.3 | ✅ | Burst, sting, rewards ("rewards are in your inbox"), unlocks. |
+| 8.4 | ✅ | NEW dot on Bag. |
+| 8.5 | ✅ | Clock chip and cues. |
+| 8.6 | ✅ | Settings. |
+| 8.9 | ✅ | « folds the tracker to one line; level bar with level and XP along the bottom (70). |
+| 8.10 | ⚠️ | Bottom bar Auto, Craft (NEW count), Build, Bag (inbox count), Use; Quests is the tracker; Shop and Social are S3. |
+| 8.11 | ✅ | Home minimap: floors, walls, stations, storage and your arrow (70). |
+| 9.1 | ✅ | Three layers in one terrain pass: noise zones, rolling land, dry grass to the fog; worn paths, plot wear, Hearth ash; wind grass (68). |
+| 9.2 | ⚠️ | Rule-based dressing works; most props are look-test models waiting on the Camp family lineup. |
+| 9.3 | ✅ | Fog banks, Trailhead. |
+| 9.4 | ⚠️ | Hearth light and radius disc; fog doesn't yet retreat from light. |
+| 9.5 | ✅ | 24-minute cycle, eased. |
+| 9.6 | ⚠️ | Wind grass via Terrain decoration; no drifting leaves yet. |
+| 9.7 | ✅ | Ambience by time and place. |
+| 9.8 | ✅ | Sparse music and stings. |
+| 9.9 | ⚠️ | Lantern post and standing torch converted; the placeable light pieces go in with them after the lineup (no primitive fallbacks). |
+| 10.1 | ✅ | Loading screen. |
+| 10.2 | ⚠️ | ProfileStore autosave/save-on-leave; real rejoin test skipped by decision. |
 
-Out of S1 scope but noticed: quest completion and claiming (the tracker shows objectives met but nothing completes) is S3 (10.4).
+## Also done this pass
+
+- DevSpeed: Tuning.devSpeed 10 scales timers, yields, regen and XP in Studio only (Data/init, before the
+  freeze); live servers run at 1 (Lune). "DEV ×10" tag on the HUD.
+- S3 shortfall slots (UI/offers): Fill up (crafting card, crate upgrade), Speed up (station queue),
+  offers on toasts; nothing sold, hidden until the shop sets them.
+- Dressing is rebuilt from code every run (the saved Dressing folder is gone from the place); the saved
+  hand-built terrain is cleared, Scenery builds the ground.
+- Pacing numbers live in Data/Tuning (grep for hard-coded timers in services found none).
+
+Out of S1 scope but noticed: C was planned for the dodge roll (DECISIONS 2026-11-08); the checklist
+puts the crafting catalogue on C, so the roll needs another key when it lands.
