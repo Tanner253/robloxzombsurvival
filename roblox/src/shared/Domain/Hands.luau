@@ -39,7 +39,12 @@ export type State = {
 }
 
 export type ItemLookup = {
-	[string]: { category: Types.ItemCategory, weapon: Types.WeaponStats?, consume: Types.ConsumeEffect? },
+	[string]: {
+		category: Types.ItemCategory,
+		weapon: Types.WeaponStats?,
+		consume: Types.ConsumeEffect?,
+		tool: Types.ToolStats?,
+	},
 }
 export type SelectReason = "badSlot" | "same"
 
@@ -91,10 +96,37 @@ function Hands.active(state: State): Hand
 	return state.hands[state.active]
 end
 
--- The active weapon's stats, or nil for bare fists.
-function Hands.weapon(state: State, items: ItemLookup): Types.WeaponStats?
+--[[
+	The active weapon's stats, or nil for bare fists. A tool in the slot swings as
+	weak melee (LDOE_PARITY #34) when `melee` (Tuning.melee) is given.
+]]
+function Hands.weapon(state: State, items: ItemLookup, melee: Types.MeleeTuning?): Types.WeaponStats?
 	local item = items[Hands.active(state).itemId]
-	return item and item.weapon
+	if item and item.weapon then
+		return item.weapon
+	end
+	if item and melee then
+		return Combat.toolWeapon(item, melee)
+	end
+	return nil
+end
+
+--[[
+	LDOE_PARITY #45: the active weapon just broke. Switches to the other slot if it
+	holds anything, else stays on bare fists. Returns the new state and the slot
+	switched to (nil when it fell back to fists).
+]]
+function Hands.onBreak(state: State, now: number, items: ItemLookup, config: Config): (State, number?)
+	local hands = table.clone(state.hands)
+	hands[state.active] = { itemId = "", gun = nil }
+	local broken: State = { active = state.active, hands = hands, swapEndsAt = state.swapEndsAt }
+	local other = if state.active == 1 then 2 else 1
+	local spare = hands[other]
+	if spare and spare.itemId ~= "" then
+		local switched = Hands.select(broken, other, now, items, config)
+		return switched, other
+	end
+	return broken, nil
 end
 
 -- Seconds to raise a weapon (bare fists come up at the default).

@@ -36,8 +36,12 @@ local Hollow = require("./Hollow")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local Sync = require("./Sync")
+local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local Containers = {}
+
+-- (player) a search started: looting breaks sneak (LDOE_PARITY #44).
+Containers.searched = Signal.new()
 
 local tuning = Content.Tuning
 local config = tuning.containers
@@ -187,6 +191,7 @@ local function search(player: Player, id: string)
 		return
 	end
 	searching[player] = { search = started, world = world }
+	Containers.searched:Fire(player)
 	Hollow.noise(run.hosted, "search", world.positions[id], nil, `u{player.UserId}`)
 	Sync.fx(player, "search", { id = id, endsAt = started.endsAt, kind = state.kind })
 end
@@ -287,7 +292,10 @@ function Containers.start()
 			end
 		end
 	end)
-	Lobby.hurt:Connect(function(player: Player)
+	Lobby.hurt:Connect(function(player: Player, _damage: number, cause: string)
+		if cause == "fog" then
+			return -- the slow seep of the Fog never pins you in place (#37)
+		end
 		cancel(player, "hit") -- damage interrupts a search (checklist 12.4)
 	end)
 	Lobby.exited:Connect(function(player: Player)

@@ -355,6 +355,40 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		unlock = { kind = "level", level = 14 },
 		feature = "fogRuns",
 	},
+
+	-- LDoE parity (slice 2): wildlife and the respawn mat ---------------------------------------
+	["recipe.cooked_meat"] = {
+		id = "recipe.cooked_meat",
+		inputs = { { itemId = "item.raw_meat", count = 2 } },
+		outputs = { { itemId = "item.cooked_meat", count = 2 } },
+		stationId = "station.campfire",
+		craftSeconds = 3 * 60,
+		unlock = { kind = "default" },
+		feature = "fogRuns",
+	},
+	["recipe.leather"] = {
+		id = "recipe.leather",
+		inputs = {
+			{ itemId = "item.hide", count = 3 },
+			{ itemId = "item.pitch_glue", count = 1 },
+		},
+		outputs = { { itemId = "item.leather", count = 2 } },
+		stationId = "station.workbench",
+		craftSeconds = 8 * 60,
+		unlock = { kind = "level", level = 4 },
+		feature = "fogRuns",
+	},
+	["recipe.doormat"] = {
+		id = "recipe.doormat",
+		inputs = {
+			{ itemId = "item.fiber", count = 8 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		outputs = { { itemId = "item.doormat", count = 1 } },
+		craftSeconds = 10,
+		unlock = { kind = "level", level = 3 },
+		feature = "fogRuns",
+	},
 }
 
 return Recipes

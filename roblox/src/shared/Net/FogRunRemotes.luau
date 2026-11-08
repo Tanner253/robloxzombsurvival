@@ -229,6 +229,57 @@ local FogRunRemotes: { [string]: Decl } = {
 		validate = Check.never(),
 		description = "Server to client: (snapshot) compact Hollow positions and states; clients interpolate",
 	},
+
+	-- LDoE parity (docs/LDOE_PARITY.md) ----------------------------------------------------------
+	SneakSet = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.boolean()),
+		description = "(on) Ctrl: sneak on or off (#44)",
+	},
+	CombatAuto = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.boolean()),
+		description = "(on) Q: AUTO on a run also fights the nearest Hollow (#31)",
+	},
+	AutoClear = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(locationId, Check.oneOf({ "ad", "rations", "premium" })),
+		description = "(locationId, method) the location panel's AUTO: clear it into the inbox unentered (#31)",
+	},
+	TravelHurry = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(),
+		description = "() Hurry: spend Energy to finish your Walk now (#43)",
+	},
+	GateFill = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.pattern("^[%l%d_]+$", 32)),
+		description = "(gateId) FILL UP: put what the signal tower still needs from your bag (#43)",
+	},
+	GateFinalize = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.pattern("^[%l%d_]+$", 32)),
+		description = "(gateId) FINALIZE: repair the tower once its checklist is full (#43)",
+	},
+	RecoverAll = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(bagId, Check.oneOf({ "ad", "premium" })),
+		description = "(bagId, method) the death screen's Recover all: your drop to the inbox (#46)",
+	},
 }
 
 return FogRunRemotes

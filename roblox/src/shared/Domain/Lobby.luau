@@ -539,6 +539,34 @@ function Lobby.returnToDrop(
 	table.insert(container, { itemId = slot.itemId, count = slot.count, durability = slot.durability })
 end
 
+--[[
+	LDOE_PARITY #46 "Recover all": the owner takes the whole drop at once, for the
+	inbox (the service checks the ad or premium payment). Gear first, then the bag.
+]]
+function Lobby.recoverAll(
+	state: State,
+	dropId: string,
+	userId: number,
+	now: number,
+	config: Config
+): ({ Types.Slot }?, DropReason?)
+	local drop = state.drops[dropId]
+	if drop == nil or Lobby.phase(state, now, config) == "closed" then
+		return nil, "gone"
+	end
+	if drop.ownerUserId ~= userId then
+		return nil, "denied"
+	end
+	local slots: { Types.Slot } = {}
+	for _, container in { drop.equipment, drop.backpack } do
+		for _, slot in container do
+			table.insert(slots, { itemId = slot.itemId, count = slot.count, durability = slot.durability })
+		end
+	end
+	state.drops[dropId] = nil
+	return slots, nil
+end
+
 -- Whether a member who died may go back in for their bag now.
 function Lobby.canReenter(state: State, userId: number, now: number, config: Config): (boolean, ReenterReason?)
 	local member = state.members[userId]

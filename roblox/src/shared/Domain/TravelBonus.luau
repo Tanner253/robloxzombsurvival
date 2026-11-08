@@ -6,8 +6,11 @@
 
 	Walking is free but slow, so it always finds something and rolls twice
 	(Tuning.travelBonus: walkChance, walkRolls). A Run sometimes does (runChance).
-	The table is the location's run.travelBonusTableId. The ad slot that doubles it
-	is wired in S3. Pure.
+	The table is the location's run.travelBonusTableId. Pure.
+
+	LDOE_PARITY #40: free players see the grid, but TAKE costs one rewarded ad per
+	item and TAKE ALL costs takeAllRations Rations (or premium). `price` says what;
+	the ad and purchase flows are S3.
 ]]
 
 local Types = require("../Types")
@@ -32,6 +35,16 @@ export type RollContext = {
 	pity: Loot.PityState?,
 	config: Config,
 }
+
+export type Price = { method: "ad" | "rations", count: number }
+
+-- What TAKE ("one") and TAKE ALL ("all") cost.
+function TravelBonus.price(kind: "one" | "all", config: Config): Price
+	if kind == "one" then
+		return { method = "ad", count = 1 }
+	end
+	return { method = "rations", count = config.takeAllRations }
+end
 
 local function merge(into: { Types.ItemStack }, stacks: { Types.ItemStack })
 	for _, stack in stacks do

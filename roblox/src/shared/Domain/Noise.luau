@@ -57,6 +57,17 @@ function Noise.radius(kind: Kind, config: Config, firearm: Types.FirearmStats?):
 	return 0 -- walking is silent
 end
 
+--[[
+	LDOE_PARITY #44: a sneaking player's own noise is quieter. Melee and footsteps
+	scale by the sneak noiseMultiplier; guns, bows and everything else stay as loud.
+]]
+function Noise.sneaky(kind: Kind, radius: number, sneak: Types.SneakTuning): number
+	if kind == "melee" or kind == "sprint" or kind == "walk" or kind == "search" then
+		return radius * sneak.noiseMultiplier
+	end
+	return radius
+end
+
 function Noise.new(
 	id: number,
 	kind: Kind,
@@ -64,13 +75,15 @@ function Noise.new(
 	now: number,
 	config: Config,
 	firearm: Types.FirearmStats?,
-	sourceId: string?
+	sourceId: string?,
+	sneak: Types.SneakTuning? -- set when the maker is sneaking
 ): Event
+	local radius = Noise.radius(kind, config, firearm)
 	return {
 		id = id,
 		kind = kind,
 		position = { x = position.x, z = position.z },
-		radius = Noise.radius(kind, config, firearm),
+		radius = if sneak then Noise.sneaky(kind, radius, sneak) else radius,
 		at = now,
 		sourceId = sourceId,
 	}

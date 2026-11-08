@@ -44,6 +44,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "FogRunRemotes", spec = require("./FogRunRemotes.spec") },
 	{ name = "RunTicket", spec = require("./RunTicket.spec") },
 	{ name = "RunSetup", spec = require("./RunSetup.spec") },
+	{ name = "Parity", spec = require("./Parity.spec") },
 }
 
 local passed, failed = 0, 0

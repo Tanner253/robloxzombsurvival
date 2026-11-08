@@ -169,7 +169,7 @@ local function spawn(world: World, enemyId: string, amount: number)
 		world.hollows[id] = {
 			id = id,
 			enemy = enemy,
-			arch = HollowAI.archetype(enemy, config),
+			arch = HollowAI.archetype(enemy, config, tuning.sneak),
 			ai = HollowAI.new(now()),
 			position = at,
 			home = plane(at),
@@ -214,15 +214,18 @@ function Hollow.noise(
 	kind: Noise.Kind,
 	position: Vector3,
 	firearm: Types.FirearmStats?,
-	sourceId: string?
+	sourceId: string?,
+	sneaking: boolean? -- the maker is sneaking: quieter melee and steps (LDOE_PARITY #44)
 )
 	local world = worldOf(hosted)
 	if world == nil then
 		return
 	end
 	world.seq += 1
-	table.insert(world.noises, Noise.new(world.seq, kind, plane(position), now(), tuning.noise, firearm, sourceId))
-	cue(world, "noise", position.X, position.Z, Noise.radius(kind, tuning.noise, firearm))
+	local sneak = if sneaking then tuning.sneak else nil
+	local event = Noise.new(world.seq, kind, plane(position), now(), tuning.noise, firearm, sourceId, sneak)
+	table.insert(world.noises, event)
+	cue(world, "noise", position.X, position.Z, event.radius)
 end
 
 -- Lights a flare where it landed (the Hollow flee its light).
@@ -240,6 +243,13 @@ function Hollow.positionOf(hosted: Lobby.Hosted, id: string): Vector3?
 	local world = worldOf(hosted)
 	local record = world and world.hollows[id]
 	return if record and record.diedAt == nil then record.position else nil
+end
+
+-- Whether it has noticed anyone (a sneak backstab needs it not to, LDOE_PARITY #44).
+function Hollow.isAware(hosted: Lobby.Hosted, id: string): boolean
+	local world = worldOf(hosted)
+	local record = world and world.hollows[id]
+	return record ~= nil and HollowAI.isAware(record.ai)
 end
 
 export type Candidate = { id: string, distance: number }
@@ -392,6 +402,7 @@ local function senses(world: World, record: Record, exclude: { Instance }): { Ho
 					id = tostring(player.UserId),
 					position = plane(head.Position),
 					visible = blocked == nil,
+					sneaking = player:GetAttribute("Sneaking") == true,
 				})
 			end
 		end

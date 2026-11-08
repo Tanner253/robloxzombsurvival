@@ -24,6 +24,7 @@ export type Destination = {
 	walkSeconds: number,
 	levelGate: number,
 	availability: Types.LocationAvailability?, -- rotating locations refuse trips while closed
+	fogTier: number?, -- Dense and Black wait on their region gate (LDOE_PARITY #43)
 }
 
 export type Config = {
@@ -54,6 +55,10 @@ export type Context = {
 	energy: Energy.State,
 	energyConfig: Energy.Config,
 	config: Config,
+	-- LDOE_PARITY #43 (all optional; left out, nothing is gated):
+	gates: { Types.RegionGate }?, -- Tuning.regionGates
+	repairedGates: { [string]: boolean }?, -- the player's repaired towers
+	airdropPin: boolean?, -- the player has a live airdrop pin for an "airdrop" location
 }
 
 export type Options = {
@@ -64,7 +69,7 @@ export type Options = {
 	levelOk: boolean,
 }
 
-export type Reason = "level" | "energy" | "unavailable" | "tooLate"
+export type Reason = "level" | "energy" | "unavailable" | "tooLate" | "gate"
 
 local function round(value: number): number
 	return math.max(0, math.floor(value + 0.5))
@@ -105,8 +110,20 @@ function Travel.start(destination: Destination, mode: Mode, ctx: Context): (Trip
 	if ctx.level < destination.levelGate then
 		return nil, nil, "level"
 	end
-	if destination.availability and not Travel.isAvailable(destination.availability, ctx.now) then
+	local availability = destination.availability
+	if availability and availability.kind == "airdrop" then
+		if not ctx.airdropPin then
+			return nil, nil, "unavailable"
+		end
+	elseif availability and not Travel.isAvailable(availability, ctx.now) then
 		return nil, nil, "unavailable"
+	end
+	if
+		destination.fogTier
+		and ctx.gates
+		and not Travel.gateOpen(destination.fogTier, ctx.gates, ctx.repairedGates or {})
+	then
+		return nil, nil, "gate"
 	end
 	local plan = Travel.plan(destination, mode, ctx.config)
 	local energy = Energy.spend(ctx.energy, ctx.now, ctx.energyConfig, plan.energyCost)
@@ -142,18 +159,21 @@ end
 
 -- Fog Runs (slice 2) --------------------------------------------------------------------
 
--- Whether a location is open now (rotating events open activeSeconds in every period).
+-- Whether a location is open now (rotating events open activeSeconds in every period;
+-- an airdrop location answers through the player's pin, so it reads as closed here).
 function Travel.isAvailable(availability: Types.LocationAvailability, now: number): boolean
 	if availability.kind == "always" then
 		return true
+	elseif availability.kind == "airdrop" then
+		return false
 	end
 	return (now - availability.offsetSeconds) % availability.periodSeconds < availability.activeSeconds
 end
 
 -- Seconds until a rotating location next opens or closes (the Fog map countdown);
--- math.huge for one that is always open.
+-- math.huge for one that is always open (or opened by an airdrop pin).
 function Travel.secondsUntilChange(availability: Types.LocationAvailability, now: number): number
-	if availability.kind == "always" then
+	if availability.kind ~= "rotating" then
 		return math.huge
 	end
 	local phase = (now - availability.offsetSeconds) % availability.periodSeconds
@@ -218,6 +238,48 @@ function Travel.cancelRefund(trip: Trip, now: number): number
 		return trip.energySpent
 	end
 	return 0
+end
+
+-- LDOE_PARITY #43: region gates and the Walk "Hurry" --------------------------------------
+
+-- The tower a fog tier waits on, if any.
+function Travel.gateFor(fogTier: number, gates: { Types.RegionGate }): Types.RegionGate?
+	for _, gate in gates do
+		if gate.fogTier == fogTier then
+			return gate
+		end
+	end
+	return nil
+end
+
+-- Whether a fog tier is open: no tower, or its tower is repaired.
+function Travel.gateOpen(fogTier: number, gates: { Types.RegionGate }, repaired: { [string]: boolean }): boolean
+	local gate = Travel.gateFor(fogTier, gates)
+	return gate == nil or repaired[gate.id] == true
+end
+
+-- Energy to finish a Walk now: every started minute left costs perMinute.
+function Travel.hurryCost(trip: Trip, now: number, perMinute: number): number
+	if trip.mode ~= "walk" then
+		return 0
+	end
+	return math.ceil(Travel.remaining(trip, now) / 60 - 1e-9) * perMinute
+end
+
+--[[
+	"Hurry" on a Walk: pays hurryCost and arrives now. Returns the new trip and
+	energy, or nil, nil and "energy".
+]]
+function Travel.hurry(trip: Trip, ctx: Context, perMinute: number): (Trip?, Energy.State?, Reason?)
+	local cost = Travel.hurryCost(trip, ctx.now, perMinute)
+	local energy = Energy.spend(ctx.energy, ctx.now, ctx.energyConfig, cost)
+	if energy == nil then
+		return nil, nil, "energy"
+	end
+	local hurried = table.clone(trip)
+	hurried.arrivesAt = math.min(trip.arrivesAt, ctx.now)
+	hurried.energySpent += cost
+	return hurried, energy, nil
 end
 
 return Travel

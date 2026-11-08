@@ -57,6 +57,38 @@ local Enemies: { [Types.EnemyId]: Types.EnemyDef } = {
 		-- 6 HP/s for 6 s is 36 HP if you stand in it, about a third of your health.
 		burst = { triggerRange = 5, fuseSeconds = 0.8, radius = 9, damagePerSecond = 6, cloudSeconds = 6 },
 	},
+
+	-- Wildlife in Light fog (LDOE_PARITY #35): meat and hide. Same brain, other instincts.
+	["enemy.deer"] = {
+		id = "enemy.deer",
+		name = "Fog Deer",
+		hp = 30,
+		damage = 2, -- a panicked kick if you corner it
+		attackSeconds = 2,
+		attackRange = 3,
+		moveSpeed = 20, -- faster than a sprint: catch it with a bow or a quiet approach
+		aggroRadius = 30,
+		xp = 15,
+		lootTableId = "loot.animal_deer",
+		hearing = 1.5,
+		lightFear = 0.9,
+		wildlife = { temperament = "skittish", spookRadius = 18 },
+	},
+	["enemy.wolf"] = {
+		id = "enemy.wolf",
+		name = "Ash Wolf",
+		hp = 55,
+		damage = 7,
+		attackSeconds = 1.1,
+		attackRange = 4,
+		moveSpeed = 19,
+		aggroRadius = 36,
+		xp = 30,
+		lootTableId = "loot.animal_wolf",
+		hearing = 1.2,
+		lightFear = 0.6, -- wolves keep their distance from fire
+		wildlife = { temperament = "predator", spookRadius = 0 },
+	},
 }
 
 return Enemies

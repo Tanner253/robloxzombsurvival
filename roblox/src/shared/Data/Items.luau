@@ -300,7 +300,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 120,
 		icon = "rbxassetid://76447712786468",
 		equipSlot = "head",
-		armor = { defense = 3 },
+		armor = { defense = 3, fogResist = 0.1 }, -- fogResist: LDOE_PARITY #37 (slice 2)
 	},
 	["item.padded_vest"] = {
 		id = "item.padded_vest",
@@ -313,7 +313,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "rbxassetid://129117819249762",
 		equipSlot = "body",
-		armor = { defense = 6 },
+		armor = { defense = 6, fogResist = 0.15 },
 	},
 
 	-- Bags --------------------------------------------------------------------
@@ -664,6 +664,92 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 				noiseRadius = 30,
 			},
 		},
+	},
+
+	-- LDoE parity for slice 2 (docs/LDOE_PARITY.md) -------------------------------------------
+	-- #41 Rations: the travel currency. Pays for the location panel's AUTO and the travel
+	-- bonus's TAKE ALL, and refills Energy (like an Energy item: refused at the cap).
+	["item.rations"] = {
+		id = "item.rations",
+		name = "Trail Rations",
+		description = "A sealed day's food for the road. Pays for an AUTO run or the whole find, or eat it for Energy.",
+		category = "consumable",
+		tier = 2,
+		rarity = "rare",
+		stackSize = 20,
+		icon = "",
+		flags = { ignoresFoodEnergyCap = true },
+		consume = { energy = 60 },
+	},
+	-- #46: carried, it revives you where you fall (once) instead of dropping your bag.
+	["item.reanimator"] = {
+		id = "item.reanimator",
+		name = "Ember Heart",
+		description = "A warm coal in a cage. If you fall, it burns out and you get back up.",
+		category = "misc",
+		tier = 3,
+		rarity = "epic",
+		stackSize = 3,
+		icon = "",
+		flags = { reanimator = true },
+	},
+	-- #46: placed at home, you respawn there (slice 1b wires the respawn point).
+	["item.doormat"] = {
+		id = "item.doormat",
+		name = "Reed Doormat",
+		description = "Lay it by your door. After a bad run, you wake up here.",
+		category = "misc",
+		tier = 1,
+		rarity = "common",
+		stackSize = 1,
+		icon = "",
+		flags = { respawnPoint = true },
+		feature = "fogRuns",
+	},
+	-- #35 Wildlife: deer and wolves in Light fog.
+	["item.raw_meat"] = {
+		id = "item.raw_meat",
+		name = "Raw Venison",
+		description = "Fresh meat. Cook it before you eat much of it.",
+		category = "consumable",
+		tier = 1,
+		rarity = "common",
+		stackSize = 10,
+		icon = "",
+		consume = { hunger = 6 },
+	},
+	["item.cooked_meat"] = {
+		id = "item.cooked_meat",
+		name = "Fire-Roasted Venison",
+		description = "Roasted over the coals. Real food at last.",
+		category = "consumable",
+		tier = 1,
+		rarity = "common",
+		stackSize = 10,
+		icon = "",
+		consume = { health = 10, hunger = 40 },
+		feature = "fogRuns",
+	},
+	["item.hide"] = {
+		id = "item.hide",
+		name = "Raw Hide",
+		description = "An animal's hide. Tanned at the Workbench into leather.",
+		category = "resource",
+		tier = 1,
+		rarity = "common",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.leather"] = {
+		id = "item.leather",
+		name = "Tanned Leather",
+		description = "Tough, supple leather for armor and bags.",
+		category = "material",
+		tier = 2,
+		rarity = "uncommon",
+		stackSize = 30,
+		icon = "",
+		feature = "fogRuns",
 	},
 }
 

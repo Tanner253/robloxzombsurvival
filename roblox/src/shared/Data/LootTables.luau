@@ -41,6 +41,38 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.field_dressing", weight = 10, min = 1, max = 1 },
 		},
 	},
+	-- Wildlife (LDOE_PARITY #35): meat always, hide usually.
+	["loot.animal_deer"] = {
+		id = "loot.animal_deer",
+		rolls = { min = 1, max = 1 },
+		entries = { { itemId = "item.hide", weight = 1, min = 1, max = 2 } },
+		guaranteed = { { itemId = "item.raw_meat", count = 3 } },
+	},
+	["loot.animal_wolf"] = {
+		id = "loot.animal_wolf",
+		rolls = { min = 1, max = 1 },
+		entries = {
+			{ itemId = "item.hide", weight = 70, min = 1, max = 1 },
+			{ itemId = "item.raw_meat", weight = 30, min = 1, max = 1 },
+		},
+		guaranteed = { { itemId = "item.raw_meat", count = 1 } },
+	},
+	-- The airdrop's guarded crate (LDOE_PARITY #43): a reward for spending Energy.
+	["loot.airdrop_crate"] = {
+		id = "loot.airdrop_crate",
+		rolls = { min = 3, max = 4 },
+		entries = {
+			{ itemId = "item.sealed_tin", weight = 20, min = 2, max = 3 },
+			{ itemId = "item.field_dressing", weight = 18, min = 2, max = 3 },
+			{ itemId = "item.light_rounds", weight = 16, min = 6, max = 10 },
+			{ itemId = "item.blackpowder", weight = 14, min = 2, max = 4 },
+			{ itemId = "item.scrap_plate", weight = 12, min = 2, max = 4 },
+			{ itemId = "item.ember_tonic", weight = 8, min = 1, max = 1 },
+			{ itemId = "item.steel_pipe", weight = 7, min = 1, max = 1 },
+			{ itemId = "item.trigger_group", weight = 5, min = 1, max = 1 },
+		},
+		guaranteed = { { itemId = "item.rations", count = 1 } },
+	},
 
 	-- Pine Hollow (Light fog) -------------------------------------------------------
 	["loot.pine_pack"] = {

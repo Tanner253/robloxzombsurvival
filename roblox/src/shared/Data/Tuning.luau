@@ -12,11 +12,11 @@ local Tuning: Types.TuningDef = {
 	-- (Shared/DevSpeed). Live servers always run at 1.
 	devSpeed = 10,
 	energy = {
-		-- LDoE: cap 200 at 1 per 5 min. Same regen here, half the cap, and runs cost
-		-- about two thirds as much, so a run pays back in two thirds of the time.
-		cap = 100,
+		-- LDOE_PARITY #38 (binding): cap 200 at 1 per 5 min, as LDoE; Runs cost 15/22/33
+		-- by fog tier (Data/Locations). Food restoring Energy goes in slice 1 (#33).
+		cap = 200,
 		secondsPerPoint = 5 * 60,
-		hardCap = 200,
+		hardCap = 400,
 		levelUpRestore = 20,
 		foodDailyCap = 40,
 	},
@@ -208,6 +208,8 @@ local Tuning: Types.TuningDef = {
 		runChance = 0.35,
 		walkChance = 1,
 		walkRolls = 2,
+		takeAllRations = 1, -- LDOE_PARITY #40; TAKE is one rewarded ad per item (S3)
+		hurryEnergyPerMinute = 2, -- #43 "Hurry": a 19 min Dense walk skips for 38 Energy, more than its Run
 	},
 	noise = {
 		decaySeconds = 4,
@@ -241,6 +243,80 @@ local Tuning: Types.TuningDef = {
 		heavyHitStopSeconds = 0.09,
 		knockbackStuds = 1.5,
 		heavyKnockbackStuds = 4,
+		-- LDOE_PARITY #34: a hatchet or pick in a weapon slot is a weak club (below the Spiked Club's 14).
+		toolDamage = 8,
+		toolAttacksPerSecond = 1.1,
+		toolRange = 5,
+	},
+	sneak = {
+		-- LDOE_PARITY #44: Ctrl. Half speed, much quieter, seen from half as far, and a 3x
+		-- backstab on a Hollow that hasn't noticed you. Looting or harvesting breaks it.
+		speedMultiplier = 0.5,
+		noiseMultiplier = 0.35,
+		detectionMultiplier = 0.5,
+		backstabMultiplier = 3,
+	},
+	autoAttack = {
+		radiusStuds = 14, -- LDOE_PARITY #31: in-world AUTO also fights, free everywhere
+		tickSeconds = 0.25,
+	},
+	autoClear = {
+		-- LDOE_PARITY #31: the location panel's AUTO clears a location into the inbox.
+		adPerDay = 10,
+		adMinLevel = 13,
+		rationsByTier = { 1, 2, 3 },
+		nodeShare = 0.5, -- you get half of what walking it would: entering pays better
+		killShare = 0.5,
+	},
+	airdrops = {
+		-- LDOE_PARITY #43: up to three a day, as Energy falls below 140, 80 and 20.
+		thresholds = { 140, 80, 20 },
+		locationId = "loc.supply_drop",
+		pinSeconds = 2 * 60 * 60,
+	},
+	regionGates = {
+		-- LDOE_PARITY #43: the signal towers. Dense needs Scrap-tier parts (day 2), Black
+		-- needs brass and springs from Dense runs (about day 5, with level 15).
+		{
+			id = "tower_dense",
+			name = "Quarry Signal Tower",
+			fogTier = 2,
+			parts = {
+				{ itemId = "item.plank", count = 20 },
+				{ itemId = "item.scrap_plate", count = 6 },
+				{ itemId = "item.rope", count = 10 },
+				{ itemId = "item.coil_spring", count = 1 },
+			},
+		},
+		{
+			id = "tower_black",
+			name = "Depot Signal Tower",
+			fogTier = 3,
+			parts = {
+				{ itemId = "item.scrap_plate", count = 16 },
+				{ itemId = "item.rivets", count = 12 },
+				{ itemId = "item.coil_spring", count = 4 },
+				{ itemId = "item.brass_gear", count = 2 },
+				{ itemId = "item.steel_pipe", count = 2 },
+			},
+		},
+	},
+	fogExposure = {
+		-- LDOE_PARITY #37: unprotected, Dense fog fills the meter in about 10 min and
+		-- Black in 4, inside a 15 min run; padded gear stretches that, sets will gate it.
+		max = 100,
+		ratePerTier = { 0, 100 / 600, 100 / 240 },
+		maxResist = 0.8,
+		damagePerSecond = 2,
+	},
+	deathRecovery = {
+		recoverAllAdsPerDay = 1, -- LDOE_PARITY #46; premium recovery is S3
+		reanimatorHealth = 50,
+		milestones = {
+			{ deaths = 1, items = { { itemId = "item.field_dressing", count = 2 } } },
+			{ deaths = 5, items = { { itemId = "item.rations", count = 1 } } },
+			{ deaths = 20, items = { { itemId = "item.reanimator", count = 1 } } },
+		},
 	},
 	hands = {
 		-- LDoE-style: two weapon slots, 1 and 2 select, F swaps (no hotbar). A swap takes a

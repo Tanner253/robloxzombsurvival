@@ -26,12 +26,16 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Features = require(ReplicatedStorage.Shared.Features)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Domain = ReplicatedStorage.Shared.Domain
+local AutoClear = require(Domain.AutoClear)
 local EnergyMath = require(Domain.Energy)
+local FogMap = require(Domain.FogMap)
 local Rng = require(Domain.Rng)
 local TravelBonus = require(Domain.TravelBonus)
 local TravelMath = require(Domain.Travel)
 local Net = require("../Net")
+local Payments = require("../FogRuns/Payments")
 local Energy = require("./Energy")
+local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local Progression = require("./Progression")
@@ -57,11 +61,19 @@ local bonuses: { [Player]: TravelBonus.Bonus } = {}
 local lastSpend: { [Player]: { amount: number, at: number } } = {}
 local rng = Rng.new(Random.new():NextInteger(1, 2 ^ 31 - 2))
 
+-- LDoE parity state, in memory for Phase A (Phase B saves it with slice 1's schema).
+local pins: { [Player]: { FogMap.Pin } } = {} -- #43 airdrops
+local airdropDays: { [Player]: FogMap.AirdropDay } = {}
+local repaired: { [Player]: { [string]: boolean } } = {} -- #43 signal towers
+local contributed: { [Player]: { [string]: FogMap.Contributed } } = {}
+local autoDaily: { [Player]: AutoClear.DailyState } = {} -- #31 ad clears
+
 local REASONS: { [string]: string } = {
 	level = "You need a higher level for that fog",
 	energy = "Not enough Energy for a Run",
 	unavailable = "That location isn't open right now",
 	tooLate = "The Fog closes too soon to get back in",
+	gate = "Repair the signal tower to open this fog",
 }
 
 local function now(): number
@@ -98,13 +110,48 @@ local function context(player: Player): TravelMath.Context?
 	if state == nil then
 		return nil
 	end
+	local stamp = now()
 	return {
-		now = now(),
+		now = stamp,
 		level = Progression.level(player),
 		energy = state,
 		energyConfig = config,
 		config = travelConfig,
+		gates = tuning.regionGates,
+		repairedGates = repaired[player] or {},
+		airdropPin = #FogMap.livePins(pins[player] or {}, stamp) > 0,
 	}
+end
+
+--[[
+	Writes an Energy spend and lands any airdrop it triggered (LDOE_PARITY #43: as
+	Energy falls below 140, 80 and 20, once each a UTC day).
+]]
+local function spendEnergy(
+	player: Player,
+	before: EnergyMath.State,
+	after: EnergyMath.State,
+	cost: number,
+	reason: string
+)
+	if cost <= 0 then
+		return
+	end
+	local stamp = now()
+	local _, config = Energy.state(player)
+	local was = EnergyMath.current(before, stamp, config).value
+	Energy.set(player, after, -cost, reason)
+	lastSpend[player] = { amount = cost, at = stamp }
+	local crossed, day =
+		FogMap.airdropsCrossed(was, after.value, airdropDays[player] or { day = 0, fired = {} }, stamp, tuning.airdrops)
+	airdropDays[player] = day
+	for _, threshold in crossed do
+		local list = FogMap.livePins(pins[player] or {}, stamp)
+		local pin = FogMap.pin(threshold, stamp, tuning.airdrops)
+		table.insert(list, pin)
+		pins[player] = list
+		Sync.fx(player, "airdrop", { locationId = pin.locationId, expiresAt = pin.expiresAt })
+	end
 end
 
 local function refund(player: Player, amount: number, reason: string)
@@ -128,7 +175,7 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	end
 	local members = Lobby.partyOf(player)
 	-- Everyone checks out first; nobody pays unless everybody can go.
-	local plans: { [Player]: { trip: TravelMath.Trip, energy: EnergyMath.State } } = {}
+	local plans: { [Player]: { trip: TravelMath.Trip, energy: EnergyMath.State, before: EnergyMath.State } } = {}
 	for _, member in members do
 		if not atDeparture(member) then
 			Sync.notice(
@@ -153,15 +200,15 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 			end
 			return
 		end
-		plans[member] = { trip = trip, energy = energy }
+		plans[member] = { trip = trip, energy = energy, before = ctx.energy }
 	end
 	local record: Trip = { trip = plans[player].trip, location = location, members = members, spent = {} }
 	for _, member in members do
 		local plan = plans[member]
-		if plan.trip.energySpent > 0 then
-			Energy.set(member, plan.energy, -plan.trip.energySpent, "Run")
-			lastSpend[member] = { amount = plan.trip.energySpent, at = now() }
+		if location.availability.kind == "airdrop" then
+			pins[member] = FogMap.usePin(pins[member] or {}, now()) or {} -- the crate is yours once
 		end
+		spendEnergy(member, plan.before, plan.energy, plan.trip.energySpent, "Run")
 		record.spent[member] = plan.trip.energySpent
 		trips[member] = record
 		Sync.fx(member, "travel", {
@@ -205,8 +252,7 @@ local function reenter(player: Player, locationId: string)
 		Sync.notice(player, REASONS[reason or ""] or "Can't go back in now")
 		return
 	end
-	Energy.set(player, energy, -trip.energySpent, "Reentry")
-	lastSpend[player] = { amount = trip.energySpent, at = now() }
+	spendEnergy(player, ctx.energy, energy, trip.energySpent, "Reentry")
 	trips[player] = { trip = trip, location = location, members = { player }, spent = { [player] = trip.energySpent } }
 	Sync.fx(player, "travel", { locationId = locationId, mode = "run", arrivesAt = trip.arrivesAt, reentry = true })
 end
@@ -258,9 +304,18 @@ local function giveBonus(player: Player, stacks: { Types.ItemStack })
 	Sync.fx(player, "travelBonus", { items = bonus.items })
 end
 
+-- LDOE_PARITY #40: TAKE costs one rewarded ad per item; TAKE ALL costs Rations.
 local function take(player: Player, index: number)
 	local bonus = bonuses[player]
-	local stack = bonus and TravelBonus.take(bonus, index)
+	if bonus == nil or bonus.items[index] == nil then
+		return
+	end
+	local price = TravelBonus.price("one", tuning.travelBonus)
+	if not Payments.pay(player, "bonusItem", price.method, 0) then
+		Sync.notice(player, "Watch an ad to take this (or Take all for Rations)")
+		return
+	end
+	local stack = TravelBonus.take(bonus, index)
 	if stack then
 		giveBonus(player, { stack })
 	end
@@ -268,9 +323,150 @@ end
 
 local function takeAll(player: Player)
 	local bonus = bonuses[player]
-	if bonus then
-		giveBonus(player, TravelBonus.takeAll(bonus))
+	if bonus == nil or TravelBonus.isEmpty(bonus) then
+		return
 	end
+	local price = TravelBonus.price("all", tuning.travelBonus)
+	if not Payments.pay(player, "bonusAll", price.method, price.count) then
+		Sync.notice(player, `Take all costs {price.count} Trail Rations`)
+		return
+	end
+	giveBonus(player, TravelBonus.takeAll(bonus))
+end
+
+-- LDOE_PARITY #43 Hurry: spend Energy to finish a Walk now.
+local function hurry(player: Player)
+	local record = trips[player]
+	local ctx = context(player)
+	if record == nil or ctx == nil or record.trip.mode ~= "walk" or #record.members > 1 then
+		return
+	end
+	local hurried, energy = TravelMath.hurry(record.trip, ctx, tuning.travelBonus.hurryEnergyPerMinute)
+	if hurried == nil or energy == nil then
+		Sync.notice(player, "Not enough Energy to hurry")
+		return
+	end
+	spendEnergy(player, ctx.energy, energy, hurried.energySpent - record.trip.energySpent, "Hurry")
+	record.trip = hurried
+	Sync.fx(player, "travel", { locationId = record.location.id, mode = "walk", arrivesAt = hurried.arrivesAt })
+end
+
+--[[
+	LDOE_PARITY #31 paid AUTO: clears a location into the inbox without entering it.
+	It is still a trip, so it costs the Run's Energy (and checks the level and region
+	gates) on top of the ad, Rations or premium.
+]]
+local function autoClear(player: Player, locationId: string, method: AutoClear.Method)
+	local location = Content.Locations[locationId]
+	local ctx = context(player)
+	local view = Inventory.view(player)
+	if location == nil or ctx == nil or view == nil or trips[player] or Lobby.runOf(player) then
+		return
+	end
+	if location.availability.kind == "airdrop" then
+		Sync.notice(player, "Airdrops have to be looted in person")
+		return
+	end
+	local trip, energy, reason = TravelMath.start(location :: any, "run", ctx)
+	if trip == nil or energy == nil then
+		Sync.notice(player, REASONS[reason or ""] or "Can't clear that now")
+		return
+	end
+	local config = tuning.autoClear
+	local daily = autoDaily[player] or { day = 0, adsUsed = 0 }
+	local rationsCarried = 0
+	for _, container in { view.pockets, view.backpack } do
+		for _, slot in container do
+			if slot.itemId == Payments.RATIONS then
+				rationsCarried += slot.count
+			end
+		end
+	end
+	local ok, refusal = AutoClear.canPay(method, location.fogTier, ctx.level, daily, rationsCarried, ctx.now, config)
+	if not ok then
+		Sync.notice(
+			player,
+			if refusal == "level" then `Ad clears open at level {config.adMinLevel}` else "You can't pay for that"
+		)
+		return
+	end
+	local rations = if method == "rations" then AutoClear.rationsCost(location.fogTier, config) else 0
+	if not Payments.pay(player, "autoClear", method, rations) then
+		Sync.notice(player, "AUTO isn't available that way yet")
+		return
+	end
+	if method == "ad" then
+		autoDaily[player] = AutoClear.useAd(daily, ctx.now)
+	end
+	spendEnergy(player, ctx.energy, energy, trip.energySpent, "AutoClear")
+	local haul = AutoClear.roll(location, {
+		tables = Content.LootTables :: any,
+		nodes = Content.Nodes :: any,
+		enemies = Content.Enemies :: any,
+		items = Items,
+		rng = rng,
+		config = config,
+	})
+	local slots: { Types.Slot } = {}
+	for _, stack in haul.items do
+		table.insert(slots, { itemId = stack.itemId, count = stack.count })
+	end
+	Inbox.grant(player, slots, "AutoClear")
+	if haul.xp > 0 then
+		Progression.grantXp(player, haul.xp, "AutoClear")
+	end
+	Sync.fx(player, "autoClear", { locationId = locationId, items = haul.items, kills = haul.kills })
+end
+
+-- LDOE_PARITY #43 region gates: FILL UP and FINALIZE on a signal tower.
+local function gateOf(gateId: string): Types.RegionGate?
+	for _, gate in tuning.regionGates do
+		if gate.id == gateId then
+			return gate
+		end
+	end
+	return nil
+end
+
+local function sendGate(player: Player, gate: Types.RegionGate)
+	local rows, complete = FogMap.checklist(gate, (contributed[player] or {})[gate.id] or {})
+	Sync.fx(player, "gate", {
+		id = gate.id,
+		rows = rows,
+		complete = complete,
+		repaired = (repaired[player] or {})[gate.id] == true,
+	})
+end
+
+local function gateFill(player: Player, gateId: string)
+	local gate = gateOf(gateId)
+	local view = Inventory.view(player)
+	if gate == nil or view == nil or (repaired[player] or {})[gateId] then
+		return
+	end
+	local mine = contributed[player] or {}
+	local after, nextContributed, taken = FogMap.fillUp(gate, mine[gateId] or {}, view)
+	if #taken > 0 then
+		Inventory.commit(player, after)
+		mine[gateId] = nextContributed
+		contributed[player] = mine
+	end
+	sendGate(player, gate)
+end
+
+local function gateFinalize(player: Player, gateId: string)
+	local gate = gateOf(gateId)
+	if gate == nil then
+		return
+	end
+	local done = FogMap.finalize(gate, (contributed[player] or {})[gateId] or {}, repaired[player] or {})
+	if done == nil then
+		Sync.notice(player, "The tower still needs parts")
+		return
+	end
+	repaired[player] = done
+	Sync.notice(player, `{gate.name} repaired: the {tuning.travel.fogTierNames[gate.fogTier]} fog is open`, "good")
+	sendGate(player, gate)
 end
 
 function Travel.init()
@@ -282,6 +478,10 @@ function Travel.init()
 	Net.onEvent("LobbyReenter", reenter)
 	Net.onEvent("TravelBonusTake", take)
 	Net.onEvent("TravelBonusTakeAll", takeAll)
+	Net.onEvent("TravelHurry", hurry)
+	Net.onEvent("AutoClear", autoClear)
+	Net.onEvent("GateFill", gateFill)
+	Net.onEvent("GateFinalize", gateFinalize)
 end
 
 function Travel.start()

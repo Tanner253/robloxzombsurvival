@@ -351,4 +351,52 @@ function Combat.hitsToKill(damagePerHit: number, hp: number): number
 	return math.ceil(hp / damagePerHit - 1e-9)
 end
 
+-- LDoE parity (docs/LDOE_PARITY.md) -------------------------------------------------------------
+
+--[[
+	#44 Sneak: a melee hit from a sneaking player on a Hollow that hasn't noticed
+	them (Hollow.isAware is false) lands at backstabMultiplier. Otherwise 1.
+]]
+function Combat.backstab(sneaking: boolean, targetAware: boolean, config: Types.SneakTuning): number
+	if sneaking and not targetAware then
+		return config.backstabMultiplier
+	end
+	return 1
+end
+
+-- #34: a tool in a weapon slot swings as weak melee (it has no weapon stats of its own).
+function Combat.toolWeapon(item: { tool: Types.ToolStats? }?, melee: Types.MeleeTuning): Types.WeaponStats?
+	if item == nil or item.tool == nil then
+		return nil
+	end
+	return {
+		kind = "melee",
+		damage = melee.toolDamage,
+		attacksPerSecond = melee.toolAttacksPerSecond,
+		range = melee.toolRange,
+	}
+end
+
+export type AutoCandidate = { id: string, distance: number }
+
+--[[
+	#31 AUTO (Q): the nearest Hollow within the AUTO radius that the weapon can
+	reach after closing in, or nil. Candidates are sorted or not; ties go by ID.
+]]
+function Combat.autoTarget(candidates: { AutoCandidate }, radius: number): string?
+	local best: AutoCandidate? = nil
+	for _, candidate in candidates do
+		if candidate.distance <= radius then
+			if
+				best == nil
+				or candidate.distance < best.distance
+				or (candidate.distance == best.distance and candidate.id < best.id)
+			then
+				best = candidate
+			end
+		end
+	end
+	return if best then best.id else nil
+end
+
 return Combat

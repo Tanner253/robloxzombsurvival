@@ -44,9 +44,12 @@ return function(test: TestKit.Register)
 	test("MVP content covers the GAME_DESIGN scope", function()
 		local tiers: { [number]: number } = {}
 		local rotating = 0
+		local airdrops = 0
 		for _, location in Content.Locations do
 			if location.availability.kind == "rotating" then
 				rotating += 1
+			elseif location.availability.kind == "airdrop" then
+				airdrops += 1
 			else
 				tiers[location.fogTier] = (tiers[location.fogTier] or 0) + 1
 			end
@@ -55,7 +58,17 @@ return function(test: TestKit.Register)
 		TestKit.equal(tiers[2], 1, "Dense locations")
 		TestKit.equal(tiers[3], 1, "Black locations")
 		TestKit.equal(rotating, 1, "rotating event locations")
-		TestKit.equal(count(Content.Enemies), 3, "Hollow types")
+		TestKit.equal(airdrops, 1, "the airdrop location (LDOE_PARITY #43)")
+		local hollow, wildlife = 0, 0
+		for _, enemy in Content.Enemies do
+			if enemy.wildlife then
+				wildlife += 1
+			else
+				hollow += 1
+			end
+		end
+		TestKit.equal(hollow, 3, "Hollow types (shambler, runner, bloater)")
+		TestKit.equal(wildlife, 2, "wildlife (deer, wolf; LDOE_PARITY #35)")
 		TestKit.equal(#Content.Levels, 20, "player levels")
 		TestKit.truthy(count(Content.Quests) >= 8 and count(Content.Quests) <= 10, "8-10 starter quests")
 		TestKit.equal(count(Content.Products), 4, "shop products")

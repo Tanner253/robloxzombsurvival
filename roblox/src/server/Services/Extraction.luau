@@ -146,7 +146,10 @@ function Extraction.start()
 	Lobby.closed:Connect(function(hosted: Lobby.Hosted)
 		openPoints[hosted.id] = nil
 	end)
-	Lobby.hurt:Connect(function(player: Player)
+	Lobby.hurt:Connect(function(player: Player, _damage: number, cause: string)
+		if cause == "fog" then
+			return -- full fog exposure must never block the way out (#37)
+		end
 		local active = channels[player]
 		if active and ExtractionMath.breaks(active.channel, "damage") then
 			cancel(player, "hit")

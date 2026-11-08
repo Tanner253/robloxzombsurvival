@@ -31,6 +31,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Domain = ReplicatedStorage.Shared.Domain
 local CombatMath = require(Domain.Combat)
+local DeathRecovery = require(Domain.DeathRecovery)
+local FogExposure = require(Domain.FogExposure)
 local ExtractionMath = require(Domain.Extraction)
 local InventoryMath = require(Domain.Inventory)
 local LobbyMath = require(Domain.Lobby)
@@ -38,8 +40,10 @@ local Matchmaking = require(Domain.Matchmaking)
 local RunTicket = require(Domain.RunTicket)
 local Net = require("../Net")
 local Map = require("../FogRuns/Map")
+local Payments = require("../FogRuns/Payments")
 local Teleport = require("../FogRuns/Teleport")
 local Analytics = require("./Analytics")
+local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
@@ -59,7 +63,12 @@ local MATCH_SECONDS = 1
 local PUBLISH_SECONDS = 5
 local STATE_SECONDS = 1
 
-export type RunStats = { enteredAt: number, kills: number, containers: number }
+export type RunStats = {
+	enteredAt: number,
+	kills: number,
+	containers: number,
+	exposure: number, -- LDOE_PARITY #37: the fog-exposure meter, reset each run
+}
 
 export type Hosted = {
 	id: string,
@@ -247,14 +256,29 @@ function Lobby.hurtPlayer(player: Player, amount: number, cause: string, from: V
 		return 0
 	end
 	local equipment = data.inventory.equipment :: any
-	local damage = CombatMath.damage({
-		base = amount,
-		critMultiplier = 1,
-		defense = armorDefense(equipment),
-		armorConstant = tuning.combat.armorConstant,
-	})
-	wearArmor(player, equipment)
+	local damage = amount
+	if cause ~= "fog" then -- fog exposure goes through armor (#37 resists it instead)
+		damage = CombatMath.damage({
+			base = amount,
+			critMultiplier = 1,
+			defense = armorDefense(equipment),
+			armorConstant = tuning.combat.armorConstant,
+		})
+		wearArmor(player, equipment)
+	end
 	lastCause[player] = cause
+	if humanoid.Health - damage <= 0 then
+		-- LDOE_PARITY #46: a carried Reanimator burns out instead of you.
+		local view = Inventory.view(player)
+		local revived = view and DeathRecovery.useReanimator(view, Items)
+		if revived then
+			Inventory.commit(player, revived)
+			humanoid.Health = tuning.deathRecovery.reanimatorHealth
+			Sync.fx(player, "reanimated", { cause = cause })
+			Lobby.hurt:Fire(player, damage, cause)
+			return damage
+		end
+	end
 	humanoid.Health = math.max(0, humanoid.Health - damage)
 	Sync.fx(player, "hurt", { amount = damage, cause = cause, from = if from then { from.X, from.Z } else nil })
 	Lobby.hurt:Fire(player, damage, cause)
@@ -480,8 +504,12 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 		refuse(player, ticket, reason or "refused")
 		return
 	end
-	local run: Run =
-		{ player = player, hosted = hosted, ticket = ticket, stats = { enteredAt = stamp, kills = 0, containers = 0 } }
+	local run: Run = {
+		player = player,
+		hosted = hosted,
+		ticket = ticket,
+		stats = { enteredAt = stamp, kills = 0, containers = 0, exposure = 0 },
+	}
 	runs[player] = run
 	hosted.players[player] = true
 	reentries[player] = nil
@@ -566,6 +594,21 @@ local function tickHosted(hosted: Hosted)
 			Sync.fx(player, "fogWarning", { closesAt = LobbyMath.closesAt(state, lobbyConfig) })
 		end
 	end
+	-- LDOE_PARITY #37: Dense and Black fog seep in; worn fogResist slows it.
+	local exposureConfig = tuning.fogExposure
+	for player in hosted.players do
+		local run = runs[player]
+		local data = PlayerData.get(player)
+		if run and data then
+			local resist = FogExposure.resist(data.inventory.equipment :: any, Items, exposureConfig)
+			local fogTier = hosted.location.fogTier
+			run.stats.exposure = FogExposure.step(run.stats.exposure, TICK_SECONDS, fogTier, resist, exposureConfig)
+			local damage = FogExposure.damage(run.stats.exposure, TICK_SECONDS, exposureConfig)
+			if damage > 0 then
+				Lobby.hurtPlayer(player, damage, "fog")
+			end
+		end
+	end
 	publish(hosted)
 end
 
@@ -597,6 +640,7 @@ local function runState(player: Player, run: Run): any
 		closesAt = LobbyMath.closesAt(hosted.state, lobbyConfig),
 		serverTime = stamp,
 		drops = drops,
+		exposure = run.stats.exposure / tuning.fogExposure.max, -- LDOE_PARITY #37
 	}
 	for name, provider in providers do
 		local ok, value = pcall(provider, player, run)
@@ -662,6 +706,36 @@ local function takeAllFromBag(player: Player, bagId: string)
 	end
 	for index = #drop.backpack, 1, -1 do
 		if not takeFromBag(player, bagId, "backpack", index) then
+			return
+		end
+	end
+end
+
+-- "Recover all" (LDOE_PARITY #46): the death screen sends the whole drop to the inbox,
+-- by rewarded ad once a day or by premium (both verified by S3 through Payments).
+local recoverDaily: { [Player]: DeathRecovery.DailyState } = {}
+
+local function recoverAll(player: Player, bagId: string, method: DeathRecovery.Method)
+	local stamp = now()
+	local daily = recoverDaily[player] or { day = 0, used = 0 }
+	if not DeathRecovery.canRecoverAll(daily, method, stamp, tuning.deathRecovery) then
+		Sync.notice(player, "You've used today's free recovery")
+		return
+	end
+	for _, hosted in hostedLobbies do
+		local drop = hosted.state.drops[bagId]
+		if drop and drop.ownerUserId == player.UserId then
+			if not Payments.pay(player, "recoverAll", method, 0) then
+				Sync.notice(player, "Recovery isn't available yet")
+				return
+			end
+			local slots = LobbyMath.recoverAll(hosted.state, bagId, player.UserId, stamp, lobbyConfig)
+			if slots then
+				Inbox.grant(player, slots, "Recovery")
+				if method == "ad" then
+					recoverDaily[player] = DeathRecovery.useRecoverAll(daily, stamp)
+				end
+			end
 			return
 		end
 	end
@@ -947,6 +1021,7 @@ function Lobby.init()
 		takeFromBag(player, bagId, section, index)
 	end)
 	Net.onEvent("BagTakeAll", takeAllFromBag)
+	Net.onEvent("RecoverAll", recoverAll)
 end
 
 function Lobby.start()

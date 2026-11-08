@@ -15,8 +15,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		name = "Pine Hollow",
 		fogTier = 1,
 		levelGate = 1,
-		energyCost = 10,
-		walkSeconds = 4 * 60,
+		energyCost = 15,
+		walkSeconds = 12 * 60, -- LDOE_PARITY #38: 12/19/29 min by tier
 		reset = { kind = "onExit" },
 		availability = { kind = "always" },
 		containers = {
@@ -36,6 +36,9 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 6, max = 9 } },
 			{ enemyId = "enemy.runner", count = { min = 0, max = 2 }, minBand = 2 },
+			-- Wildlife (LDOE_PARITY #35): deer to hunt, a wolf pack to watch for.
+			{ enemyId = "enemy.deer", count = { min = 2, max = 3 } },
+			{ enemyId = "enemy.wolf", count = { min = 1, max = 2 } },
 		},
 		mainLoot = { "item.timber", "item.stone", "item.fiber", "item.emberberry", "item.ashroot", "item.murky_water" },
 		possibleLoot = {
@@ -50,6 +53,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.spiked_club",
 			"item.light_rounds",
 			"item.steel_pipe",
+			"item.raw_meat",
+			"item.hide",
 		},
 		run = {
 			recommendedGearScore = 40, -- a Spiked Club: anyone can go
@@ -60,6 +65,15 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 				{ band = 3, lootTableId = "loot.pine_band3" },
 			},
 			travelBonusTableId = "loot.road_light",
+			quests = {
+				{
+					id = "quest.pine_hunters_trail",
+					name = "The Hunter's Trail",
+					description = "Bring down two Fog Deer in Pine Hollow.",
+					objectives = { { kind = "kill", count = 2, enemyId = "enemy.deer" } },
+					rewards = { xp = 150, items = { { itemId = "item.rations", count = 1 } } },
+				},
+			},
 		},
 	},
 	["loc.sunken_quarry"] = {
@@ -67,8 +81,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		name = "Sunken Quarry",
 		fogTier = 2,
 		levelGate = 8,
-		energyCost = 15,
-		walkSeconds = 7 * 60,
+		energyCost = 22,
+		walkSeconds = 19 * 60,
 		reset = { kind = "onExit" },
 		availability = { kind = "always" },
 		containers = {
@@ -124,6 +138,15 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 				{ band = 3, lootTableId = "loot.quarry_band3" },
 			},
 			travelBonusTableId = "loot.road_dense",
+			quests = {
+				{
+					id = "quest.quarry_salt_of_stone",
+					name = "Salt of the Stone",
+					description = "Scrape six Niter Crust from the Sunken Quarry's seams.",
+					objectives = { { kind = "gather", itemId = "item.niter", count = 6 } },
+					rewards = { xp = 300, items = { { itemId = "item.rations", count = 1 } } },
+				},
+			},
 		},
 	},
 	["loc.ashfall_depot"] = {
@@ -131,8 +154,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		name = "Ashfall Depot",
 		fogTier = 3,
 		levelGate = 15,
-		energyCost = 22,
-		walkSeconds = 12 * 60,
+		energyCost = 33, -- LDOE_PARITY #38: 15/22/33 by tier
+		walkSeconds = 29 * 60,
 		-- A dungeon-style timer: shorter than a day so a daily player can always re-run it.
 		reset = { kind = "timer", seconds = 20 * 60 * 60 },
 		availability = { kind = "always" },
@@ -196,6 +219,15 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 				{ band = 3, lootTableId = "loot.depot_band3" },
 			},
 			travelBonusTableId = "loot.road_black",
+			quests = {
+				{
+					id = "quest.depot_signal_in_ash",
+					name = "Signal in the Ash",
+					description = "Search five containers in the Ashfall Depot and get out alive.",
+					objectives = { { kind = "loot", count = 5, locationId = "loc.ashfall_depot" } },
+					rewards = { xp = 500, items = { { itemId = "item.rations", count = 2 } } },
+				},
+			},
 		},
 	},
 	["loc.stranded_caravan"] = {
@@ -203,8 +235,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		name = "Stranded Caravan",
 		fogTier = 2,
 		levelGate = 8,
-		energyCost = 14,
-		walkSeconds = 8 * 60,
+		energyCost = 22,
+		walkSeconds = 19 * 60,
 		reset = { kind = "perAppearance" },
 		-- Open 3 h in every 9 h. 9 does not divide 24, so the window drifts through the
 		-- day and every time zone gets evening windows within three days.
@@ -263,6 +295,46 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 				{ band = 3, lootTableId = "loot.caravan_band3" },
 			},
 			travelBonusTableId = "loot.road_dense",
+			quests = {
+				{
+					id = "quest.caravan_salvage",
+					name = "What the Wagons Carried",
+					description = "Search four wagons of the Stranded Caravan before the Fog takes it.",
+					objectives = { { kind = "loot", count = 4, locationId = "loc.stranded_caravan" } },
+					rewards = { xp = 400, items = { { itemId = "item.rations", count = 1 } } },
+				},
+			},
+		},
+	},
+	-- The airdrop (LDOE_PARITY #43): a guarded crate that lands as your Energy falls past
+	-- 140, 80 and 20. Its pin stays two hours; the trip is a short, cheap Light run.
+	["loc.supply_drop"] = {
+		id = "loc.supply_drop",
+		name = "Supply Drop",
+		fogTier = 1,
+		levelGate = 1,
+		energyCost = 10,
+		walkSeconds = 8 * 60,
+		reset = { kind = "onExit" },
+		availability = { kind = "airdrop" },
+		containers = {
+			{ lootTableId = "loot.airdrop_crate", count = { min = 1, max = 1 }, kind = "strongbox", searchSeconds = 8 },
+		},
+		nodes = {},
+		enemySpawns = {
+			{ enemyId = "enemy.shambler", count = { min = 4, max = 6 } },
+			{ enemyId = "enemy.runner", count = { min = 1, max = 2 } },
+			{ enemyId = "enemy.bloater", count = { min = 1, max = 1 } },
+		},
+		mainLoot = { "item.rations", "item.sealed_tin", "item.field_dressing", "item.light_rounds" },
+		possibleLoot = { "item.blackpowder", "item.ember_tonic", "item.steel_pipe", "item.trigger_group" },
+		run = {
+			recommendedGearScore = 60,
+			placeId = 0,
+			extraction = { kind = "edge" },
+			bandLoot = {},
+			travelBonusTableId = "loot.road_light",
+			quests = {},
 		},
 	},
 }

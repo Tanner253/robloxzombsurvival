@@ -50,6 +50,11 @@ export type Archetype = {
 	idleSeconds: Types.Range,
 	wanderRadius: number,
 	fleeSeconds: number,
+	-- LDoE parity: #44 sneaking players are seen from sneakDetection x sightRadius;
+	-- #35 skittish animals bolt from anyone within spookRadius instead of fighting.
+	sneakDetection: number,
+	skittish: boolean,
+	spookRadius: number,
 }
 
 export type State = {
@@ -69,6 +74,7 @@ export type Target = {
 	id: string,
 	position: Plane.Point,
 	visible: boolean, -- line of sight from the Hollow, raycast by the server
+	sneaking: boolean?, -- LDOE_PARITY #44: harder to spot
 }
 
 export type Light = {
@@ -95,9 +101,13 @@ export type Output = {
 	cue: Cue?,
 }
 
--- The brain's numbers for one enemy: its definition plus Tuning.hollow.
-function HollowAI.archetype(enemy: Types.EnemyDef, tuning: Types.HollowTuning): Archetype
+-- The brain's numbers for one enemy: its definition plus Tuning.hollow (and Tuning.sneak).
+function HollowAI.archetype(enemy: Types.EnemyDef, tuning: Types.HollowTuning, sneak: Types.SneakTuning?): Archetype
+	local wildlife = enemy.wildlife
 	return {
+		sneakDetection = if sneak then sneak.detectionMultiplier else 1,
+		skittish = wildlife ~= nil and wildlife.temperament == "skittish",
+		spookRadius = if wildlife then wildlife.spookRadius else 0,
 		sightRadius = enemy.aggroRadius,
 		attackRange = enemy.attackRange,
 		attackSeconds = enemy.attackSeconds,
@@ -146,19 +156,42 @@ local function calm(name: StateName): boolean
 	return name == "idle" or name == "wander"
 end
 
--- The nearest visible player within sight.
+-- Whether it has noticed someone (a backstab needs it not to, LDOE_PARITY #44).
+function HollowAI.isAware(state: State): boolean
+	return state.name == "alert" or state.name == "chase" or state.name == "attack"
+end
+
+-- The nearest visible player within sight (a sneaking one only from closer).
 local function spot(arch: Archetype, inputs: Inputs): (Target?, number)
 	local best: Target? = nil
 	local bestDistance = math.huge
 	for _, target in inputs.targets do
 		if target.visible then
 			local distance = Plane.distance(inputs.position, target.position)
-			if distance <= arch.sightRadius and distance < bestDistance then
+			local reach = arch.sightRadius * (if target.sneaking then arch.sneakDetection else 1)
+			if distance <= reach and distance < bestDistance then
 				best, bestDistance = target, distance
 			end
 		end
 	end
 	return best, bestDistance
+end
+
+-- A skittish animal's nearest threat: anyone within its spook radius, seen or heard.
+local function spooked(arch: Archetype, inputs: Inputs): Plane.Point?
+	if not arch.skittish then
+		return nil
+	end
+	local nearest: Plane.Point? = nil
+	local nearestDistance = math.huge
+	for _, target in inputs.targets do
+		local distance = Plane.distance(inputs.position, target.position)
+		local reach = arch.spookRadius * (if target.sneaking then arch.sneakDetection else 1)
+		if distance <= reach and distance < nearestDistance then
+			nearest, nearestDistance = target.position, distance
+		end
+	end
+	return nearest or inputs.noise
 end
 
 -- One decision. Returns the next state (the input is not modified) and the action.
@@ -200,8 +233,24 @@ function HollowAI.step(arch: Archetype, state: State, inputs: Inputs): (State, O
 		enter(s, "flee", now)
 		return s, out("move", s.goal, arch.moveSpeed * HollowAI.FLEE_SPEED, nil, if wasFleeing then nil else "flee")
 	end
+	-- 3b. A skittish animal bolts from players and noise instead of fighting (#35).
+	local threat = spooked(arch, inputs)
+	if threat then
+		local wasFleeing = state.name == "flee"
+		s.goal = Plane.offset(inputs.position, Plane.yawTo(threat, inputs.position), arch.wanderRadius)
+		s.untilAt = now + arch.fleeSeconds
+		s.targetId = nil
+		enter(s, "flee", now)
+		return s, out("move", s.goal, arch.moveSpeed, nil, if wasFleeing then nil else "flee")
+	end
 	if state.name == "flee" and state.untilAt and now < state.untilAt then
 		return s, out("move", state.goal, arch.moveSpeed * HollowAI.FLEE_SPEED, nil)
+	end
+	if arch.skittish then
+		-- Animals that aren't spooked just graze and wander: skip sight, noise and attacks.
+		inputs = table.clone(inputs)
+		inputs.targets = {}
+		inputs.noise = nil
 	end
 
 	-- 4. Sight and memory.

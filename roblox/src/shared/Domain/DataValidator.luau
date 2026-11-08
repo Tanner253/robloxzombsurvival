@@ -328,6 +328,10 @@ local function checkItems(errors: Errors, content: Types.Content)
 		if item.armor and item.armor.defense <= 0 then
 			push(errors, `{where}.armor: defense must be positive`)
 		end
+		local fogResist = item.armor and item.armor.fogResist
+		if fogResist ~= nil and (fogResist < 0 or fogResist >= 1) then
+			push(errors, `{where}.armor: fogResist must be in [0, 1)`)
+		end
 		if item.bagSlots and not isPositiveInteger(item.bagSlots) then
 			push(errors, `{where}: bagSlots must be a positive integer`)
 		end
@@ -590,6 +594,16 @@ local function checkEnemies(errors: Errors, content: Types.Content)
 		end
 		if enemy.hearing <= 0 or enemy.lightFear <= 0 then
 			push(errors, `{where}: hearing and lightFear must be positive`)
+		end
+		local wildlife = enemy.wildlife
+		if
+			wildlife
+			and (wildlife.spookRadius < 0 or (wildlife.temperament == "skittish" and wildlife.spookRadius <= 0))
+		then
+			push(errors, `{where}.wildlife: skittish animals need a positive spookRadius`)
+		end
+		if wildlife and enemy.burst then
+			push(errors, `{where}: wildlife doesn't burst`)
 		end
 		local burst = enemy.burst
 		if burst then
@@ -954,6 +968,31 @@ local function checkQuests(errors: Errors, content: Types.Content)
 	if next(content.Quests) ~= nil and starts == 0 then
 		push(errors, "Quests: at least one quest must have no prerequisite")
 	end
+
+	-- Location quests (LDOE_PARITY #45): data on each location, IDs unique game-wide.
+	local seen: { [string]: string } = {}
+	for _, locationId in TableUtil.sortedKeys(content.Locations) do
+		local run = content.Locations[locationId].run
+		for index, quest in (if run then run.quests else {}) :: { Types.LocationQuest } do
+			local where = `Locations['{locationId}'].run.quests[{index}]`
+			if string.match(quest.id, ID_FORM) == nil or string.sub(quest.id, 1, 6) ~= "quest." then
+				push(errors, `{where}: ID must look like 'quest.snake_case'`)
+			end
+			if content.Quests[quest.id] ~= nil or seen[quest.id] then
+				push(errors, `{where}: '{quest.id}' is already used`)
+			end
+			seen[quest.id] = locationId
+			if #quest.objectives == 0 then
+				push(errors, `{where}: needs at least one objective`)
+			end
+			for objectiveIndex, objective in quest.objectives do
+				checkObjective(errors, content, `{where}.objectives[{objectiveIndex}]`, objective)
+			end
+			if quest.rewards.items then
+				checkStacks(errors, content, `{where}.rewards.items`, quest.rewards.items)
+			end
+		end
+	end
 end
 
 -- Shop and tuning ---------------------------------------------------------------------------
@@ -1016,6 +1055,87 @@ local function allPositive(errors: Errors, where: string, section: { [string]: a
 		if type(value) == "number" and value <= 0 then
 			push(errors, `{where}.{key} must be positive`)
 		end
+	end
+end
+
+-- LDoE parity rulings for slice 2 (docs/LDOE_PARITY.md): sneak, AUTO, airdrops, region
+-- gates, fog exposure and death recovery.
+local function checkParityTuning(errors: Errors, content: Types.Content)
+	local tuning = content.Tuning
+	local tiers = #tuning.travel.fogTierNames
+	allPositive(errors, "Tuning.sneak", tuning.sneak :: any)
+	allPositive(errors, "Tuning.autoAttack", tuning.autoAttack :: any)
+	if tuning.travelBonus.takeAllRations < 0 or tuning.travelBonus.hurryEnergyPerMinute <= 0 then
+		push(errors, "Tuning.travelBonus: need takeAllRations >= 0 and a positive hurryEnergyPerMinute")
+	end
+
+	local auto = tuning.autoClear
+	if #auto.rationsByTier ~= tiers then
+		push(errors, `Tuning.autoClear.rationsByTier: needs one cost per fog tier ({tiers})`)
+	end
+	if not isChance(auto.nodeShare) or not isChance(auto.killShare) or not isNonNegativeInteger(auto.adPerDay) then
+		push(errors, "Tuning.autoClear: shares must be in [0, 1] and adPerDay a non-negative integer")
+	end
+	checkLevel(errors, content, "Tuning.autoClear.adMinLevel", auto.adMinLevel)
+
+	local airdrops = tuning.airdrops
+	local drop = content.Locations[airdrops.locationId]
+	if drop == nil then
+		push(errors, `Tuning.airdrops: unknown location '{airdrops.locationId}'`)
+	elseif drop.availability.kind ~= "airdrop" then
+		push(errors, `Tuning.airdrops: '{airdrops.locationId}' needs availability 'airdrop'`)
+	end
+	for index, threshold in airdrops.thresholds do
+		local previous = airdrops.thresholds[index - 1]
+		if threshold <= 0 or threshold >= tuning.energy.cap or (previous ~= nil and threshold >= previous) then
+			push(errors, "Tuning.airdrops.thresholds: must fall from below the Energy cap to above 0")
+		end
+	end
+	for id, location in content.Locations do
+		if location.availability.kind == "airdrop" and id ~= airdrops.locationId then
+			push(errors, `Locations['{id}']: only Tuning.airdrops.locationId may use availability 'airdrop'`)
+		end
+	end
+
+	local gateTiers: { [number]: number } = {}
+	local gateIds: { [string]: boolean } = {}
+	for index, gate in tuning.regionGates do
+		local where = `Tuning.regionGates[{index}]`
+		if gateIds[gate.id] then
+			push(errors, `{where}: '{gate.id}' is listed twice`)
+		end
+		gateIds[gate.id] = true
+		if not isPositiveInteger(gate.fogTier) or gate.fogTier < 2 or gate.fogTier > tiers then
+			push(errors, `{where}: fogTier must be a gated tier from 2 to {tiers}`)
+		end
+		gateTiers[gate.fogTier] = (gateTiers[gate.fogTier] or 0) + 1
+		checkStacks(errors, content, `{where}.parts`, gate.parts)
+	end
+	for tier = 2, tiers do
+		if gateTiers[tier] ~= 1 then
+			push(errors, `Tuning.regionGates: fog tier {tier} needs exactly one tower to repair`)
+		end
+	end
+
+	local exposure = tuning.fogExposure
+	if #exposure.ratePerTier ~= tiers or exposure.ratePerTier[1] ~= 0 then
+		push(errors, "Tuning.fogExposure.ratePerTier: one rate per tier, and Light fog is 0")
+	end
+	if exposure.max <= 0 or exposure.damagePerSecond <= 0 or exposure.maxResist < 0 or exposure.maxResist >= 1 then
+		push(errors, "Tuning.fogExposure: need positive max and damage, and 0 <= maxResist < 1")
+	end
+
+	local recovery = tuning.deathRecovery
+	if not isNonNegativeInteger(recovery.recoverAllAdsPerDay) or recovery.reanimatorHealth <= 0 then
+		push(errors, "Tuning.deathRecovery: need an integer recoverAllAdsPerDay and a positive reanimatorHealth")
+	end
+	local lastDeaths = 0
+	for index, milestone in recovery.milestones do
+		if not isPositiveInteger(milestone.deaths) or milestone.deaths <= lastDeaths then
+			push(errors, `Tuning.deathRecovery.milestones[{index}]: deaths must rise`)
+		end
+		lastDeaths = milestone.deaths
+		checkStacks(errors, content, `Tuning.deathRecovery.milestones[{index}].items`, milestone.items)
 	end
 end
 
@@ -1102,6 +1222,7 @@ local function checkFogRunTuning(errors: Errors, content: Types.Content)
 	if tuning.travel.reentryEnergyMultiplier < 0 then
 		push(errors, "Tuning.travel.reentryEnergyMultiplier must not be negative")
 	end
+	checkParityTuning(errors, content)
 end
 
 -- Tagged content must name a flag that exists in Tuning.features.
@@ -1293,10 +1414,22 @@ local function checkUsage(errors: Errors, content: Types.Content)
 		addStacks(level.rewards)
 	end
 	addStacks(content.Tuning.newPlayer.items)
+	-- Fog Runs: location quests and death-milestone gifts pay out too.
+	for _, location in content.Locations do
+		for _, quest in (if location.run then location.run.quests else {}) :: { Types.LocationQuest } do
+			addStacks(quest.rewards.items)
+		end
+	end
+	for _, milestone in content.Tuning.deathRecovery.milestones do
+		addStacks(milestone.items)
+	end
+	local flags = content.Tuning.features :: any
 
 	for _, id in TableUtil.sortedKeys(content.Items) do
 		local item = content.Items[id]
-		if not earnable[id] then
+		-- An item made only by a switched-off feature's recipes can't be earned yet, by design.
+		local dormant = item.feature ~= nil and flags[item.feature] ~= true
+		if not earnable[id] and not dormant then
 			push(errors, `Items['{id}']: can't be earned in play (no recipe, node, loot, salvage or reward gives it)`)
 		end
 		if item.category == "blueprint" and not gatedBy[id] then

@@ -71,6 +71,7 @@ export type WeaponStats = {
 
 export type ArmorStats = {
 	defense: number, -- reduction = defense / (defense + Tuning.combat.armorConstant)
+	fogResist: number?, -- Fog Runs: share of fog exposure this piece blocks (Domain/FogExposure)
 }
 
 -- What eating, drinking or using a consumable restores. Missing fields are 0.
@@ -99,6 +100,7 @@ export type ItemDef = {
 	consume: ConsumeEffect?,
 	bagSlots: number?, -- bags: backpack slots while equipped
 	flare: FlareStats?, -- ammo that burns as a flare when it lands (Domain/Flare)
+	feature: FeatureName?, -- only made by recipes of that feature: it need not be earnable while the flag is off
 }
 
 -- An amount of one item, used for costs, recipe inputs and outputs, and grants.
@@ -228,6 +230,7 @@ export type EnemyDef = {
 	hearing: number, -- multiplier on every noise radius it hears (1 = as loud as emitted)
 	lightFear: number, -- light exposure (0..1) at or above which it flees; above 1 never flees
 	burst: BurstDef?, -- bursts into a toxic cloud near its target and on death (the bloater)
+	wildlife: WildlifeDef?, -- an animal, not a Hollow (LDOE_PARITY #35): deer flee, wolves hunt
 }
 
 -- World map ---------------------------------------------------------------------
@@ -243,6 +246,8 @@ export type LocationAvailability =
 	{ kind: "always" }
 	-- Open while (now - offsetSeconds) % periodSeconds < activeSeconds, in UTC seconds.
 	| { kind: "rotating", periodSeconds: number, activeSeconds: number, offsetSeconds: number }
+	-- Fog Runs: only while the player has a live airdrop pin (Domain/FogMap, LDOE_PARITY #43)
+	| { kind: "airdrop" }
 
 export type LocationContainer = {
 	lootTableId: LootTableId,
@@ -497,6 +502,13 @@ export type TuningDef = {
 	dodge: DodgeTuning,
 	melee: MeleeTuning,
 	hands: HandsTuning,
+	sneak: SneakTuning,
+	autoAttack: AutoAttackTuning,
+	autoClear: AutoClearTuning,
+	airdrops: AirdropTuning,
+	regionGates: { RegionGate },
+	fogExposure: FogExposureTuning,
+	deathRecovery: DeathRecoveryTuning,
 	hollow: HollowTuning,
 }
 
@@ -578,6 +590,7 @@ export type LocationRun = {
 	extraction: ExtractionDef,
 	bandLoot: { BandLoot },
 	travelBonusTableId: LootTableId, -- "found on the way" (Domain/TravelBonus)
+	quests: { LocationQuest }, -- location quests, pinned in teal at the top of the tracker (LDOE_PARITY #45)
 }
 
 export type MeterBand = {
@@ -637,6 +650,9 @@ export type TravelBonusTuning = {
 	runChance: number,
 	walkChance: number,
 	walkRolls: number,
+	-- LDOE_PARITY #40: TAKE costs one rewarded ad per item; TAKE ALL costs Rations (or premium, S3).
+	takeAllRations: number,
+	hurryEnergyPerMinute: number, -- #43: Energy to cut a minute off a Walk
 }
 
 export type NoiseTuning = {
@@ -674,6 +690,10 @@ export type MeleeTuning = {
 	heavyHitStopSeconds: number,
 	knockbackStuds: number,
 	heavyKnockbackStuds: number,
+	-- LDOE_PARITY #34: a tool in a weapon slot swings as weak melee.
+	toolDamage: number,
+	toolAttacksPerSecond: number,
+	toolRange: number,
 }
 
 -- The two weapon slots, LDoE-style (GAME_DESIGN PC controls; checklist 4.9; Domain/Hands).
@@ -693,6 +713,76 @@ export type HollowTuning = {
 	maxActive: number, -- per lobby
 	spawnSpreadStuds: number, -- spawns at least this far from players
 	hitRadiusStuds: number, -- a Hollow's body for hit tests (Domain/Plane)
+}
+
+-- LDoE parity rulings for slice 2 (docs/LDOE_PARITY.md) ------------------------------------
+
+-- #35: animals share the enemy brain with different instincts.
+export type WildlifeDef = {
+	temperament: "skittish" | "predator", -- deer bolt from players; wolves hunt them
+	spookRadius: number, -- skittish: a player this close sends it running
+}
+
+-- #45: a quest tied to one location, shown at the top of the tracker while there.
+export type LocationQuest = {
+	id: QuestId,
+	name: string,
+	description: string,
+	objectives: { QuestObjective },
+	rewards: QuestRewards,
+}
+
+-- #44: Ctrl sneaks: slower, quieter, harder to spot, and a backstab on the unaware.
+export type SneakTuning = {
+	speedMultiplier: number,
+	noiseMultiplier: number, -- on footsteps and melee noise while sneaking
+	detectionMultiplier: number, -- on a Hollow's sight radius against a sneaking player
+	backstabMultiplier: number, -- melee on a Hollow that hasn't noticed you
+}
+
+-- #31: in-world AUTO (Q) is free everywhere and attacks the nearest Hollow.
+export type AutoAttackTuning = {
+	radiusStuds: number, -- how far AUTO looks for a target
+	tickSeconds: number,
+}
+
+-- #31: the location panel's paid AUTO clears a location into the inbox, unentered.
+export type AutoClearTuning = {
+	adPerDay: number, -- rewarded-ad clears a day (the ad itself is S3)
+	adMinLevel: number,
+	rationsByTier: { number }, -- Rations per clear, index = fog tier
+	nodeShare: number, -- share of the location's resource nodes gathered for you
+	killShare: number, -- share of its Hollow cleared (their loot drops too)
+}
+
+-- #43: airdrops land as Energy falls past each threshold, once per UTC day.
+export type AirdropTuning = {
+	thresholds: { number }, -- Energy values, highest first
+	locationId: LocationId, -- the guarded crate's location (availability "airdrop")
+	pinSeconds: number, -- how long the pin stays on the map
+}
+
+-- #43: repair the tower (a parts checklist) before Dense and Black fog open.
+export type RegionGate = {
+	id: string, -- "tower_dense"
+	name: string,
+	fogTier: number, -- locations of this tier need it repaired
+	parts: { ItemStack },
+}
+
+-- #37: Dense and Black fog seep in over a run; armor's fogResist slows it.
+export type FogExposureTuning = {
+	max: number,
+	ratePerTier: { number }, -- per second, index = fog tier (Light is 0)
+	maxResist: number, -- the most gear can block (0..1)
+	damagePerSecond: number, -- while the meter is full
+}
+
+-- #46: getting your things back after a death.
+export type DeathRecoveryTuning = {
+	recoverAllAdsPerDay: number, -- "Recover all" by rewarded ad (S3 wires the ad)
+	reanimatorHealth: number, -- health a Reanimator revives you at
+	milestones: { { deaths: number, items: { ItemStack } } }, -- death-milestone gifts to the inbox
 }
 
 -- Everything in Data/, as one bundle (what the validator checks).

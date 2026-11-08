@@ -71,6 +71,8 @@ type Fighter = {
 	dodge: CombatMath.Dodge,
 	drawStartedAt: number?,
 	nextSwingAt: number,
+	sneaking: boolean, -- LDOE_PARITY #44
+	auto: boolean, -- LDOE_PARITY #31: AUTO (Q) fights
 }
 
 local fighters: { [Player]: Fighter } = {}
@@ -164,8 +166,13 @@ local function wear(player: Player, fighter: Fighter)
 	end
 	slot.durability -= tuning.combat.weaponDurabilityPerHit
 	if slot.durability <= 0 then
+		local name = Items[slot.itemId] and Items[slot.itemId].name or "weapon"
 		equipment[key] = InventoryMath.emptySlot()
-		Sync.notice(player, "Your weapon broke")
+		-- LDOE_PARITY #45: switch to the other slot, or bare fists, with a toast.
+		local hands, switched = Hands.onBreak(fighter.hands, now(), Items, tuning.hands)
+		fighter.hands = hands
+		Sync.notice(player, if switched then `Your {name} broke: switched weapons` else `Your {name} broke`)
+		sendHands(player, fighter)
 	end
 	Sync.mark(player, "inventory")
 end
@@ -230,11 +237,13 @@ local function strike(
 			target = candidate
 		end
 	end
-	Hollow.noise(run.hosted, "melee", root.Position, nil, `u{player.UserId}`)
+	Hollow.noise(run.hosted, "melee", root.Position, nil, `u{player.UserId}`, fighter.sneaking)
 	if target == nil then
 		return
 	end
-	local hit = CombatMath.meleeHit(weapon, stats, heavy, { rng = rng, combat = combatConfig })
+	-- LDOE_PARITY #44: a sneak attack on a Hollow that hasn't noticed you lands at 3x.
+	local backstab = CombatMath.backstab(fighter.sneaking, Hollow.isAware(run.hosted, target.id), tuning.sneak)
+	local hit = CombatMath.meleeHit(weapon, stats, heavy, { rng = rng, combat = combatConfig, multiplier = backstab })
 	local dealt = Hollow.damage(run.hosted, target.id, hit.damage, player, {
 		knockbackStuds = hit.knockbackStuds,
 		fromYaw = yaw,
@@ -260,7 +269,7 @@ local function melee(player: Player, heavy: boolean, yaw: number, lockId: string
 	if not Hands.ready(fighter.hands, stamp) or stamp < fighter.nextSwingAt then
 		return
 	end
-	local weapon = Hands.weapon(fighter.hands, Items) or FISTS
+	local weapon = Hands.weapon(fighter.hands, Items, tuning.melee) or FISTS -- tools swing weakly (#34)
 	if weapon.kind ~= "melee" then
 		return -- guns and bows fire instead
 	end
@@ -548,10 +557,69 @@ end
 
 -- Lifecycle ------------------------------------------------------------------------------------------
 
+-- Sneak and AUTO (LDOE_PARITY #44, #31) -------------------------------------------------------------
+
+local sneakSpeeds: { [Player]: number } = {}
+
+-- Ctrl: slower and quieter (the Hollow read the Sneaking attribute for detection).
+function Combat.setSneaking(player: Player, on: boolean)
+	local fighter = fighters[player]
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if fighter == nil or fighter.sneaking == on then
+		return
+	end
+	fighter.sneaking = on
+	player:SetAttribute("Sneaking", on)
+	if humanoid then
+		if on then
+			sneakSpeeds[player] = humanoid.WalkSpeed
+			humanoid.WalkSpeed = humanoid.WalkSpeed * tuning.sneak.speedMultiplier
+		elseif sneakSpeeds[player] then
+			humanoid.WalkSpeed = sneakSpeeds[player]
+			sneakSpeeds[player] = nil
+		end
+	end
+	Sync.fx(player, "sneak", { on = on })
+end
+
+local function setAuto(player: Player, on: boolean)
+	local fighter = fighters[player]
+	if fighter then
+		fighter.auto = on
+		Sync.fx(player, "auto", { on = on })
+	end
+end
+
+-- AUTO fights: the nearest Hollow in its radius, with whatever is in hand.
+local function autoFight(player: Player, fighter: Fighter)
+	local run = Lobby.runOf(player)
+	local root = rootOf(player)
+	if run == nil or root == nil or not alive(player) then
+		return
+	end
+	local radius = tuning.autoAttack.radiusStuds
+	local candidates = Hollow.inArc(run.hosted, root.Position, 0, radius, 360)
+	local targetId = CombatMath.autoTarget(candidates, radius)
+	local at = targetId and Hollow.positionOf(run.hosted, targetId)
+	if targetId == nil or at == nil then
+		return
+	end
+	local yaw = Plane.yawTo(Plane.point(root.Position.X, root.Position.Z), Plane.point(at.X, at.Z))
+	local weapon = Hands.weapon(fighter.hands, Items, tuning.melee) or FISTS
+	if weapon.kind == "ranged" and weapon.firearm then
+		fire(player, yaw, targetId)
+	elseif weapon.kind == "melee" then
+		melee(player, false, yaw, targetId)
+	end
+end
+
 function Combat.init()
 	if not Features.on(tuning, "fogRuns") then
 		return
 	end
+	Net.onEvent("SneakSet", Combat.setSneaking)
+	Net.onEvent("CombatAuto", setAuto)
 	Net.onEvent("CombatMelee", melee)
 	Net.onEvent("CombatFire", fire)
 	Net.onEvent("CombatDraw", draw)
@@ -577,11 +645,32 @@ function Combat.start()
 			dodge = CombatMath.newDodge(),
 			drawStartedAt = nil,
 			nextSwingAt = 0,
+			sneaking = false,
+			auto = false,
 		}
 		fighters[player] = fighter
 		sendHands(player, fighter)
 	end)
+	-- Looting or harvesting breaks sneak (#44).
+	Containers.searched:Connect(function(player: Player)
+		Combat.setSneaking(player, false)
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(tuning.autoAttack.tickSeconds)
+			for player, fighter in fighters do
+				if fighter.auto then
+					local ok, err = pcall(autoFight :: any, player, fighter)
+					if not ok then
+						warn(`Combat: AUTO failed: {err}`)
+					end
+				end
+			end
+		end
+	end)
 	Lobby.exited:Connect(function(player: Player, run: Lobby.Run, outcome: string)
+		Combat.setSneaking(player, false)
+		player:SetAttribute("Sneaking", nil)
 		local fighter = fighters[player]
 		fighters[player] = nil
 		if fighter == nil then

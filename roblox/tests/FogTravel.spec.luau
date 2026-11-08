@@ -28,7 +28,9 @@ return function(test: TestKit.Register)
 	test("re-entry costs half a Run, rounded up, and is always a Run", function()
 		local plan = Travel.reentryPlan(QUARRY, TRAVEL)
 		TestKit.equal(plan.mode, "run")
-		TestKit.equal(plan.energyCost, 8, "15 x 0.5 = 7.5 -> 8")
+		TestKit.equal(plan.energyCost, 11, "a Dense Run is 22: re-entry is 11")
+		local depot = Travel.reentryPlan(Content.Locations["loc.ashfall_depot"], TRAVEL)
+		TestKit.equal(depot.energyCost, 17, "Black: 33 x 0.5 = 16.5 -> 17")
 		TestKit.equal(plan.seconds, TRAVEL.runSeconds)
 		local cheap = { id = "loc.x", energyCost = 1, walkSeconds = 60, levelGate = 1 }
 		TestKit.equal(Travel.reentryPlan(cheap, TRAVEL).energyCost, 1, "never free if the Run isn't")
@@ -43,7 +45,7 @@ return function(test: TestKit.Register)
 	test("startReentry spends Energy, flags the trip, and refuses a late arrival", function()
 		local trip, energy = Travel.startReentry(QUARRY, ctx(20), T0 + 600)
 		TestKit.equal((trip :: Travel.Trip).reentry, true)
-		TestKit.equal((energy :: Energy.State).value, 12)
+		TestKit.equal((energy :: Energy.State).value, 9, "20 - 11")
 		local _, _, late = Travel.startReentry(QUARRY, ctx(20), T0 + TRAVEL.runSeconds)
 		TestKit.equal(late, "tooLate", "would arrive after the cutoff")
 		local _, _, broke = Travel.startReentry(QUARRY, ctx(3), T0 + 600)
@@ -72,6 +74,19 @@ return function(test: TestKit.Register)
 		TestKit.equal(reason, "level")
 		TestKit.truthy(Travel.start(QUARRY, "walk", ctx(50, T0, 8)), "level 8 may go")
 		TestKit.equal(Content.Locations["loc.ashfall_depot"].levelGate, 15)
+	end)
+
+	test("LDOE_PARITY #38: cap 200, Runs 15/22/33 and Walks 12/19/29 min by tier", function()
+		TestKit.equal(ENERGY.cap, 200)
+		TestKit.equal(ENERGY.secondsPerPoint, 5 * 60)
+		local runs = { 15, 22, 33 }
+		local walks = { 12, 19, 29 }
+		for _, location in Content.Locations do
+			if location.availability.kind ~= "airdrop" then
+				TestKit.equal(location.energyCost, runs[location.fogTier], location.id)
+				TestKit.equal(location.walkSeconds, walks[location.fogTier] * 60, location.id)
+			end
+		end
 	end)
 
 	test("a Walk can be checked against a deadline", function()
