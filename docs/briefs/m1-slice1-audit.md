@@ -2,7 +2,7 @@
 
 Status against every S1 row of docs/PLAYER_EXPERIENCE_CHECKLIST.md on branch
 `claude/m1-slice1-home-loop-b55c20`. ✅ done and seen in a playtest · ⚠️ partial (reason) · ❌ missing.
-Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-88 this pass).
+Captures: docs/milestones/m1-slice1/ (40-46 LDoE side-by-sides, 50-72 gate captures, 73-92 this pass).
 
 Checks at the head of the branch: 186 Lune specs, selene 0/0, stylua clean, luau-lsp 0 on both
 solvers, `rojo build` OK. Z-fighting scan (roblox/tools/zscan.luau, all of Workspace.World on the
@@ -31,6 +31,31 @@ re-run on the 8-stud test base after the scale change: 54 parts, **0 hits**.
   lamp, tool rack, shelf, cot, planter and car are soft generated meshes), so nothing was added. It
   lands with the Camp family once uploads work.
 - **Generation:** this pass 2.75 (timber sheet) + 12 (timber wall); the pool is about 375 of 500.
+
+### Adversarial QA on this pass (two fresh reviewers, default C)
+
+Pass 1 graded captures 77-83; its fixes are in 84-88. Pass 2 graded 84-88; its fixes are in 89-92 and
+have not been re-graded.
+
+| Thing | Pass 1 | Pass 2 | After pass-2 fixes (89-92) |
+|---|---|---|---|
+| Gravel earth | C (head-sized confetti pebbles, rust red) | B (even speckle, blue-white stones) | Warmer tint; even density stays (texture) |
+| Leaf litter | C (leaves 2-3x too big) | C (near-black, over-saturated) | Lifted and desaturated |
+| Grass | B (diagonal repeat) | B (repeat bands) | 14-stud tile, fewer repeats |
+| Dry grass | C (fur) | C (felt, asterisk tufts) | The grass tile, subtler straw; tufts stay (texture) |
+| Road | C (no ruts, pink) | C (rut tile smeared 4-5x, no edge) | Dirt track with a gravel crown, rut tile at 16 studs, distinct from the yards (90) |
+| Material borders | C (voxel stair-steps) | B (lobed voxel outline) | Grain noise on every border; 4-stud voxels set the floor |
+| Texture scale | C (2x) | B (rut tile) | Rut tile fixed |
+| Ground palette | C (rust, pink, green) | C (three families, murky noon) | One muted palette, midday exposure +0.3 |
+| Stray white patch | — | C (snow-like blotch) | Bare Rock replaced by gravel (91) |
+| Wooden deck | C (laminate, brightest surface) | C (grout seams) | Rough planks with dark gaps, per-plank colour (89) |
+| Palisade fence | B (dark band) | B (blue-grey vs deck) | Warm tint to the deck palette |
+| Log posts | B (too thick) | C (primitive cylinders) | Removed for the wood tier; walls close their corners |
+| Workbench | B (blue-grey) | B (muddy texture) | Warm tint; texture needs a regenerated model |
+| Room scale | C (barn) | — | Cell 8 kept (your call); wall height held at 6.8's 8.3 floor |
+| Camera framing / occlusion | B / C (pine hid survivor) | B (fade left leaf lines) | Sight-line canopy fade at 0.94 (91) |
+| Pine tree model | C (blurry cards) | C (banana-leaf cards) | **Open: needs a regenerated pine** |
+| HUD | B (badges on key chips, XP twice) | B (badges looked like the neighbour's) | Badges on their own top-left rim; one XP readout |
 
 
 ## Art consistency (ART_DIRECTION 10a v2)
