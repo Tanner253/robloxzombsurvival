@@ -98,6 +98,7 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - downed, revive, emotes
 
   Never mix in default Roblox animations or free-model animations.
+- **Weapons are realistic, not cartoony** (the developer, 2026-11-08). They're weathered real-world-looking firearms and melee, benchmarked on LDoE's guns (rec6, rec8 and rec9). The primary source is the developer's Zona repo (realistic gun meshes, credited); anything missing is generated from a photoreal concept and graded beside them. No brand names.
 - **Gear is always visible:**
   - The selected tool or weapon is held in the hand.
   - Gathering swaps to the right tool, plays the chop, mine or pickup animation with hit VFX and sound, then swaps back.
