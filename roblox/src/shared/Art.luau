@@ -32,12 +32,12 @@ Art.pieces = {
 	-- Wood doorway and window: the palisade family pieces (graded A) until the plank-wall
 	-- doorway and window from the timber sheet are converted. Art gap: doors (the palisade
 	-- leaf needs its hinge fit to the opening), reinforced windows.
-	["build.doorway_wood"] = { "EO_PalisadeDoorway" },
-	["build.window_wood"] = { "EO_PalisadeWindow" },
+	["build.doorway_wood"] = { "EO_DoorwayTimber", "EO_PalisadeDoorway" },
+	["build.window_wood"] = { "EO_WindowTimber", "EO_PalisadeWindow" },
 	["build.workbench"] = { "Workbench" },
 	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
-	["build.recycler"] = { "Recycler", "Generator" }, -- art gap: Generator stands in
-	["build.crate_wood"] = { "Crate" },
+	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
+	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
 } :: { [string]: { string } }
 
@@ -78,10 +78,12 @@ Art.tints = {
 	EO_PalisadeDoorway = Color3.fromRGB(255, 226, 192),
 	EO_PalisadeWindow = Color3.fromRGB(255, 226, 192),
 	EO_PalisadeDoor = Color3.fromRGB(255, 226, 192),
+	EO_WindowTimber = Color3.fromRGB(255, 226, 192),
+	EO_DoorwayTimber = Color3.fromRGB(255, 212, 168), -- its grey-blue sat further off the walls
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
-Art.dropModels = { "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
+Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
 Art.nodes = {
 	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
@@ -135,6 +137,14 @@ Art.approved = {
 	EO_LanternPost = true,
 	EO_BareBranches = true,
 	EO_RockCluster = true,
+	-- Batch 2 (captures 105-107):
+	EO_WindowTimber = true,
+	EO_DoorwayTimber = true, -- B: smoother texture than the wall; a regen is queued (rooms need a doorway)
+	EO_StorageCrate = true,
+	EO_RecyclerStation = true,
+	EO_BarrelCluster = true,
+	EO_SupplySacksMesh = true,
+	EO_DeadTree = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -153,6 +163,15 @@ Art.uploaded = {
 	EO_RockCluster = { id = 112631953002450, yaw = 0, axis = "X", size = 7 },
 	EO_LanternPost = { id = 115765948750615, yaw = 0, axis = "Y", size = 9 },
 	EO_StandingTorch = { id = 76894774227727, yaw = 0, axis = "Y", size = 6 },
+	EO_DoorwayTimber = { id = 86510148563388, yaw = 90, axis = "X", size = 8 },
+	EO_WindowTimber = { id = 123523155311228, yaw = 90, axis = "X", size = 8 },
+	EO_DeadTree = { id = 125675745178137, yaw = 0, axis = "Y", size = 18 },
+	EO_StorageCrate = { id = 86480969772739, yaw = 0, axis = "X", size = 5.4 },
+	EO_RecyclerStation = { id = 114511988922602, yaw = 0, axis = "Z", size = 6 },
+	EO_BarrelCluster = { id = 97808210346830, yaw = 0, axis = "X", size = 4 },
+	EO_SupplySacksMesh = { id = 106489665857780, yaw = 0, axis = "X", size = 3.5 },
+	EO_RainCollector = { id = 96623096328279, yaw = 0, axis = "Y", size = 5 },
+	EO_Signpost = { id = 129379454140930, yaw = 0, axis = "Y", size = 7 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean

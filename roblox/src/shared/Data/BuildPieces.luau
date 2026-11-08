@@ -312,7 +312,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	-- Storage --------------------------------------------------------------------------------
 	["build.crate_wood"] = {
 		id = "build.crate_wood",
-		footprint = { w = 2, d = 3 }, -- quarter cells (2 studs)
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
 		name = "Timber Crate",
 		kind = "storage",
 		tier = 1,

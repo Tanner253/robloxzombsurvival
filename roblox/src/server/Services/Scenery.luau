@@ -359,6 +359,12 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 			local name = CAMP_PROPS[random:NextInteger(1, #CAMP_PROPS)]
 			local side = if slot == 1 then -1 else 1
 			local x = side * random:NextNumber(24, 50)
+			-- The family barrels and sacks (graded A) first; the look-test props stay gated.
+			local family = if slot == 1 then "EO_BarrelCluster" else "EO_SupplySacksMesh"
+			local at = base + Vector3.new(x, 0, frontZ + random:NextNumber(-1.5, 1.5))
+			if placeFamily(folder, { family }, at, random:NextInteger(-180, 180), true) then
+				continue
+			end
 			place(
 				folder,
 				{ name },
@@ -403,13 +409,16 @@ local function dressing(world: Instance, origin: Vector3, random: Random)
 	edges.Name = "Edges"
 	edges.Parent = root
 	local function tree(x: number, z: number)
-		local model = Models.kit({ "EO_PineTree" })
+		-- About one in seven is a dead pine: a broken grey trunk among the living ones.
+		local dead = random:NextNumber() < 0.15
+		local model = Models.kit(if dead then { "EO_DeadTree", "EO_PineTree" } else { "EO_PineTree" })
 		if model == nil then
 			return
 		end
 		local height = model:GetExtentsSize().Y
 		if height > 0.01 then
-			model:ScaleTo(model:GetScale() * random:NextNumber(26, 36) / height)
+			local wanted = if model.Name == "EO_DeadTree" then random:NextNumber(18, 24) else random:NextNumber(26, 36)
+			model:ScaleTo(model:GetScale() * wanted / height)
 		end
 		model:PivotTo(
 			CFrame.new(origin + Vector3.new(x, -0.3, z)) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)

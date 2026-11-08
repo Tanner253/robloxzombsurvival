@@ -26,5 +26,7 @@
 "barrels": "88fe9c13-e08a-42aa-a006-8f049995ef69",
 "supply_sacks": "f17043e7-de54-49f6-b478-3bec2f606895",
 "rain_collector": "a0b2ab22-469b-45bc-8a7a-ff70688242a5",
-"timber_wall": "565f48b2-1ba5-445a-bb7d-b4d46d2bf77f"
+"timber_wall": "565f48b2-1ba5-445a-bb7d-b4d46d2bf77f",
+"timber_doorway": "f0bc09f8-ddef-497e-98a8-e699880f4fa6",
+"timber_window": "c674bd2c-8b4d-4047-bf8b-66ad1ad3bc9e"
 }
