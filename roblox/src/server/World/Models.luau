@@ -132,8 +132,13 @@ local function finish(model: Model): Model
 	return model
 end
 
--- A wall panel spanning x0..x1 (along X) and y0..y1.
+-- No two faces of a piece share a plane (checklist 6.11): panels stop INSET short of
+-- every edge, so they never line up with a post, trim, beam or the floor.
+local INSET = 0.05
+
+-- A wall panel spanning x0..x1 (along X) and y0..y1, inset INSET on every side.
 local function panel(model: Model, style: Style, x0: number, x1: number, y0: number, y1: number, thickness: number)
+	x0, x1, y0, y1 = x0 + INSET, x1 - INSET, y0 + INSET, y1 - INSET
 	if x1 - x0 <= 0.05 or y1 - y0 <= 0.05 then
 		return
 	end
@@ -146,12 +151,15 @@ local function panel(model: Model, style: Style, x0: number, x1: number, y0: num
 	)
 end
 
+-- End posts: pulled 2 x INSET in from the cell edge (past the inset panel ends and the
+-- seam beams that end there) and sunk INSET into the floor, so neither their sides nor
+-- their bases share a plane.
 local function posts(model: Model, style: Style, height: number)
-	for _, x in { -CELL / 2 + 0.45, CELL / 2 - 0.45 } do
+	for _, x in { -CELL / 2 + 0.45 + 2 * INSET, CELL / 2 - 0.45 - 2 * INSET } do
 		part(
 			model,
-			Vector3.new(0.9, height + 0.4, 0.9),
-			CFrame.new(x, (height + 0.4) / 2, 0),
+			Vector3.new(0.9, height + 0.4 + INSET, 0.9),
+			CFrame.new(x, (height + 0.4 - INSET) / 2, 0),
 			style.trim,
 			style.trimColor
 		)
@@ -229,7 +237,8 @@ local function window(style: Style): Model
 	posts(model, style, h)
 	part(model, Vector3.new(w + 0.6, 0.35, 1.2), CFrame.new(0, sill, 0), style.trim, style.trimColor)
 	part(model, Vector3.new(0.3, top - sill, 0.4), CFrame.new(0, (sill + top) / 2, 0), style.trim, style.trimColor)
-	part(model, Vector3.new(w, 0.3, 0.4), CFrame.new(0, (sill + top) / 2, 0), style.trim, style.trimColor)
+	-- The cross bar is a touch shallower than the upright, so their faces never coincide.
+	part(model, Vector3.new(w, 0.3, 0.34), CFrame.new(0, (sill + top) / 2, 0), style.trim, style.trimColor)
 	return finish(model)
 end
 
