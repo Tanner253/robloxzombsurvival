@@ -15,7 +15,6 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
-local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -60,11 +59,19 @@ local TIPS = {
 	{ "BLOATERS BURST", "Keep your distance from a bloater. Its cloud hurts long after it pops." },
 }
 
-local function card(props: { size: UDim2, position: UDim2, anchorPoint: Vector2?, zIndex: number?, children: any })
+local function card(props: {
+	size: UDim2,
+	position: UDim2?,
+	anchorPoint: Vector2?,
+	zIndex: number?,
+	layoutOrder: number?,
+	children: any,
+})
 	return e("Frame", {
 		Size = props.size,
 		Position = props.position,
 		AnchorPoint = props.anchorPoint,
+		LayoutOrder = props.layoutOrder,
 		BackgroundColor3 = Theme.colors.panel,
 		BackgroundTransparency = Theme.colors.panelTransparency,
 		ZIndex = props.zIndex,
@@ -103,7 +110,14 @@ local function dot(position: UDim2, size: number, color: Color3, zIndex: number)
 	}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 end
 
-function RunHud.RunMinimap()
+-- The Fog meter's height under the minimap (the HUD makes room for it).
+RunHud.METER_HEIGHT = 46
+
+-- How far (design pixels) full-screen layers reach above the safe area, under Roblox's
+-- top bar (as UI/components/FullScreen does).
+local REACH = 120
+
+function RunHud.RunMinimap(props: { position: UDim2?, anchorPoint: Vector2? }?)
 	local run = hooks.useSection("run")
 	local noise = hooks.useSection("noise")
 	hooks.useClock(0.25)
@@ -221,9 +235,9 @@ function RunHud.RunMinimap()
 	local tier = run.fogTier or 1
 	local ground = ({ Color3.fromRGB(58, 70, 50), Color3.fromRGB(64, 62, 56), Color3.fromRGB(46, 46, 50) })[tier]
 	return e("Frame", {
-		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE + 46),
-		Position = UDim2.new(1, -16, 0, 80),
-		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE + RunHud.METER_HEIGHT),
+		Position = if props and props.position then props.position else UDim2.new(1, -16, 0, 80),
+		AnchorPoint = if props and props.anchorPoint then props.anchorPoint else Vector2.new(1, 0),
 		BackgroundTransparency = 1,
 		ref = mark.composite, -- one graphic: the map, its dots and ring, the Fog meter
 	}, {
@@ -302,8 +316,7 @@ local function TargetBar()
 	end
 	return card({
 		size = UDim2.fromOffset(300, 46),
-		position = UDim2.new(0.5, 0, 0, 12),
-		anchorPoint = Vector2.new(0.5, 0),
+		layoutOrder = 1,
 		children = {
 			Name = e(Label, {
 				text = target.name,
@@ -390,7 +403,8 @@ local function Hurt()
 	end
 	local _ = now
 	return e("Frame", {
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.new(1, 0, 1, REACH),
+		Position = UDim2.fromOffset(0, -REACH),
 		BackgroundTransparency = 1,
 		ZIndex = 20,
 		ref = mark.backdrop,
@@ -421,9 +435,8 @@ local function Arrival()
 	local _ = now
 	return e("Frame", {
 		Size = UDim2.fromOffset(560, 110),
-		Position = UDim2.new(0.5, 0, 0, 120),
-		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
+		LayoutOrder = 2,
 	}, {
 		Name = e(Label, {
 			text = string.upper(location.name),
@@ -475,8 +488,7 @@ local function TravelBonus()
 	end
 	return card({
 		size = UDim2.fromOffset(math.max(300, #bonus.items * 64 + 32), 156),
-		position = UDim2.new(0, 16, 0.5, 0),
-		anchorPoint = Vector2.new(0, 0.5),
+		layoutOrder = 3,
 		children = {
 			Title = e(Label, {
 				text = "FOUND ON THE WAY",
@@ -594,12 +606,15 @@ local function DeathScreen()
 	local cost = if location then math.ceil(location.energyCost / 2) else 0
 	local energyValue = if type(energy) == "table" then energy.value else 0
 	return e("Frame", {
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.new(1, 0, 1, REACH),
+		Position = UDim2.fromOffset(0, -REACH),
 		BackgroundColor3 = Theme.colors.shadow,
 		BackgroundTransparency = 0.18,
 		ZIndex = 30,
 		ref = mark.backdrop,
 	}, {
+		-- The content keeps to the safe area below the reach.
+		Inset = e("UIPadding", { PaddingTop = UDim.new(0, REACH) }),
 		Title = e(Label, {
 			text = "YOU DIED",
 			style = "header",
@@ -749,9 +764,10 @@ local function Loading()
 			}),
 		})
 	end
-	local top = GuiService:GetGuiInset().Y
+	local top = REACH
 	return e("Frame", {
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.new(1, 0, 1, REACH),
+		Position = UDim2.fromOffset(0, -REACH),
 		BackgroundColor3 = Color3.fromHex("1A1D21"),
 		ZIndex = 40,
 		ref = mark.backdrop,
@@ -856,18 +872,30 @@ function RunHud.Screen()
 	local ui = hooks.useUi()
 	local playing = ui.panel == "none"
 	local onRun = type(run) == "table"
-	local top = GuiService:GetGuiInset().Y
 	return e(React.Fragment, nil, {
-		-- Cards and bars sit below Roblox's top bar (the App ignores the inset; 4.18).
+		-- Cards and bars keep to the App's safe area (4.18); full-screen layers reach under it.
 		Safe = e("Frame", {
-			Size = UDim2.new(1, 0, 1, -top),
-			Position = UDim2.fromOffset(0, top),
+			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
 		}, {
-			Target = onRun and playing and e(TargetBar),
+			-- Top centre, one column so they never overlap: the target bar (the HUD's
+			-- reserved slot), the arrival card, then "found on the way".
+			Column = onRun and e("Frame", {
+				Size = UDim2.new(0, 560, 1, -24),
+				Position = UDim2.new(0.5, 0, 0, 12),
+				AnchorPoint = Vector2.new(0.5, 0),
+				BackgroundTransparency = 1,
+			}, {
+				Layout = e("UIListLayout", {
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					Padding = UDim.new(0, 8),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+				}),
+				Target = playing and e(TargetBar),
+				Arrival = playing and e(Arrival),
+				Bonus = e(TravelBonus),
+			}),
 			Progress = onRun and e(Progress),
-			Arrival = onRun and playing and e(Arrival),
-			Bonus = onRun and e(TravelBonus),
 		}),
 		Hurt = onRun and e(Hurt),
 		Death = e(DeathScreen),

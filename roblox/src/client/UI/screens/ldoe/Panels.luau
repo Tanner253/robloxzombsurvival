@@ -144,6 +144,8 @@ local function Panels()
 	local storage = hooks.useSection("storage")
 	local stations = hooks.useSection("stations")
 	local inbox = hooks.useSection("inbox")
+	local loot = hooks.useSection("loot") -- a Fog Run container, pile or bag (#45)
+	local run = hooks.useSection("run")
 	local projects = hooks.useSection("projects")
 	local survival = hooks.useSection("survival")
 	local quests = hooks.useSection("quests")
@@ -388,6 +390,8 @@ local function Panels()
 			state = if type(projects) == "table" then projects[projectId] else nil,
 			pooled = pooled,
 		})
+	elseif type(loot) == "table" then
+		right = e(ContextPanes.Loot, { loot = loot, run = run })
 	elseif crate and ui.inventoryTab ~= "inbox" then
 		right = e(ContextPanes.Storage, {
 			storage = crate,

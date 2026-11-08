@@ -44,6 +44,11 @@ local function devCommand(command: string, ...: any): any
 		local args = { ... }
 		State.set(args[1], args[2])
 		return "ok"
+	elseif command == "patch" then
+		-- Patches the UI state, e.g. ("patch", { gate = {...} }) to lay out for a profile.
+		local args = { ... }
+		State.patch(args[1])
+		return "ok"
 	elseif command == "panel" then
 		local args = { ... }
 		State.toggle(args[1], args[2])

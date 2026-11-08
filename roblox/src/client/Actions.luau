@@ -56,9 +56,21 @@ function Actions.attack()
 	task.delay(0.05, CombatControl.release)
 end
 
+-- Held attack (the weapon circle on a run): a gun keeps firing at its cadence until release.
+function Actions.attackDown()
+	CombatControl.press()
+end
+
+function Actions.attackUp()
+	CombatControl.release()
+end
+
 -- The Fog map (M, the HUD's Map button, or the Trailhead): plan and set out (11.1, 11.2).
 function Actions.toggleFogMap()
 	State.toggle("fogmap")
+	if State.ui().panel ~= "fogmap" then
+		State.clear("fogLocation")
+	end
 	Sfx.play(if State.ui().panel == "fogmap" then "uiOpen" else "uiClose")
 end
 

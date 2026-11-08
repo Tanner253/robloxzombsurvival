@@ -9,6 +9,8 @@
 	- Inbox (checklist 4.15): every reward, purchase and overflow row with TAKE, and TAKE ALL.
 	- Project (rec4_03-04): the wrecked hauler's parts checklist, have/need per part with a
 	  FILL UP per row, and FINALIZE.
+	- Loot (Fog Runs, LDOE_PARITY #45): an open container, loot pile or death bag. A click
+	  takes a slot; TAKE ALL (F) takes everything that fits. A bag shows its gear first.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -119,6 +121,114 @@ function ContextPanes.Storage(
 				layoutOrder = 3,
 				onActivated = function()
 					Actions.transfer("putAll")
+				end,
+			}),
+		},
+	})
+	return e(Parts.Pane, { header = header, body = body, bar = bar })
+end
+
+-- Loot ---------------------------------------------------------------------------------------------
+
+local LOOT_TITLES: { [string]: string } = {
+	container = "CONTAINER",
+	pile = "LOOT",
+	bag = "SURVIVOR'S BAG",
+}
+
+local function filled(slots: any): { any }
+	local list: { any } = {}
+	for _, slot in (if type(slots) == "table" then slots else {}) do
+		if type(slot) == "table" and slot.itemId and (slot.count or 0) > 0 then
+			table.insert(list, slot)
+		end
+	end
+	return list
+end
+
+-- `loot` is the "loot" section ({ kind, id, items? }); a bag's slots come from the run's
+-- drops so they stay live while others take from it.
+function ContextPanes.Loot(props: { loot: any, run: any })
+	local loot = props.loot
+	local title = LOOT_TITLES[loot.kind] or "CONTAINER"
+	local items: { any } = filled(loot.items)
+	local gear: { any } = {}
+	if loot.kind == "bag" then
+		items = {}
+		for _, drop in (if type(props.run) == "table" then props.run.drops or {} else {}) do
+			if drop.id == loot.id then
+				items = filled(drop.backpack)
+				gear = filled(drop.equipment)
+				title = if drop.mine then "YOUR BAG" else "SURVIVOR'S BAG"
+			end
+		end
+	end
+	local function take(section: string, index: number)
+		if loot.kind == "bag" then
+			Net.fire("BagTake", loot.id, section, index)
+		else
+			Actions.takeLoot(index)
+		end
+	end
+	local header =
+		e(Parts.Header, { glyph = if loot.kind == "bag" then "backpack" else "storage", title = title, chip = true })
+	local rows: { [string]: any } = {}
+	if #gear > 0 then
+		rows.Gear = e(Parts.Slots, {
+			place = "lootGear",
+			slots = gear,
+			layoutOrder = 1,
+			onSlot = function(index: number)
+				take("equipment", index)
+			end,
+		})
+	end
+	if #items > 0 then
+		rows.Items = e(Parts.Slots, {
+			place = "loot",
+			slots = items,
+			layoutOrder = 2,
+			onSlot = function(index: number)
+				take("backpack", index)
+			end,
+		})
+	else
+		rows.Empty = e("TextLabel", {
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundTransparency = 1,
+			FontFace = Theme.fonts.body,
+			Text = if #gear > 0 then "" else "Nothing left.",
+			TextSize = Theme.textSize.body,
+			TextColor3 = Theme.colors.textMuted,
+			LayoutOrder = 3,
+		})
+	end
+	local body = e("ScrollingFrame", {
+		Size = UDim2.fromScale(1, 1),
+		CanvasSize = UDim2.fromScale(0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 4,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+	}, {
+		Rows = e(Layout.Stack, {
+			gap = Theme.spacing.sm,
+			size = UDim2.fromScale(1, 0),
+			autoSize = Enum.AutomaticSize.Y,
+			children = rows,
+		}),
+	})
+	local bar = e(Parts.Bar, {
+		alignX = Enum.HorizontalAlignment.Center,
+		children = {
+			Take = e(Parts.BarButton, {
+				text = "Take all",
+				width = 180,
+				tone = "teal",
+				disabled = #items == 0 and #gear == 0,
+				layoutOrder = 1,
+				onActivated = function()
+					Actions.takeLoot(nil)
 				end,
 			}),
 		},

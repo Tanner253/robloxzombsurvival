@@ -502,6 +502,9 @@ function FogRun.start()
 
 	local roofClock, canopyClock = 0, 0
 	RunService.RenderStepped:Connect(function(dt: number)
+		if State.isHeld() then
+			return -- the UI gate is showing fixture screens
+		end
 		local run = FogRun.state()
 		updateCombatMusic(run ~= nil, dt)
 		if run and os.clock() - lastRunAt > STALE_SECONDS then

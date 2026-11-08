@@ -17,7 +17,6 @@
 ]]
 
 local Players = game:GetService("Players")
-local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
@@ -38,6 +37,8 @@ local Label = require("../components/Label")
 local e = React.createElement
 
 local PANEL_WIDTH = 410
+local PIN_LABEL = 200 -- a pin's name, centred under it
+local REACH = 120 -- design pixels above the safe area (UI/components/FullScreen)
 local PIN = 46
 local ROUND = 66
 local TIER_COLORS = {
@@ -71,12 +72,17 @@ local function energyNow(energy: any, now: number): (number, number, number?)
 	if type(energy) ~= "table" then
 		return 0, 200, nil
 	end
-	local gained = math.floor(math.max(0, now - energy.updatedAt) / energy.secondsPerPoint)
-	local value = if energy.value >= energy.cap then energy.value else math.min(energy.cap, energy.value + gained)
-	local nextIn = if value < energy.cap
-		then energy.secondsPerPoint - (math.max(0, now - energy.updatedAt) % energy.secondsPerPoint)
-		else nil
-	return value, energy.cap, nextIn
+	-- A partial section (no regen rate yet) shows its value without counting up.
+	local cap = if type(energy.cap) == "number" then energy.cap else 200
+	local base = if type(energy.value) == "number" then energy.value else 0
+	local per = energy.secondsPerPoint
+	if type(per) ~= "number" or per <= 0 or type(energy.updatedAt) ~= "number" then
+		return base, cap, nil
+	end
+	local elapsed = math.max(0, now - energy.updatedAt)
+	local value = if base >= cap then base else math.min(cap, base + math.floor(elapsed / per))
+	local nextIn = if value < cap then per - (elapsed % per) else nil
+	return value, cap, nextIn
 end
 
 local function clock(seconds: number): string
@@ -291,7 +297,7 @@ local function Pin(props: { location: any, selected: boolean, onSelect: () -> ()
 			tone = if props.selected then "highlight" else "text",
 			position = UDim2.new(0.5, 0, 1, 6),
 			anchorPoint = Vector2.new(0.5, 0),
-			size = UDim2.fromOffset(200, 22),
+			size = UDim2.fromOffset(PIN_LABEL, 22),
 			alignX = Enum.TextXAlignment.Center,
 			stroke = true,
 		}),
@@ -603,7 +609,15 @@ local function FogMap()
 	local energy = hooks.useSection("energy")
 	local inventory = hooks.useSection("inventory")
 	local travel = hooks.useSection("travel")
-	local selected: string?, setSelected = React.useState(nil :: string?)
+	-- The chosen location lives in the UI state, so the guide and the UI gate can open it.
+	local selected: string? = ui.fogLocation
+	local function setSelected(id: string?)
+		if id then
+			State.patch({ fogLocation = id })
+		else
+			State.clear("fogLocation")
+		end
+	end
 	local size, setSize = React.useState(Vector2.new(1366, 768))
 	hooks.useClock(1) -- re-check the Trailhead distance
 	local open = ui.panel == "fogmap"
@@ -615,15 +629,19 @@ local function FogMap()
 	local pins: { [string]: any } = {}
 	local home = Art.fogMap.home
 	local at = if location then Art.fogMap.pins[location.id] else nil
+	-- With a panel open the map slides left only as far as it must for the chosen pin and
+	-- its Run and Walk buttons to clear the panel.
 	local shift = 0
 	if at then
-		local visible = size.X - PANEL_WIDTH
-		shift = math.clamp(visible / 2 - at.X * size.X, -PANEL_WIDTH, 0)
+		local reach = at.X * size.X + ROUND + 26 + Theme.spacing.md
+		shift = -math.clamp(reach - (size.X - PANEL_WIDTH), 0, PANEL_WIDTH)
 	end
 	for _, each in locations() do
-		-- Pins the open panel would cover are left off (the chosen one is always in view).
+		-- Pins the panel covers or the slide pushes off the left edge are left off (the
+		-- chosen one is always in view); a pin's name is PIN_LABEL wide.
 		local spot = Art.fogMap.pins[each.id]
-		if at and spot and spot.X * size.X + shift > size.X - PANEL_WIDTH - PIN then
+		local x = if spot then spot.X * size.X + shift else 0
+		if at and spot and (x > size.X - PANEL_WIDTH - PIN or x < PIN_LABEL / 2 + Theme.spacing.sm) then
 			continue
 		end
 		pins[each.id] = e(Pin, {
@@ -636,9 +654,12 @@ local function FogMap()
 	end
 	local energyValue = energyNow(energy, State.now())
 	local walking = type(travel) == "table" and travel.mode == "walk"
-	local topInset = GuiService:GetGuiInset().Y
+	-- The map reaches REACH design pixels above the safe area, under Roblox's top bar
+	-- (as UI/components/FullScreen's dim does); the chrome keeps to the safe area.
+	local topInset = REACH
 	return e("Frame", {
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.new(1, 0, 1, REACH),
+		Position = UDim2.fromOffset(0, -REACH),
 		BackgroundColor3 = Theme.colors.shadow,
 		ZIndex = 2,
 		ref = mark.backdrop,
@@ -754,7 +775,7 @@ local function FogMap()
 			Panel = location and e(Panel, {
 				location = location,
 				onClose = function()
-					setSelected(nil :: any)
+					setSelected(nil)
 				end,
 			}),
 			CloseMap = location == nil and e(Button, {
