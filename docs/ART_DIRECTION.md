@@ -16,6 +16,23 @@ Every asset, animation, effect and UI element must pass this document. If someth
 
 **Quality benchmark:** LDoE's level of visual polish is the minimum: rich materials, readable top-down silhouettes, atmospheric night lighting, consistent props and UI. We match that polish with our own designs, never its assets or look.
 
+**The game must be impressive** (the developer's directive). Every milestone has to land these "wow" moments, not just function:
+1. **A cinematic first minute:** the crash intro with a camera move, fog rolling in and a music sting. **Lighting your first Hearth pushes the fog back visibly**, which is the signature moment.
+2. **A living world:** fog that rolls, curls and retreats from light; wind, rain and dust particles; smooth day and night transitions.
+3. **Game feel ("juice"):**
+   - hit-stop and subtle screen shake on impacts
+   - wood chips, sparks and dust when gathering
+   - the Hollow **dissolve into ash and embers** when they die
+   - loot pops with rarity glows
+   - snap animation and a dust puff when placing a build piece
+4. **Custom animation for everything.** No default Roblox animations anywhere.
+5. **Destruction:** breached walls break into debris; fire and smoke on damaged structures.
+6. **Audio:** layered ambience, adaptive night music as the Fog advances, Hollow you can hear by direction, and a satisfying sound on every interaction.
+7. **UI polish:** tweened panels, rendered 3D item icons, reward celebrations.
+8. **Performance:** smooth 60 fps on PC. Impressive and stuttering isn't impressive.
+
+**Test for every milestone:** a 15-second clip plus a screenshot set that would make a strong Roblox thumbnail or trailer shot. If it wouldn't, it isn't done.
+
 ## 2. Shape language
 
 - **Friendly / safe** (survivors, outposts, the Hearth): rounded-square shapes, sturdy, slightly oversized props (chunky lanterns, fat bolts, thick planks).
