@@ -119,7 +119,15 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - 2 px stroke in warm gray, with an ember accent for primary actions
   - a soft drop shadow
 - **Font:** Builder Sans (ExtraBold for headers, Medium for body). Use no other fonts.
-- **Icons:** painted, realistic-leaning item renders in one style, with no emoji, flat symbols or default glyphs.
+- **No emoji, no Unicode symbols and no default Roblox icons anywhere in the UI** (the developer, 2026-11-08: "the emojis and icons used and the design, very low quality"). That covers ❤ ⚡ ✋ ✕ and every glyph in text.
+- **UI glyphs:** one custom glyph set, generated as a single sheet so it's consistent. Bold cream (#F2EEE6) silhouettes with soft top-left shading, the same weight and size, used for HUD stats, buttons, tabs and badges. The sheet lives in `art/ui/glyphs/`. Every button and stat uses one.
+- **Layout follows the LDoE HUD and screens** (rec1, rec6, rec8 HUD frames):
+  - stats top-left; minimap and currency top-right
+  - action cluster bottom-right (attack, use, weapon slot and swap, meds, sprint)
+  - joystick bottom-left on touch
+  - a menu bar along the bottom with badges
+  - full-screen panels for the inventory, crafting and the shop
+- **Item icons:** painted, realistic-leaning item renders in one style, with no emoji, flat symbols or default glyphs.
   - Same 3/4 angle, light from the top-left, soft shading, a subtle dark outline and a transparent background.
   - Weathered materials that match the toon-PBR world.
   - Lock the style with 3 sample icons before generating a batch.

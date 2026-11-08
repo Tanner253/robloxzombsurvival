@@ -94,6 +94,8 @@ Nothing player-facing is done until it has all ten:
 | 4.12 | **Storage upgrade in the panel:** the storage header has an upgrade button showing slot capacity now → next and the material cost (have/need). Upgrading happens in place without rebuilding. | rec8 "Storage upgrade" | S1 |
 | 4.13 | **In-world storage labels:** crates show an icon of their main contents (or a category the player picks), so a base reads at a glance | rec8 interior | S1 |
 | 4.15 | **Item inbox:** level-up rewards, quest rewards, purchases, event rewards and anything that doesn't fit go to an inbox instead of being lost or dropped. It has TAKE per row, Take all, use-in-place for consumables, a category filter and a badge with the unclaimed count on the HUD. It has no capacity limit, is raid-proof, and bought items never expire. | rec8 inbox | S1 |
+| 4.16 | **UI pictures match the real thing:** every build-menu card, recipe card, item slot and station header shows the **same** object the player gets in the world. Either a render of the actual in-game model (a ViewportFrame or baked capture, with consistent lighting and angle) or the painted icon made from that model's own concept. Never a different model or an old stand-in. | — | S1 |
+| 4.17 | **No emoji or Unicode symbols anywhere in the UI.** Every stat, button, tab and badge uses the custom glyph set in `art/ui/glyphs/` (ART_DIRECTION §8). | — | S1 |
 | 4.14 | Tooltips show stats as icon and value pairs (damage, speed, armor), plus installed mods and empty mod slots (mods arrive in M2) | rec8 | S1 (stats) |
 
 ## 5. Crafting and stations
