@@ -69,14 +69,14 @@ Nothing player-facing is done until it has all ten:
 | 3.3 | Per-hit VFX by material (wood chips, rock grit and sparks, leaves, dust) and per-hit SFX | — | S1 |
 | 3.4 | The node reacts on each hit: a wobble or shake, and a node HP or progress indicator | — | S1 |
 | 3.5 | Depletion is visible: the tree falls and leaves a stump, the rock crumbles to rubble, the bush is stripped. Respawn fades in after the timer. | Nodes deplete | S1 |
-| 3.6 | Yield feedback: a "+2 Sticks" pop with the item icon flying to the inventory or hotbar, and a "+XP" pop | "+XP" popups (rec3) | S1 |
+| 3.6 | Yield feedback: a floating "+2 [icon]" at the survivor that merges repeats, plus "+N xp" beside the level bar. No pickup cards. | "+XP" popups (rec3, rec6) | S1b |
 | 3.7 | Can't-gather states: "Need a hatchet", inventory full (overflow drops to the ground as a pickup, with a toast), node depleted | — | S1 |
 | 3.8 | Tool durability goes down per hit, with a low-durability warning and a break event (sound, VFX, toast) | Durability | S1 |
 | 3.9 | Auto-gather (Q) respects tools, shows its current target, walks the player between nodes, and stops on full inventory or danger | AUTO (rec3) | S1 |
 | 3.11 | **Interaction range is arm's reach, as in LDoE:** pickups, nodes, containers and stations activate only within about 5 studs of the survivor, measured from the edge of the object. Pressing E on something farther away auto-walks the survivor to it, then collects or interacts. No collecting from across the yard. Server-enforced (reject out-of-range requests), with the prompt shown only when in range. | LDoE gathering (rec3) | S1 |
 | 3.10 | Item names, icons and world models agree (sticks look like sticks, timber like logs) | — | S1 |
 
-## 4. Inventory, hotbar, storage
+## 4. Inventory, weapon slots, storage
 
 | # | Requirement | LDoE reference | Owner |
 |---|---|---|---|
@@ -146,8 +146,8 @@ Nothing player-facing is done until it has all ten:
 
 | # | Requirement | LDoE reference | Owner |
 |---|---|---|---|
-| 8.1 | HUD: bars, level and XP, Energy with "+", premium currency with "+", hotbar, and the quest tracker on the left | rec1 | S1 (quests S3) |
-| 8.2 | Toast stack for pickups, warnings and completions, which never covers the hotbar | — | S1 |
+| 8.1 | **HUD per LDOE_PARITY.md §HUD:** top-left has name and HP only, with food and water warning icons at ≤ 20; the weapon circles, meds slot, context and sprint sit bottom-right; AUTO bottom-left; Craft and Build under the minimap; the menu bar and the level bar along the bottom; the quest tracker on the left. Energy appears only on the Fog map. | rec1, rec6, rec8 HUD | S1b |
+| 8.2 | Toasts are for warnings and completions only, sit below the top-centre target bar, and never cover the action cluster | — | S1b |
 | 8.3 | Level-up celebration: a burst, a sound, and a list of what unlocked | — | S1 |
 | 8.4 | NEW badges on menu buttons when something new is inside | rec5 | S1 |
 | 8.5 | A day/night clock indicator and a "night is coming" cue | — | S1 |
@@ -215,7 +215,7 @@ Nothing player-facing is done until it has all ten:
 | 13.3 | **Targeting:** mouse aim on PC with a soft target lock on the nearest enemy in the aim cone; auto-aim on touch. The targeted enemy's name and HP bar show at top centre. | rec6 | S2 |
 | 13.4 | **Melee:** per-class swing animations (light and heavy), hit-stop of about 60 ms, a small screen shake on heavy hits, impact VFX and SFX per material, knockback, stamina cost. | — | S2 |
 | 13.5 | **Bow:** draw and release animation, an arrow projectile with a trail, arrows that can be recovered from bodies and the ground, silent. | — | S2 |
-| 13.6 | **Firearms:** Pipe Pistol, Scrap Shotgun and Flare Pistol, each with its own model and in-hand pose, muzzle flash, light flash, shell eject, recoil kick, tracer, impact decals, and an ammo counter on the hotbar slot. A reload animation and sound. Out of ammo gives a dry click and a toast. | rec6 ammo counts | S2 |
+| 13.6 | **Firearms:** Pipe Pistol, Scrap Shotgun and Flare Pistol, each with its own model and in-hand pose, muzzle flash, light flash, shell eject, recoil kick, tracer, impact decals, and an ammo counter on the active-weapon circle. A reload animation and sound. Out of ammo gives a dry click and a toast. | rec6 ammo counts | S2 |
 | 13.7 | **Noise:** gunshots emit a noise radius that pulls the Hollow; it shows as a brief ring on the minimap. Melee and bows are quiet. | — | S2 |
 | 13.8 | **Flare Pistol:** the flare lights an area for 20 s, burns the Hollow it hits, and makes the Hollow flee its light. It's the signature light weapon. | — | S2 |
 | 13.9 | **Damage feedback:** floating damage numbers (crits larger), hit-reacts on enemies, and a red vignette, directional damage indicator and grunt when the player is hit. | rec6 | S2 |

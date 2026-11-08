@@ -6,6 +6,8 @@ This is the source of truth that worker sessions build against. Reference materi
 - [research/roblox-genres-monetization.md](research/roblox-genres-monetization.md): Roblox platform rules
 - [reference/ldoe-recordings/](reference/ldoe-recordings/): the developer's LDoE screen captures
 
+**[LDOE_PARITY.md](LDOE_PARITY.md) is binding and overrides anything in this file it conflicts with.** It holds the 2026-11-08 rulings from a frame-by-frame audit: HUD, inventory, stations, building, economy, quests, shop and onboarding.
+
 **IP boundary:** copy mechanics, loops, pacing and UX patterns freely. Never copy LDoE's names (locations, items, characters), art, map, story or exact UI look.
 
 **Guiding rule: when in doubt, LDoE is the standard** for depth, complexity, visual quality and mechanics. Match its depth and polish everywhere. **Where we differ, we're better.** The main difference is multiplayer: the social, co-op, raiding and guild mechanics Roblox players engage with most. Back any deviation from LDoE with a reason.
@@ -87,10 +89,10 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 | Dungeons that refresh on a timer (bunker) | **Vaults:** multi-floor dungeons with keycards and a refresh timer. Co-op is allowed. |
 | Settlement and multiplayer hub | **Haven:** a shared hub with traders, a contract board, the clan board and season activities. |
 | Quest tracker (expedition, new home, watchtower) | A left-side **quest tracker** with chained storyline and side quests. |
-| Survival meters | Health, hunger and thirst. Food and drink restore Energy as well. |
+| Survival meters | Health, hunger and thirst, at LDoE rates (−1 every 10 s, warning at 20). Food does **not** restore Energy. |
 | Pockets plus backpack inventory, storage boxes, recycler with a skill level | The same: limited pockets plus backpack slots that grow with better bags; storage crates at base; a **Recycler** with a skill that raises the chance of rare outputs. |
 | Workbenches with craft timers; tier-gated recipes | Stations: Workbench, Smelter, Campfire/Kitchen, Recycler, Ammo Press, Garden, Water Collector. Each has timers and unlocks by Hearth or player level. |
-| Durability on tools, weapons and armor | Kept, with repair at the workbench. |
+| Durability on tools, weapons and armor | Kept. Worn gear is re-crafted; repair only comes from a late Repair Station or as a VIP perk. |
 | Death drops your inventory at the location | Kept: your backpack drops where you fell and you can go back for it while the lobby is open. Equipped gear is kept, except in Black fog, which is full loot apart from the secure pouch. |
 | Long build goals (chopper, ATV, motorcycle from parts) | A **vehicle chain** (scooter, truck, then something bigger), each built from rare parts found deep in the fog. The parts are also sold. |
 | Companions (dog): food to train and breed, % chances for quality and traits | **Companions:** dogs you raise, train and breed for traits and roles (fighter, scavenger, guard and more). Better food means better odds. See "Companions: raise, train, breed". |
@@ -105,7 +107,7 @@ The world is lost to **the Fog**, and the **Hollow** walk inside it. Only fireli
 
 **PC controls:**
 - WASD to move, the mouse to aim, left click to attack or gather, E to interact, Shift to sprint
-- Q to auto-gather: free on the home plot, a Shop lever on Fog Runs
+- Q to toggle AUTO (gather and attack): free everywhere, as in LDoE. The paid AUTO sits on the location panel and clears a location into the inbox without entering it.
 - Space to **jump** (a short hop), C for a **dodge roll** (combat, slice 2)
 - **Two weapon slots** (LDoE-style; no 1–9 hotbar): 1 and 2 select, and F or the on-screen swap button swaps. The active slot shows the weapon icon and ammo count. Tools never take a slot, because gathering auto-equips the right tool from your bag.
 - **H, or the meds button,** uses your best healing item. It shows the count.
