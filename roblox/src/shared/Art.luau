@@ -67,11 +67,13 @@ Art.nodes = {
 Art.remnants = {
 	["node.pine_tree"] = { names = { "EO_FatwoodStump" }, height = 1.5 },
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 0.55 },
-	["node.boulder"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 1.1 },
+	["node.boulder"] = { names = { "EO_LooseStones" }, height = 1.1 },
 	["node.scrap_heap"] = { names = { "EO_ScrapHeap" }, height = 0.9 },
-	["node.reed_patch"] = { names = { "EO_Reeds", "GrassClump" }, height = 0.9 },
-	["node.ember_bush"] = { names = { "EO_FallenBranches" }, height = 0.8 },
-	["node.ashroot_mound"] = { names = { "EO_LooseStones", "Gen_pebbles" }, height = 0.5 },
+	-- Reeds and bushes leave nothing until their family models pass the lineup gate
+	-- (ART_DIRECTION 10a): squashing the standing model made a mud blob.
+	["node.reed_patch"] = { names = { "EO_ReedStubble" }, height = 0.9 },
+	["node.ember_bush"] = { names = { "EO_BareBranches" }, height = 0.8 },
+	["node.ashroot_mound"] = { names = { "EO_LooseStones" }, height = 0.5 },
 } :: { [string]: { names: { string }, height: number } }
 
 -- Items -> kit names for the model held in hand and the rendered 3D icon.

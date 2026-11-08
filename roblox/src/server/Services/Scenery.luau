@@ -206,9 +206,9 @@ local function place(folder: Instance, names: { string }, at: Vector3, yaw: numb
 	model.Parent = folder
 end
 
-local CAMP_PROPS = { "CrateStack", "WaterCollector", "Generator", "Barrels", "Sacks" }
-local PROP_SCALE: { [string]: number } =
-	{ CrateStack = 5.5, WaterCollector = 6.2, Generator = 4.4, Barrels = 5.17, Sacks = 4.6 }
+-- (The look-test WaterCollector, a stone ring with a red can inside, is gone: off-pipeline.)
+local CAMP_PROPS = { "CrateStack", "Generator", "Barrels", "Sacks" }
+local PROP_SCALE: { [string]: number } = { CrateStack = 5.5, Generator = 4.4, Barrels = 5.17, Sacks = 4.6 }
 
 local function dressing(world: Instance, origin: Vector3, random: Random)
 	if world:FindFirstChild("Dressing") then
