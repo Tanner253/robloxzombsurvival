@@ -3,11 +3,13 @@
 	Outpost build piece definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
 
 	Three tiers: Wood (1), Scrap Metal (2), Reinforced (3). Each tier doubles HP and
-	nothing is unbreachable (DECISIONS.md). Pieces upgrade in place: `upgradeCost`
-	pays for the step to `upgradesTo`, and a higher-tier piece's `cost` (placing it
-	directly) is always the lower tier's cost plus that upgradeCost. The validator
-	checks this. Edge pieces set minFoundationTier to their own tier, which is the
-	"wall tier can't exceed foundation tier" rule.
+	nothing is unbreachable (DECISIONS.md). Pieces upgrade in place along
+	`upgradesTo`. A base-tier piece's `cost` is its placement price; an upgraded
+	tier's `cost` is the price of upgrading into it, and demolish refunds walk the
+	chain (Domain/Grid). Upgraded tiers are only reached by upgrading.
+
+	Edge pieces set minFoundationTier to their own tier: "wall tier can't exceed
+	foundation tier".
 ]]
 
 local Types = require("../Types")
@@ -16,7 +18,7 @@ local SCRAP_TIER: Types.UnlockGate = { kind = "level", level = 6 }
 local REINFORCED_TIER: Types.UnlockGate = { kind = "blueprint", itemId = "item.bp_reinforced" }
 
 local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
-	-- Wood (tier 1) -----------------------------------------------------------------
+	-- Wood (tier 1): placed directly ----------------------------------------------------
 	["build.foundation_wood"] = {
 		id = "build.foundation_wood",
 		name = "Timber Foundation",
@@ -26,10 +28,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		cost = { { itemId = "item.timber", count = 10 } },
 		breachCost = 2,
 		upgradesTo = "build.foundation_scrap",
-		upgradeCost = {
-			{ itemId = "item.plank", count = 6 },
-			{ itemId = "item.scrap_plate", count = 4 },
-		},
 	},
 	["build.wall_wood"] = {
 		id = "build.wall_wood",
@@ -44,10 +42,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.wall_scrap",
-		upgradeCost = {
-			{ itemId = "item.plank", count = 4 },
-			{ itemId = "item.scrap_plate", count = 3 },
-		},
 	},
 	["build.doorway_wood"] = {
 		id = "build.doorway_wood",
@@ -62,10 +56,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.doorway_scrap",
-		upgradeCost = {
-			{ itemId = "item.plank", count = 3 },
-			{ itemId = "item.scrap_plate", count = 3 },
-		},
 	},
 	["build.door_wood"] = {
 		id = "build.door_wood",
@@ -80,11 +70,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.door_scrap",
-		upgradeCost = {
-			{ itemId = "item.plank", count = 2 },
-			{ itemId = "item.scrap_plate", count = 3 },
-			{ itemId = "item.rivets", count = 1 },
-		},
 	},
 	["build.window_wood"] = {
 		id = "build.window_wood",
@@ -99,13 +84,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 1,
 		minFoundationTier = 1,
 		upgradesTo = "build.window_scrap",
-		upgradeCost = {
-			{ itemId = "item.plank", count = 3 },
-			{ itemId = "item.scrap_plate", count = 3 },
-		},
 	},
 
-	-- Scrap Metal (tier 2) ------------------------------------------------------------
+	-- Scrap Metal (tier 2): cost is the upgrade from Wood ----------------------------------
 	["build.foundation_scrap"] = {
 		id = "build.foundation_scrap",
 		name = "Scrap Metal Foundation",
@@ -113,18 +94,12 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 1200,
 		cost = {
-			{ itemId = "item.timber", count = 10 },
 			{ itemId = "item.plank", count = 6 },
 			{ itemId = "item.scrap_plate", count = 4 },
 		},
 		breachCost = 4,
 		unlock = SCRAP_TIER,
 		upgradesTo = "build.foundation_reinforced",
-		upgradeCost = {
-			{ itemId = "item.stone_block", count = 10 },
-			{ itemId = "item.scrap_plate", count = 6 },
-			{ itemId = "item.rivets", count = 2 },
-		},
 	},
 	["build.wall_scrap"] = {
 		id = "build.wall_scrap",
@@ -133,8 +108,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 800,
 		cost = {
-			{ itemId = "item.timber", count = 8 },
-			{ itemId = "item.rope", count = 1 },
 			{ itemId = "item.plank", count = 4 },
 			{ itemId = "item.scrap_plate", count = 3 },
 		},
@@ -142,11 +115,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 2,
 		unlock = SCRAP_TIER,
 		upgradesTo = "build.wall_reinforced",
-		upgradeCost = {
-			{ itemId = "item.stone_block", count = 8 },
-			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
-		},
 	},
 	["build.doorway_scrap"] = {
 		id = "build.doorway_scrap",
@@ -155,8 +123,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 700,
 		cost = {
-			{ itemId = "item.timber", count = 6 },
-			{ itemId = "item.rope", count = 1 },
 			{ itemId = "item.plank", count = 3 },
 			{ itemId = "item.scrap_plate", count = 3 },
 		},
@@ -164,11 +130,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 2,
 		unlock = SCRAP_TIER,
 		upgradesTo = "build.doorway_reinforced",
-		upgradeCost = {
-			{ itemId = "item.stone_block", count = 6 },
-			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
-		},
 	},
 	["build.door_scrap"] = {
 		id = "build.door_scrap",
@@ -177,8 +138,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 600,
 		cost = {
-			{ itemId = "item.timber", count = 5 },
-			{ itemId = "item.rope", count = 2 },
 			{ itemId = "item.plank", count = 2 },
 			{ itemId = "item.scrap_plate", count = 3 },
 			{ itemId = "item.rivets", count = 1 },
@@ -187,11 +146,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 2,
 		unlock = SCRAP_TIER,
 		upgradesTo = "build.door_reinforced",
-		upgradeCost = {
-			{ itemId = "item.scrap_plate", count = 6 },
-			{ itemId = "item.rivets", count = 3 },
-			{ itemId = "item.coil_spring", count = 1 },
-		},
 	},
 	["build.window_scrap"] = {
 		id = "build.window_scrap",
@@ -200,8 +154,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 700,
 		cost = {
-			{ itemId = "item.timber", count = 7 },
-			{ itemId = "item.rope", count = 1 },
 			{ itemId = "item.plank", count = 3 },
 			{ itemId = "item.scrap_plate", count = 3 },
 		},
@@ -209,14 +161,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 2,
 		unlock = SCRAP_TIER,
 		upgradesTo = "build.window_reinforced",
-		upgradeCost = {
-			{ itemId = "item.stone_block", count = 6 },
-			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
-		},
 	},
 
-	-- Reinforced (tier 3) ----------------------------------------------------------------
+	-- Reinforced (tier 3): cost is the upgrade from Scrap Metal ---------------------------
 	["build.foundation_reinforced"] = {
 		id = "build.foundation_reinforced",
 		name = "Reinforced Foundation",
@@ -224,10 +171,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 2400,
 		cost = {
-			{ itemId = "item.timber", count = 10 },
-			{ itemId = "item.plank", count = 6 },
-			{ itemId = "item.scrap_plate", count = 10 },
 			{ itemId = "item.stone_block", count = 10 },
+			{ itemId = "item.scrap_plate", count = 6 },
 			{ itemId = "item.rivets", count = 2 },
 		},
 		breachCost = 8,
@@ -240,11 +185,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1600,
 		cost = {
-			{ itemId = "item.timber", count = 8 },
-			{ itemId = "item.rope", count = 1 },
-			{ itemId = "item.plank", count = 4 },
-			{ itemId = "item.scrap_plate", count = 7 },
 			{ itemId = "item.stone_block", count = 8 },
+			{ itemId = "item.scrap_plate", count = 4 },
 			{ itemId = "item.rivets", count = 2 },
 		},
 		breachCost = 4,
@@ -258,11 +200,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1400,
 		cost = {
-			{ itemId = "item.timber", count = 6 },
-			{ itemId = "item.rope", count = 1 },
-			{ itemId = "item.plank", count = 3 },
-			{ itemId = "item.scrap_plate", count = 7 },
 			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
 			{ itemId = "item.rivets", count = 2 },
 		},
 		breachCost = 4,
@@ -276,11 +215,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1200,
 		cost = {
-			{ itemId = "item.timber", count = 5 },
-			{ itemId = "item.rope", count = 2 },
-			{ itemId = "item.plank", count = 2 },
-			{ itemId = "item.scrap_plate", count = 9 },
-			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.rivets", count = 3 },
 			{ itemId = "item.coil_spring", count = 1 },
 		},
 		breachCost = 3,
@@ -294,11 +230,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1400,
 		cost = {
-			{ itemId = "item.timber", count = 7 },
-			{ itemId = "item.rope", count = 1 },
-			{ itemId = "item.plank", count = 3 },
-			{ itemId = "item.scrap_plate", count = 7 },
 			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.scrap_plate", count = 4 },
 			{ itemId = "item.rivets", count = 2 },
 		},
 		breachCost = 3,
@@ -373,11 +306,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 1,
 		maxPerPlot = 20,
 		upgradesTo = "build.crate_banded",
-		upgradeCost = {
-			{ itemId = "item.plank", count = 6 },
-			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
-		},
 	},
 	["build.crate_banded"] = {
 		id = "build.crate_banded",
@@ -386,8 +314,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 500,
 		cost = {
-			{ itemId = "item.timber", count = 8 },
-			{ itemId = "item.rope", count = 4 },
 			{ itemId = "item.plank", count = 6 },
 			{ itemId = "item.scrap_plate", count = 4 },
 			{ itemId = "item.rivets", count = 2 },

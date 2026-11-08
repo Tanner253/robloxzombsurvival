@@ -2,12 +2,13 @@
 
 The human-readable view of `roblox/src/shared/Data/`. The data files are the source of truth; this page explains them. Numbers follow the LDoE systems catalog ([economy-progression](ldoe-systems/economy-progression.md), [world-content](ldoe-systems/world-content.md)) and are a little more generous, per the monetization guardrails in [GAME_DESIGN.md](GAME_DESIGN.md). Every deliberate deviation is listed in [Deviations from LDoE](#deviations-from-ldoe).
 
-**Counts:** 39 items, 21 recipes, 10 salvage entries, 3 stations, 10 resource nodes, 3 Hollow types, 11 loot tables, 4 locations, 20 build pieces, 20 levels, 10 quests, 4 products.
+**Counts:** 39 items, 21 recipes, 10 salvage entries, 3 stations, 10 resource nodes, 3 Hollow types, 12 loot tables, 4 locations, 20 build pieces, 20 levels, 10 quests, 4 products.
 
 **Checks:** `DataValidator` (Lune test and server boot) rejects any broken reference. It also fails the build when:
 - a node can't be harvested by any tool
 - a location's loot preview lists something that never drops there
-- a build tier's cost doesn't chain (see [Build pieces](#build-pieces))
+- a build tier chain breaks: an upgraded tier with no lower tier, or two pieces upgrading into one (see [Build pieces](#build-pieces))
+- nested loot tables loop, or a pity can never pay out
 - an item can only be bought, not earned in play
 - a blueprint unlocks nothing
 - a loot table, node, enemy or station is unused
@@ -161,19 +162,24 @@ The Caravan opens 3 hours in every 9. Nine doesn't divide 24, so the window drif
 
 ## Loot tables
 
-| Table | Rolls | Entries (weight, count) | Guaranteed |
-|---|---|---|---|
-| enemy_shambler | 0–1 | fiber 30 (1–2), cord 25 (1), cloth 20 (1), scrap 25 (1–3) | — |
-| enemy_runner | 1 | scrap 35 (2–4), cord 25 (1–2), cloth 25 (1–2), tin 10, wire 5 | — |
-| enemy_brute | 1–2 | plate 30 (1–2), rivets 25 (1–2), tin 20, spring 15, motor 10 | 3 scrap |
-| pine_pack | 1–3 | tin 20, cord 20 (1–3), murky 15 (1–2), cloth 15 (1–2), boiled 10, lantern 10, dressing 8, wire 8, club 2 | — |
-| pine_crate | 2–3 | timber 25 (3–6), plank 25 (2–4), scrap 20 (2–4), cord 15 (1–2), glue 5, hatchet 5, lantern 5 | — |
-| quarry_toolbox | 2–3 | scrap 25 (3–6), plate 15 (1–2), rivets 15 (1–3), wire 12, lantern 10, arrows 10 (4–8), spring 6, pick 5, glue 2 | — |
-| quarry_locker | 2–3 | tin 25 (1–2), boiled 20 (1–2), dressing 15 (1–2), cloth 15 (2–3), motor 6, hood 4, tonic 3, bow 2 | — |
-| depot_freight | 3–4 | plate 22 (2–4), rivets 18 (2–4), block 15 (2–4), springs 12 (1–2), motor 12, arrows 10 (6–10), tin 10 (1–2), stew 4, gear 4 | — |
-| depot_strongbox | 1–2 | gear 20 (1–2), springs 20 (1–2), tonic 16, Pack Frame BP 14, Reinforced BP 12, bow 10, Scrapblade 8, vest 8 | 2 rivets |
-| caravan_wagon | 2–4 | plank 15 (4–8), plate 15 (2–4), rivets 14 (2–4), block 12 (3–5), springs 10 (1–2), tin 10 (2–3), stew 8 (1–2), dressing 8 (2), tonic 4, motor 4 | — |
-| caravan_strongbox | 1 | Pack Frame BP 30, Reinforced BP 30, tonic 20, gear 20 (1–2) | 4 plate, 3 rivets |
+*Junk* means one open of the shared `loot.junk` sub-table (an entry with `tableId`).
+
+| Table | Rolls | Entries (weight, count) | Guaranteed | Pity |
+|---|---|---|---|---|
+| enemy_shambler | 0–1 | fiber 30 (1–2), cord 25 (1), cloth 20 (1), scrap 25 (1–3) | — | — |
+| enemy_runner | 1 | scrap 35 (2–4), cord 25 (1–2), cloth 25 (1–2), tin 10, wire 5 | — | — |
+| enemy_brute | 1–2 | plate 30 (1–2), rivets 25 (1–2), tin 20, spring 15, junk 10 | 3 scrap | — |
+| pine_pack | 1–3 | tin 20, cord 20 (1–3), murky 15 (1–2), cloth 15 (1–2), boiled 10, lantern 10, dressing 8, wire 8, club 2 | — | — |
+| pine_crate | 2–3 | timber 25 (3–6), plank 25 (2–4), scrap 20 (2–4), cord 15 (1–2), glue 5, hatchet 5, lantern 5 | — | — |
+| quarry_toolbox | 2–3 | scrap 25 (3–6), junk 22, plate 15 (1–2), rivets 15 (1–3), arrows 10 (4–8), spring 6, pick 5, glue 2 | — | — |
+| quarry_locker | 2–3 | tin 25 (1–2), boiled 20 (1–2), dressing 15 (1–2), cloth 15 (2–3), motor 6, hood 4, tonic 3, bow 2 | — | — |
+| depot_freight | 3–4 | plate 22 (2–4), rivets 18 (2–4), block 15 (2–4), junk 14, springs 12 (1–2), arrows 10 (6–10), tin 10 (1–2), stew 4, gear 4 | — | — |
+| depot_strongbox | 1–2 | gear 20 (1–2), springs 20 (1–2), tonic 16, Pack Frame BP 14\*, Reinforced BP 12\*, bow 10, Scrapblade 8, vest 8 | 2 rivets | epic every 5 |
+| caravan_wagon | 2–4 | plank 15 (4–8), plate 15 (2–4), rivets 14 (2–4), block 12 (3–5), springs 10 (1–2), tin 10 (2–3), stew 8 (1–2), dressing 8 (2), junk 6, tonic 4 | — | — |
+| caravan_strongbox | 1 | Pack Frame BP 30\*, Reinforced BP 30\*, tonic 20, gear 20 (1–2) | 4 plate, 3 rivets | epic every 3 |
+| junk (sub-table) | 1 | lantern 45, wire 40, motor 15 | — | — |
+
+\* The entry's `rarity` is overridden to epic, so the pity guarantees a blueprint: at least one in every 5 Depot strongboxes and every 3 Caravan strongboxes. Pity counters are per player.
 
 ## Enemies (the Hollow)
 
@@ -191,9 +197,10 @@ Speeds and aggro radius are in studs. The player walks at 16 and sprints at 22, 
 
 **Rules:**
 - **Wall tier:** walls, doorways, doors and windows set `minFoundationTier` to their own tier, so a wall can never out-tier its floor.
-- **Placing a higher tier directly** costs the lower tier's cost plus the upgrade cost. The validator enforces this, so refunds stay simple.
+- **Costs follow Domain/Grid.** A Wood piece's `cost` is its placement price. A Scrap Metal or Reinforced piece's `cost` is the price of upgrading into it from the tier below, and demolish refunds walk the whole chain. Upgraded tiers are reached only by upgrading, never placed directly.
+- **Chain checks:** the validator makes sure every upgraded tier has exactly one lower tier upgrading into it.
 
-| Kind | Wood: HP / breach / cost | → Scrap Metal upgrade | Scrap: HP / breach | → Reinforced upgrade | Reinforced: HP / breach |
+| Kind | Wood: HP / breach / cost | Scrap Metal cost (upgrade) | Scrap: HP / breach | Reinforced cost (upgrade) | Reinforced: HP / breach |
 |---|---|---|---|---|---|
 | Foundation | 600 / 2 / 10 timber | 6 plank, 4 plate | 1200 / 4 | 10 block, 6 plate, 2 rivets | 2400 / 8 |
 | Wall | 400 / 1 / 8 timber, 1 cord | 4 plank, 3 plate | 800 / 2 | 8 block, 4 plate, 2 rivets | 1600 / 4 |
@@ -271,12 +278,12 @@ Every item grant goes into the **locked stash**, so nothing bought can be raided
 | Energy | cap 100, +1 per 5 m (full in 8 h 20 m), overfill to 200 from tonics and purchases, +20 per level-up, food and drink energy capped at 40 per UTC day |
 | Inventory | 10 pockets, 0 backpack slots without a bag (6 / 12 with bags, +6 with the pass, max 18), 30-slot locked stash |
 | Player | 100 HP, walk 16, sprint 22, fists 6 dmg at 1.8/s |
-| Survival | hunger −1 per 14 s (about 23 m from full), thirst −1 per 11 s (about 18 m), 1 HP/s damage at 0, +0.1 HP/s while both are ≥ 60, respawn at 60/60/60 |
+| Survival | drains only in the world (not on the Fog map or offline). Hunger −1 per 14 s (about 23 active minutes from full), thirst −1 per 11 s (about 18). Damage adds up per meter: 0.25 HP/s at 15 or below, 1 HP/s at 0. +0.1 HP/s while both are ≥ 60; respawn at 60/60/60 |
 | Combat | armor constant 16.7, 1 durability per weapon hit and per hit taken |
 | Gathering | 0.8 s swing, 1 durability per hit |
 | Travel | 3 s Run load; fog tiers Light / Dense / Black |
-| Death | pockets and backpack drop and last 2 h, equipped gear is kept, only the latest drop is kept |
-| Building | 12-stud cells, 12-stud walls, 10×10 plot, full refund within 30 s, 50% after |
+| Death | pockets and backpack drop and wait 2 h at the location (`keepPockets = false`); equipped gear is kept |
+| Building | 12-stud cells, 12-stud walls, 10×10 plot, full refund within 30 s of placing or upgrading, 50% after |
 | New player | 2 tins, 2 boiled water |
 
 ## Deviations from LDoE
@@ -285,7 +292,7 @@ Every item grant goes into the **locked stash**, so nothing bought can be raided
 |---|---|---|---|
 | Energy | cap 200, green/yellow/red runs 15/22/33 at 1 per 5 m | cap 100, runs 10/15/22 at the same regen | Each run pays back in two thirds of the time (the "slightly more generous" guardrail). A smaller cap suits shorter Roblox sessions: a full bar is 10 Light runs. |
 | Walk times | 12 / 19 / 29 m | 4 / 7 / 12 m | Walking is dead time on Roblox. Free play should feel viable, not punitive. |
-| Survival drain | 1 per 10 s both, 2–5 HP/s at 0 | 1 per 14 s / 11 s, 1 HP/s | More forgiving for new Roblox players and the Mild rating. Thirst still leads, so water stays a reason to build the Campfire. |
+| Survival drain | 1 per 10 s both, 2–5 HP/s at 0 | 1 per 14 s / 11 s of active play; 0.25 HP/s at ≤ 15, 1 HP/s at 0 | Both games drain only in the world. A full meter covers a long run plus the trip home, and the warning band gives time to eat. More forgiving for new Roblox players and the Mild rating. Thirst still leads, so water stays a reason to build the Campfire. |
 | Food gives Energy | no (energy drinks are event-only) | cooked food +2 to +8, capped at 40/day; Ember Tonic +25 | GAME_DESIGN asks for food and drink to restore Energy. The daily cap stops a berry-farming energy loop. |
 | Stacks | 20 default, scrap 50 | 30 default, scrap 50 | Inventory stays a pressure point but less fiddly. |
 | Bags | basic +5, military +10 | +6 / +12 | Slightly generous. The bigger bag stays blueprint-gated like LDoE's. |
@@ -305,5 +312,7 @@ Every item grant goes into the **locked stash**, so nothing bought can be raided
 - Content IDs are permanent. The placeholders `item.wood`, `item.hatchet`, `loc.pine_grove` and `product.resource_pack_small` were renamed before anything shipped.
 - `LocationDef.lootTableIds` and `resetSeconds` became `containers`, `reset` and `availability`.
 - What a level unlocks is never stored: scan `UnlockGate`s, `levelGate`s and `requiredLevel`s.
-- Fuel burn time is `fuel.burnSeconds[itemId]`, or `fuel.secondsPerUnit` for an item not listed there.
+- Tuning sections can be passed as is: `energy` to Energy, `survival` to Survival, `death` to Death, `building` to Grid and `travel` to Travel.
+- Fuel burn time is `fuel.burnSeconds[itemId]`, or `fuel.secondsPerUnit` for an item not listed there. **Open:** Domain/Crafting reads only `secondsPerUnit`, so fatwood (6 m) and planks (3 m) burn like timber (2 m) until it reads `burnSeconds`.
+- **Open:** Domain/Grid lets any piece be placed, including an upgraded tier. With chain costs that charges only the upgrade step while a demolish refunds the whole chain, which is a resource exploit. Placement should be limited to pieces that nothing upgrades into.
 - Recycler chances get `salvageChanceBonus` from the station level added on top, then are scaled by durability when `Tuning.salvage.durabilityScalesChance` is set.

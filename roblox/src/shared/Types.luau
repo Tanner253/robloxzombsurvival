@@ -156,11 +156,23 @@ export type StationDef = {
 
 -- Loot ------------------------------------------------------------------------
 
+-- One weighted pick. Exactly one of itemId and tableId is set: an item entry gives
+-- min..max units (min 0 means "maybe nothing"); a nested entry opens tableId
+-- min..max times (Domain/Loot).
 export type LootEntry = {
-	itemId: ItemId,
+	itemId: ItemId?,
+	tableId: LootTableId?,
 	weight: number,
 	min: number,
 	max: number,
+	rarity: Rarity?, -- overrides the item's rarity for pity in this table
+}
+
+-- At least one in every `every` opens of the table drops an entry of `rarity` or
+-- better. Counters are per player, keyed by table ID.
+export type LootPity = {
+	rarity: Rarity,
+	every: number,
 }
 
 export type LootTableDef = {
@@ -168,6 +180,7 @@ export type LootTableDef = {
 	rolls: { min: number, max: number },
 	entries: { LootEntry },
 	guaranteed: { ItemStack }?,
+	pity: LootPity?,
 }
 
 -- Resource nodes ------------------------------------------------------------------
@@ -251,9 +264,19 @@ export type LocationDef = {
 
 -- Building -----------------------------------------------------------------------
 
--- foundation: a grid cell. wall, doorway, window: a cell edge. door: inside a doorway.
--- station, storage: on a cell, on the ground or on a foundation.
-export type BuildPieceKind = "foundation" | "wall" | "doorway" | "door" | "window" | "roof" | "station" | "storage"
+-- Layers (Domain/Grid): foundation on a cell; wall, doorway, window on a cell edge;
+-- door and gate inside a doorway; roof on a foundation; station, storage and
+-- everything else on a cell, on the ground or on a foundation.
+export type BuildPieceKind =
+	"foundation"
+	| "wall"
+	| "doorway"
+	| "door"
+	| "gate"
+	| "window"
+	| "roof"
+	| "station"
+	| "storage"
 
 export type BuildPieceDef = {
 	id: BuildPieceId,
@@ -261,10 +284,12 @@ export type BuildPieceDef = {
 	kind: BuildPieceKind,
 	tier: number, -- 1 Wood, 2 Scrap Metal, 3 Reinforced; edge pieces can't exceed the foundation's tier
 	hp: number,
-	cost: { ItemStack }, -- to place it directly; equals the lower tier's cost plus its upgradeCost
-	breachCost: number, -- breach charges needed to destroy it in a raid
+	-- The base tier's placement cost. For an upgraded tier (some piece's upgradesTo),
+	-- the price of upgrading into it; refunds walk the chain (Domain/Grid). Upgraded
+	-- tiers are reached by upgrading, never placed directly.
+	cost: { ItemStack },
+	breachCost: number, -- breach charges needed to destroy it in a raid (> 0)
 	upgradesTo: BuildPieceId?,
-	upgradeCost: { ItemStack }?, -- to upgrade in place to upgradesTo; set exactly when upgradesTo is
 	stationId: StationId?, -- required when kind == "station"
 	storageSlots: number?, -- required when kind == "storage"
 	minFoundationTier: number?, -- nil means it can stand on bare ground
@@ -312,7 +337,7 @@ export type ProductKind = "devProduct" | "gamePass"
 
 export type ProductGrant =
 	{ kind: "item", itemId: ItemId, count: number }
-	| { kind: "energy", amount: number } -- may overfill up to Tuning.energy.overfillCap
+	| { kind: "energy", amount: number } -- may overfill up to Tuning.energy.hardCap
 	| { kind: "backpackSlots", amount: number }
 
 export type ProductDef = {
@@ -330,11 +355,21 @@ export type ProductDef = {
 
 -- Tuning ---------------------------------------------------------------------------
 
+-- One survival meter; matches Domain/Survival.MeterConfig. Thresholds add up: each
+-- one the meter is at or below adds its damage.
+export type SurvivalMeter = {
+	max: number,
+	decayPerSecond: number, -- only while the player is in the world
+	thresholds: { { atOrBelow: number, damagePerSecond: number } },
+}
+
+-- Sections whose shape matches a Domain module's Config can be passed to it as is:
+-- energy (Energy), survival (Survival), death (Death), building (Grid), travel (Travel).
 export type TuningDef = {
 	energy: {
 		cap: number,
 		secondsPerPoint: number, -- regen, offline included
-		overfillCap: number, -- tonics and purchases may go past cap up to this
+		hardCap: number, -- tonics and purchases may go past cap up to this
 		levelUpRestore: number,
 		foodDailyCap: number, -- energy from food and drink per UTC day
 	},
@@ -353,12 +388,8 @@ export type TuningDef = {
 		fistRange: number,
 	},
 	survival: {
-		maxHunger: number,
-		maxThirst: number,
-		hungerDrainSeconds: number, -- seconds per point lost
-		thirstDrainSeconds: number,
-		starvingDamagePerSecond: number, -- at 0 hunger
-		dehydratedDamagePerSecond: number, -- at 0 thirst
+		hunger: SurvivalMeter,
+		thirst: SurvivalMeter,
 		regenThreshold: number, -- passive healing while hunger and thirst are both at or above this
 		regenPerSecond: number,
 		respawnHealth: number,
@@ -379,18 +410,15 @@ export type TuningDef = {
 		fogTierNames: { string },
 	},
 	death: {
-		dropLifetimeSeconds: number,
-		dropsPockets: boolean,
-		dropsBackpack: boolean,
-		keepsEquipped: boolean,
-		keepsLatestDropOnly: boolean,
+		despawnSeconds: number, -- how long the dropped backpack waits at the location
+		keepPockets: boolean, -- false: pockets drop with the backpack (equipment is always kept)
 	},
 	building: {
 		gridStuds: number,
 		wallHeightStuds: number,
 		plotCells: number, -- the home plot is plotCells x plotCells
-		freeRefundSeconds: number, -- full refund if removed this soon after placing
-		demolishRefundFraction: number, -- afterwards
+		refundGraceSeconds: number, -- full refund if removed this soon after placing or upgrading
+		lateRefundFraction: number, -- afterwards
 	},
 	salvage: {
 		durabilityScalesChance: boolean,

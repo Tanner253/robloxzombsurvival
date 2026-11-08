@@ -13,7 +13,7 @@ local Tuning: Types.TuningDef = {
 		-- about two thirds as much, so a run pays back in two thirds of the time.
 		cap = 100,
 		secondsPerPoint = 5 * 60,
-		overfillCap = 200,
+		hardCap = 200,
 		levelUpRestore = 20,
 		foodDailyCap = 40,
 	},
@@ -32,13 +32,26 @@ local Tuning: Types.TuningDef = {
 		fistRange = 4,
 	},
 	survival = {
-		-- LDoE drains 1 point per 10 s for both meters (about 17 min from full).
-		maxHunger = 100,
-		maxThirst = 100,
-		hungerDrainSeconds = 14,
-		thirstDrainSeconds = 11,
-		starvingDamagePerSecond = 1,
-		dehydratedDamagePerSecond = 1,
+		-- Meters drain only in the world (not on the Fog map or offline), so these are
+		-- active-play rates. LDoE drains 1 point per 10 s for both (about 17 min from
+		-- full) and deals 2 HP/s at 0. Here a full meter lasts about 23 min (hunger)
+		-- and 18 min (thirst): a long run plus the trip home, with a warning band.
+		hunger = {
+			max = 100,
+			decayPerSecond = 1 / 14,
+			thresholds = {
+				{ atOrBelow = 15, damagePerSecond = 0.25 },
+				{ atOrBelow = 0, damagePerSecond = 0.75 },
+			},
+		},
+		thirst = {
+			max = 100,
+			decayPerSecond = 1 / 11,
+			thresholds = {
+				{ atOrBelow = 15, damagePerSecond = 0.25 },
+				{ atOrBelow = 0, damagePerSecond = 0.75 },
+			},
+		},
 		regenThreshold = 60,
 		regenPerSecond = 0.1,
 		respawnHealth = 60,
@@ -59,18 +72,15 @@ local Tuning: Types.TuningDef = {
 		fogTierNames = { "Light", "Dense", "Black" },
 	},
 	death = {
-		dropLifetimeSeconds = 2 * 60 * 60,
-		dropsPockets = true,
-		dropsBackpack = true,
-		keepsEquipped = true,
-		keepsLatestDropOnly = true,
+		despawnSeconds = 2 * 60 * 60,
+		keepPockets = false, -- LDoE drops everything carried; equipment is always kept
 	},
 	building = {
 		gridStuds = 12,
 		wallHeightStuds = 12,
 		plotCells = 10,
-		freeRefundSeconds = 30,
-		demolishRefundFraction = 0.5,
+		refundGraceSeconds = 30,
+		lateRefundFraction = 0.5,
 	},
 	salvage = {
 		durabilityScalesChance = true,

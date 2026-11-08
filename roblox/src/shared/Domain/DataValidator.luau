@@ -15,8 +15,11 @@
 	- counts, weights, ranges, levels, chances and timings are sane
 	- item fields match their category (tools have tool stats, ranged weapons name
 	  an ammo item, armor has an equip slot, and so on)
-	- build tiers chain: an upgrade goes up exactly one tier of the same kind, and a
-	  higher tier's placement cost equals the lower cost plus the upgrade cost
+	- build tiers chain the way Domain/Grid refunds them: an upgrade goes up exactly
+	  one tier of the same kind, each piece is upgraded into from at most one
+	  piece, and every structural tier above 1 has a lower tier below it
+	- loot nesting (tableId) resolves without loops within Domain/Loot's depth, and
+	  every pity rarity is reachable by some entry
 	- every node can be harvested by some tool, and every location's loot preview
 	  only lists items that really drop there
 	- nothing is orphaned: every loot table, node, enemy and station is used, every
@@ -31,8 +34,10 @@ local DataValidator = {}
 
 local ID_FORM = "^%l+%.[%l%d_]+$"
 local MAX_BUILD_TIER = 3
-local EDGE_KINDS: { [string]: boolean } = { wall = true, doorway = true, door = true, window = true }
+local MAX_LOOT_DEPTH = 8 -- Domain/Loot refuses to nest deeper
+local EDGE_KINDS: { [string]: boolean } = { wall = true, doorway = true, door = true, gate = true, window = true }
 local ARMOR_SLOTS: { [string]: boolean } = { head = true, body = true, legs = true, feet = true }
+local RARITY_RANK: { [string]: number } = { common = 1, uncommon = 2, rare = 3, epic = 4, legendary = 5 }
 
 type Errors = { string }
 type ItemSet = { [Types.ItemId]: boolean }
@@ -101,40 +106,59 @@ local function checkGate(errors: Errors, content: Types.Content, where: string, 
 	end
 end
 
-local function stackTotals(stacks: { Types.ItemStack }): { [string]: number }
-	local totals: { [string]: number } = {}
-	for _, stack in stacks do
-		totals[stack.itemId] = (totals[stack.itemId] or 0) + stack.count
-	end
-	return totals
-end
-
-local function sameTotals(a: { [string]: number }, b: { [string]: number }): boolean
-	for itemId, count in a do
-		if b[itemId] ~= count then
-			return false
-		end
-	end
-	for itemId in b do
-		if a[itemId] == nil then
-			return false
-		end
-	end
-	return true
-end
-
-local function addLootItems(set: ItemSet, loot: Types.LootTableDef?)
+-- Adds every item `loot` can drop, following nested tables, to `set`.
+local function addLootItems(
+	set: ItemSet,
+	content: Types.Content,
+	loot: Types.LootTableDef?,
+	visited: { [string]: boolean }?
+)
 	if loot == nil then
 		return
 	end
+	local seen: { [string]: boolean } = visited or {}
+	if seen[loot.id] then
+		return
+	end
+	seen[loot.id] = true
 	for _, entry in loot.entries do
-		set[entry.itemId] = true
+		if entry.itemId then
+			set[entry.itemId] = true
+		end
+		if entry.tableId then
+			addLootItems(set, content, content.LootTables[entry.tableId], seen)
+		end
 	end
 	if loot.guaranteed then
 		for _, stack in loot.guaranteed do
 			set[stack.itemId] = true
 		end
 	end
+end
+
+-- How deep nesting goes below `tableId`, or nil when it loops back on itself.
+local function lootDepth(content: Types.Content, tableId: string, path: { [string]: boolean }): number?
+	if path[tableId] then
+		return nil
+	end
+	local loot = content.LootTables[tableId]
+	if loot == nil then
+		return 0
+	end
+	path[tableId] = true
+	local deepest = 0
+	for _, entry in loot.entries do
+		if entry.tableId then
+			local below = lootDepth(content, entry.tableId, path)
+			if below == nil then
+				path[tableId] = nil
+				return nil
+			end
+			deepest = math.max(deepest, below + 1)
+		end
+	end
+	path[tableId] = nil
+	return deepest
 end
 
 -- Items ------------------------------------------------------------------------------
@@ -408,18 +432,54 @@ local function checkLootTables(errors: Errors, content: Types.Content)
 		if #loot.entries == 0 then
 			push(errors, `{where}: needs at least one entry`)
 		end
+		local bestRank = 0 -- the rarest thing a pick can force, for the pity check
 		for index, entry in loot.entries do
 			local entryWhere = `{where}.entries[{index}]`
-			checkItemRef(errors, content, entryWhere, entry.itemId)
+			if (entry.itemId ~= nil) == (entry.tableId ~= nil) then
+				push(errors, `{entryWhere}: set exactly one of itemId and tableId`)
+			end
+			if entry.itemId then
+				checkItemRef(errors, content, entryWhere, entry.itemId)
+			end
+			if entry.tableId and content.LootTables[entry.tableId] == nil then
+				push(errors, `{entryWhere}: unknown loot table '{entry.tableId}'`)
+			end
 			if entry.weight <= 0 then
 				push(errors, `{entryWhere}: weight must be positive`)
 			end
-			if not isPositiveInteger(entry.min) or entry.min > entry.max then
-				push(errors, `{entryWhere}: need 1 <= min <= max`)
+			-- min 0 is allowed ("maybe nothing"); an entry must be able to give something.
+			if not isNonNegativeInteger(entry.min) or not isPositiveInteger(entry.max) or entry.min > entry.max then
+				push(errors, `{entryWhere}: need integers 0 <= min <= max, max >= 1`)
 			end
+			local rarity: string? = entry.rarity
+			if rarity ~= nil and RARITY_RANK[rarity] == nil then
+				push(errors, `{entryWhere}: unknown rarity '{rarity}'`)
+			end
+			-- Domain/Loot: a nested entry counts for pity only with an explicit rarity.
+			local item = if entry.itemId then content.Items[entry.itemId] else nil
+			local effective: string? = rarity or (if item then item.rarity else nil)
+			bestRank = math.max(bestRank, if effective then RARITY_RANK[effective] or 0 else 0)
 		end
 		if loot.guaranteed then
 			checkStacks(errors, content, `{where}.guaranteed`, loot.guaranteed)
+		end
+		local pity = loot.pity
+		if pity then
+			local rank = RARITY_RANK[pity.rarity :: string]
+			if rank == nil then
+				push(errors, `{where}.pity: unknown rarity '{pity.rarity}'`)
+			elseif bestRank < rank then
+				push(errors, `{where}.pity: no entry is {pity.rarity} or better, so pity can never pay out`)
+			end
+			if not isPositiveInteger(pity.every) or pity.every < 2 then
+				push(errors, `{where}.pity: every must be an integer of at least 2`)
+			end
+		end
+		local depth = lootDepth(content, id, {})
+		if depth == nil then
+			push(errors, `{where}: nested tables loop back on themselves`)
+		elseif depth > MAX_LOOT_DEPTH then
+			push(errors, `{where}: nests {depth} tables deep, more than {MAX_LOOT_DEPTH}`)
 		end
 	end
 end
@@ -494,7 +554,7 @@ local function checkLocations(errors: Errors, content: Types.Content)
 				push(errors, `{where}.containers[{index}]: unknown loot table '{container.lootTableId}'`)
 			end
 			checkRange(errors, `{where}.containers[{index}].count`, container.count)
-			addLootItems(drops, loot)
+			addLootItems(drops, content, loot)
 		end
 		checkLocationNodes(errors, content, `{where}.nodes`, location.nodes)
 		for _, entry in location.nodes do
@@ -511,7 +571,7 @@ local function checkLocations(errors: Errors, content: Types.Content)
 				push(errors, `{where}.enemySpawns[{index}]: unknown enemy '{spawn.enemyId}'`)
 			end
 			checkRange(errors, `{where}.enemySpawns[{index}].count`, spawn.count)
-			addLootItems(drops, if enemy then content.LootTables[enemy.lootTableId] else nil)
+			addLootItems(drops, content, if enemy then content.LootTables[enemy.lootTableId] else nil)
 		end
 
 		if #location.mainLoot == 0 then
@@ -533,6 +593,22 @@ end
 -- Building ------------------------------------------------------------------------------
 
 local function checkBuildPieces(errors: Errors, content: Types.Content)
+	-- Who upgrades into each piece: Domain/Grid walks this chain for refunds.
+	local upgradedFrom: { [string]: { string } } = {}
+	for _, id in TableUtil.sortedKeys(content.BuildPieces) do
+		local target = content.BuildPieces[id].upgradesTo
+		if target ~= nil then
+			upgradedFrom[target] = upgradedFrom[target] or {}
+			table.insert(upgradedFrom[target], id)
+		end
+	end
+	for _, id in TableUtil.sortedKeys(upgradedFrom) do
+		local sources = upgradedFrom[id]
+		if #sources > 1 then
+			push(errors, `BuildPieces['{id}']: upgraded into from more than one piece ({table.concat(sources, ", ")})`)
+		end
+	end
+
 	for _, id in TableUtil.sortedKeys(content.BuildPieces) do
 		local piece = content.BuildPieces[id]
 		local where = `BuildPieces['{id}']`
@@ -574,28 +650,19 @@ local function checkBuildPieces(errors: Errors, content: Types.Content)
 			checkGate(errors, content, `{where}.unlock`, piece.unlock)
 		end
 
-		if (piece.upgradesTo ~= nil) ~= (piece.upgradeCost ~= nil) then
-			push(errors, `{where}: upgradesTo and upgradeCost must be set together`)
-		end
-		if piece.upgradeCost then
-			checkStacks(errors, content, `{where}.upgradeCost`, piece.upgradeCost)
-		end
 		if piece.upgradesTo ~= nil then
 			local target = content.BuildPieces[piece.upgradesTo]
 			if target == nil then
 				push(errors, `{where}: unknown upgradesTo piece '{piece.upgradesTo}'`)
-			else
-				if target.kind ~= piece.kind or target.tier ~= piece.tier + 1 then
-					push(errors, `{where}: upgradesTo must be the same kind, one tier up`)
-				end
-				local expected = stackTotals(piece.cost)
-				for itemId, count in stackTotals(piece.upgradeCost or {}) do
-					expected[itemId] = (expected[itemId] or 0) + count
-				end
-				if not sameTotals(expected, stackTotals(target.cost)) then
-					push(errors, `{where}: '{piece.upgradesTo}' cost must equal this cost plus upgradeCost`)
-				end
+			elseif target.kind ~= piece.kind or target.tier ~= piece.tier + 1 then
+				push(errors, `{where}: upgradesTo must be the same kind, one tier up`)
 			end
+		end
+		-- An upgraded tier's cost is only the step into it, so it must never be the
+		-- start of a chain: structural pieces above tier 1 need a piece below them.
+		local structural = EDGE_KINDS[piece.kind] or piece.kind == "foundation"
+		if piece.tier > 1 and structural and upgradedFrom[id] == nil then
+			push(errors, `{where}: tier {piece.tier} {piece.kind} has no lower tier upgrading into it`)
 		end
 	end
 end
@@ -767,8 +834,8 @@ local function checkTuning(errors: Errors, content: Types.Content)
 	if energy.cap <= 0 or energy.secondsPerPoint <= 0 then
 		push(errors, "Tuning.energy: cap and secondsPerPoint must be positive")
 	end
-	if energy.overfillCap < energy.cap then
-		push(errors, "Tuning.energy: overfillCap must be at least cap")
+	if energy.hardCap < energy.cap then
+		push(errors, "Tuning.energy: hardCap must be at least cap")
 	end
 	if energy.levelUpRestore < 0 or energy.foodDailyCap < 0 then
 		push(errors, "Tuning.energy: levelUpRestore and foodDailyCap must not be negative")
@@ -777,11 +844,23 @@ local function checkTuning(errors: Errors, content: Types.Content)
 		push(errors, "Tuning.inventory: need pocketSlots >= 1 and backpackSlots <= maxBackpackSlots")
 	end
 	local survival = tuning.survival
-	if survival.hungerDrainSeconds <= 0 or survival.thirstDrainSeconds <= 0 then
-		push(errors, "Tuning.survival: drain seconds must be positive")
+	for _, meterName in { "hunger", "thirst" } do
+		local meter: Types.SurvivalMeter = if meterName == "hunger" then survival.hunger else survival.thirst
+		local where = `Tuning.survival.{meterName}`
+		if meter.max <= 0 or meter.decayPerSecond <= 0 then
+			push(errors, `{where}: max and decayPerSecond must be positive`)
+		end
+		for index, threshold in meter.thresholds do
+			if threshold.atOrBelow < 0 or threshold.atOrBelow > meter.max or threshold.damagePerSecond < 0 then
+				push(errors, `{where}.thresholds[{index}]: need 0 <= atOrBelow <= max and damage >= 0`)
+			end
+		end
 	end
-	if survival.maxHunger <= 0 or survival.maxThirst <= 0 or tuning.player.maxHealth <= 0 then
-		push(errors, "Tuning: maxHealth, maxHunger and maxThirst must be positive")
+	if tuning.player.maxHealth <= 0 then
+		push(errors, "Tuning.player: maxHealth must be positive")
+	end
+	if tuning.death.despawnSeconds <= 0 then
+		push(errors, "Tuning.death: despawnSeconds must be positive")
 	end
 	if tuning.combat.armorConstant <= 0 then
 		push(errors, "Tuning.combat: armorConstant must be positive")
@@ -789,9 +868,9 @@ local function checkTuning(errors: Errors, content: Types.Content)
 	if tuning.building.gridStuds <= 0 or not isPositiveInteger(tuning.building.plotCells) then
 		push(errors, "Tuning.building: gridStuds and plotCells must be positive")
 	end
-	local refund = tuning.building.demolishRefundFraction
-	if refund < 0 or refund > 1 then
-		push(errors, "Tuning.building: demolishRefundFraction must be between 0 and 1")
+	local refund = tuning.building.lateRefundFraction
+	if refund < 0 or refund > 1 or tuning.building.refundGraceSeconds < 0 then
+		push(errors, "Tuning.building: need 0 <= lateRefundFraction <= 1 and refundGraceSeconds >= 0")
 	end
 	if #tuning.travel.fogTierNames == 0 then
 		push(errors, "Tuning.travel: fogTierNames must not be empty")
@@ -826,9 +905,16 @@ local function checkUsage(errors: Errors, content: Types.Content)
 	for _, enemy in content.Enemies do
 		usedLoot[enemy.lootTableId] = true
 	end
+	for _, loot in content.LootTables do
+		for _, entry in loot.entries do
+			if entry.tableId then
+				usedLoot[entry.tableId] = true
+			end
+		end
+	end
 	for _, id in TableUtil.sortedKeys(content.LootTables) do
 		if not usedLoot[id] then
-			push(errors, `LootTables['{id}']: not used by any location container or enemy`)
+			push(errors, `LootTables['{id}']: not used by any location container, enemy or nested entry`)
 		end
 	end
 	for _, id in TableUtil.sortedKeys(content.Nodes) do
@@ -886,7 +972,7 @@ local function checkUsage(errors: Errors, content: Types.Content)
 		end
 	end
 	for _, loot in content.LootTables do
-		addLootItems(earnable, loot)
+		addLootItems(earnable, content, loot)
 	end
 	for _, station in content.Stations do
 		if station.salvage then

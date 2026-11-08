@@ -8,7 +8,11 @@
 local TestKit = require("./TestKit")
 local Content = require("../src/shared/Data")
 local DataValidator = require("../src/shared/Domain/DataValidator")
+local Energy = require("../src/shared/Domain/Energy")
+local Grid = require("../src/shared/Domain/Grid")
+local Survival = require("../src/shared/Domain/Survival")
 local TableUtil = require("../src/shared/Util/Table")
+local Travel = require("../src/shared/Domain/Travel")
 
 local function brokenCopy(mutate: (content: any) -> ()): { string }
 	local copy = TableUtil.deepCopy(Content) :: any
@@ -67,6 +71,26 @@ return function(test: TestKit.Register)
 			local byTier = structural[kind] or {}
 			TestKit.truthy(byTier[1] and byTier[2] and byTier[3], `{kind} in all 3 tiers`)
 		end
+	end)
+
+	test("Tuning sections and locations plug straight into the Domain modules", function()
+		local tuning = Content.Tuning
+		-- Energy: a Run to the Black fog regenerates in 22 x 5 min.
+		local energy = Energy.spend({ value = tuning.energy.cap, updatedAt = 0 }, 0, tuning.energy, 22)
+		TestKit.truthy(energy, "spend")
+		TestKit.equal(Energy.secondsUntilFull(energy :: any, 0, tuning.energy), 22 * 5 * 60, "regen time")
+		-- Survival: a full thirst meter lasts about 18 active minutes.
+		local meters = Survival.new(0, tuning.survival)
+		local thirstSeconds = Survival.secondsUntil(meters, tuning.survival, "thirst", 0)
+		TestKit.truthy(thirstSeconds > 17 * 60 and thirstSeconds < 19 * 60, `thirst lasts {thirstSeconds} s`)
+		-- Travel: Run and Walk to every location.
+		for _, location in Content.Locations do
+			TestKit.equal(Travel.plan(location, "run", tuning.travel).energyCost, location.energyCost, location.id)
+			TestKit.equal(Travel.plan(location, "walk", tuning.travel).seconds, location.walkSeconds, location.id)
+		end
+		-- Grid: our window and door kinds land on the layers Grid expects.
+		TestKit.equal(Grid.layerOf(Content.BuildPieces["build.window_scrap"]), "frame", "window layer")
+		TestKit.equal(Grid.layerOf(Content.BuildPieces["build.door_reinforced"]), "fill", "door layer")
 	end)
 
 	test("catches an unknown item in a recipe input", function()
@@ -151,7 +175,7 @@ return function(test: TestKit.Register)
 			c.LootTables["loot.quarry_toolbox"].entries[1].min = 9
 		end)
 		TestKit.anyContains(errors, "stackSize must be a positive integer")
-		TestKit.anyContains(errors, "need 1 <= min <= max")
+		TestKit.anyContains(errors, "need integers 0 <= min <= max, max >= 1")
 	end)
 
 	test("catches item fields that don't match the category", function()
@@ -181,13 +205,39 @@ return function(test: TestKit.Register)
 
 	test("catches build tiers that don't chain", function()
 		local errors = brokenCopy(function(c)
-			c.BuildPieces["build.wall_scrap"].cost[1].count = 9
 			c.BuildPieces["build.door_scrap"].minFoundationTier = 1
 			c.BuildPieces["build.window_wood"].upgradesTo = "build.wall_scrap"
 		end)
-		TestKit.anyContains(errors, "BuildPieces['build.wall_wood']: 'build.wall_scrap' cost must equal")
 		TestKit.anyContains(errors, "door tier can't exceed its foundation tier")
 		TestKit.anyContains(errors, "BuildPieces['build.window_wood']: upgradesTo must be the same kind, one tier up")
+		TestKit.anyContains(errors, "BuildPieces['build.wall_scrap']: upgraded into from more than one piece")
+		TestKit.anyContains(
+			errors,
+			"BuildPieces['build.window_scrap']: tier 2 window has no lower tier upgrading into it"
+		)
+	end)
+
+	test("catches broken loot nesting, entries and pity", function()
+		local errors = brokenCopy(function(c)
+			c.LootTables["loot.quarry_toolbox"].entries[4].tableId = "loot.nowhere"
+			c.LootTables["loot.junk"].entries[1] = { tableId = "loot.enemy_brute", weight = 1, min = 1, max = 1 }
+			c.LootTables["loot.pine_pack"].entries[1].tableId = "loot.junk"
+			c.LootTables["loot.pine_crate"].pity = { rarity = "epic", every = 4 }
+		end)
+		TestKit.anyContains(errors, "unknown loot table 'loot.nowhere'")
+		TestKit.anyContains(errors, "LootTables['loot.junk']: nested tables loop back on themselves")
+		TestKit.anyContains(errors, "LootTables['loot.pine_pack'].entries[1]: set exactly one of itemId and tableId")
+		TestKit.anyContains(errors, "LootTables['loot.pine_crate'].pity: no entry is epic or better")
+	end)
+
+	test("nested loot counts for previews and earnability", function()
+		local errors = brokenCopy(function(c)
+			-- The Seized Motor now drops only through loot.junk, and the Quarry still previews it.
+			c.LootTables["loot.quarry_locker"].entries[5].itemId = "item.cloth"
+		end)
+		for _, message in errors do
+			TestKit.truthy(not string.find(message, "seized_motor", 1, true), `unexpected error: {message}`)
+		end
 	end)
 
 	test("catches blueprint gates on non-blueprints and blueprints that unlock nothing", function()
@@ -220,7 +270,10 @@ return function(test: TestKit.Register)
 				{ kind = "item", itemId = "item.gold_crown", count = 1 }
 			)
 		end)
-		TestKit.anyContains(errors, "LootTables['loot.caravan_strongbox']: not used by any location container or enemy")
+		TestKit.anyContains(
+			errors,
+			"LootTables['loot.caravan_strongbox']: not used by any location container, enemy or nested entry"
+		)
 		TestKit.anyContains(errors, "Items['item.gold_crown']: can't be earned in play")
 	end)
 
