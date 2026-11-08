@@ -329,6 +329,15 @@ LDoE is the standard here: a long weapon ladder, from improvised melee to modded
 - VIP servers
 - Cosmetics as a side line
 
+**Shop structure** (from the developer's 2026-11-08 recordings, rec8):
+- **Tabs:** Best, Season, Daily Deals, Outpost, Equipment, Building, Vehicles, Companions, Currency, plus a **Delivery inbox** and VIP.
+- **Daily free claim:** one free item every day. It's the cheapest daily return trigger there is.
+- **Daily Deals:** a rotating stock of 12 items bought with soft currency. One refresh a day is free, further refreshes come from a rewarded ad (13+), and one deal a day is free with an ad.
+- **Room kits:** prefab material bundles ("Timber room 3×3", "Stone room 3×3") that let a player who pays build a whole room instantly. They land in the Delivery inbox.
+- **Capacity packs:** "+1 Campfire can be placed", "+1 Recycler". Placement limits ("Placed 1/2") make the value of these obvious.
+- **Cards:** contents shown exactly (no "possible reward" randomness), tag ribbons, purchase limits and timers. A struck-through "was" price appears only if the item really sold at that price.
+- **Delivery inbox:** everything bought, earned from events or mailed arrives here first. Players take it out when they have room. It's raid-proof, which is our "purchases go to the locked stash" rule as a screen. Bought items never expire.
+
 **Conversion levers seen in LDoE that we adopt** (detail in [reference/ldoe-recordings/NOTES.md](reference/ldoe-recordings/NOTES.md)):
 - Run vs Walk on Energy
 - **auto-gather** (rewarded ad with a daily cap, or paid)

@@ -82,6 +82,10 @@ Nothing player-facing is done until it has all ten:
 | 4.8 | Premium currency balance with "+" on every inventory screen (opens the shop) | rec1 lever 10 | S1 (display) → S3 (shop) |
 | 4.9 | Hotbar 1–9, the mouse wheel cycles, the selected slot is highlighted, durability and ammo counts show, quick-use consumables | Weapon swap (rec6) | S1 (ammo S2) |
 | 4.10 | Open and close tweens, plus open, close, hover, click, error and pickup sounds. Esc closes. Tab toggles. | — | S1 |
+| 4.11 | Inventory action bar: Equip/Use, Split, sort, and **destroy** (trash, with confirmation). Storage bar: Take all, sort, Put all. | rec8 | S1 |
+| 4.12 | **Storage upgrade in the panel:** the storage header has an upgrade button showing slot capacity now → next and the material cost (have/need). Upgrading happens in place without rebuilding. | rec8 "Storage upgrade" | S1 |
+| 4.13 | **In-world storage labels:** crates show an icon of their main contents (or a category the player picks), so a base reads at a glance | rec8 interior | S1 |
+| 4.14 | Tooltips show stats as icon and value pairs (damage, speed, armor), plus installed mods and empty mod slots (mods arrive in M2) | rec8 | S1 (stats) |
 
 ## 5. Crafting and stations
 
@@ -95,6 +99,10 @@ Nothing player-facing is done until it has all ten:
 | 5.6 | Offline completion is shown on return ("Ready while you were away") | — | S1 |
 | 5.7 | A station upgrade arrow is always visible, with the upgrade cost | rec4 | S1 (UI) / S3 (levels) |
 | 5.8 | Hand crafting (hatchet, pick, cord) from the inventory without a station | — | S1 |
+| 5.9 | **Crafting catalogue** (the hand-crafting screen, opened with C or a button): a grid of every recipe with art and names, and category tabs (All, Tools, Weapons, Clothing, Building, Furniture and decor, Favourites ★). NEW badges mark recipes unlocked since you last looked. Locked recipes are greyed, with the unlock condition in red ("Reach level 5", "Complete the 'Hold the Door' quest"). It replaces the short list currently in the inventory. | rec9 | S1 |
+| 5.10 | **Recipe detail card:** art on a blueprint-style card, stat icons, a description, and an ingredient grid with have/need (red when short). **Hover or tap an ingredient to see where it comes from** ("Chopped from pines with a hatchet", "Workbench: 4 timber → 4 planks"). A quantity slider with Max, then the Craft button. | rec9 | S1 |
+| 5.11 | Placement limits shown and enforced: "Placed 1/2" on stations, crates and decor | rec9 "Installed 0/3" | S1 |
+| 5.12 | A count badge over a station in the world when output is ready (for example "3"), visible from the gameplay camera | rec8 | S1 |
 
 ## 6. Building
 
@@ -133,6 +141,9 @@ Nothing player-facing is done until it has all ten:
 | 8.6 | Settings: audio sliders, camera shake, UI scale, keybind list | — | S1 |
 | 8.7 | Minimap with points of interest and, later, enemy dots | rec6 | S2 |
 | 8.8 | Targeted enemy name and HP bar at top centre, damage numbers | rec6 | S2 |
+| 8.9 | A collapsible quest tracker (the « button), and a level bar with the level number along the bottom edge | rec8 | S1 |
+| 8.10 | A bottom or side menu bar (Inventory, Crafting, Build, Quests, Shop, Social) with count and NEW badges on each icon | rec8 | S1 (Shop and Social in S3) |
+| 8.11 | Minimap showing your outpost layout and nearby points of interest | rec8 | S1 (home) / S2 (locations) |
 
 ## 9. World and atmosphere
 
@@ -145,6 +156,7 @@ Nothing player-facing is done until it has all ten:
 | 9.5 | Smooth day/night cycle with stable exposure (no jarring brightness shifts) | rec1 night | S1 |
 | 9.6 | Wind (grass sway, drifting leaves and dust), occasional rain | — | S1 (wind) / S3 (rain) |
 | 9.7 | Ambience: day birds and wind, night insects and an eerie bed, fire crackle near flames, all layered with distance | — | S1 |
+| 9.9 | **Placeable light sources** (torches, lanterns on posts) cast warm light pools at night. They're craftable early and form part of "light is territory". | rec8 torch | S1 |
 | 9.8 | Music: calm day, tense night, a sting on level-up and quest completion | — | S1 (basic) / S3 |
 
 ## 10. Session, save, onboarding
@@ -173,5 +185,13 @@ S2 and S3 briefs expand these into full rows. The minimum:
   - Loot drops.
   - Ammo counts, reload, noise.
   - Dodge roll.
-- **Shop:** currency "+" opens it, products, receipt flow, and purchases going into the locked stash.
+- **Shop (rec8 anatomy):**
+  - Tabs: Best, Season, Daily Deals, Outpost, Equipment, Building, Vehicles, Companions, Currency, plus Inbox and VIP.
+  - Cards: title, description, contents shown exactly (never "possible reward" randomness), art, price button, tag ribbons (Popular, Limited, New), purchase limit and timer, and an honest "was" price only when it truly was.
+  - A **daily free claim**.
+  - **Daily Deals:** a rotating stock bought with soft currency, with one free refresh and further refreshes by rewarded ad for 13+.
+  - **Room kits:** prefab material bundles such as "Stone room 3×3".
+  - **Capacity packs:** "+1 Campfire can be placed".
+  - The currency "+" opens it. Receipt flow.
+- **Delivery inbox** (rec8): purchases, event rewards and mail land here, with TAKE per row, Take all and a category filter. It's safe storage that can't be raided, which is our locked-stash rule turned into UX. Items never expire if they were bought.
 - **Crews:** invites, roles, a shared outpost.
