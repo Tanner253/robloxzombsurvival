@@ -66,6 +66,9 @@ Every asset, animation, effect and UI element must pass this document. If someth
   2. **Mid:** wear that tells a story. Paths worn between points of use, cracked roads with puddles, scorched ash near fires, dead grey grass toward the Fog.
   3. **Micro:** scatter (grass tufts, pebbles, leaves, roots, scrap, planks) plus decals (stains, cracks, tire tracks). Wind-animated grass via Terrain decoration.
   - **Gate:** at the gameplay camera, a viewer can't spot a repeating pattern by day or by night.
+- **One material per building tier, shared by every structure piece** (the developer, 2026-11-08: "keep it simple stupid").
+  - Foundation, floor, wall, doorway, door, window and roof of the same tier all use the **same** MaterialVariant. For the Timber tier, that's the deck's plank material.
+  - Structure pieces are exact-geometry bodies with that material plus minimal shared trim. They aren't one-off generated meshes.
 - **Building tiers must read instantly by silhouette and material:**
   - **Wood:** plank lattice and rope.
   - **Scrap metal:** patched corrugated sheets and bolts.
@@ -116,7 +119,15 @@ Every asset, animation, effect and UI element must pass this document. If someth
   - 2 px stroke in warm gray, with an ember accent for primary actions
   - a soft drop shadow
 - **Font:** Builder Sans (ExtraBold for headers, Medium for body). Use no other fonts.
-- **Icons:** painted, realistic-leaning item renders in one style, with no emoji, flat symbols or default glyphs.
+- **No emoji, no Unicode symbols and no default Roblox icons anywhere in the UI** (the developer, 2026-11-08: "the emojis and icons used and the design, very low quality"). That covers ❤ ⚡ ✋ ✕ and every glyph in text.
+- **UI glyphs:** one custom glyph set, generated as a single sheet so it's consistent. Bold cream (#F2EEE6) silhouettes with soft top-left shading, the same weight and size, used for HUD stats, buttons, tabs and badges. The sheet lives in `art/ui/glyphs/`. Every button and stat uses one.
+- **Layout follows the LDoE HUD and screens** (rec1, rec6, rec8 HUD frames):
+  - stats top-left; minimap and currency top-right
+  - action cluster bottom-right (attack, use, weapon slot and swap, meds, sprint)
+  - joystick bottom-left on touch
+  - a menu bar along the bottom with badges
+  - full-screen panels for the inventory, crafting and the shop
+- **Item icons:** painted, realistic-leaning item renders in one style, with no emoji, flat symbols or default glyphs.
   - Same 3/4 angle, light from the top-left, soft shading, a subtle dark outline and a transparent background.
   - Weathered materials that match the toon-PBR world.
   - Lock the style with 3 sample icons before generating a batch.
@@ -130,9 +141,43 @@ Every asset, animation, effect and UI element must pass this document. If someth
 - Streaming enabled. A target of 60 fps on PC, and never below 30 on mid-range phones.
 - Prefer MeshParts with LODs. Keep instance counts low per plot and per zone. Cap dynamic lights per screen (exact numbers set in the look test).
 
+## 10a. Consistency system (v2, 2026-11-08)
+
+**Why it exists:** the developer said "the visual quality of things is extremely inconsistent."
+- **What's fine:** the developer approved the realistic painted concept look of the slice-1 node concepts (`art/higgsfield/m1-slice1/crops/`: loose stones, fatwood stump, pine and boulder). That look is the target.
+- **What's bad:** assets that **didn't come from that pipeline**, such as fallback models, `generate_mesh` results, primitive builds, and leftover look-test dressing. Examples: a round stone pit with red metal inside, and a mud-blotch object.
+- **Other causes:** conversions with defects (floating fragments, blobby silhouettes), and drift when assets are generated one at a time.
+
+**The system** (mandatory for every new or redone world asset):
+1. **Style reference:** the approved concept crops listed above are the style anchor. Every new concept passes them **as image references** with the same prompt preamble: realistic painted game asset, weathered, muted palette, top-left light, neutral grey background, 3/4 view.
+   - **One pipeline only:** everything in the world comes from concept → conversion → conform → lineup.
+   - Fallbacks, `generate_mesh` results, primitive builds and old look-test dressing are removed from the world, not tolerated.
+2. **Family sheets:** generate assets in families on one canvas, so a family shares lighting, palette and detail.
+   - **Nature:** rocks, stones, stumps, dead trees, branches, bushes, reeds.
+   - **Camp:** campfire, crates, Workbench, Recycler, spring, lantern post.
+   - **Structure trim.**
+   - Never generate a lone asset.
+3. **Conversion** with fixed settings for every asset.
+4. **Conform pass:**
+   - **Automated floater gate** (a script in `tools/`, run on every GLB before upload and on every existing kit model): split the mesh into connected components and flag any island that's detached from the ground and from the rest of the model, or that is a flat card hovering over it. A model ships only with zero flags. Developer-found floaters so far: the fallen-branches leaf card and the boulder fragments.
+   - Delete floating fragments and internal faces, and plant the base on the ground.
+   - Normalize scale to the survivor.
+   - **Normalize color and value:** tint each asset's SurfaceAppearance so rocks match rocks and wood matches wood across assets. Keep the baked realistic detail.
+   - Set CollisionFidelity, strip scripts, and run the z-fighting check.
+5. **Lineup gate in Studio:**
+   - A fixed lineup scene holds each new asset next to the survivor and 3 approved exemplars (outpost kit pieces), under the same lighting.
+   - It's captured at gameplay zoom and close up, by day and by night.
+   - Assets are graded **A** (ships), **B** (fix) or **C** (redo). Only A ships.
+   - The orchestrator approves the lineup capture before anything enters the world.
+6. **Audit the whole world:** list every distinct model in `Workspace.World` with its source (pipeline or not) and grade. Anything not from the pipeline, or graded below A, gets replaced or removed.
+
 ## 10. Asset pipeline and consistency gate
 
 1. **Look test in Studio:** a small in-engine scene from the game's fixed angled top-down camera (LDoE-style framing; see `docs/reference/ldoe-recordings/`). It covers the outpost by day and by night, a fog-zone corner, the Hollow and the HUD. Once approved, it becomes the visual reference everything is checked against.
 2. **Production:** Roblox `generate_mesh` / `generate_material`, Higgsfield 3D, or curated Creator Store assets. **Strip every script from inserted models**, because free models can contain malicious code.
 3. **Conform pass:** apply palette-locked MaterialVariants, fix scale and texel density, bevel edges, add LODs.
-4. **Gate:** screenshot the asset in context at day and at night, and at phone resolution. Compare it with the style frames. Reject it or fix it before showing the user.
+4. **Z-fighting check:**
+   - No coplanar overlapping surfaces, inside a model or against its neighbours: tiles, terrain, trim and decals.
+   - Detail layers sit at least 0.05 studs proud of the surface beneath.
+   - Watch the asset at the closest and farthest camera zoom while the camera moves, because flicker only shows in motion.
+5. **Gate:** screenshot the asset in context at day and at night, and at phone resolution. Compare it with the style frames. Reject it or fix it before showing the user.
