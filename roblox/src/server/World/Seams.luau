@@ -6,6 +6,10 @@
 	- Foundations are exact 12 x 12 deck slabs whose tiling material lines up
 	  across cells (Models.deck); here a trim beam runs only along edges with no
 	  foundation beyond them, so a group of tiles gets one frame around the outside.
+	- No two parts share a face (checklist 6.11, no z-fighting): each beam sits just
+	  outside its deck edge and is exactly one cell long, so beams abut end to end.
+	  At an inside corner the east/west beam owns the shared square and the
+	  north/south beam stops short of it; an outside corner gets one corner block.
 	- A corner post stands at every grid vertex a wall, doorway or window touches,
 	  covering the joint where walls meet and the open end of a run.
 
@@ -25,6 +29,7 @@ local CELL = Grid.CELL_STUDS
 local BEAM_DEPTH = 0.8
 local BEAM_HEIGHT = 1.7
 local RIM = 0.18 -- the trim stands this far proud of the deck
+local SINK = 0.05 -- detail layers sit at least this far off any surface they meet
 
 type Trim = { material: Enum.Material, color: Color3, post: "log" | "box", postSize: number }
 
@@ -70,21 +75,52 @@ local function cellKey(x: number, z: number): string
 	return `{x},{z}`
 end
 
--- The beam along one exposed side of a foundation cell (plot-local studs).
-local function beam(model: Model, origin: Vector3, x: number, z: number, side: string, trim: Trim)
+-- The beam along one exposed side of a foundation cell (plot-local studs). It lies
+-- outside the cell, flush against the deck's side; `trimStart` / `trimEnd` shorten a
+-- north/south beam by one beam depth where an east/west beam already fills the corner.
+local function beam(
+	model: Model,
+	origin: Vector3,
+	x: number,
+	z: number,
+	side: string,
+	trim: Trim,
+	trimStart: boolean,
+	trimEnd: boolean
+)
 	local x0, z0 = x * CELL, z * CELL
 	local top = Art.FLOOR_HEIGHT + RIM
 	local y = top - BEAM_HEIGHT / 2
-	local length = CELL + BEAM_DEPTH -- overlaps its neighbour at outside corners
-	local along = Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
-	local across = Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, length)
-	local centre = if side == "n"
-		then Vector3.new(x0 + CELL / 2, y, z0 + BEAM_DEPTH / 2)
-		elseif side == "s" then Vector3.new(x0 + CELL / 2, y, z0 + CELL - BEAM_DEPTH / 2)
-		elseif side == "w" then Vector3.new(x0 + BEAM_DEPTH / 2, y, z0 + CELL / 2)
-		else Vector3.new(x0 + CELL - BEAM_DEPTH / 2, y, z0 + CELL / 2)
-	local size = if side == "n" or side == "s" then along else across
+	local from = if trimStart then BEAM_DEPTH else 0
+	local to = CELL - (if trimEnd then BEAM_DEPTH else 0)
+	local length = to - from
+	local mid = (from + to) / 2
+	local centre, size
+	if side == "n" then
+		centre, size = Vector3.new(x0 + mid, y, z0 - BEAM_DEPTH / 2), Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
+	elseif side == "s" then
+		centre, size =
+			Vector3.new(x0 + mid, y, z0 + CELL + BEAM_DEPTH / 2), Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
+	elseif side == "w" then
+		centre, size = Vector3.new(x0 - BEAM_DEPTH / 2, y, z0 + CELL / 2), Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, CELL)
+	else
+		centre, size =
+			Vector3.new(x0 + CELL + BEAM_DEPTH / 2, y, z0 + CELL / 2), Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, CELL)
+	end
 	local part = add(model, size, CFrame.new(origin + centre), trim.material, trim.color)
+	part.CanCollide = false
+end
+
+-- The square block that closes an outside corner of the frame, at plot-local (cx, cz).
+local function corner(model: Model, origin: Vector3, cx: number, cz: number, trim: Trim)
+	local y = Art.FLOOR_HEIGHT + RIM - BEAM_HEIGHT / 2
+	local part = add(
+		model,
+		Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, BEAM_DEPTH),
+		CFrame.new(origin + Vector3.new(cx, y, cz)),
+		trim.material,
+		trim.color
+	)
 	part.CanCollide = false
 end
 
@@ -129,7 +165,14 @@ local function post(model: Model, origin: Vector3, vx: number, vz: number, base:
 			Enum.PartType.Cylinder
 		)
 	else
-		add(model, Vector3.new(s, height, s), CFrame.new(at + Vector3.new(0, height / 2, 0)), trim.material, trim.color)
+		-- The body starts SINK below the floor so its base never shares a plane with the collar's.
+		add(
+			model,
+			Vector3.new(s, height + SINK, s),
+			CFrame.new(at + Vector3.new(0, (height - SINK) / 2, 0)),
+			trim.material,
+			trim.color
+		)
 		add(
 			model,
 			Vector3.new(s + 0.3, 0.4, s + 0.3),
@@ -175,21 +218,39 @@ function Seams.build(origin: Vector3, layout: Grid.Layout, defs: { [string]: Typ
 		end
 	end
 
+	local function has(x: number, z: number): boolean
+		return floors[cellKey(x, z)] ~= nil
+	end
 	for key, tier in floors do
 		local x, z = string.match(key, "^(-?%d+),(-?%d+)$")
 		local cx, cz = tonumber(x) :: number, tonumber(z) :: number
 		local trim = trimFor(tier)
-		if floors[cellKey(cx, cz - 1)] == nil then
-			beam(model, origin, cx, cz, "n", trim)
+		local n, s, w, e = not has(cx, cz - 1), not has(cx, cz + 1), not has(cx - 1, cz), not has(cx + 1, cz)
+		if n then
+			beam(model, origin, cx, cz, "n", trim, has(cx - 1, cz - 1), has(cx + 1, cz - 1))
 		end
-		if floors[cellKey(cx, cz + 1)] == nil then
-			beam(model, origin, cx, cz, "s", trim)
+		if s then
+			beam(model, origin, cx, cz, "s", trim, has(cx - 1, cz + 1), has(cx + 1, cz + 1))
 		end
-		if floors[cellKey(cx - 1, cz)] == nil then
-			beam(model, origin, cx, cz, "w", trim)
+		if w then
+			beam(model, origin, cx, cz, "w", trim, false, false)
 		end
-		if floors[cellKey(cx + 1, cz)] == nil then
-			beam(model, origin, cx, cz, "e", trim)
+		if e then
+			beam(model, origin, cx, cz, "e", trim, false, false)
+		end
+		local x0, z0 = cx * CELL, cz * CELL
+		local half = BEAM_DEPTH / 2
+		if n and w and not has(cx - 1, cz - 1) then
+			corner(model, origin, x0 - half, z0 - half, trim)
+		end
+		if n and e and not has(cx + 1, cz - 1) then
+			corner(model, origin, x0 + CELL + half, z0 - half, trim)
+		end
+		if s and w and not has(cx - 1, cz + 1) then
+			corner(model, origin, x0 - half, z0 + CELL + half, trim)
+		end
+		if s and e and not has(cx + 1, cz + 1) then
+			corner(model, origin, x0 + CELL + half, z0 + CELL + half, trim)
 		end
 	end
 

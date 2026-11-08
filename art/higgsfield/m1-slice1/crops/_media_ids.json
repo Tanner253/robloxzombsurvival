@@ -10,5 +10,20 @@
 "stone_hatchet": "7307d810-5930-4dee-aefa-5fefd9ecec88",
 "stone_pick": "a7e322fb-5245-456c-9a10-97c822e0b108",
 "spiked_club": "0b9475f3-4e99-4620-92af-5b9de833c80d",
-"scrapblade": "6d1e544a-89ba-4d27-9764-1aa033cf3a53"
+"scrapblade": "6d1e544a-89ba-4d27-9764-1aa033cf3a53",
+"dead_tree": "3c8f07c7-cf74-4c23-9f36-abd22d988123",
+"bare_branches": "3ca0878d-33e4-4983-901a-5d54efb9eee2",
+"rock_cluster": "a92f5811-f82d-41d1-a633-09fac99f220a",
+"reed_stubble": "e1212aea-0be7-4a9f-9767-4aa518c96d1e",
+"grass_clump": "3762a3fc-746f-4dce-a491-09906f1325d6",
+"twig_shrub": "22ba0f09-c767-453b-9d84-e13e15bcae76",
+"campfire": "226ab2e0-ee43-48b8-84e5-b5b4c12f42e1",
+"storage_crate": "457b89e3-b915-44b8-a335-620eb6e21c0e",
+"recycler": "1f7f1f75-338a-461f-925c-1fdac12bb555",
+"spring_basin": "014b2b37-991f-4789-a110-8cfe20596aac",
+"lantern_post": "788bf183-8b00-41a6-8df3-3b6326ee2a9e",
+"standing_torch": "0d53e0f1-2c14-416b-93d5-0900d5c1c0e2",
+"barrels": "88fe9c13-e08a-42aa-a006-8f049995ef69",
+"supply_sacks": "f17043e7-de54-49f6-b478-3bec2f606895",
+"rain_collector": "a0b2ab22-469b-45bc-8a7a-ff70688242a5"
 }
