@@ -86,7 +86,7 @@ Builder.paints = {
 		material = Enum.Material.WoodPlanks,
 		color = rgb(128, 78, 56),
 		variant = "EO_BarnBoards",
-		tint = rgb(236, 226, 216),
+		tint = rgb(176, 160, 150),
 	},
 	boards = {
 		material = Enum.Material.Wood,
@@ -98,19 +98,19 @@ Builder.paints = {
 		material = Enum.Material.Brick,
 		color = rgb(134, 88, 70),
 		variant = "EO_Brick",
-		tint = rgb(232, 222, 214),
+		tint = rgb(176, 156, 146),
 	},
 	brickDark = {
 		material = Enum.Material.Brick,
 		color = rgb(102, 74, 64),
 		variant = "EO_Brick",
-		tint = rgb(172, 156, 150),
+		tint = rgb(128, 116, 110),
 	},
 	plaster = {
 		material = Enum.Material.Plaster,
 		color = rgb(176, 166, 146),
 		variant = "EO_Plaster",
-		tint = rgb(226, 218, 204),
+		tint = rgb(196, 192, 182),
 	},
 	concrete = {
 		material = Enum.Material.Concrete,
@@ -128,13 +128,13 @@ Builder.paints = {
 		material = Enum.Material.CorrodedMetal,
 		color = rgb(124, 108, 96),
 		variant = "EO_Corrugated",
-		tint = rgb(226, 220, 214),
+		tint = rgb(176, 176, 176),
 	},
 	corrugatedTeal = {
 		material = Enum.Material.CorrodedMetal,
 		color = rgb(96, 112, 108),
 		variant = "EO_Corrugated",
-		tint = rgb(170, 196, 192),
+		tint = rgb(140, 162, 160),
 	},
 	shingle = {
 		material = Enum.Material.RoofShingles,
@@ -152,7 +152,7 @@ Builder.paints = {
 		material = Enum.Material.CorrodedMetal,
 		color = rgb(118, 94, 78),
 		variant = "EO_Corrugated",
-		tint = rgb(214, 196, 184),
+		tint = rgb(150, 140, 134),
 	},
 	floorPlanks = {
 		material = Enum.Material.WoodPlanks,
@@ -194,13 +194,13 @@ Builder.paints = {
 		material = Enum.Material.CorrodedMetal,
 		color = rgb(122, 86, 64),
 		variant = "EO_RustSteel",
-		tint = rgb(226, 214, 204),
+		tint = rgb(140, 124, 116),
 	},
 	paintedMetal = {
 		material = Enum.Material.Metal,
 		color = rgb(94, 110, 104),
 		variant = "EO_PaintedMetal",
-		tint = rgb(226, 230, 224),
+		tint = rgb(196, 200, 194),
 	},
 	darkMetal = {
 		material = Enum.Material.Metal,
@@ -215,7 +215,18 @@ Builder.paints = {
 	hay = { material = Enum.Material.Grass, color = rgb(176, 158, 104) },
 	cloth = { material = Enum.Material.Fabric, color = rgb(112, 104, 88) },
 	tarp = { material = Enum.Material.Fabric, color = rgb(78, 92, 84) },
-	asphalt = { material = Enum.Material.Asphalt, color = rgb(78, 80, 84) },
+	asphalt = {
+		material = Enum.Material.Asphalt,
+		color = rgb(78, 80, 84),
+		variant = "EO_Asphalt",
+		tint = rgb(190, 190, 190),
+	},
+	kerb = {
+		material = Enum.Material.Concrete,
+		color = rgb(132, 130, 124),
+		variant = "EO_Concrete",
+		tint = rgb(196, 194, 188),
+	},
 	roadPaint = { material = Enum.Material.SmoothPlastic, color = rgb(176, 160, 112) },
 	exitGlow = { material = Enum.Material.Neon, color = rgb(92, 200, 110), transparency = 0.7 },
 } :: { [string]: Paint }
@@ -352,10 +363,16 @@ export type TerrainSpec = {
 local TERRAIN_COLORS: { [Enum.Material]: Color3 } = {
 	[Enum.Material.Asphalt] = Color3.fromRGB(78, 82, 88),
 	[Enum.Material.Pavement] = Color3.fromRGB(128, 126, 120),
-	[Enum.Material.Basalt] = Color3.fromRGB(60, 58, 56),
+	[Enum.Material.Basalt] = Color3.fromRGB(74, 72, 70), -- ash
 	[Enum.Material.Slate] = Color3.fromRGB(96, 98, 100),
 	[Enum.Material.Rock] = Color3.fromRGB(112, 108, 102),
 	[Enum.Material.Cobblestone] = Color3.fromRGB(112, 108, 100), -- rail ballast
+}
+
+-- Generated variants for the Fog Run ground beyond the home set (Art.ground).
+local TERRAIN_VARIANTS: { [Enum.Material]: string } = {
+	[Enum.Material.Slate] = "EO_QuarryRock",
+	[Enum.Material.Cobblestone] = "EO_Gravel",
 }
 
 -- Writes the ground in strips (yielding between them) from the layout's functions.
@@ -365,6 +382,12 @@ function Builder.terrain(ctx: Ctx, spec: TerrainSpec)
 	for material, color in TERRAIN_COLORS do
 		terrain:SetMaterialColor(material, color)
 	end
+	for material, variant in TERRAIN_VARIANTS do
+		if variantExists(variant) then
+			MaterialService:SetBaseMaterialOverride(material, variant)
+			terrain:SetMaterialColor(material, Color3.fromRGB(200, 200, 200))
+		end
+	end
 	for material, look in Art.ground do
 		if variantExists(look.variant) then
 			MaterialService:SetBaseMaterialOverride(material, look.variant)
@@ -373,7 +396,7 @@ function Builder.terrain(ctx: Ctx, spec: TerrainSpec)
 	end
 	local res = 4
 	local extent = spec.extent
-	local minY = -24
+	local minY = -48 -- deep enough for the quarry pit
 	local maxY = 40
 	local strip = 64 -- studs of X per write
 	local x0 = -extent
@@ -442,6 +465,66 @@ function Builder.distanceToPath(x: number, z: number, path: { Vector2 }): number
 		best = math.min(best, (Vector2.new(x, z) - closest).Magnitude)
 	end
 	return best
+end
+
+-- Roads ---------------------------------------------------------------------------------------------
+
+--[[
+	A road along a polyline: asphalt slabs laid on the ground in short lengths (so it
+	follows gentle slopes), faded centre dashes, and optional kerbed sidewalks on both
+	sides. The terrain under it should be flat earth (the layout's surface function).
+]]
+function Builder.road(ctx: Ctx, path: { Vector2 }, width: number, sidewalk: number?, lift: number?)
+	local holder = model(Builder.folder(ctx, "Roads"), "Road")
+	for index = 1, #path - 1 do
+		local a, b = path[index], path[index + 1]
+		local length = (b - a).Magnitude
+		local pieces = math.max(1, math.ceil(length / 16))
+		local dir = (b - a).Unit
+		local yaw = math.atan2(-dir.Y, dir.X)
+		for step = 0, pieces - 1 do
+			local p = a:Lerp(b, step / pieces)
+			local q = a:Lerp(b, (step + 1) / pieces)
+			local mid = (p + q) / 2
+			-- Crossing roads sit a little apart in height, so overlaps never z-fight (6.11).
+			local y = (ctx.groundHeight(p.X, p.Y) + ctx.groundHeight(q.X, q.Y)) / 2 + (lift or 0)
+			local span = (q - p).Magnitude + 0.3
+			local frame = CFrame.new(ctx.origin + Vector3.new(mid.X, y, mid.Y)) * CFrame.Angles(0, yaw, 0)
+			Builder.part(holder, Vector3.new(span, 1, width), frame * CFrame.new(0, -0.3, 0), "asphalt", "Asphalt")
+			-- Faded dashes down the middle, a few long gone.
+			if ctx.rng:NextNumber() > 0.25 then
+				local dash = Builder.part(
+					holder,
+					Vector3.new(span * 0.45, 0.06, 0.35),
+					frame * CFrame.new(0, 0.23, 0),
+					"roadPaint",
+					"Dash"
+				)
+				dash.Transparency = 0.25
+				dash.CanCollide = false
+			end
+			if sidewalk then
+				for _, side in { -1, 1 } do
+					local off = side * (width / 2 + sidewalk / 2)
+					Builder.part(
+						holder,
+						Vector3.new(span, 1.2, sidewalk),
+						frame * CFrame.new(0, -0.2, off),
+						"concrete",
+						"Sidewalk"
+					)
+					Builder.part(
+						holder,
+						Vector3.new(span, 1.3, 0.5),
+						frame * CFrame.new(0, -0.15, side * (width / 2 + 0.25)),
+						"kerb",
+						"Kerb"
+					)
+				end
+			end
+		end
+		Builder.breathe(ctx, pieces * 6)
+	end
 end
 
 -- Kit props --------------------------------------------------------------------------------------------
@@ -1465,8 +1548,12 @@ function Builder.streetLamp(ctx: Ctx, x: number, z: number, yaw: number, lit: bo
 		glow.Color = Color3.fromRGB(255, 190, 130)
 		glow.Shadows = true
 		glow.Parent = head
-		head.Material = Enum.Material.Neon
-		head.Color = Color3.fromRGB(255, 214, 160)
+		-- A warm lens under the head, not a neon block (it reads by day as well as night).
+		local lens =
+			Builder.part(holder, Vector3.new(1, 0.08, 1.5), head.CFrame * CFrame.new(0, -0.27, 0), "trimLight", "Lens")
+		lens.Material = Enum.Material.Glass
+		lens.Color = Color3.fromRGB(255, 220, 170)
+		lens.Transparency = 0.2
 	end
 	Builder.breathe(ctx, 3)
 end

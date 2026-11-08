@@ -41,10 +41,13 @@ local function pitDepth(x: number, z: number): number
 		return 0
 	end
 	local t = 1 - d / PIT_RADIUS -- 0 at the rim, 1 at the centre
-	local steps = 4
-	local step = math.floor(t * steps + 0.15) / steps
-	local smooth = t * 0.25 + step * 0.75
-	return -smooth * 26
+	-- Benches cut down in five steps: flat ledges with steep faces between them.
+	local steps = 5
+	local scaled = t * steps
+	local bench = math.floor(scaled)
+	local face = math.clamp((scaled - bench - 0.72) / 0.28, 0, 1)
+	local level = math.min(bench + face, steps) / steps
+	return -level * 38
 end
 
 local function rampLift(x: number, z: number): number
@@ -54,7 +57,7 @@ local function rampLift(x: number, z: number): number
 		return 0
 	end
 	local along = math.clamp((z + 12) / -72, 0, 1) -- 0 at the rim, 1 at the bottom
-	local want = -along * 20
+	local want = -along * 30
 	local here = pitDepth(x, z)
 	local blend = 1 - smoothstep(4, 7, d)
 	return (want - here) * blend
@@ -83,10 +86,10 @@ local function surface(x: number, z: number, y: number): Enum.Material
 	end
 	if d < PIT_RADIUS + 2 then
 		-- Bare rock walls and gravel ledges, wet mud on the floor.
-		if y < -22 then
+		if y < -33 then
 			return Enum.Material.Mud
 		end
-		return if grain > 0.1 then Enum.Material.Slate else Enum.Material.Rock
+		return if grain > -0.2 then Enum.Material.Slate else Enum.Material.Cobblestone
 	end
 	for _, tz in TRACK_Z do
 		if math.abs(z - tz) < 5 then
@@ -94,25 +97,23 @@ local function surface(x: number, z: number, y: number): Enum.Material
 		end
 	end
 	if z > 20 and z < DOCK_Z + 30 then
-		-- The yard: ash-dark gravel and packed earth.
+		-- The yard: gravel and black ash drifts.
 		local patch = math.noise(x / 20, z / 20, 7.7) + grain * 0.2
-		return if patch > 0.25 then Enum.Material.Basalt else Enum.Material.Ground
+		return if patch > 0.2 then Enum.Material.Basalt else Enum.Material.Cobblestone
 	end
-	local outside = math.max(math.abs(x), math.abs(z)) - 140
-	if outside > 0 then
-		return if grain > 0.2 then Enum.Material.Basalt else Enum.Material.Ground
-	end
+	-- Everywhere else: ash drifts over gravel and spoil, a little packed earth on the tracks
+	-- people walked (no green, no warm brown: Black fog).
 	local patches = math.noise(x / 24, z / 24, 2.1) + grain * 0.2
-	if patches > 0.3 then
-		return Enum.Material.Basalt -- ash drifts
-	elseif patches > -0.2 then
-		return Enum.Material.Sand
+	if patches > 0.1 then
+		return Enum.Material.Basalt
+	elseif patches > -0.35 then
+		return Enum.Material.Cobblestone
 	end
 	return Enum.Material.Ground
 end
 
 local function water(x: number, z: number): number?
-	return if (V2(x, z) - PIT).Magnitude < PIT_RADIUS * 0.32 then -22.5 else nil
+	return if (V2(x, z) - PIT).Magnitude < PIT_RADIUS * 0.3 then -35 else nil
 end
 
 local DEAD = { "EO_DeadTree" }

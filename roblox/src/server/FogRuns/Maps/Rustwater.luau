@@ -39,6 +39,9 @@ local function height(x: number, z: number): number
 	local outside = math.max(math.abs(x), math.abs(z)) - 160
 	local rim = smoothstep(0, 80, outside) * 16
 	local roll = math.noise(x / 70, z / 70, 1.3) * 1.6
+	-- The town is graded flat along its streets: the road slabs lie on level ground.
+	local street = math.min(math.abs(x), math.abs(z - HIGHWAY_Z), math.abs(z - CROSS_Z))
+	roll *= smoothstep(10, 26, street)
 	local creek = creekDistance(x, z)
 	local channel = (1 - smoothstep(6, 16, creek)) * -7
 	-- The bridge deck crosses the creek on Cross Street, so the banks stay up there.
@@ -54,26 +57,18 @@ local function surface(x: number, z: number, _y: number): Enum.Material
 	local main = math.abs(x)
 	local highway = math.abs(z - HIGHWAY_Z)
 	local cross = math.abs(z - CROSS_Z)
-	local onMain = main < 6 and z < HIGHWAY_Z + 8
+	local onMain = main < 9 and z < HIGHWAY_Z + 8
 	local onHighway = highway < 8
-	local onCross = cross < 5.5 and x > -150
+	local onCross = cross < 8.5 and x > -152
 	if onMain or onHighway or onCross then
-		-- Cracked asphalt, with weeds and dirt where it has broken up.
-		if math.noise(x / 9, z / 9, 4.2) + grain * 0.3 > 0.55 then
-			return Enum.Material.Ground
-		end
-		return Enum.Material.Asphalt
-	end
-	-- Sidewalks along Main Street and Cross Street.
-	if (main < 10 and z < HIGHWAY_Z) or (cross < 9.5 and x > -150 and x < CREEK_X - 12) then
-		return if grain > 0.5 then Enum.Material.Ground else Enum.Material.Pavement
+		return Enum.Material.Ground -- earth under the road slabs (Builder.road) and sidewalks
 	end
 	if highway < 13 then
-		return Enum.Material.Ground -- the gravel shoulder
+		return Enum.Material.Cobblestone -- the gravel shoulder
 	end
-	-- The gas station forecourt.
+	-- The gas station forecourt (a concrete slab covers it).
 	if x > 22 and x < 78 and z > 66 and z < HIGHWAY_Z - 8 then
-		return Enum.Material.Pavement
+		return Enum.Material.Ground
 	end
 	local outside = math.max(math.abs(x), math.abs(z)) - 140
 	if outside > 0 then
@@ -373,6 +368,8 @@ local function houses(ctx: Builder.Ctx)
 end
 
 local function gasStation(ctx: Builder.Ctx)
+	local forecourt = Builder.model(Builder.folder(ctx, "Buildings"), "Forecourt")
+	Builder.part(forecourt, Vector3.new(54, 1, 38), Builder.frame(ctx, 50, 85, 0, -0.32), "concrete", "Slab")
 	local holder = Builder.model(Builder.folder(ctx, "Buildings"), "GasCanopy")
 	holder:SetAttribute("Layer", "roof")
 	local base = Builder.frame(ctx, 50, 86, 0)
@@ -381,7 +378,7 @@ local function gasStation(ctx: Builder.Ctx)
 			Builder.part(holder, Vector3.new(1, 13, 1), base * CFrame.new(x, 6.5, z), "concrete", "Pillar")
 		end
 	end
-	Builder.part(holder, Vector3.new(28, 1.6, 16), base * CFrame.new(0, 13.6, 0), "plaster", "Canopy")
+	Builder.part(holder, Vector3.new(28, 1.6, 16), base * CFrame.new(0, 13.6, 0), "concreteDark", "Canopy")
 	Builder.part(holder, Vector3.new(28.2, 0.6, 16.2), base * CFrame.new(0, 12.9, 0), "rust", "Band")
 	for _, x in { -5, 5 } do
 		Builder.part(holder, Vector3.new(4, 0.8, 2), base * CFrame.new(x, 0.4, 0), "concrete", "Island")
@@ -583,8 +580,22 @@ local function markers(ctx: Builder.Ctx)
 	Builder.exit(ctx, "flooded_cut", "Creek Bridge", CREEK_X + 30, CROSS_Z, 10, 90)
 end
 
+local function roads(ctx: Builder.Ctx)
+	local bridgeX = CREEK_X + math.noise(CROSS_Z / 50, 0, 3.7) * 10
+	-- The highway along the south (no sidewalks: gravel shoulders), then Main Street north
+	-- and Cross Street east and west, their sidewalks broken at the junctions.
+	Builder.road(ctx, { V2(-175, HIGHWAY_Z), V2(175, HIGHWAY_Z) }, 15, nil, 0)
+	Builder.road(ctx, { V2(0, HIGHWAY_Z - 7.5), V2(0, CROSS_Z + 8.5) }, 11, 3, 0.12)
+	Builder.road(ctx, { V2(0, CROSS_Z - 8.5), V2(0, -172) }, 11, 3, 0.12)
+	Builder.road(ctx, { V2(0, CROSS_Z + 5), V2(0, CROSS_Z - 5) }, 11, nil, 0.12)
+	Builder.road(ctx, { V2(9, CROSS_Z), V2(bridgeX - 17, CROSS_Z) }, 10, 3, 0.06)
+	Builder.road(ctx, { V2(-152, CROSS_Z), V2(-9, CROSS_Z) }, 10, 3, 0.06)
+	Builder.road(ctx, { V2(bridgeX + 17, CROSS_Z), V2(175, CROSS_Z) }, 10, nil, 0.06)
+end
+
 function Rustwater.build(ctx: Builder.Ctx)
 	Builder.terrain(ctx, { extent = 250, height = height, surface = surface, water = water })
+	roads(ctx)
 	westShops(ctx)
 	eastShops(ctx)
 	houses(ctx)
