@@ -570,6 +570,11 @@ local function MenuBar(props: { right: number })
 	local inbox = hooks.useSection("inbox")
 	local inboxCount = if type(inbox) == "table" then #inbox else 0
 	local anyNew = next(ui.newItems) ~= nil
+	-- A full bag flashes the Inventory button red for a moment (the old HUD's Bag did), so
+	-- a new player whose pockets just filled sees where to make room.
+	hooks.useClock(0.15)
+	local sinceFull = if ui.bagFullAt then os.clock() - ui.bagFullAt else math.huge
+	local flashing = sinceFull < 1.6 and math.floor(sinceFull * 6) % 2 == 0
 	-- Social, Crew, Quests, Pass, Shop and Map switch on with their screens (S2/S3).
 	local slots = 7
 	local width = slots * H.menuIcon + (slots - 1) * Theme.spacing.sm
@@ -589,6 +594,8 @@ local function MenuBar(props: { right: number })
 				key = "Tab",
 				badge = inboxCount,
 				new = anyNew and inboxCount == 0,
+				active = flashing,
+				ring = Theme.colors.danger,
 				layoutOrder = 7,
 				onPress = if inboxCount > 0 and not anyNew then Actions.openInbox else Actions.toggleInventory,
 			}),

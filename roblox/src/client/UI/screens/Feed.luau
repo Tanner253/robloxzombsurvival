@@ -24,6 +24,7 @@ local Theme = require("../theme")
 local offers = require("../offers")
 local hooks = require("../hooks")
 local format = require("../format")
+local questText = require("../questText")
 local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local KeyChip = require("../components/KeyChip")
@@ -506,6 +507,102 @@ local function QuestDone()
 	})
 end
 
+-- A quest opening on the Ember Trail: its chapter, name and what it asks, in the same
+-- spot as the completion pop and after it (MVP_LAUNCH's first session: the first quest
+-- announces itself when a new player arrives).
+local START_DELAY = 4.7 -- after a QUEST COMPLETE pop, so the two never overlap
+local START_SECONDS = 4.5
+local function QuestStart()
+	local state = hooks.useSection("quests")
+	local shown, setShown = React.useState(nil :: any)
+	local known = React.useRef(nil :: { [string]: boolean }?)
+	local lastDone = React.useRef(0)
+	React.useEffect(function()
+		local connection = State.fx:Connect(function(kind: any)
+			if kind == "questDone" then
+				lastDone.current = os.clock()
+			end
+		end)
+		return function()
+			connection:Disconnect()
+		end
+	end, {})
+	React.useEffect(function()
+		if type(state) ~= "table" then
+			return
+		end
+		local rows = questText.rows(state, 3)
+		local seen: { [string]: boolean } = {}
+		local fresh: any = nil
+		local before = known.current
+		for _, row in rows do
+			seen[row.questId] = true
+			if before ~= nil and not before[row.questId] and fresh == nil then
+				fresh = row
+			end
+		end
+		-- On arrival, only a brand-new player (nothing completed yet) gets the first card.
+		if before == nil and next(state.completed or {}) == nil and rows[1] then
+			fresh = rows[1]
+		end
+		known.current = seen
+		if fresh then
+			local wait = math.max(0, START_DELAY - (os.clock() - (lastDone.current :: number)))
+			local row = fresh
+			task.delay(if lastDone.current == 0 then 1 else wait, function()
+				setShown({ row = row, at = os.clock() })
+			end)
+		end
+	end, { state })
+	hooks.useClock(0.5)
+	if shown == nil or os.clock() - shown.at > START_SECONDS then
+		return nil
+	end
+	local quest = Content.Quests[shown.row.questId]
+	return e("Frame", {
+		Size = UDim2.fromOffset(520, 112),
+		Position = UDim2.new(0.5, 0, 0, 150),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundColor3 = Theme.colors.panel,
+		BackgroundTransparency = 0.08,
+		ZIndex = Theme.layers.toast,
+		ref = mark.overlay,
+	}, {
+		Corner = e("UICorner", { CornerRadius = Theme.radius }),
+		Stroke = e("UIStroke", { Color = Theme.colors.accentSoft, Thickness = 2 }),
+		Column = e(Layout.Stack, {
+			gap = 2,
+			alignX = Enum.HorizontalAlignment.Center,
+			padding = Theme.spacing.md,
+			children = {
+				Chapter = e(Label, {
+					text = string.upper(`Ember Trail: {shown.row.chapter}`),
+					style = "caption",
+					tone = "muted",
+					alignX = Enum.TextXAlignment.Center,
+					layoutOrder = 1,
+				}),
+				Title = e(Label, {
+					text = string.upper(shown.row.name),
+					style = "title",
+					tone = "highlight",
+					alignX = Enum.TextXAlignment.Center,
+					layoutOrder = 2,
+				}),
+				Note = e(Label, {
+					text = if quest then quest.description else "",
+					style = "caption",
+					tone = "text",
+					alignX = Enum.TextXAlignment.Center,
+					wrap = true,
+					size = UDim2.new(1, 0, 0, 34),
+					layoutOrder = 3,
+				}),
+			},
+		}),
+	})
+end
+
 local function Feed()
 	usePrune()
 	return e(React.Fragment, nil, {
@@ -513,6 +610,7 @@ local function Feed()
 		Rewards = e(Rewards),
 		LevelUp = e(LevelUp),
 		QuestDone = e(QuestDone),
+		QuestStart = e(QuestStart),
 		Prompt = e(Prompt),
 	})
 end
