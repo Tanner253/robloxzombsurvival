@@ -29,6 +29,7 @@ local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
+local Glyph = require("../components/Glyph")
 local LockGlyph = require("../components/LockGlyph")
 local ProgressBar = require("../components/ProgressBar")
 local Sheet = require("../components/Sheet")
@@ -219,13 +220,22 @@ local function JobCard(props: { uid: string, job: any, outputItem: string?, layo
 			AnchorPoint = Vector2.new(1, 0.5),
 			BackgroundColor3 = Theme.colors.track,
 			FontFace = Theme.fonts.header,
-			Text = "X",
+			Text = "",
 			TextSize = Theme.textSize.body,
 			TextColor3 = Theme.colors.textMuted,
 			[React.Event.Activated] = function()
 				Net.fire("StationCancel", props.uid, job.index)
 			end,
-		}, { Corner = e("UICorner", { CornerRadius = Theme.radius }) }),
+		}, {
+			Corner = e("UICorner", { CornerRadius = Theme.radius }),
+			Glyph = e(Glyph, {
+				name = "close",
+				size = UDim2.fromScale(0.5, 0.5),
+				position = UDim2.fromScale(0.5, 0.5),
+				anchorPoint = Vector2.new(0.5, 0.5),
+				color = Theme.colors.textMuted,
+			}),
+		}),
 	})
 end
 
@@ -469,7 +479,8 @@ local function StationScreen()
 					BackgroundTransparency = 1,
 				}, {
 					Minus = e(Button, {
-						text = "−",
+						text = "-",
+						glyph = "minus",
 						variant = "secondary",
 						size = UDim2.fromOffset(52, 44),
 						onActivated = function()
@@ -485,6 +496,7 @@ local function StationScreen()
 					}),
 					Plus = e(Button, {
 						text = "+",
+						glyph = "plus",
 						variant = "secondary",
 						size = UDim2.fromOffset(52, 44),
 						position = UDim2.new(1, -112, 0, 0),
@@ -600,7 +612,7 @@ local function StationScreen()
 						position = UDim2.fromOffset(42, 8),
 					}),
 					Have = e(Label, {
-						text = `×{have}`,
+						text = `x{have}`,
 						style = "caption",
 						tone = "muted",
 						size = UDim2.new(1, -42, 0, 18),
@@ -649,7 +661,7 @@ local function StationScreen()
 				BackgroundTransparency = 1,
 			}, {
 				Level = e(Label, {
-					text = `Level {station.level} · {level.queueSlots} queue slots · speed ×{level.speedMultiplier}`,
+					text = `Level {station.level} · {level.queueSlots} queue slots · speed x{level.speedMultiplier}`,
 					style = "caption",
 					tone = "muted",
 					size = UDim2.fromScale(0.5, 1),

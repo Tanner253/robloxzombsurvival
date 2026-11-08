@@ -506,7 +506,7 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 			Inner = e(ItemIcon, { itemId = def.id }),
 		}),
 		Name = e(Label, {
-			text = if slot.count > 1 then `{def.name}  ×{slot.count}` else def.name,
+			text = if slot.count > 1 then `{def.name}  x{slot.count}` else def.name,
 			style = "title",
 			color = Theme.rarity[def.rarity],
 			size = UDim2.new(0.5, 0, 0, 26),
@@ -617,7 +617,7 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 	}, {
 		Corner = e("UICorner", { CornerRadius = Theme.radius }),
 		Capacity = e(Label, {
-			text = `{def.storageSlots or 0} → {nextDef.storageSlots or 0} slots`,
+			text = `{def.storageSlots or 0} to {nextDef.storageSlots or 0} slots`,
 			style = "section",
 			size = UDim2.new(1, -120, 0, 22),
 			position = UDim2.fromOffset(10, 1),
@@ -782,7 +782,7 @@ local function InboxList(props: { rows: { any } })
 				end,
 			}, {
 				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
-				Pad = e("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }),
+				Pad = e("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }),
 			})
 		end
 	end
@@ -803,7 +803,19 @@ local function InboxList(props: { rows: { any } })
 		Position = UDim2.fromOffset(0, 28),
 		BackgroundTransparency = 1,
 	}, {
-		Chips = e("Frame", { Size = UDim2.new(1, -120, 0, 28), BackgroundTransparency = 1 }, chips),
+		-- Up to a dozen categories: the chips scroll sideways, clear of Take all.
+		Chips = e("ScrollingFrame", {
+			Size = UDim2.new(1, -126, 0, 36),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollingDirection = Enum.ScrollingDirection.X,
+			AutomaticCanvasSize = Enum.AutomaticSize.X,
+			CanvasSize = UDim2.new(),
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = Theme.colors.textMuted,
+			VerticalScrollBarInset = Enum.ScrollBarInset.None,
+			HorizontalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
+		}, chips),
 		TakeAll = e(Button, {
 			text = "Take all",
 			disabled = shown == 0,
@@ -865,7 +877,7 @@ local function InventoryScreen()
 		end
 
 		body = {
-			Gear = e("Frame", { Size = UDim2.fromOffset(2 * (SLOT + GAP), 300), BackgroundTransparency = 1 }, {
+			Gear = e("Frame", { Size = UDim2.fromOffset(2 * (SLOT + GAP), 440), BackgroundTransparency = 1 }, {
 				Layout = e("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 				Title = e(Section, { title = "GEAR", layoutOrder = 0 }),
 				Grid = e(Grid, {
@@ -878,6 +890,26 @@ local function InventoryScreen()
 					placeholders = placeholders,
 					layoutOrder = 1,
 				}),
+				-- The full catalogue replaced the short craft list (5.9); its shortcut sits
+				-- under the gear, clear of the inbox header.
+				Crafting = crate == nil
+					and e("Frame", {
+						Size = UDim2.new(1, -GAP, 0, 52),
+						BackgroundTransparency = 1,
+						LayoutOrder = 2,
+					}, {
+						Open = e(Button, {
+							text = "Crafting",
+							variant = "secondary",
+							size = UDim2.new(1, 0, 0, 44),
+							position = UDim2.fromOffset(0, 8),
+							onActivated = Actions.toggleCrafting,
+						}),
+						Key = e(
+							KeyChip,
+							{ text = "C", position = UDim2.new(1, 4, 0, 2), anchorPoint = Vector2.new(1, 0) }
+						),
+					}),
 			}),
 			Carry = e("Frame", {
 				Size = UDim2.fromOffset(6 * (SLOT + GAP), 360),
@@ -1036,19 +1068,6 @@ local function InventoryScreen()
 								TextXAlignment = Enum.TextXAlignment.Left,
 							}),
 						}),
-						-- The full catalogue replaced the short craft list here (5.9).
-						OpenCrafting = e(Button, {
-							text = "Crafting",
-							variant = "secondary",
-							size = UDim2.fromOffset(130, 34),
-							position = UDim2.new(1, -30, 0, -6),
-							anchorPoint = Vector2.new(1, 0),
-							onActivated = Actions.toggleCrafting,
-						}),
-						CraftKey = e(
-							KeyChip,
-							{ text = "C", position = UDim2.new(1, 0, 0, -2), anchorPoint = Vector2.new(1, 0) }
-						),
 						Body = e(InboxList, { rows = if type(inbox) == "table" then inbox else {} }),
 					}
 			),

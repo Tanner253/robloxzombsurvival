@@ -17,7 +17,7 @@ return function(test: TestKit.Register)
 	test("planks name the station and the recipe", function()
 		local lines = ItemSources.of(Content :: any, "item.plank")
 		TestKit.truthy(#lines > 0, "has a source")
-		TestKit.anyContains(lines, "Timber →")
+		TestKit.anyContains(lines, "Timber into")
 	end)
 
 	test("every ingredient of every recipe has at least one source", function()

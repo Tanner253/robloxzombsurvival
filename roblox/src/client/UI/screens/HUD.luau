@@ -26,6 +26,7 @@ local Theme = require("../theme")
 local hooks = require("../hooks")
 local format = require("../format")
 local ItemSlot = require("../components/ItemSlot")
+local Glyph = require("../components/Glyph")
 local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
 local StatBar = require("../components/StatBar")
@@ -205,7 +206,7 @@ local function Status()
 				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
 				Stroke = e("UIStroke", { Color = Theme.colors.strokeWarm, Thickness = 1, Transparency = 0.4 }),
 				Text = e(Label, {
-					text = `{if Clock.daylight(hours) > 0.5 then "☀" else "☾"}  {Clock.label(hours)}`,
+					text = Clock.label(hours),
 					style = "caption",
 					tone = if Clock.daylight(hours) > 0.5 then "highlight" else "muted",
 					size = UDim2.fromScale(1, 1),
@@ -224,16 +225,19 @@ local function Status()
 					Thickness = if bonus > 0 then 2 else 1,
 					Transparency = if bonus > 0 then 0 else 0.5,
 				}),
+				Icon = e(Glyph, {
+					name = Art.meterGlyphs.energy,
+					size = UDim2.fromOffset(16, 16),
+					position = UDim2.new(0, 8, 0.5, 0),
+					anchorPoint = Vector2.new(0, 0.5),
+					color = Theme.meters.energy,
+				}),
 				-- Above the cap (level-up refills, rewards) the extra shows as an amber bonus.
 				Text = e(Label, {
 					text = if bonus > 0
-						then `{Art.meterGlyphs.energy} {energyCap} / {energyCap}  <font color="#{Theme.colors.bonus:ToHex()}">+{bonus}</font>`
-						elseif
-							nextIn > 0
-						then `{Art.meterGlyphs.energy} {energyValue} / {energyCap}  ·  +1 in {format.duration(
-							nextIn
-						)}`
-						else `{Art.meterGlyphs.energy} {energyValue} / {energyCap}`,
+						then `{energyCap} / {energyCap}  <font color="#{Theme.colors.bonus:ToHex()}">+{bonus}</font>`
+						elseif nextIn > 0 then `{energyValue} / {energyCap}  ·  +1 in {format.duration(nextIn)}`
+						else `{energyValue} / {energyCap}`,
 					richText = true,
 					style = "caption",
 					tone = "highlight",
@@ -276,12 +280,22 @@ local function foldButton(collapsed: boolean): any
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundColor3 = Theme.colors.panelRaised,
 		FontFace = Theme.fonts.header,
-		Text = if collapsed then "»" else "«",
+		Text = "",
 		TextSize = Theme.textSize.section,
 		TextColor3 = Theme.colors.text,
 		ZIndex = 3,
 		[React.Event.Activated] = Actions.toggleQuests,
-	}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) })
+	}, {
+		Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+		Glyph = e(Glyph, {
+			name = if collapsed then "quests" else "minus",
+			size = UDim2.fromScale(0.62, 0.62),
+			position = UDim2.fromScale(0.5, 0.5),
+			anchorPoint = Vector2.new(0.5, 0.5),
+			color = Theme.colors.text,
+			zIndex = 4,
+		}),
+	})
 end
 
 local function QuestTracker()
@@ -596,20 +610,25 @@ local function Minimap()
 	})
 	-- You: the arrow at the centre, turning with the survivor.
 	local look = (root :: BasePart).CFrame.LookVector
-	children.You = e("TextLabel", {
+	-- You: a chevron drawn from two bars, turning with the survivor (no Unicode arrow, 4.17).
+	local function bar(side: number): any
+		return e("Frame", {
+			Size = UDim2.fromOffset(3, 11),
+			Position = UDim2.new(0.5, side * 3, 0.5, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Theme.colors.highlight,
+			BorderSizePixel = 0,
+			Rotation = -side * 32, -- tops lean in: a ^ pointing ahead
+		}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1 }) })
+	end
+	children.You = e("Frame", {
 		Size = UDim2.fromOffset(16, 16),
 		Position = UDim2.fromOffset(MAP_SIZE / 2, MAP_SIZE / 2),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundTransparency = 1,
-		FontFace = Theme.fonts.header,
-		Text = "▲",
-		TextSize = 18,
-		TextColor3 = Theme.colors.highlight,
-		TextStrokeColor3 = Theme.colors.shadow,
-		TextStrokeTransparency = 0,
 		Rotation = math.deg(math.atan2(look.X, -look.Z)),
 		ZIndex = 6,
-	})
+	}, { Left = bar(-1), Right = bar(1) })
 	-- A CanvasGroup clips its children to the round corner (a Frame clips only to its box).
 	return e("Frame", {
 		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
@@ -824,15 +843,12 @@ local function ActionButton(
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),
 		Scale = e("UIScale", { Scale = scale }),
-		Glyph = e("TextLabel", {
-			Size = UDim2.fromScale(0.46, 0.46),
-			Position = UDim2.fromScale(0.5, 0.42),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundTransparency = 1,
-			FontFace = Theme.fonts.header,
-			Text = props.glyph,
-			TextScaled = true,
-			TextColor3 = if props.primary then Theme.colors.textOnAccent else Theme.colors.text,
+		Glyph = e(Glyph, {
+			name = props.glyph,
+			size = UDim2.fromScale(0.46, 0.46),
+			position = UDim2.fromScale(0.5, 0.42),
+			anchorPoint = Vector2.new(0.5, 0.5),
+			color = if props.primary then Theme.colors.textOnAccent else Theme.colors.text,
 		}),
 		Label = e(Label, {
 			text = props.label,
@@ -903,9 +919,7 @@ local function ActionBar()
 	end
 	local target = ui.target
 	local interactLabel = if ui.panel == "build" then "Place" elseif target then target.verb else "Use"
-	local glyph = if target and target.kind == "node"
-		then (if target.verb == "Chop" then "🪓" elseif target.verb == "Mine" then "⛏" else "✋")
-		else "✋"
+	local glyph = if ui.panel == "build" then "build" else "interact"
 	return e("Frame", {
 		Size = UDim2.fromOffset(420, 110),
 		Position = UDim2.new(1, -16, 1, -16),
@@ -921,7 +935,7 @@ local function ActionBar()
 		}),
 		Sprint = ui.touch and e(ActionButton, {
 			label = "Sprint",
-			glyph = "»",
+			glyph = "sprint",
 			size = 64,
 			layoutOrder = 1,
 			onPress = function()
@@ -931,7 +945,7 @@ local function ActionBar()
 		Auto = ui.panel == "none" and e(ActionButton, {
 			label = if ui.auto then "Auto on" else "Auto",
 			keyName = "Q",
-			glyph = "🔁",
+			glyph = "auto_gather",
 			primary = ui.auto,
 			size = 64,
 			layoutOrder = 0,
@@ -940,7 +954,7 @@ local function ActionBar()
 		Craft = e(ActionButton, {
 			label = "Craft",
 			keyName = "C",
-			glyph = "⚒",
+			glyph = "craft",
 			size = 64,
 			layoutOrder = 2,
 			onPress = Actions.toggleCrafting,
@@ -949,7 +963,7 @@ local function ActionBar()
 		Build = e(ActionButton, {
 			label = "Build",
 			keyName = "B",
-			glyph = "🔨",
+			glyph = "build",
 			size = 64,
 			layoutOrder = 3,
 			onPress = Actions.toggleBuild,
@@ -957,7 +971,7 @@ local function ActionBar()
 		Bag = e(ActionButton, {
 			label = "Bag",
 			keyName = "Tab",
-			glyph = "🎒",
+			glyph = "backpack",
 			size = 64,
 			layoutOrder = 4,
 			onPress = if type(inbox) == "table"
@@ -1000,12 +1014,19 @@ local function HUD()
 			BackgroundColor3 = Theme.colors.panel,
 			BackgroundTransparency = Theme.colors.panelTransparency,
 			FontFace = Theme.fonts.header,
-			Text = "⚙",
+			Text = "",
 			TextSize = 28,
 			TextColor3 = Theme.colors.text,
 			AutoButtonColor = true,
 			[React.Event.Activated] = Actions.toggleSettings,
 		}, {
+			Glyph = e(Glyph, {
+				name = "settings",
+				size = UDim2.fromScale(0.6, 0.6),
+				position = UDim2.fromScale(0.5, 0.5),
+				anchorPoint = Vector2.new(0.5, 0.5),
+				color = Theme.colors.text,
+			}),
 			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 			Stroke = e("UIStroke", {
 				Color = Theme.colors.strokeWarm,
@@ -1026,7 +1047,7 @@ local function HUD()
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundColor3 = Theme.colors.threat,
 			FontFace = Theme.fonts.header,
-			Text = `  DEV ×{DevSpeed.factor(Content)}  `,
+			Text = `  DEV x{DevSpeed.factor(Content)}  `,
 			TextSize = Theme.textSize.caption,
 			TextColor3 = Theme.colors.textOnAccent,
 		}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 6) }) }),

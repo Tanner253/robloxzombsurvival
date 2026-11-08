@@ -11,6 +11,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Theme = require("../theme")
+local Glyph = require("./Glyph")
 
 export type Props = {
 	itemId: string,
@@ -31,7 +32,7 @@ local function pairsFor(def: any, durability: number?): { Pair }
 	end
 	if def.weapon then
 		table.insert(list, { silhouette = "weapon", text = `{def.weapon.damage} damage` })
-		table.insert(list, { glyph = "»", text = `{def.weapon.attacksPerSecond}/s` })
+		table.insert(list, { glyph = "attack", text = `{def.weapon.attacksPerSecond}/s` })
 	end
 	if def.armor then
 		table.insert(list, { silhouette = def.equipSlot or "body", text = `+{def.armor.defense} defense` })
@@ -53,7 +54,7 @@ local function pairsFor(def: any, durability: number?): { Pair }
 	end
 	if def.durability then
 		local now = durability or def.durability
-		table.insert(list, { glyph = "◆", text = `{now} / {def.durability}` })
+		table.insert(list, { glyph = "craft", text = `{now} / {def.durability}` })
 	end
 	return list
 end
@@ -85,14 +86,11 @@ local function Chip(props: { pair: Pair, layoutOrder: number })
 				ImageColor3 = Theme.colors.highlight,
 				LayoutOrder = 1,
 			})
-			else e("TextLabel", {
-				Size = UDim2.fromOffset(20, 20),
-				BackgroundTransparency = 1,
-				FontFace = Theme.fonts.header,
-				Text = pair.glyph or "",
-				TextSize = Theme.textSize.caption,
-				TextColor3 = pair.color or Theme.colors.highlight,
-				LayoutOrder = 1,
+			else e(Glyph, {
+				name = pair.glyph or "",
+				size = UDim2.fromOffset(20, 20),
+				color = pair.color or Theme.colors.highlight,
+				layoutOrder = 1,
 			}),
 		Value = e("TextLabel", {
 			Size = UDim2.fromOffset(0, 20),

@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Art = require(ReplicatedStorage.Shared.Art)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
 local State = require("../../State")
@@ -269,7 +270,7 @@ local function LevelUp()
 			Position = UDim2.fromScale(0.5, 0.35),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundTransparency = 1,
-			Image = "rbxasset://textures/particles/sparkles_main.dds",
+			Image = Art.glyphs.xp, -- the glyph set's star, not a default Roblox texture (4.17)
 			ImageColor3 = Theme.colors.accentSoft,
 			ImageTransparency = 0.35,
 			Rotation = spin,

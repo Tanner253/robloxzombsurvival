@@ -789,7 +789,7 @@ function Inventory.init()
 		local slot = Inventory.takeSlot(player, ref, index)
 		if slot then
 			local def = Content.Items[slot.itemId]
-			Sync.notice(player, `Destroyed {if def then def.name else slot.itemId} ×{slot.count}`)
+			Sync.notice(player, `Destroyed {if def then def.name else slot.itemId} x{slot.count}`)
 		end
 	end)
 	Net.onEvent("StorageOpen", openCrate)

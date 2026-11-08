@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
+local Glyph = require("./Glyph")
 local hooks = require("../hooks")
 
 export type Props = {
@@ -33,15 +34,12 @@ local function StatBar(props: Props)
 		BackgroundTransparency = 1,
 		LayoutOrder = props.layoutOrder,
 	}, {
-		Glyph = props.glyph and React.createElement("TextLabel", {
-			Size = UDim2.fromOffset(glyphSize, glyphSize),
-			Position = UDim2.fromScale(0, 0.5),
-			AnchorPoint = Vector2.new(0, 0.5),
-			BackgroundTransparency = 1,
-			FontFace = Theme.fonts.header,
-			Text = props.glyph,
-			TextScaled = true,
-			TextColor3 = props.color,
+		Glyph = props.glyph and React.createElement(Glyph, {
+			name = props.glyph,
+			size = UDim2.fromOffset(glyphSize, glyphSize),
+			position = UDim2.fromScale(0, 0.5),
+			anchorPoint = Vector2.new(0, 0.5),
+			color = props.color,
 		}),
 		Track = React.createElement("Frame", {
 			Size = UDim2.new(1, -glyphSize - 4, 1, 0),

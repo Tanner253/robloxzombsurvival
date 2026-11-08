@@ -41,7 +41,7 @@ end
 
 -- "Timber ×4"
 function format.stack(itemId: string, count: number): string
-	return `{format.itemName(itemId)} ×{count}`
+	return `{format.itemName(itemId)} x{count}`
 end
 
 return format

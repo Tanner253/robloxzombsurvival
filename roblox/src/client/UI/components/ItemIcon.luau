@@ -3,14 +3,13 @@
 	ItemIcon: an item's picture. In order of preference:
 	1. the ItemDef.icon image (the painted icon set),
 	2. a rendered 3D icon of the item's model (ReplicatedStorage.Assets.Icons),
-	3. a fallback badge: a rarity-tinted disc with the item's glyph (Art.glyphs).
+	3. a fallback badge: a rarity-tinted disc with the item's initials (no emoji, 4.17).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
-local Art = require(ReplicatedStorage.Shared.Art)
 local Theme = require("../theme")
 local ModelView = require("./ModelView")
 
@@ -83,7 +82,7 @@ local function ItemIcon(props: Props)
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundTransparency = 1,
 			FontFace = Theme.fonts.header,
-			Text = Art.glyphs[props.itemId] or string.sub(def.name, 1, 2),
+			Text = string.sub(def.name, 1, 2),
 			TextScaled = true,
 			TextColor3 = Theme.colors.text,
 			ZIndex = props.zIndex,

@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
+local Glyph = require("./Glyph")
 local hooks = require("../hooks")
 local KeyChip = require("./KeyChip")
 
@@ -136,11 +137,18 @@ local function Sheet(props: Props)
 						BackgroundColor3 = Theme.colors.panelRaised,
 						AutoButtonColor = true,
 						FontFace = Theme.fonts.header,
-						Text = "X",
+						Text = "",
 						TextSize = Theme.textSize.body,
 						TextColor3 = Theme.colors.text,
 						[React.Event.Activated] = props.onClose,
 					}, {
+						Glyph = React.createElement(Glyph, {
+							name = "close",
+							size = UDim2.fromScale(0.5, 0.5),
+							position = UDim2.fromScale(0.5, 0.5),
+							anchorPoint = Vector2.new(0.5, 0.5),
+							color = Theme.colors.text,
+						}),
 						Corner = React.createElement("UICorner", { CornerRadius = Theme.radius }),
 						Stroke = React.createElement("UIStroke", {
 							Color = Theme.colors.strokeWarm,

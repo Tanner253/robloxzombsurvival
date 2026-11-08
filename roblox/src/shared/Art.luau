@@ -343,51 +343,6 @@ Art.sounds = {
 	musicNight = snd(1843721367, 0.35, { group = "music" }), -- APM "Low Drone 19"
 } :: { [string]: SoundSpec }
 
--- Fallback icon glyphs (emoji) for items with no rendered icon model yet. Placeholder
--- until every item has a 3D icon; kept to emoji Roblox renders everywhere.
-Art.glyphs = {
-	["item.sticks"] = "🥢",
-	["item.timber"] = "🌲",
-	["item.stone"] = "🗿",
-	["item.scrap"] = "🔧",
-	["item.fiber"] = "🌾",
-	["item.fatwood"] = "🔥",
-	["item.murky_water"] = "💧",
-	["item.plank"] = "📏",
-	["item.rope"] = "➰",
-	["item.cloth"] = "🧵",
-	["item.stone_block"] = "🧱",
-	["item.scrap_plate"] = "🛡",
-	["item.pitch_glue"] = "🍯",
-	["item.rivets"] = "🔩",
-	["item.coil_spring"] = "🌀",
-	["item.brass_gear"] = "⚙",
-	["item.broken_lantern"] = "🏮",
-	["item.snarled_wire"] = "➿",
-	["item.seized_motor"] = "🔋",
-	["item.stone_hatchet"] = "🔨",
-	["item.stone_pick"] = "⛏",
-	["item.spiked_club"] = "🏏",
-	["item.scrapblade"] = "🗡",
-	["item.shortbow"] = "🏹",
-	["item.arrow"] = "➶",
-	["item.padded_hood"] = "🎓",
-	["item.padded_vest"] = "👕",
-	["item.satchel"] = "👜",
-	["item.pack_frame"] = "🎒",
-	["item.emberberry"] = "🍒",
-	["item.ashroot"] = "🥔",
-	["item.roasted_ashroot"] = "🍠",
-	["item.sealed_tin"] = "🥫",
-	["item.hearth_stew"] = "🍲",
-	["item.boiled_water"] = "🍶",
-	["item.ember_tea"] = "🍵",
-	["item.field_dressing"] = "🩹",
-	["item.ember_tonic"] = "🧪",
-	["item.bp_pack_frame"] = "📜",
-	["item.bp_reinforced"] = "📜",
-} :: { [string]: string }
-
 -- Empty equipment slots show a silhouette of what goes there (checklist 4.1): one
 -- white-on-transparent atlas (art/higgsfield/m1-slice1/icons/gear/gear_atlas.png),
 -- 256 px cells, tinted by the UI.
@@ -405,12 +360,49 @@ Art.gearSilhouettes = {
 }
 
 -- HUD meter glyphs (placeholder until the icon set exists).
+-- The UI glyph set (checklist 4.17): 30 matching 256 px icons (art/ui/glyphs), cream
+-- on transparent, tinted by ImageColor3. Every icon in the UI comes from here: no
+-- emoji, Unicode symbols or default Roblox icons.
+Art.glyphs = {
+	health = "rbxassetid://115532980247949",
+	hunger = "rbxassetid://129214740108707",
+	thirst = "rbxassetid://115119460509123",
+	energy = "rbxassetid://104189643765839",
+	xp = "rbxassetid://104495868342079",
+	coin = "rbxassetid://104388916853301",
+	attack = "rbxassetid://135915378952394",
+	interact = "rbxassetid://84326895236247",
+	build = "rbxassetid://76238338427295",
+	backpack = "rbxassetid://106229515638743",
+	craft = "rbxassetid://125495092640314",
+	auto_gather = "rbxassetid://128061896557821",
+	swap = "rbxassetid://138508444329514",
+	medkit = "rbxassetid://83813460402429",
+	sprint = "rbxassetid://80193876808667",
+	dodge = "rbxassetid://102265978974188",
+	map = "rbxassetid://104238293919401",
+	quests = "rbxassetid://113009793632906",
+	shop = "rbxassetid://104802217196091",
+	inbox = "rbxassetid://97701642293203",
+	friends = "rbxassetid://95989041269677",
+	settings = "rbxassetid://97520461995565",
+	close = "rbxassetid://125780608999128",
+	lock = "rbxassetid://72629341295590",
+	plus = "rbxassetid://120030852013884",
+	minus = "rbxassetid://101783907231713",
+	favourite = "rbxassetid://105004904499494",
+	trash = "rbxassetid://120304458961712",
+	storage = "rbxassetid://104605090820806",
+	campfire = "rbxassetid://139250651894110",
+} :: { [string]: string }
+
+-- The HUD meters' glyph names.
 Art.meterGlyphs = {
-	health = "❤",
-	hunger = "🍖",
-	thirst = "💧",
-	energy = "⚡",
-	xp = "★",
+	health = "health",
+	hunger = "hunger",
+	thirst = "thirst",
+	energy = "energy",
+	xp = "xp",
 } :: { [string]: string }
 
 return Art

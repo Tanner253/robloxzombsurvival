@@ -49,7 +49,7 @@ local function onFx(kind: string, payload: any)
 		local names = {}
 		for _, item in payload.items or {} do
 			local def = Content.Items[item.itemId]
-			table.insert(names, `{if def then def.name else item.itemId} ×{item.count}`)
+			table.insert(names, `{if def then def.name else item.itemId} x{item.count}`)
 		end
 		if #names > 0 then
 			State.notify(`To your inbox: {table.concat(names, ", ")}`, "info")

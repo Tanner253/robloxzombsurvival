@@ -67,6 +67,7 @@ local function Volume(props: { value: number, onChange: (number) -> () })
 	return e(React.Fragment, nil, {
 		Minus = e(Button, {
 			text = "-",
+			glyph = "minus",
 			variant = "secondary",
 			size = UDim2.fromOffset(44, 44),
 			onActivated = function()
@@ -87,6 +88,7 @@ local function Volume(props: { value: number, onChange: (number) -> () })
 		}),
 		Plus = e(Button, {
 			text = "+",
+			glyph = "plus",
 			variant = "secondary",
 			size = UDim2.fromOffset(44, 44),
 			position = UDim2.new(1, -60, 0, 0),
@@ -151,13 +153,13 @@ local function SettingsScreen()
 		}),
 	})
 	local scaleButtons: { [string]: any } = {
-		Layout = e("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }),
+		Layout = e("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6) }),
 	}
 	for index, scale in UI_SCALES do
 		scaleButtons[`S{index}`] = e(Button, {
 			text = `{math.round(scale * 100)}%`,
 			variant = if math.abs(settings.uiScale - scale) < 0.01 then "primary" else "secondary",
-			size = UDim2.fromOffset(84, 44),
+			size = UDim2.fromOffset(76, 44), -- four fit beside the label, clear of the keys column
 			layoutOrder = index,
 			onActivated = function()
 				change("uiScale", scale)

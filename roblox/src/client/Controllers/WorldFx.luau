@@ -462,7 +462,7 @@ local function readyBadge(model: Model): BillboardGui
 	badge.BackgroundColor3 = Theme.colors.accent
 	badge.FontFace = Theme.fonts.header
 	badge.Name = "Count"
-	badge.Text = "✓"
+	badge.Text = "Ready"
 	badge.TextSize = Theme.textSize.title
 	badge.TextColor3 = Theme.colors.textOnAccent
 	local corner = Instance.new("UICorner")
@@ -514,7 +514,7 @@ local function updateStations(now: number)
 			local count = model:GetAttribute("ReadyCount")
 			local label = badge:FindFirstChild("Count") :: TextLabel?
 			if label then
-				label.Text = if type(count) == "number" and count > 0 then tostring(count) else "✓"
+				label.Text = if type(count) == "number" and count > 0 then tostring(count) else "Ready"
 			end
 			badge.StudsOffsetWorldSpace =
 				Vector3.new(0, model:GetExtentsSize().Y + 1.5 + math.sin(os.clock() * 3) * 0.3, 0)

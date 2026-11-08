@@ -4,7 +4,7 @@
 	(PLAYER_EXPERIENCE_CHECKLIST 5.10: hover or tap an ingredient to see its source).
 	Pure. For example:
 	- "Chopped from Pine Tree with a hatchet"
-	- "Workbench: 4 Timber → 4 Hewn Plank"
+	- "Workbench: 4 Timber into 4 Hewn Plank"
 	- "Found on Fog Runs"
 ]]
 
@@ -69,7 +69,7 @@ function ItemSources.of(content: Types.Content, itemId: string, limit: number?):
 			if output.itemId == itemId then
 				local station = recipe.stationId and content.Stations[recipe.stationId]
 				local where = if station then station.name else "By hand"
-				add(`{where}: {listText(content, recipe.inputs)} → {stackText(content, output)}`)
+				add(`{where}: {listText(content, recipe.inputs)} into {stackText(content, output)}`)
 			end
 		end
 	end

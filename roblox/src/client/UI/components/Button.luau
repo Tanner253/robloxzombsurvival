@@ -9,12 +9,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
+local Glyph = require("./Glyph")
 local Sfx = require("../../Sfx")
 
 export type Variant = "primary" | "secondary"
 
 export type Props = {
 	text: string,
+	glyph: string?, -- an icon from the glyph set instead of the text (4.17)
 	onActivated: (() -> ())?,
 	variant: Variant?,
 	disabled: boolean?,
@@ -49,7 +51,7 @@ local function Button(props: Props)
 			else Theme.colors.panelRaised,
 		BackgroundTransparency = 0,
 		FontFace = Theme.fonts.header,
-		Text = props.text,
+		Text = if props.glyph then "" else props.text,
 		TextSize = Theme.textSize.body,
 		TextColor3 = if disabled
 			then Theme.colors.disabledText
@@ -89,6 +91,16 @@ local function Button(props: Props)
 		}),
 		Scale = React.createElement("UIScale", {
 			Scale = if pressed then PRESSED_SCALE else 1,
+		}),
+		Glyph = props.glyph and React.createElement(Glyph, {
+			name = props.glyph,
+			size = UDim2.fromScale(0.55, 0.55),
+			position = UDim2.fromScale(0.5, 0.5),
+			anchorPoint = Vector2.new(0.5, 0.5),
+			color = if disabled
+				then Theme.colors.disabledText
+				elseif primary then Theme.colors.textOnAccent
+				else Theme.colors.text,
 		}),
 	})
 end

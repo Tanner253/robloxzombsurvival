@@ -3,7 +3,7 @@
 	CraftingScreen (C): the crafting catalogue (PLAYER_EXPERIENCE_CHECKLIST 5.9, 5.10).
 
 	Left: category tabs (All, Tools, Weapons, Clothing, Building, Supplies,
-	Favourites ★) over a grid of every recipe. NEW badges mark recipes unlocked since
+	Favourites) over a grid of every recipe. NEW badges mark recipes unlocked since
 	the catalogue was last closed; locked recipes are greyed under a padlock with the
 	unlock condition in red; available ones sort first.
 
@@ -31,6 +31,7 @@ local hooks = require("../hooks")
 local Button = require("../components/Button")
 local ItemIcon = require("../components/ItemIcon")
 local Label = require("../components/Label")
+local Glyph = require("../components/Glyph")
 local LockGlyph = require("../components/LockGlyph")
 local Sheet = require("../components/Sheet")
 local StatPairs = require("../components/StatPairs")
@@ -49,7 +50,7 @@ local TAB_TEXT: { [string]: string } = {
 	clothing = "Clothing",
 	building = "Building",
 	supplies = "Supplies",
-	favourites = "★ Favourites",
+	favourites = "Favourites",
 }
 local CATEGORY_TAB: { [string]: string } = {
 	tool = "tools",
@@ -183,16 +184,13 @@ local function RecipeCard(props: {
 			TextColor3 = Theme.colors.textOnAccent,
 			ZIndex = 5,
 		}, { Corner = e("UICorner", { CornerRadius = UDim.new(0, 4) }) }),
-		Star = props.favourite and e("TextLabel", {
-			Size = UDim2.fromOffset(22, 22),
-			Position = UDim2.new(1, -6, 0, 4),
-			AnchorPoint = Vector2.new(1, 0),
-			BackgroundTransparency = 1,
-			FontFace = Theme.fonts.header,
-			Text = "★",
-			TextSize = 20,
-			TextColor3 = Theme.colors.bonus,
-			ZIndex = 5,
+		Star = props.favourite and e(Glyph, {
+			name = "xp", -- the filled star
+			size = UDim2.fromOffset(20, 20),
+			position = UDim2.new(1, -6, 0, 4),
+			anchorPoint = Vector2.new(1, 0),
+			color = Theme.colors.bonus,
+			zIndex = 5,
 		}),
 		Ready = props.unlocked and props.affordable and e("Frame", {
 			Size = UDim2.fromOffset(10, 10),
@@ -269,7 +267,8 @@ local function QuantityBar(props: { count: number, max: number, onChange: (numbe
 	end
 	return e("Frame", { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1 }, {
 		Minus = e(Button, {
-			text = "−",
+			text = "-",
+			glyph = "minus",
 			variant = "secondary",
 			disabled = props.count <= 1,
 			size = UDim2.fromOffset(44, 44),
@@ -289,7 +288,7 @@ local function QuantityBar(props: { count: number, max: number, onChange: (numbe
 				BackgroundColor3 = Theme.colors.accent,
 			}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) }),
 			Count = e(Label, {
-				text = `×{props.count}`,
+				text = `x{props.count}`,
 				style = "section",
 				size = UDim2.fromOffset(60, 24),
 				position = UDim2.new(0.5, 0, 0, -26),
@@ -299,6 +298,7 @@ local function QuantityBar(props: { count: number, max: number, onChange: (numbe
 		}),
 		Plus = e(Button, {
 			text = "+",
+			glyph = "plus",
 			variant = "secondary",
 			disabled = props.count >= max,
 			size = UDim2.fromOffset(44, 44),
@@ -394,7 +394,7 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 		})
 	else
 		action = e(Button, {
-			text = if runs > 1 then `Craft ×{runs}` else "Craft",
+			text = if runs > 1 then `Craft x{runs}` else "Craft",
 			disabled = maxRuns == 0,
 			size = UDim2.new(1, 0, 0, 52),
 			onActivated = function()
@@ -467,13 +467,21 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 				AnchorPoint = Vector2.new(1, 0),
 				BackgroundTransparency = 1,
 				FontFace = Theme.fonts.header,
-				Text = if props.favourite then "★" else "☆",
+				Text = "",
 				TextSize = 30,
 				TextColor3 = if props.favourite then Theme.colors.bonus else Theme.colors.textMuted,
 				[React.Event.Activated] = function()
 					Net.fire("RecipeFavourite", recipe.id, not props.favourite)
 					Sfx.play("uiClick")
 				end,
+			}, {
+				Glyph = e(Glyph, {
+					name = if props.favourite then "xp" else "favourite",
+					size = UDim2.fromScale(0.7, 0.7),
+					position = UDim2.fromScale(0.5, 0.5),
+					anchorPoint = Vector2.new(0.5, 0.5),
+					color = if props.favourite then Theme.colors.bonus else Theme.colors.textMuted,
+				}),
 			}),
 		}),
 		Description = e(Label, {
