@@ -44,8 +44,8 @@ Remotes.CONTAINER_REFS = { "pockets", "backpack", "equipment", "storage" }
 Remotes.MAX_SLOT = 64
 -- Most runs one craft request may queue (station queues are smaller anyway).
 Remotes.MAX_BATCH = 10
--- Most fuel items one request may add (a full fuel slot).
-Remotes.MAX_FUEL = 20
+-- Most items one request may move into a station slot (a level-3 slot holds 60).
+Remotes.MAX_STACK = 60
 -- Build targets: plots are at most this many cells across.
 Remotes.MAX_CELL = 64
 
@@ -120,6 +120,13 @@ Remotes.list = {
 		rateLimit = ACTIONS,
 		validate = Check.args(Check.oneOf({ "takeAll", "putAll" })),
 		description = "(mode) Take all from the open crate, or Put all materials into it",
+	},
+	StorageLabel = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.optional(Check.contentId("item"))),
+		description = "(itemId?) pins that item's icon on the open crate's lid, or clears it with nil",
 	},
 	StorageOpen = {
 		kind = "event",
@@ -252,40 +259,40 @@ Remotes.list = {
 		validate = Check.args(Check.contentId("recipe"), Check.integer(1, Remotes.MAX_BATCH)),
 		description = "(recipeId, count) crafts a hand recipe from the inventory",
 	},
-	StationCraft = {
+	StationPutInput = {
 		kind = "event",
 		clientCanSend = true,
 		rateLimit = ACTIONS,
-		validate = Check.args(uid, Check.contentId("recipe"), Check.integer(1, Remotes.MAX_BATCH)),
-		description = "(stationUid, recipeId, count) queues runs at a placed station",
+		validate = Check.args(uid, ref, slot, Check.optional(Check.integer(1, Remotes.MAX_STACK))),
+		description = "(stationUid, ref, index, count?) drags a carried stack into a station's input",
 	},
-	StationSalvage = {
+	StationPutFuel = {
 		kind = "event",
 		clientCanSend = true,
 		rateLimit = ACTIONS,
-		validate = Check.args(uid, ref, slot),
-		description = "(stationUid, ref, index) queues the item in that slot at the Recycler",
+		validate = Check.args(uid, ref, slot, Check.optional(Check.integer(1, Remotes.MAX_STACK))),
+		description = "(stationUid, ref, index, count?) drags a carried stack into a station's fuel slot",
 	},
-	StationCollect = {
+	StationTakeInput = {
 		kind = "event",
 		clientCanSend = true,
 		rateLimit = ACTIONS,
 		validate = Check.args(uid),
-		description = "(stationUid) collects every finished job that fits",
+		description = "(stationUid) takes a station's input back into the bag",
 	},
-	StationCancel = {
+	StationTakeFuel = {
 		kind = "event",
 		clientCanSend = true,
 		rateLimit = ACTIONS,
-		validate = Check.args(uid, Check.integer(1, Remotes.MAX_SLOT)),
-		description = "(stationUid, jobIndex) cancels an unfinished job for a full refund",
+		validate = Check.args(uid),
+		description = "(stationUid) takes a station's unlit fuel back into the bag",
 	},
-	StationFuel = {
+	StationTakeOutput = {
 		kind = "event",
 		clientCanSend = true,
 		rateLimit = ACTIONS,
-		validate = Check.args(uid, Check.contentId("item"), Check.integer(1, Remotes.MAX_FUEL)),
-		description = "(stationUid, itemId, count) burns fuel at a station that takes it",
+		validate = Check.args(uid, Check.integer(0, Remotes.MAX_SLOT)),
+		description = "(stationUid, index) takes an output slot (0: all of them) into the bag",
 	},
 	StationUpgrade = {
 		kind = "event",
@@ -293,6 +300,22 @@ Remotes.list = {
 		rateLimit = ACTIONS,
 		validate = Check.args(uid),
 		description = "(stationUid) upgrades an idle station one level",
+	},
+
+	-- Projects (the wrecked hauler's parts checklist, LDOE_PARITY #56) ------------------------
+	ProjectDeliver = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.pattern("^project%.[%w_]+$", 48), Check.contentId("item")),
+		description = "(projectId, itemId) FILL UP: hands in as much of a part as the home pool holds",
+	},
+	ProjectFinalize = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.pattern("^project%.[%w_]+$", 48)),
+		description = "(projectId) FINALIZE once every part is in",
 	},
 
 	-- Building ---------------------------------------------------------------------------------
@@ -315,6 +338,18 @@ Remotes.list = {
 		rateLimit = BUILD,
 		validate = Check.args(uid),
 		description = "(uid) upgrades a placed piece one tier",
+	},
+	BuildMove = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = BUILD,
+		validate = Check.args(
+			uid,
+			Check.integer(0, Remotes.MAX_CELL * 4),
+			Check.integer(0, Remotes.MAX_CELL * 4),
+			Check.integer(0, 3)
+		),
+		description = "(uid, x, z, rot) moves or turns a placed object (quarter cells), keeping what it holds",
 	},
 	BuildDemolish = {
 		kind = "event",

@@ -23,6 +23,10 @@ local FOV = 45
 -- screen; the on-screen size goes as 1/distance, so 16 puts them at about a quarter.
 local PLAY_RANGE = { min = 16, max = 150, default = 31 }
 local BUILD_RANGE = { min = 28, max = 170, default = 52 } -- an overview of the plot
+-- Fog Run lobbies (LDOE_PARITY #12): zoom clamps near LDoE's framing (the survivor about
+-- 1/8 of the screen) so nobody scouts a PvP lobby from the sky. S2 turns it on.
+local LOBBY_RANGE = { min = 32, max = 40, default = 35 }
+local lobbyClamp = false
 local WHEEL_STEP = 0.14 -- one wheel notch changes the distance by 14% (even steps near and far)
 local KEY_RATE = 1.1 -- holding + / - changes it by about 110% a second
 local FOLLOW_RATE = 10
@@ -62,7 +66,17 @@ local function mode(): string -- "play" or "build"
 end
 
 local function rangeFor(which: string): Range
+	if lobbyClamp and which == "play" then
+		return LOBBY_RANGE
+	end
 	return if which == "build" then BUILD_RANGE else PLAY_RANGE
+end
+
+-- The lobby zoom clamp hook (#12): on in Fog Run lobbies, off at home and in build mode.
+function Camera.setLobbyClamp(on: boolean)
+	lobbyClamp = on
+	local range = rangeFor("play")
+	targets.play = math.clamp(targets.play, range.min, range.max)
 end
 
 -- Multiplies the current mode's wanted distance (below 1 zooms in), within its range.

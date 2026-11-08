@@ -1,12 +1,32 @@
 --!strict
--- Recipe definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
--- Processed materials craft in batches so a full Workbench queue runs for an hour
--- or more, the way LDoE's 20-slot station inputs do.
+--[[
+	Recipe definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
+
+	Hand recipes (no stationId) are the crafting catalogue: every tool, weapon, armor piece,
+	bag and food mix is made by hand (LDOE_PARITY #20). Station recipes are converter lines
+	(#18): one input stack -> one output stack, one batch per craftSeconds, at LDoE's pace
+	(a plank or stone block every 4 minutes, cooking every 2).
+
+	Unlocks (#49): only the hatchet, pick, satchel (and the cord it needs) start unlocked.
+	Everything else unlocks by completing an Ember Trail quest (Data/Quests), or by reading
+	a found schematic. Repair doesn't exist yet: worn gear is re-crafted (#21).
+]]
 
 local Types = require("../Types")
 
+local function quest(questId: string): Types.UnlockGate
+	return { kind = "quest", questId = questId }
+end
+
+-- v0.1 launch set (docs/MVP_LAUNCH.md): Campfire, Woodworking Bench and Workbench. The
+-- Stonecutter and Smelter wait on their models grading A (Art.pieces), so stone blocks
+-- and scrap plates are made at the Workbench until then; point these back at
+-- "station.stonecutter" and "station.smelter" when the models pass.
+local STONE_STATION: Types.StationId = "station.workbench"
+local PLATE_STATION: Types.StationId = "station.workbench"
+
 local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
-	-- Hand-crafted ---------------------------------------------------------------
+	-- Hand-crafted: the starter set ----------------------------------------------------
 	["recipe.stone_hatchet"] = {
 		id = "recipe.stone_hatchet",
 		inputs = {
@@ -44,46 +64,14 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		craftSeconds = 10,
 		unlock = { kind = "default" },
 	},
+
+	-- Hand-crafted: unlocked along the Ember Trail ---------------------------------------
 	["recipe.field_dressing"] = {
 		id = "recipe.field_dressing",
 		inputs = { { itemId = "item.cloth", count = 3 } },
 		outputs = { { itemId = "item.field_dressing", count = 1 } },
 		craftSeconds = 5,
-		unlock = { kind = "level", level = 2 },
-	},
-
-	-- Workbench --------------------------------------------------------------------
-	["recipe.plank"] = {
-		id = "recipe.plank",
-		inputs = { { itemId = "item.timber", count = 4 } },
-		outputs = { { itemId = "item.plank", count = 4 } },
-		stationId = "station.workbench",
-		craftSeconds = 10 * 60,
-		unlock = { kind = "default" },
-	},
-	["recipe.cloth"] = {
-		id = "recipe.cloth",
-		inputs = { { itemId = "item.fiber", count = 4 } },
-		outputs = { { itemId = "item.cloth", count = 2 } },
-		stationId = "station.workbench",
-		craftSeconds = 3 * 60,
-		unlock = { kind = "level", level = 2 },
-	},
-	["recipe.stone_block"] = {
-		id = "recipe.stone_block",
-		inputs = { { itemId = "item.stone", count = 4 } },
-		outputs = { { itemId = "item.stone_block", count = 2 } },
-		stationId = "station.workbench",
-		craftSeconds = 5 * 60,
-		unlock = { kind = "level", level = 3 },
-	},
-	["recipe.scrap_plate"] = {
-		id = "recipe.scrap_plate",
-		inputs = { { itemId = "item.scrap", count = 6 } },
-		outputs = { { itemId = "item.scrap_plate", count = 2 } },
-		stationId = "station.workbench",
-		craftSeconds = 10 * 60,
-		unlock = { kind = "level", level = 4 },
+		unlock = quest("quest.keep_the_fire"),
 	},
 	["recipe.spiked_club"] = {
 		id = "recipe.spiked_club",
@@ -93,9 +81,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.scrap", count = 3 },
 		},
 		outputs = { { itemId = "item.spiked_club", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 60,
-		unlock = { kind = "level", level = 2 },
+		craftSeconds = 10,
+		unlock = quest("quest.into_the_fog"),
 	},
 	["recipe.padded_hood"] = {
 		id = "recipe.padded_hood",
@@ -104,9 +91,19 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.rope", count = 2 },
 		},
 		outputs = { { itemId = "item.padded_hood", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 2 * 60,
-		unlock = { kind = "level", level = 4 },
+		craftSeconds = 10,
+		unlock = quest("quest.hold_the_door"),
+	},
+	["recipe.hearth_stew"] = {
+		id = "recipe.hearth_stew",
+		inputs = {
+			{ itemId = "item.roasted_ashroot", count = 2 },
+			{ itemId = "item.emberberry", count = 3 },
+			{ itemId = "item.boiled_water", count = 1 },
+		},
+		outputs = { { itemId = "item.hearth_stew", count = 1 } },
+		craftSeconds = 5,
+		unlock = quest("quest.hold_the_door"),
 	},
 	["recipe.shortbow"] = {
 		id = "recipe.shortbow",
@@ -116,9 +113,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.pitch_glue", count = 1 },
 		},
 		outputs = { { itemId = "item.shortbow", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 3 * 60,
-		unlock = { kind = "level", level = 5 },
+		craftSeconds = 10,
+		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.arrow"] = {
 		id = "recipe.arrow",
@@ -128,9 +124,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.fiber", count = 1 },
 		},
 		outputs = { { itemId = "item.arrow", count = 5 } },
-		stationId = "station.workbench",
-		craftSeconds = 60,
-		unlock = { kind = "level", level = 5 },
+		craftSeconds = 5,
+		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.padded_vest"] = {
 		id = "recipe.padded_vest",
@@ -140,9 +135,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.scrap_plate", count = 2 },
 		},
 		outputs = { { itemId = "item.padded_vest", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 5 * 60,
-		unlock = { kind = "level", level = 6 },
+		craftSeconds = 10,
+		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.scrapblade"] = {
 		id = "recipe.scrapblade",
@@ -153,9 +147,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.rivets", count = 2 },
 		},
 		outputs = { { itemId = "item.scrapblade", count = 1 } },
-		stationId = "station.workbench",
-		craftSeconds = 5 * 60,
-		unlock = { kind = "level", level = 8 },
+		craftSeconds = 10,
+		unlock = quest("quest.scavenger"),
 	},
 	["recipe.pack_frame"] = {
 		id = "recipe.pack_frame",
@@ -167,39 +160,82 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.brass_gear", count = 1 },
 		},
 		outputs = { { itemId = "item.pack_frame", count = 1 } },
-		stationId = "station.workbench",
-		stationLevel = 2,
-		craftSeconds = 10 * 60,
+		craftSeconds = 15,
 		unlock = { kind = "blueprint", itemId = "item.bp_pack_frame" },
 	},
 
-	-- Campfire ------------------------------------------------------------------------
+	-- Woodworking Bench ------------------------------------------------------------------
+	["recipe.plank"] = {
+		id = "recipe.plank",
+		inputs = { { itemId = "item.timber", count = 1 } },
+		outputs = { { itemId = "item.plank", count = 1 } },
+		stationId = "station.woodworking_bench",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.claim_the_ground"),
+	},
+
+	-- Stonecutter (at the Workbench for v0.1: STONE_STATION) ---------------------------------
+	["recipe.stone_block"] = {
+		id = "recipe.stone_block",
+		inputs = { { itemId = "item.stone", count = 2 } },
+		outputs = { { itemId = "item.stone_block", count = 1 } },
+		stationId = STONE_STATION,
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.a_place_to_work"),
+	},
+
+	-- Smelter (at the Workbench for v0.1: PLATE_STATION) -------------------------------------
+	["recipe.scrap_plate"] = {
+		id = "recipe.scrap_plate",
+		inputs = { { itemId = "item.scrap", count = 3 } },
+		outputs = { { itemId = "item.scrap_plate", count = 1 } },
+		stationId = PLATE_STATION,
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.into_the_fog"),
+	},
+
+	-- Workbench: parts -----------------------------------------------------------------------
+	["recipe.cloth"] = {
+		id = "recipe.cloth",
+		inputs = { { itemId = "item.fiber", count = 2 } },
+		outputs = { { itemId = "item.cloth", count = 1 } },
+		stationId = "station.workbench",
+		craftSeconds = 2 * 60,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.rivets"] = {
+		id = "recipe.rivets",
+		inputs = { { itemId = "item.scrap_plate", count = 1 } },
+		outputs = { { itemId = "item.rivets", count = 2 } },
+		stationId = "station.workbench",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.hold_the_door"),
+	},
+
+	-- Campfire: cooking ----------------------------------------------------------------------
 	["recipe.boiled_water"] = {
 		id = "recipe.boiled_water",
-		inputs = { { itemId = "item.murky_water", count = 2 } },
-		outputs = { { itemId = "item.boiled_water", count = 2 } },
+		inputs = { { itemId = "item.murky_water", count = 1 } },
+		outputs = { { itemId = "item.boiled_water", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 2 * 60,
-		unlock = { kind = "default" },
+		unlock = quest("quest.tools_of_survival"),
 	},
 	["recipe.roasted_ashroot"] = {
 		id = "recipe.roasted_ashroot",
-		inputs = { { itemId = "item.ashroot", count = 2 } },
-		outputs = { { itemId = "item.roasted_ashroot", count = 2 } },
+		inputs = { { itemId = "item.ashroot", count = 1 } },
+		outputs = { { itemId = "item.roasted_ashroot", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 2 * 60,
-		unlock = { kind = "default" },
+		unlock = quest("quest.tools_of_survival"),
 	},
 	["recipe.ember_tea"] = {
 		id = "recipe.ember_tea",
-		inputs = {
-			{ itemId = "item.emberberry", count = 3 },
-			{ itemId = "item.boiled_water", count = 1 },
-		},
+		inputs = { { itemId = "item.emberberry", count = 3 } },
 		outputs = { { itemId = "item.ember_tea", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 2 * 60,
-		unlock = { kind = "level", level = 3 },
+		unlock = quest("quest.keep_the_fire"),
 	},
 	["recipe.pitch_glue"] = {
 		id = "recipe.pitch_glue",
@@ -207,20 +243,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		outputs = { { itemId = "item.pitch_glue", count = 1 } },
 		stationId = "station.campfire",
 		craftSeconds = 4 * 60,
-		unlock = { kind = "level", level = 5 },
-	},
-	["recipe.hearth_stew"] = {
-		id = "recipe.hearth_stew",
-		inputs = {
-			{ itemId = "item.ashroot", count = 2 },
-			{ itemId = "item.emberberry", count = 3 },
-			{ itemId = "item.boiled_water", count = 1 },
-		},
-		outputs = { { itemId = "item.hearth_stew", count = 1 } },
-		stationId = "station.campfire",
-		stationLevel = 2,
-		craftSeconds = 8 * 60,
-		unlock = { kind = "level", level = 8 },
+		unlock = quest("quest.keep_the_fire"),
 	},
 
 	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns ----------------------------
@@ -236,9 +259,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.cloth", count = 2 },
 		},
 		outputs = { { itemId = "item.machete", count = 1 } },
-		stationId = "station.workbench",
 		craftSeconds = 10 * 60,
-		unlock = { kind = "level", level = 10 }, -- the melee step after the Scrapblade (day 2)
+		unlock = quest("quest.the_dense_fog"), -- was level 10: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.fire_axe"] = {
@@ -250,10 +272,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.steel_pipe", count = 1 },
 		},
 		outputs = { { itemId = "item.fire_axe", count = 1 } },
-		stationId = "station.workbench",
-		stationLevel = 2,
 		craftSeconds = 15 * 60,
-		unlock = { kind = "level", level = 12 }, -- day 3-4, alongside the first guns
+		unlock = quest("quest.the_dense_fog"), -- was level 12: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.pipe_pistol"] = {
@@ -266,10 +286,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.coil_spring", count = 1 },
 		},
 		outputs = { { itemId = "item.pipe_pistol", count = 1 } },
-		stationId = "station.workbench",
-		stationLevel = 2,
 		craftSeconds = 20 * 60,
-		unlock = { kind = "level", level = 11 }, -- the first firearm: day 3 (target days 3-5)
+		unlock = quest("quest.the_dense_fog"), -- was level 11: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.flare_pistol"] = {
@@ -281,10 +299,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.pitch_glue", count = 2 },
 		},
 		outputs = { { itemId = "item.flare_pistol", count = 1 } },
-		stationId = "station.workbench",
-		stationLevel = 2,
 		craftSeconds = 20 * 60,
-		unlock = { kind = "level", level = 12 }, -- day 4: the light weapon follows the first gun
+		unlock = quest("quest.the_dense_fog"), -- was level 12: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.scrap_shotgun"] = {
@@ -297,24 +313,19 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.rivets", count = 6 },
 		},
 		outputs = { { itemId = "item.scrap_shotgun", count = 1 } },
-		stationId = "station.workbench",
-		stationLevel = 2,
 		craftSeconds = 45 * 60,
-		unlock = { kind = "level", level = 14 }, -- days 4-5: two Trigger Groups is the grind
+		unlock = quest("quest.the_dense_fog"), -- was level 14: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 
 	-- Ammo Press: the steady ammo sink (GAME_DESIGN "Combat and the arsenal").
 	["recipe.blackpowder"] = {
 		id = "recipe.blackpowder",
-		inputs = {
-			{ itemId = "item.niter", count = 2 },
-			{ itemId = "item.fatwood", count = 1 },
-		},
+		inputs = { { itemId = "item.niter", count = 2 } }, -- fatwood is the press fuel now
 		outputs = { { itemId = "item.blackpowder", count = 2 } },
 		stationId = "station.ammo_press",
 		craftSeconds = 6 * 60,
-		unlock = { kind = "level", level = 10 },
+		unlock = quest("quest.the_dense_fog"), -- was level 10: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.light_rounds"] = {
@@ -324,9 +335,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.blackpowder", count = 1 },
 		},
 		outputs = { { itemId = "item.light_rounds", count = 6 } },
-		stationId = "station.ammo_press",
 		craftSeconds = 4 * 60, -- a full 3-job queue is 18 rounds: about one Dense run's shooting
-		unlock = { kind = "level", level = 11 },
+		unlock = quest("quest.the_dense_fog"), -- was level 11: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.flare"] = {
@@ -337,9 +347,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.cloth", count = 1 },
 		},
 		outputs = { { itemId = "item.flare", count = 2 } },
-		stationId = "station.ammo_press",
 		craftSeconds = 8 * 60,
-		unlock = { kind = "level", level = 12 },
+		unlock = quest("quest.the_dense_fog"), -- was level 12: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.shells"] = {
@@ -350,9 +359,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.cloth", count = 1 },
 		},
 		outputs = { { itemId = "item.shells", count = 4 } },
-		stationId = "station.ammo_press",
 		craftSeconds = 6 * 60,
-		unlock = { kind = "level", level = 14 },
+		unlock = quest("quest.the_dense_fog"), -- was level 14: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 
@@ -368,14 +376,11 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	},
 	["recipe.leather"] = {
 		id = "recipe.leather",
-		inputs = {
-			{ itemId = "item.hide", count = 3 },
-			{ itemId = "item.pitch_glue", count = 1 },
-		},
+		inputs = { { itemId = "item.hide", count = 3 } },
 		outputs = { { itemId = "item.leather", count = 2 } },
 		stationId = "station.workbench",
 		craftSeconds = 8 * 60,
-		unlock = { kind = "level", level = 4 },
+		unlock = quest("quest.scavenger"), -- was level 4: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 	["recipe.doormat"] = {
@@ -386,7 +391,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		},
 		outputs = { { itemId = "item.doormat", count = 1 } },
 		craftSeconds = 10,
-		unlock = { kind = "level", level = 3 },
+		unlock = quest("quest.scavenger"), -- was level 3: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 }

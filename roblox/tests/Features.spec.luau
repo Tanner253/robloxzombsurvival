@@ -24,6 +24,8 @@ local function rawContent(): any
 		Levels = require("../src/shared/Data/Levels"),
 		Quests = require("../src/shared/Data/Quests"),
 		Products = require("../src/shared/Data/Products"),
+		Projects = require("../src/shared/Data/Projects"),
+		StarterShelter = require("../src/shared/Data/StarterShelter"),
 		Tuning = require("../src/shared/Data/Tuning"),
 	})
 end

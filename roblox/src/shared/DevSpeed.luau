@@ -1,7 +1,7 @@
 --!strict
 --[[
-	DevSpeed: a Studio-only multiplier that compresses TIMERS (crafting and station jobs,
-	node regrowth, energy regen) so automated playtests don't wait on real hours. It never
+	DevSpeed: a Studio-only multiplier that compresses TIMERS (crafting and station batches,
+	node respawn, energy regen) so automated playtests don't wait on real hours. It never
 	touches yields, drops or XP: the economy a playtester sees is the real one
 	(the developer, 2026-11-08: "getting way too many resources").
 
@@ -35,7 +35,7 @@ end
 
 --[[
 	Compresses the content's timers in place by `factor`: craft times, node respawn and
-	home regrowth, and energy regen divide by it. Yields, drops and XP never change.
+	energy regen divide by it. Yields, drops and XP never change.
 	Runs once per content table; a factor of 1 changes nothing.
 ]]
 function DevSpeed.apply(content: Types.Content, factor: number)
@@ -50,9 +50,12 @@ function DevSpeed.apply(content: Types.Content, factor: number)
 	for _, node in content.Nodes do
 		node.respawnSeconds = math.max(1, math.floor(node.respawnSeconds / factor))
 	end
-	for _, span in content.Tuning.home.regrowHours do
-		span.min /= factor
-		span.max /= factor
+	for _, station in content.Stations do
+		if station.salvage then
+			for _, salvage in station.salvage do
+				salvage.seconds = math.max(1, math.floor(salvage.seconds / factor))
+			end
+		end
 	end
 	content.Tuning.energy.secondsPerPoint = math.max(1, math.floor(content.Tuning.energy.secondsPerPoint / factor))
 end

@@ -7,10 +7,10 @@ local function sample(): any
 	return {
 		Recipes = { r = { craftSeconds = 60 } },
 		Nodes = { n = { respawnSeconds = 180, xpPerHit = 20, yields = { { perHit = 2 } } } },
+		Stations = { s = { salvage = { { seconds = 600 } } } },
 		Tuning = {
 			devSpeed = 1,
 			energy = { secondsPerPoint = 300 },
-			home = { regrowHours = { n = { min = 8, max = 12 } } },
 		},
 	}
 end
@@ -35,7 +35,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(content.Recipes.r.craftSeconds, 6)
 		TestKit.equal(content.Nodes.n.respawnSeconds, 18)
 		TestKit.equal(content.Tuning.energy.secondsPerPoint, 30)
-		TestKit.equal(content.Tuning.home.regrowHours.n.min, 0.8)
+		TestKit.equal(content.Stations.s.salvage[1].seconds, 60, "Recycler batches")
 		TestKit.equal(content.Nodes.n.xpPerHit, 20, "XP unchanged")
 		TestKit.equal(content.Nodes.n.yields[1].perHit, 2, "yield unchanged")
 	end)

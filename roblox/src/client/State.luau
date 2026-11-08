@@ -18,7 +18,7 @@ local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local State = {}
 
-export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting"
+export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "project"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
@@ -56,6 +56,12 @@ export type Ui = {
 	bagFullAt: number?, -- os.clock() of the last "bag is full", for the Bag button flash
 	inventoryTab: string?, -- the inventory's right pane: "crafting" (default) or "inbox"
 	questCollapsed: boolean?, -- the quest tracker folded to one line (8.9)
+	projectId: string?, -- the project whose parts checklist is open (panel "project")
+	hideUpperWalls: boolean?, -- build mode's top-left toggle (LDOE_PARITY #25)
+	pieceActions: string?, -- build mode: the placed piece whose floating actions show (#27)
+	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
+	-- and safe-area insets instead of the real window.
+	gate: { width: number, height: number, top: number, left: number, right: number, bottom: number, touch: boolean }?,
 }
 
 -- Fires (key) when a section or "ui" changes.
@@ -98,6 +104,30 @@ end
 
 function State.ui(): Ui
 	return ui
+end
+
+-- While held (the UI gate drives fixtures), server syncs wait and land on release.
+local held = false
+local pending: { [string]: any } = {}
+
+function State.hold(on: boolean)
+	held = on
+	if not on then
+		local waiting = pending
+		pending = {}
+		for section, value in waiting do
+			State.set(section, value)
+		end
+	end
+end
+
+-- A server sync: applied now, or kept until the hold ends.
+function State.receive(section: string, value: any)
+	if held then
+		pending[section] = value
+	else
+		State.set(section, value)
+	end
 end
 
 -- Merges `patch` into the UI state (fields set to nil are not cleared; use `clear`).

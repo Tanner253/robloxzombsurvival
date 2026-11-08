@@ -1,5 +1,8 @@
 --!strict
 -- Item definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
+-- Stacks are LDoE's (LDOE_PARITY #15): 20 for everything stackable, 50 for scrap. Bags add
+-- +5, +10 or +15 backpack slots. Food and drink never restore Energy (#33); only the rare
+-- Ember Tonic does.
 
 local Types = require("../Types")
 
@@ -13,7 +16,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 1,
 		rarity = "common",
-		stackSize = 40,
+		stackSize = 20,
 		icon = "rbxassetid://95801563445519",
 	},
 	["item.timber"] = {
@@ -23,7 +26,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://112405725173171",
 	},
 	["item.stone"] = {
@@ -33,7 +36,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://75186630558712",
 	},
 	["item.scrap"] = {
@@ -53,7 +56,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://132663482751916",
 	},
 	["item.fatwood"] = {
@@ -63,7 +66,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://126388118275319",
 	},
 	["item.murky_water"] = {
@@ -73,7 +76,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://98682343534917",
 		consume = { thirst = 15 },
 	},
@@ -86,7 +89,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "material",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://101508503044625",
 	},
 	["item.rope"] = {
@@ -96,7 +99,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "material",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://82985276552297",
 	},
 	["item.cloth"] = {
@@ -106,7 +109,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "material",
 		tier = 1,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://130934022159688",
 	},
 	["item.stone_block"] = {
@@ -116,7 +119,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "material",
 		tier = 2,
 		rarity = "common",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://128812261824827",
 	},
 	["item.scrap_plate"] = {
@@ -126,7 +129,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "material",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://125799632435564",
 	},
 
@@ -148,7 +151,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "part",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://77120206061042",
 	},
 	["item.coil_spring"] = {
@@ -180,7 +183,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "junk",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://130902464275946",
 	},
 	["item.snarled_wire"] = {
@@ -190,7 +193,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "junk",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://129120482133580",
 	},
 	["item.seized_motor"] = {
@@ -200,7 +203,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "junk",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 5,
+		stackSize = 20,
 		icon = "rbxassetid://103599862759407",
 	},
 
@@ -284,7 +287,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "ammo",
 		tier = 1,
 		rarity = "common",
-		stackSize = 40,
+		stackSize = 20,
 		icon = "rbxassetid://80248638313104",
 	},
 
@@ -327,7 +330,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		stackSize = 1,
 		icon = "rbxassetid://100067350903297",
 		equipSlot = "bag",
-		bagSlots = 6,
+		bagSlots = 5,
 	},
 	["item.pack_frame"] = {
 		id = "item.pack_frame",
@@ -339,7 +342,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		stackSize = 1,
 		icon = "rbxassetid://116089210743966",
 		equipSlot = "bag",
-		bagSlots = 12,
+		bagSlots = 10,
 	},
 
 	-- Food, drink and medicine ---------------------------------------------------
@@ -372,9 +375,9 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://107994886381735",
-		consume = { health = 15, hunger = 30, energy = 2 },
+		consume = { health = 15, hunger = 30 },
 	},
 	["item.sealed_tin"] = {
 		id = "item.sealed_tin",
@@ -383,20 +386,20 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://113148496121260",
 		consume = { health = 10, hunger = 25, thirst = 5 },
 	},
 	["item.hearth_stew"] = {
 		id = "item.hearth_stew",
 		name = "Hearth Stew",
-		description = "A thick stew that fills you up and keeps you going.",
+		description = "A thick stew of roast root, berries and boiled water. Fills you right up.",
 		category = "consumable",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://79468384157212",
-		consume = { health = 40, hunger = 60, thirst = 15, energy = 8 },
+		consume = { health = 40, hunger = 60, thirst = 15 },
 	},
 	["item.boiled_water"] = {
 		id = "item.boiled_water",
@@ -405,20 +408,20 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://124968108734684",
 		consume = { thirst = 45 },
 	},
 	["item.ember_tea"] = {
 		id = "item.ember_tea",
 		name = "Ember Tea",
-		description = "Hot berry tea. Quenches thirst and lifts your energy.",
+		description = "Hot berry tea. Quenches thirst and warms you through.",
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://128895150537019",
-		consume = { health = 5, hunger = 5, thirst = 35, energy = 3 },
+		consume = { health = 5, hunger = 5, thirst = 35 },
 	},
 	["item.field_dressing"] = {
 		id = "item.field_dressing",
@@ -427,7 +430,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://115717781115072",
 		consume = { health = 40 },
 	},
@@ -438,7 +441,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 2,
 		rarity = "rare",
-		stackSize = 5,
+		stackSize = 20,
 		icon = "rbxassetid://91302770344790",
 		flags = { ignoresFoodEnergyCap = true },
 		consume = { energy = 25 },
@@ -452,7 +455,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "blueprint",
 		tier = 2,
 		rarity = "rare",
-		stackSize = 5,
+		stackSize = 20,
 		icon = "rbxassetid://140630898641024",
 	},
 	["item.bp_reinforced"] = {
@@ -462,7 +465,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "blueprint",
 		tier = 3,
 		rarity = "epic",
-		stackSize = 5,
+		stackSize = 20,
 		icon = "rbxassetid://92477519102534",
 	},
 

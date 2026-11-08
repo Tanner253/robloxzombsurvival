@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
 local Actions = require("../../Actions")
@@ -52,11 +53,7 @@ local function lockText(def: any, progress: BuildRules.Progress): string?
 	if BuildRules.isUnlocked(def, progress) then
 		return nil
 	end
-	local gate = def.unlock
-	if gate and gate.kind == "level" then
-		return `Level {gate.level}`
-	end
-	return "Blueprint"
+	return Unlocks.text(def.unlock, { items = Content.Items :: any, quests = Content.Quests :: any }) or "Locked"
 end
 
 local function Card(props: {
@@ -226,11 +223,13 @@ local function BuildMenu()
 	end, { saved })
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
+	local questsState = hooks.useSection("quests")
 	local tab, setTab = React.useState("foundation")
 	local open = ui.panel == "build"
 	local progress: BuildRules.Progress = {
 		level = if progression then progression.level else 1,
 		unlocks = if unlocks then unlocks else { recipes = {}, blueprints = {} },
+		quests = if type(questsState) == "table" then questsState else nil,
 	}
 
 	local current = TABS[1]

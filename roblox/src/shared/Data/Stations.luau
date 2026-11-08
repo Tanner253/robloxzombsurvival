@@ -1,72 +1,112 @@
 --!strict
--- Crafting station definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
--- Each station is placed through its build piece in Data/BuildPieces.
+--[[
+	Station definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
+	Each station is placed through its build piece in Data/BuildPieces.
+
+	Stations are LDoE converters (LDOE_PARITY #18-19, Domain/Converter): one input slot
+	feeds one output slot, a batch per recipe craftSeconds. Each slot holds slotCap items:
+	20 at level 1 and +20 per level, as in LDoE. Fuelled stations burn fuel only while
+	converting. Stations only refine materials; gear is crafted by hand (#20).
+
+	Roster (#19): Woodworking Bench (timber -> planks), Stonecutter (stone -> blocks),
+	Smelter (scrap -> plate), Workbench (cloth and rivets), Campfire (cooking), and the
+	Recycler (junk -> parts). The Tanning Rack and Sewing Table come later.
+
+	Fuel burn times follow LDoE's station pages: a log 2 min, a plank 3 min, a charcoal-like
+	fatwood about 5 min.
+]]
 
 local Types = require("../Types")
 
+local function levels(level2: { Types.ItemStack }, level3: { Types.ItemStack }): { Types.StationLevel }
+	return {
+		{ level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 },
+		{ level = 2, upgradeCost = level2, slotCap = 40, speedMultiplier = 1 },
+		{ level = 3, upgradeCost = level3, slotCap = 60, speedMultiplier = 1 },
+	}
+end
+
+local WOOD_FUEL: Types.StationFuel = {
+	itemIds = { "item.sticks", "item.timber", "item.plank", "item.fatwood" },
+	secondsPerUnit = 2 * 60,
+	burnSeconds = {
+		["item.sticks"] = 60,
+		["item.plank"] = 3 * 60,
+		["item.fatwood"] = 5 * 60 + 20,
+	},
+}
+
 local Stations: { [Types.StationId]: Types.StationDef } = {
+	["station.woodworking_bench"] = {
+		id = "station.woodworking_bench",
+		name = "Woodworking Bench",
+		levels = levels({
+			{ itemId = "item.plank", count = 20 },
+			{ itemId = "item.scrap_plate", count = 6 },
+		}, {
+			{ itemId = "item.plank", count = 30 },
+			{ itemId = "item.scrap_plate", count = 12 },
+			{ itemId = "item.brass_gear", count = 2 },
+		}),
+	},
+	["station.stonecutter"] = {
+		id = "station.stonecutter",
+		name = "Stonecutter",
+		levels = levels({
+			{ itemId = "item.stone_block", count = 20 },
+			{ itemId = "item.scrap_plate", count = 6 },
+		}, {
+			{ itemId = "item.stone_block", count = 30 },
+			{ itemId = "item.scrap_plate", count = 12 },
+			{ itemId = "item.brass_gear", count = 2 },
+		}),
+	},
+	["station.smelter"] = {
+		id = "station.smelter",
+		name = "Smelter",
+		levels = levels({
+			{ itemId = "item.stone_block", count = 20 },
+			{ itemId = "item.scrap_plate", count = 10 },
+		}, {
+			{ itemId = "item.stone_block", count = 30 },
+			{ itemId = "item.scrap_plate", count = 16 },
+			{ itemId = "item.brass_gear", count = 3 },
+		}),
+		fuel = WOOD_FUEL,
+	},
 	["station.workbench"] = {
 		id = "station.workbench",
 		name = "Workbench",
-		levels = {
-			{ level = 1, upgradeCost = {}, queueSlots = 3, speedMultiplier = 1 },
-			{
-				level = 2,
-				upgradeCost = {
-					{ itemId = "item.plank", count = 20 },
-					{ itemId = "item.stone_block", count = 10 },
-					{ itemId = "item.scrap_plate", count = 6 },
-				},
-				queueSlots = 5,
-				speedMultiplier = 1.25,
-				requiredLevel = 10,
-			},
-			{
-				level = 3,
-				upgradeCost = {
-					{ itemId = "item.plank", count = 30 },
-					{ itemId = "item.stone_block", count = 20 },
-					{ itemId = "item.scrap_plate", count = 12 },
-					{ itemId = "item.brass_gear", count = 3 },
-				},
-				queueSlots = 7,
-				speedMultiplier = 1.5,
-				requiredLevel = 16,
-			},
-		},
+		levels = levels({
+			{ itemId = "item.plank", count = 20 },
+			{ itemId = "item.stone_block", count = 10 },
+			{ itemId = "item.scrap_plate", count = 6 },
+		}, {
+			{ itemId = "item.plank", count = 30 },
+			{ itemId = "item.stone_block", count = 20 },
+			{ itemId = "item.scrap_plate", count = 12 },
+			{ itemId = "item.brass_gear", count = 3 },
+		}),
 	},
 	["station.campfire"] = {
 		id = "station.campfire",
 		name = "Campfire",
-		levels = {
-			{ level = 1, upgradeCost = {}, queueSlots = 3, speedMultiplier = 1 },
-			{
-				level = 2,
-				upgradeCost = {
-					{ itemId = "item.stone_block", count = 12 },
-					{ itemId = "item.scrap_plate", count = 4 },
-				},
-				queueSlots = 5,
-				speedMultiplier = 1.25,
-				requiredLevel = 6,
-			},
-		},
-		fuel = {
-			itemIds = { "item.sticks", "item.timber", "item.plank", "item.fatwood" },
-			secondsPerUnit = 2 * 60,
-			burnSeconds = {
-				["item.sticks"] = 60,
-				["item.plank"] = 3 * 60,
-				["item.fatwood"] = 6 * 60,
-			},
-			maxUnits = 20,
-		},
+		levels = levels({
+			{ itemId = "item.stone_block", count = 12 },
+			{ itemId = "item.scrap_plate", count = 4 },
+		}, {
+			{ itemId = "item.stone_block", count = 20 },
+			{ itemId = "item.scrap_plate", count = 8 },
+			{ itemId = "item.coil_spring", count = 2 },
+		}),
+		fuel = WOOD_FUEL,
 	},
 	["station.recycler"] = {
 		id = "station.recycler",
 		name = "Recycler",
+		outputSlots = 4,
 		levels = {
-			{ level = 1, upgradeCost = {}, queueSlots = 2, speedMultiplier = 1 },
+			{ level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 },
 			{
 				level = 2,
 				upgradeCost = {
@@ -74,9 +114,8 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 					{ itemId = "item.rivets", count = 6 },
 					{ itemId = "item.coil_spring", count = 2 },
 				},
-				queueSlots = 3,
-				speedMultiplier = 1.2,
-				requiredLevel = 12,
+				slotCap = 40,
+				speedMultiplier = 1,
 				salvageChanceBonus = 0.05,
 			},
 			{
@@ -87,9 +126,8 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 					{ itemId = "item.coil_spring", count = 4 },
 					{ itemId = "item.brass_gear", count = 2 },
 				},
-				queueSlots = 4,
-				speedMultiplier = 1.4,
-				requiredLevel = 18,
+				slotCap = 60,
+				speedMultiplier = 1,
 				salvageChanceBonus = 0.1,
 			},
 		},
@@ -184,20 +222,18 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 	["station.ammo_press"] = {
 		id = "station.ammo_press",
 		name = "Ammo Press",
-		levels = {
-			{ level = 1, upgradeCost = {}, queueSlots = 3, speedMultiplier = 1 },
-			{
-				level = 2,
-				upgradeCost = {
-					{ itemId = "item.scrap_plate", count = 12 },
-					{ itemId = "item.rivets", count = 8 },
-					{ itemId = "item.brass_gear", count = 2 },
-				},
-				queueSlots = 5,
-				speedMultiplier = 1.25,
-				requiredLevel = 15, -- about a week in: the Reinforced tier's ammo demand
-			},
-		},
+		-- A converter like every station (LDOE_PARITY #18): niter -> blackpowder, burning
+		-- fatwood. Rounds, shells and flares are then made by hand from the powder.
+		levels = levels({
+			{ itemId = "item.scrap_plate", count = 12 },
+			{ itemId = "item.rivets", count = 8 },
+			{ itemId = "item.brass_gear", count = 2 },
+		}, {
+			{ itemId = "item.scrap_plate", count = 20 },
+			{ itemId = "item.rivets", count = 12 },
+			{ itemId = "item.brass_gear", count = 4 },
+		}),
+		fuel = WOOD_FUEL,
 		feature = "fogRuns",
 	},
 }

@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local ProgressionMath = require(ReplicatedStorage.Shared.Domain.Progression)
+local Events = require("../Events")
 local Analytics = require("./Analytics")
 local Energy = require("./Energy")
 local Inbox = require("./Inbox")
@@ -46,6 +47,9 @@ function Progression.grantXp(player: Player, amount: number, source: string)
 			energy = Content.Tuning.energy.levelUpRestore,
 		})
 		Analytics.progression(player, "PlayerLevel", "complete", def.level, nil, { source })
+	end
+	if #reached > 0 then
+		Events.factsChanged:Fire(player) -- reachLevel quest objectives
 	end
 end
 

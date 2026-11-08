@@ -6,8 +6,10 @@
 	and a night keyframe with the clock's smooth `daylight`, with a warm tint
 	around dawn and dusk. Nothing jumps.
 
-	- Night is dark but readable: moonlit ambient, a little exposure lift, and a
-	  soft warm light on your own survivor (1.7).
+	- Night is dark but readable, like LDoE's (rec6_04, LDOE_PARITY #32): a cool blue
+	  moonlight wash, a desaturated grade so the ground reads blue-grey instead of murky
+	  olive, and a cool rim light on your own survivor. Warm light at night comes only from
+	  fires and torches, so their pools stand out (1.7).
 	- "Night is coming" at 18:30 and "Dawn breaks" at 06:00 (8.5).
 ]]
 
@@ -30,6 +32,9 @@ type Key = {
 	ambient: Color3,
 	outdoor: Color3,
 	tint: Color3,
+	saturation: number,
+	contrast: number,
+	shift: Color3, -- Lighting.ColorShift_Top: the sun's or the moon's colour
 	haze: Color3,
 	decay: Color3,
 }
@@ -40,24 +45,37 @@ local DAY: Key = {
 	ambient = Color3.fromRGB(66, 70, 80),
 	outdoor = Color3.fromRGB(118, 124, 134),
 	tint = Color3.fromRGB(244, 246, 250),
+	saturation = -0.2,
+	contrast = 0.12,
+	shift = Color3.fromRGB(240, 236, 228),
 	haze = Color3.fromRGB(182, 188, 194),
 	decay = Color3.fromRGB(104, 118, 134),
 }
 local NIGHT: Key = {
-	brightness = 1.2,
-	exposure = 0.55,
-	-- Blue moonlight fill: trees, nodes and the base stay readable at night (QA).
-	ambient = Color3.fromRGB(78, 88, 122),
-	outdoor = Color3.fromRGB(112, 126, 172),
-	tint = Color3.fromRGB(198, 212, 240),
+	brightness = 1.7,
+	exposure = 1.1,
+	-- Blue moonlight fill: trees, nodes and the base stay readable at night (rec6_04).
+	ambient = Color3.fromRGB(96, 106, 170),
+	outdoor = Color3.fromRGB(140, 154, 240),
+	tint = Color3.fromRGB(146, 164, 255),
+	saturation = -0.7,
+	contrast = 0.06,
+	shift = Color3.fromRGB(150, 172, 240),
 	haze = Color3.fromRGB(46, 54, 72),
 	decay = Color3.fromRGB(34, 40, 58),
 }
 local DUSK_TINT = Color3.fromRGB(255, 212, 172) -- golden hour, strongest mid-transition
--- A soft light on your own survivor: by night it keeps you readable in the dark; by day a
--- smaller, dimmer one lifts the shadowed side so you never sink into the ground (2.2).
-local READ_LIGHT =
-	{ color = Color3.fromRGB(255, 214, 170), range = 24, brightness = 0.95, dayRange = 7, dayBrightness = 0.45 }
+-- A soft light on your own survivor: by night a cool moonlit rim keeps you readable in the
+-- dark (LDoE lights the survivor blue, not with a warm pool); by day a smaller, warm one
+-- lifts the shadowed side so you never sink into the ground (2.2).
+local READ_LIGHT = {
+	color = Color3.fromRGB(176, 198, 255),
+	range = 16,
+	brightness = 1.1,
+	dayColor = Color3.fromRGB(255, 214, 170),
+	dayRange = 7,
+	dayBrightness = 0.45,
+}
 
 local cues = {
 	{ hour = 18.5, text = "Night is coming. Keep your fire fed.", tone = "warn" },
@@ -103,9 +121,12 @@ local function apply(hours: number)
 	Lighting.ExposureCompensation = lerp(DAY.exposure, NIGHT.exposure, t)
 	Lighting.Ambient = DAY.ambient:Lerp(NIGHT.ambient, t)
 	Lighting.OutdoorAmbient = DAY.outdoor:Lerp(NIGHT.outdoor, t)
+	Lighting.ColorShift_Top = DAY.shift:Lerp(NIGHT.shift, t):Lerp(DUSK_TINT, golden * 0.5)
 	local grade = find("ColorCorrectionEffect") :: ColorCorrectionEffect?
 	if grade then
 		grade.TintColor = DAY.tint:Lerp(NIGHT.tint, t):Lerp(DUSK_TINT, golden * 0.35)
+		grade.Saturation = lerp(DAY.saturation, NIGHT.saturation, t)
+		grade.Contrast = lerp(DAY.contrast, NIGHT.contrast, t)
 	end
 	local atmosphere = find("Atmosphere") :: Atmosphere?
 	if atmosphere then
@@ -116,6 +137,7 @@ local function apply(hours: number)
 	if light then
 		light.Brightness = READ_LIGHT.dayBrightness + (READ_LIGHT.brightness - READ_LIGHT.dayBrightness) * t
 		light.Range = READ_LIGHT.dayRange + (READ_LIGHT.range - READ_LIGHT.dayRange) * t
+		light.Color = READ_LIGHT.dayColor:Lerp(READ_LIGHT.color, t)
 		light.Enabled = t > 0.01
 	end
 end
