@@ -49,6 +49,8 @@ Art.decks = {
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
+Art.dropModels = { "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
+
 Art.nodes = {
 	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 17 },
 	["node.boulder"] = { names = { "EO_Boulder", "RockClump" }, height = 4.6 },
@@ -75,6 +77,56 @@ Art.remnants = {
 	["node.ember_bush"] = { names = { "EO_BareBranches" }, height = 0.8 },
 	["node.ashroot_mound"] = { names = { "EO_LooseStones" }, height = 0.5 },
 } :: { [string]: { names: { string }, height: number } }
+
+-- Quality gate (PLAYER_EXPERIENCE_CHECKLIST §0): only kit models graded A may appear.
+-- Everything else (fallback builds, look-test and generated stand-ins, models with
+-- defects) stays out of the world, and the feature that needs it is hidden until its
+-- model is graded A and added here. Grades: docs/briefs/m1-slice1-audit.md.
+Art.approved = {
+	EO_PineTree = true,
+	EO_LooseStones = true,
+	EO_FatwoodStump = true,
+	EO_Reeds = true,
+	WallWood = true, -- the outpost kit (the lineup's exemplars)
+	WallScrap = true,
+	WallReinforced = true,
+	WindowScrap = true,
+	Workbench = true,
+	EO_StoneHatchet = true,
+	EO_StonePick = true,
+	EO_SpikedClub = true,
+	EO_Scrapblade = true,
+} :: { [string]: boolean }
+
+local function anyApproved(names: { string }?): boolean
+	local list: { string } = names or {}
+	for _, name in list do
+		if Art.approved[name] then
+			return true
+		end
+	end
+	return false
+end
+
+-- Whether a build piece can be offered: foundations are material decks; everything
+-- else needs an approved kit model.
+function Art.pieceReady(pieceId: string, kind: string?): boolean
+	if kind == "foundation" then
+		return true
+	end
+	return anyApproved(Art.pieces[pieceId])
+end
+
+-- Whether a resource node can appear (it needs an approved model).
+function Art.nodeReady(nodeId: string): boolean
+	local art = Art.nodes[nodeId]
+	return art ~= nil and anyApproved(art.names)
+end
+
+-- Whether a loot sack can lie on the ground (dropping items needs its model).
+function Art.dropReady(): boolean
+	return anyApproved(Art.dropModels)
+end
 
 -- Items -> kit names for the model held in hand and the rendered 3D icon.
 Art.items = {

@@ -17,6 +17,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
@@ -328,7 +329,7 @@ local function DragGhost(props: { inventory: any, storage: any, stash: any })
 				local min, size = frame.AbsolutePosition, frame.AbsoluteSize
 				inside = at.X >= min.X and at.Y >= min.Y and at.X <= min.X + size.X and at.Y <= min.Y + size.Y
 			end
-			if not inside and done.ref ~= "equipment" then
+			if not inside and done.ref ~= "equipment" and Art.dropReady() then
 				Net.fire("InventoryDrop", done.ref, done.index)
 				Sfx.play("pickup")
 			end
@@ -480,7 +481,9 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 	local def = if slot and slot.count > 0 then Content.Items[slot.itemId] else nil
 	if def == nil or focus == nil then
 		return e(Label, {
-			text = "Drag items between slots (Shift: half a stack), or out of the window to drop them.  Shift+click moves across.  Right click uses, equips or splits.",
+			text = if Art.dropReady()
+				then "Drag items between slots (Shift: half a stack), or out of the window to drop them.  Shift+click moves across.  Right click uses, equips or splits."
+				else "Drag items between slots (Shift: half a stack).  Shift+click moves across.  Right click uses, equips or splits.",
 			style = "caption",
 			tone = "muted",
 			wrap = true,
@@ -494,7 +497,9 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 		elseif def.equipSlot then "Equip"
 		elseif def.tool then "Hold"
 		else "Read"
-	local droppable = focus.ref == "pockets" or focus.ref == "backpack" or focus.ref == "storage"
+	local carried = focus.ref == "pockets" or focus.ref == "backpack" or focus.ref == "storage"
+	-- Dropping on the ground needs the sack model (hidden until it's graded A, §0).
+	local droppable = carried and Art.dropReady()
 	return e(React.Fragment, nil, {
 		Icon = e("Frame", { Size = UDim2.fromOffset(72, 72), BackgroundColor3 = Theme.colors.panelRaised }, {
 			Corner = e("UICorner", { CornerRadius = Theme.radius }),
@@ -563,7 +568,7 @@ local function Details(props: { inventory: any, storage: any, stash: any })
 					Sfx.play("pickup")
 				end,
 			}),
-			[`Destroy{focus.ref}{focus.index}`] = droppable
+			[`Destroy{focus.ref}{focus.index}`] = carried
 				and e(TrashButton, { container = focus.ref, index = focus.index, layoutOrder = 4 }),
 		}),
 	})

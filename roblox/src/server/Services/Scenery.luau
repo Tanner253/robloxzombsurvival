@@ -227,7 +227,8 @@ local function terrain(origin: Vector3, random: Random)
 		return top + rise * hills * 9
 	end
 
-	-- Deep ground under everything, then the painted surface layers on top of it.
+	-- Deep ground under everything, then the painted surface layers on top of it. This
+	-- runs without yielding: nodes and plots are placed on the ground right after.
 	local base = math.floor(top / 4) * 4 - 4 -- one full layer under the surface voxel
 	terrainService:FillBlock(
 		CFrame.new(Vector3.new(origin.X, base - 6, origin.Z)),
@@ -261,9 +262,6 @@ local function terrain(origin: Vector3, random: Random)
 				mx[iy][iz] = if fill > 0 then material else Enum.Material.Air
 				ox[iy][iz] = fill
 			end
-		end
-		if ix % 40 == 0 then
-			task.wait() -- keep the server responsive while it paints
 		end
 	end
 	terrainService:WriteVoxels(region, 4, materials, occupancy)

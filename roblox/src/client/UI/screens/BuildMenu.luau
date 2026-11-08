@@ -11,6 +11,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
@@ -279,7 +280,8 @@ local function BuildMenu()
 		}),
 	}
 	for index, def in BuildRules.catalog(Content.BuildPieces) do
-		if current.kinds[def.kind] then
+		-- Pieces without an approved model stay out of the menu (checklist §0).
+		if current.kinds[def.kind] and Art.pieceReady(def.id, def.kind) then
 			cards[def.id] = e(Card, {
 				def = def,
 				selected = ui.buildPiece == def.id and ui.buildMode == "place",

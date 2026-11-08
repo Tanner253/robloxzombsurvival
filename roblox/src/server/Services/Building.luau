@@ -18,6 +18,7 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlotSpace = require(ReplicatedStorage.Shared.PlotSpace)
@@ -74,6 +75,9 @@ local function render(plot: Plots.Plot, piece: Grid.Piece, fresh: boolean)
 	end
 	local def = Pieces[piece.pieceId]
 	local model = Models.piece(def)
+	if model == nil then
+		return -- no approved model yet: a saved piece of this type stays invisible
+	end
 	model.Name = piece.uid
 	model:PivotTo(PlotSpace.piece(plot.origin, plot.layout, piece, def))
 	model:SetAttribute("Uid", piece.uid)
@@ -164,6 +168,10 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 		return
 	end
 	local def = Pieces[pieceId]
+	if not Art.pieceReady(pieceId, def.kind) then
+		deny(player, "notReady") -- hidden until its model is graded A (checklist §0)
+		return
+	end
 	if not Materials.take(player, def.cost, "Building") then
 		deny(player, "cantAfford")
 		return

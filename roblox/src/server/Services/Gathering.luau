@@ -17,6 +17,7 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local GatheringMath = require(ReplicatedStorage.Shared.Domain.Gathering)
@@ -143,6 +144,9 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 	local count = 0
 	for _, entry in tuning.home.nodes do
 		local def = Content.Nodes[entry.nodeId]
+		if not Art.nodeReady(entry.nodeId) then
+			continue -- no approved model yet: the node doesn't appear (checklist §0)
+		end
 		for _ = 1, entry.count do
 			local spacing = if def.tool and def.tool.kind == "hatchet" then SPACING + 3 else SPACING
 			local spot = spotFor(plot, random, taken, spacing)
@@ -150,7 +154,7 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 				table.insert(taken, spot)
 				count += 1
 				local key = `p{plot.index}n{count}`
-				local model = Models.node(def, random)
+				local model = Models.node(def, random) :: Model
 				local wx, wz = plot.origin.X + spot.X, plot.origin.Z + spot.Y
 				local y = groundAt(plot, wx, wz)
 				local scale = 0.88 + random:NextNumber() * 0.24

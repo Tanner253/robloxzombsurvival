@@ -15,10 +15,12 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Net = require("../Net")
 local Models = require("../World/Models")
+local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Sync = require("./Sync")
 
@@ -71,6 +73,12 @@ end
 
 -- Puts `stacks` on the ground at `position` for `player`. Returns the drop's id.
 function Drops.spawn(player: Player, position: Vector3, stacks: { Types.Slot }): string?
+	if not Art.dropReady() then
+		-- No sack model is graded A yet: what would land on the ground waits in the
+		-- inbox instead (checklist 4.15 and §0).
+		Inbox.grant(player, stacks, "Overflow")
+		return nil
+	end
 	local items: { Types.Slot } = {}
 	for _, stack in stacks do
 		if stack.count > 0 then
@@ -104,7 +112,7 @@ function Drops.spawn(player: Player, position: Vector3, stacks: { Types.Slot }):
 	end
 	nextId += 1
 	local id = `d{nextId}`
-	local model = Models.drop()
+	local model = Models.drop() :: Model
 	model.Name = id
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -159,6 +167,9 @@ end
 
 -- Drops a whole slot from the inventory (or open crate) just in front of the player.
 local function dropFromInventory(player: Player, ref: string, index: number)
+	if not Art.dropReady() then
+		return -- dropping is hidden until the sack model is graded A
+	end
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root == nil then

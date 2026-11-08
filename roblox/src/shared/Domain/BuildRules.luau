@@ -43,6 +43,7 @@ BuildRules.REASON_TEXT = {
 	locked = "Not unlocked yet",
 	limit = "Plot limit reached",
 	cantAfford = "Not enough materials",
+	notReady = "Not available yet",
 } :: { [string]: string }
 
 local function unlocked(gate: Types.UnlockGate?, progress: Progress): boolean

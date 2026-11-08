@@ -48,11 +48,7 @@ local TIERS: { Style } = {
 
 local STONE = Color3.fromRGB(104, 100, 94)
 local BARK = Color3.fromRGB(78, 58, 42)
-local PINE = Color3.fromRGB(52, 78, 54)
-local LEAF = Color3.fromRGB(70, 92, 56)
-local REED = Color3.fromRGB(128, 132, 78)
 local EMBER = Color3.fromRGB(255, 138, 61)
-local WATER = Color3.fromRGB(64, 104, 124)
 
 -- Kit lookup -----------------------------------------------------------------------------
 
@@ -82,6 +78,9 @@ end
 function Models.kit(names: { string }): Model?
 	for _, folder in sources() do
 		for _, name in names do
+			if not Art.approved[name] then
+				continue -- below grade A: never in the world (checklist §0)
+			end
 			local found = folder:FindFirstChild(name, true)
 			if found and found:IsA("Model") then
 				local copy = found:Clone()
@@ -132,131 +131,6 @@ local function finish(model: Model): Model
 	return model
 end
 
--- No two faces of a piece share a plane (checklist 6.11): panels stop INSET short of
--- every edge, so they never line up with a post, trim, beam or the floor.
-local INSET = 0.05
-
--- A wall panel spanning x0..x1 (along X) and y0..y1, inset INSET on every side.
-local function panel(model: Model, style: Style, x0: number, x1: number, y0: number, y1: number, thickness: number)
-	x0, x1, y0, y1 = x0 + INSET, x1 - INSET, y0 + INSET, y1 - INSET
-	if x1 - x0 <= 0.05 or y1 - y0 <= 0.05 then
-		return
-	end
-	part(
-		model,
-		Vector3.new(x1 - x0, y1 - y0, thickness),
-		CFrame.new((x0 + x1) / 2, (y0 + y1) / 2, 0),
-		style.material,
-		style.color
-	)
-end
-
--- End posts: pulled 2 x INSET in from the cell edge (past the inset panel ends and the
--- seam beams that end there) and sunk INSET into the floor, so neither their sides nor
--- their bases share a plane.
-local function posts(model: Model, style: Style, height: number)
-	for _, x in { -CELL / 2 + 0.45 + 2 * INSET, CELL / 2 - 0.45 - 2 * INSET } do
-		part(
-			model,
-			Vector3.new(0.9, height + 0.4 + INSET, 0.9),
-			CFrame.new(x, (height + 0.4 - INSET) / 2, 0),
-			style.trim,
-			style.trimColor
-		)
-	end
-end
-
-local function rail(model: Model, style: Style, y: number)
-	part(model, Vector3.new(CELL - 0.4, 0.45, 1.05), CFrame.new(0, y, 0), style.trim, style.trimColor)
-end
-
-local function wall(style: Style): Model
-	local model = newModel("Wall")
-	local h = Art.WALL_HEIGHT
-	panel(model, style, -CELL / 2, CELL / 2, 0, h, 0.8)
-	posts(model, style, h)
-	rail(model, style, 1.2)
-	rail(model, style, h - 0.6)
-	return finish(model)
-end
-
-local DOOR_WIDTH = 5
-local DOOR_HEIGHT = 6.6
-
-local function doorway(style: Style): Model
-	local model = newModel("Doorway")
-	local h = Art.WALL_HEIGHT
-	panel(model, style, -CELL / 2, -DOOR_WIDTH / 2, 0, h, 0.8)
-	panel(model, style, DOOR_WIDTH / 2, CELL / 2, 0, h, 0.8)
-	panel(model, style, -DOOR_WIDTH / 2, DOOR_WIDTH / 2, DOOR_HEIGHT, h, 0.8)
-	posts(model, style, h)
-	-- Door frame.
-	for _, x in { -DOOR_WIDTH / 2 - 0.2, DOOR_WIDTH / 2 + 0.2 } do
-		part(model, Vector3.new(0.4, DOOR_HEIGHT, 1.1), CFrame.new(x, DOOR_HEIGHT / 2, 0), style.trim, style.trimColor)
-	end
-	part(
-		model,
-		Vector3.new(DOOR_WIDTH + 0.8, 0.5, 1.1),
-		CFrame.new(0, DOOR_HEIGHT + 0.25, 0),
-		style.trim,
-		style.trimColor
-	)
-	rail(model, style, h - 0.6)
-	return finish(model)
-end
-
--- The door leaf is a separate Model named "Leaf" so the client can swing it open.
-local function door(style: Style): Model
-	local model = newModel("Door")
-	local leaf = newModel("Leaf")
-	local w, h = DOOR_WIDTH - 0.2, DOOR_HEIGHT - 0.1
-	part(leaf, Vector3.new(w, h, 0.35), CFrame.new(0, h / 2, 0), style.material, style.color)
-	for _, y in { 1.2, h - 1.2 } do
-		part(leaf, Vector3.new(w - 0.3, 0.4, 0.5), CFrame.new(0, y, 0), style.trim, style.trimColor)
-	end
-	part(
-		leaf,
-		Vector3.new(0.35, math.sqrt(w * w + h * h) * 0.82, 0.45),
-		CFrame.new(0, h / 2, 0) * CFrame.Angles(0, 0, math.atan2(w, h)),
-		style.trim,
-		style.trimColor
-	)
-	leaf.WorldPivot = CFrame.new(-w / 2, 0, 0) -- the hinge
-	leaf.Parent = model
-	return finish(model)
-end
-
-local function window(style: Style): Model
-	local model = newModel("Window")
-	local h = Art.WALL_HEIGHT
-	local w, sill, top = 4.4, 3.2, 6.4
-	panel(model, style, -CELL / 2, -w / 2, 0, h, 0.8)
-	panel(model, style, w / 2, CELL / 2, 0, h, 0.8)
-	panel(model, style, -w / 2, w / 2, 0, sill, 0.8)
-	panel(model, style, -w / 2, w / 2, top, h, 0.8)
-	posts(model, style, h)
-	part(model, Vector3.new(w + 0.6, 0.35, 1.2), CFrame.new(0, sill, 0), style.trim, style.trimColor)
-	part(model, Vector3.new(0.3, top - sill, 0.4), CFrame.new(0, (sill + top) / 2, 0), style.trim, style.trimColor)
-	-- The cross bar is a touch shallower than the upright, so their faces never coincide.
-	part(model, Vector3.new(w, 0.3, 0.34), CFrame.new(0, (sill + top) / 2, 0), style.trim, style.trimColor)
-	return finish(model)
-end
-
-local function stoneRing(model: Model, radius: number, count: number, size: number)
-	for index = 1, count do
-		local angle = index / count * math.pi * 2
-		local s = size * (0.85 + (index % 3) * 0.12)
-		part(
-			model,
-			Vector3.new(s, s * 0.7, s * 0.9),
-			CFrame.new(math.cos(angle) * radius, s * 0.3, math.sin(angle) * radius) * CFrame.Angles(0, angle, 0),
-			Enum.Material.Slate,
-			STONE,
-			Enum.PartType.Ball
-		)
-	end
-end
-
 -- The campfire's flame and glow (off until fuelled; WorldFx lights them), on an
 -- invisible core `height` studs above the model's pivot.
 local function addFireCore(model: Model, height: number)
@@ -288,73 +162,6 @@ local function addFireCore(model: Model, height: number)
 	light.Brightness = 1.6
 	light.Shadows = true
 	light.Parent = core
-end
-
--- Campfire: a stone ring and crossed logs, with a Fire, light and embers the
--- client switches on while fuel burns ("FuelEndsAt" attribute).
-local function campfire(): Model
-	local model = newModel("Campfire")
-	stoneRing(model, 1.9, 9, 1.1)
-	for index = 0, 2 do
-		local log = part(
-			model,
-			Vector3.new(3.4, 0.55, 0.55),
-			CFrame.new(0, 0.55, 0) * CFrame.Angles(0, index * math.pi / 3, math.rad(18)),
-			Enum.Material.Wood,
-			BARK,
-			Enum.PartType.Cylinder
-		)
-		log.Name = "Log"
-	end
-	addFireCore(model, 0.9)
-	return finish(model)
-end
-
-local function recycler(): Model
-	local model = newModel("Recycler")
-	local body = TIERS[2]
-	part(model, Vector3.new(4.4, 3, 3.4), CFrame.new(0, 1.5, 0), body.material, body.color)
-	part(
-		model,
-		Vector3.new(3, 1.4, 2.4),
-		CFrame.new(0, 3.7, 0) * CFrame.Angles(math.rad(-12), 0, 0),
-		body.trim,
-		body.trimColor
-	)
-	part(
-		model,
-		Vector3.new(1, 1, 1),
-		CFrame.new(1.6, 3.4, 1.2),
-		Enum.Material.Metal,
-		Color3.fromRGB(140, 82, 52),
-		Enum.PartType.Cylinder
-	)
-	return finish(model)
-end
-
-local function workbench(): Model
-	local model = newModel("Workbench")
-	local wood = TIERS[1]
-	part(model, Vector3.new(5, 0.5, 2.6), CFrame.new(0, 3, 0), wood.material, wood.color)
-	for _, x in { -2.2, 2.2 } do
-		for _, z in { -1, 1 } do
-			part(model, Vector3.new(0.4, 2.8, 0.4), CFrame.new(x, 1.4, z), wood.trim, wood.trimColor)
-		end
-	end
-	return finish(model)
-end
-
-local function crate(banded: boolean): Model
-	local model = newModel("Crate")
-	local wood = TIERS[1]
-	part(model, Vector3.new(4.6, 2.8, 2.8), CFrame.new(0, 1.4, 0), wood.material, wood.color)
-	part(model, Vector3.new(4.8, 0.3, 3), CFrame.new(0, 2.85, 0), wood.trim, wood.trimColor)
-	if banded then
-		for _, x in { -1.6, 1.6 } do
-			part(model, Vector3.new(0.35, 2.9, 2.95), CFrame.new(x, 1.45, 0), Enum.Material.Metal, TIERS[2].trimColor)
-		end
-	end
-	return finish(model)
 end
 
 -- Adds metal bands to a kit crate (the banded tier has no kit master yet).
@@ -390,7 +197,10 @@ function Models.deck(tier: number): Model
 	return finish(model)
 end
 
-function Models.piece(def: Types.BuildPieceDef): Model
+-- A build piece's model: the material deck for foundations, else its approved kit
+-- model, or nil while it has none (the piece is then hidden from the build menu and
+-- can't be placed; there are no stand-in builds, checklist §0).
+function Models.piece(def: Types.BuildPieceDef): Model?
 	if def.kind == "foundation" then
 		local deck = Models.deck(def.tier)
 		deck.Name = def.id
@@ -398,156 +208,20 @@ function Models.piece(def: Types.BuildPieceDef): Model
 	end
 	local names = Art.pieces[def.id]
 	local kit = if names then Models.kit(names) else nil
-	if kit then
-		if def.id == "build.crate_banded" and kit.Name ~= "CrateBanded" then
-			band(kit)
-		end
-		if def.stationId == "station.campfire" and kit:FindFirstChild("FireCore", true) == nil then
-			addFireCore(kit, 1)
-		end
-		kit.Name = def.id
-		return kit
+	if kit == nil then
+		return nil
 	end
-	local style = TIERS[math.clamp(def.tier, 1, #TIERS)]
-	local model: Model
-	if def.kind == "wall" then
-		model = wall(style)
-	elseif def.kind == "doorway" then
-		model = doorway(style)
-	elseif def.kind == "door" or def.kind == "gate" then
-		model = door(style)
-	elseif def.kind == "window" then
-		model = window(style)
-	elseif def.stationId == "station.campfire" then
-		model = campfire()
-	elseif def.stationId == "station.recycler" then
-		model = recycler()
-	elseif def.kind == "station" then
-		model = workbench()
-	elseif def.kind == "storage" then
-		model = crate(def.tier > 1)
-	else
-		model = newModel("Piece")
-		part(model, Vector3.new(4, 4, 4), CFrame.new(0, 2, 0), style.material, style.color)
-		model = finish(model)
+	if def.id == "build.crate_banded" and kit.Name ~= "CrateBanded" then
+		band(kit)
 	end
-	model.Name = def.id
-	return model
+	if def.stationId == "station.campfire" and kit:FindFirstChild("FireCore", true) == nil then
+		addFireCore(kit, 1)
+	end
+	kit.Name = def.id
+	return kit
 end
 
 -- Resource nodes -------------------------------------------------------------------------------
-
-local function ball(model: Model, size: Vector3, at: CFrame, material: Enum.Material, color: Color3): Part
-	return part(model, size, at, material, color, Enum.PartType.Ball)
-end
-
-local function fallbackNode(nodeId: string, rng: Random): Model
-	local model = newModel(nodeId)
-	if nodeId == "node.pine_tree" then
-		part(
-			model,
-			Vector3.new(6, 1.3, 1.3),
-			CFrame.new(0, 3, 0) * CFrame.Angles(0, 0, math.rad(90)),
-			Enum.Material.Wood,
-			BARK,
-			Enum.PartType.Cylinder
-		)
-		local layers = { { 7.5, 4.2, 6.2 }, { 5.8, 3.8, 9 }, { 3.9, 3.2, 11.6 }, { 2, 2.4, 13.6 } }
-		for _, layer in layers do
-			local w, h, y = layer[1], layer[2], layer[3]
-			ball(
-				model,
-				Vector3.new(w, h, w),
-				CFrame.new(0, y, 0) * CFrame.Angles(0, rng:NextNumber() * 6, 0),
-				Enum.Material.LeafyGrass,
-				PINE
-			)
-		end
-	elseif nodeId == "node.boulder" then
-		ball(model, Vector3.new(5.2, 3.8, 4.4), CFrame.new(0, 1.6, 0), Enum.Material.Slate, STONE)
-		ball(model, Vector3.new(3, 2.4, 2.8), CFrame.new(2, 1, 1.2), Enum.Material.Slate, STONE:Lerp(Color3.new(), 0.1))
-		ball(
-			model,
-			Vector3.new(2.4, 1.8, 2.2),
-			CFrame.new(-1.8, 0.8, -1.4),
-			Enum.Material.Slate,
-			STONE:Lerp(Color3.new(1, 1, 1), 0.06)
-		)
-	elseif nodeId == "node.loose_stones" then
-		for index = 1, 5 do
-			local s = 0.7 + rng:NextNumber() * 0.6
-			ball(
-				model,
-				Vector3.new(s * 1.2, s * 0.7, s),
-				CFrame.new(rng:NextNumber() * 2.4 - 1.2, s * 0.3, rng:NextNumber() * 2.4 - 1.2)
-					* CFrame.Angles(0, index, 0),
-				Enum.Material.Slate,
-				STONE
-			)
-		end
-	elseif nodeId == "node.fallen_branches" then
-		for index = 1, 4 do
-			part(
-				model,
-				Vector3.new(3.6 + rng:NextNumber() * 1.6, 0.35, 0.35),
-				CFrame.new(0, 0.25 + index * 0.12, 0) * CFrame.Angles(0, index * 1.1 + rng:NextNumber(), 0),
-				Enum.Material.Wood,
-				BARK,
-				Enum.PartType.Cylinder
-			)
-		end
-	elseif nodeId == "node.reed_patch" then
-		for _ = 1, 9 do
-			local h = 2.2 + rng:NextNumber() * 1.4
-			part(
-				model,
-				Vector3.new(0.22, h, 0.22),
-				CFrame.new(rng:NextNumber() * 2 - 1, h / 2, rng:NextNumber() * 2 - 1)
-					* CFrame.Angles(rng:NextNumber() * 0.4 - 0.2, 0, rng:NextNumber() * 0.4 - 0.2),
-				Enum.Material.Grass,
-				REED
-			)
-		end
-	elseif nodeId == "node.ember_bush" then
-		for index = 1, 3 do
-			local angle = index * 2.1
-			ball(
-				model,
-				Vector3.new(2.8, 2.4, 2.8),
-				CFrame.new(math.cos(angle) * 0.9, 1.3, math.sin(angle) * 0.9),
-				Enum.Material.LeafyGrass,
-				LEAF
-			)
-		end
-		for index = 1, 7 do
-			local angle = index * 0.9
-			local berry = ball(
-				model,
-				Vector3.new(0.42, 0.42, 0.42),
-				CFrame.new(math.cos(angle) * 1.6, 1.2 + (index % 3) * 0.55, math.sin(angle) * 1.6),
-				Enum.Material.Neon,
-				EMBER
-			)
-			berry.Name = "Berry"
-			berry.CanCollide = false
-		end
-	elseif nodeId == "node.spring_pool" then
-		local pool = part(
-			model,
-			Vector3.new(0.4, 6, 6),
-			CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)),
-			Enum.Material.Glass,
-			WATER,
-			Enum.PartType.Cylinder
-		)
-		pool.Transparency = 0.25
-		pool.Reflectance = 0.15
-		stoneRing(model, 3.2, 12, 1)
-	else
-		ball(model, Vector3.new(3, 2, 3), CFrame.new(0, 1, 0), Enum.Material.Ground, STONE)
-	end
-	return finish(model)
-end
 
 -- Footprint colliders: how much of a node's width blocks movement (0 = walk through).
 -- Generated meshes collide by their hull, which for a tree includes the canopy,
@@ -585,38 +259,33 @@ local function addCollider(model: Model, nodeId: string)
 	collider.Parent = model
 end
 
--- The model for a resource node, scaled to Art.nodes[id].height.
-function Models.node(def: Types.ResourceNodeDef, rng: Random): Model
+-- The model for a resource node, scaled to Art.nodes[id].height, or nil when the
+-- node has no approved model yet (it then doesn't appear; no stand-ins).
+function Models.node(def: Types.ResourceNodeDef, _rng: Random): Model?
 	local art = Art.nodes[def.id]
-	local kit = if art then Models.kit(art.names) else nil
-	local model = kit or fallbackNode(def.id, rng)
+	local model = if art then Models.kit(art.names) else nil
+	if model == nil or art == nil then
+		return nil
+	end
 	model.Name = def.id
-	if kit and art then
-		local height = model:GetExtentsSize().Y
-		if height > 0.01 then
-			model:ScaleTo(model:GetScale() * art.height / height)
-		end
+	local height = model:GetExtentsSize().Y
+	if height > 0.01 then
+		model:ScaleTo(model:GetScale() * art.height / height)
 	end
 	addCollider(model, def.id)
 	return model
 end
 
--- A loot sack on the ground (Drops): the satchel model, or a cloth bundle without the kit.
-function Models.drop(): Model
-	local kit = Models.kit({ "Gen_backpack", "EO_Satchel" })
-	local drop: Model
-	if kit then
-		drop = kit
-		local height = drop:GetExtentsSize().Y
-		if height > 0.01 then
-			drop:ScaleTo(drop:GetScale() * 1.5 / height)
-		end
-	else
-		drop = newModel("Drop")
-		local cloth = Color3.fromRGB(122, 98, 70)
-		part(drop, Vector3.new(1.6, 1.2, 1.4), CFrame.new(0, 0.6, 0), Enum.Material.Fabric, cloth, Enum.PartType.Ball)
-		part(drop, Vector3.new(0.5, 0.5, 0.5), CFrame.new(0, 1.25, 0), Enum.Material.Fabric, cloth, Enum.PartType.Ball)
-		finish(drop)
+-- A loot sack on the ground (Drops), or nil while no sack model is approved (then
+-- nothing is dropped: overflow goes to the inbox and the Drop action is hidden).
+function Models.drop(): Model?
+	local drop = Models.kit(Art.dropModels)
+	if drop == nil then
+		return nil
+	end
+	local height = drop:GetExtentsSize().Y
+	if height > 0.01 then
+		drop:ScaleTo(drop:GetScale() * 1.5 / height)
 	end
 	for _, descendant in drop:GetDescendants() do
 		if descendant:IsA("BasePart") then

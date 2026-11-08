@@ -49,9 +49,11 @@ function Assets.start()
 	local pieces = folder(root, "Pieces")
 	for id, def in Content.BuildPieces do
 		local model = Models.piece(def)
-		model.Name = id
-		inert(model)
-		model.Parent = pieces
+		if model then -- pieces without an approved model have no preview (they're hidden)
+			model.Name = id
+			inert(model)
+			model.Parent = pieces
+		end
 	end
 
 	local icons = folder(root, "Icons")
