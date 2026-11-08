@@ -35,7 +35,7 @@ local TABS: { { id: string, label: string, kinds: { [string]: boolean } } } = {
 	{ id = "storage", label = "Storage", kinds = { storage = true } },
 }
 
-local CARD_W, CARD_H = 150, 176
+local CARD_W, CARD_H = 124, 146 -- compact, like LDoE's build strip
 
 local function pieceModel(pieceId: string): Model?
 	local assets = ReplicatedStorage:FindFirstChild("Assets")
@@ -131,8 +131,8 @@ local function Card(props: {
 		}),
 		Preview = model and e(ModelView, {
 			model = model,
-			size = UDim2.new(1, -12, 0, 92),
-			position = UDim2.fromOffset(6, 6),
+			size = UDim2.new(1, -12, 0, 70),
+			position = UDim2.fromOffset(6, 4),
 			yaw = 40,
 			pitch = 32,
 		}),
@@ -140,7 +140,7 @@ local function Card(props: {
 			text = def.name,
 			style = "caption",
 			size = UDim2.new(1, -12, 0, 18),
-			position = UDim2.fromOffset(6, 100),
+			position = UDim2.fromOffset(6, 74),
 			alignX = Enum.TextXAlignment.Center,
 		}),
 		Hp = e(Label, {
@@ -148,7 +148,7 @@ local function Card(props: {
 			style = "caption",
 			tone = "muted",
 			size = UDim2.new(1, -12, 0, 16),
-			position = UDim2.fromOffset(6, 118),
+			position = UDim2.fromOffset(6, 92),
 			alignX = Enum.TextXAlignment.Center,
 		}),
 		Costs = e("Frame", {
@@ -292,7 +292,7 @@ local function BuildMenu()
 			subtitle = "LMB place · drag to paint floors and walls",
 			closeKey = "B",
 			onClose = Actions.toggleBuild,
-			size = UDim2.fromOffset(1180, 290),
+			size = UDim2.fromOffset(1180, 250),
 			position = UDim2.new(0.5, 0, 1, -8),
 			anchorPoint = Vector2.new(0.5, 1),
 			rise = 40,

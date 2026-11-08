@@ -39,6 +39,8 @@ local e = React.createElement
 local SLOT = 60
 local GAP = 6
 local DRAG_START_PIXELS = 6
+-- More backpack slots than this (two and a half rows) scroll.
+local BACKPACK_VISIBLE_SLOTS = 15
 
 -- A press on a slot that may turn into a drag. `active` once it has moved far enough.
 type Drag = { ref: string, index: number, from: Vector2, active: boolean }
@@ -704,8 +706,28 @@ local function InventoryScreen()
 						}
 						else nil,
 				}),
-				Backpack = if #inventory.backpack > 0
-					then e(Grid, {
+				-- Big bags scroll inside the window instead of spilling over the hotbar.
+				Backpack = if #inventory.backpack > BACKPACK_VISIBLE_SLOTS
+					then e("ScrollingFrame", {
+						Size = UDim2.fromOffset(6 * (SLOT + GAP) + 6, 2.5 * (SLOT + GAP)),
+						BackgroundTransparency = 1,
+						BorderSizePixel = 0,
+						ScrollBarThickness = 4,
+						ScrollBarImageColor3 = Theme.colors.strokeWarm,
+						AutomaticCanvasSize = Enum.AutomaticSize.Y,
+						CanvasSize = UDim2.new(),
+						LayoutOrder = 3,
+					}, {
+						Grid = e(Grid, {
+							source = "backpack",
+							slots = inventory.backpack,
+							columns = 6,
+							inventory = inventory,
+							storage = crate,
+							stash = stash,
+						}),
+					})
+					elseif #inventory.backpack > 0 then e(Grid, {
 						source = "backpack",
 						slots = inventory.backpack,
 						columns = 6,
