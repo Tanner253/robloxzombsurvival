@@ -135,7 +135,7 @@ have not been re-graded.
 | 1.8 | ✅ | Name tags on others only. |
 | 1.10 | ✅ | Eat/drink clip and sounds. |
 | 2.1 | ✅ | Fixed 45° yaw, steep pitch, smooth follow. |
-| 2.2 | ✅ | Default zoom 31 on the 8-stud grid: the survivor stands about 1/7 of the screen with a room around them (77, 86); Ctrl+wheel 18-70; build mode eases out. |
+| 2.2 | ✅ | The plain mouse wheel, a touch pinch or holding +/- zooms, eased, from 16 (the survivor about ¼ of the screen, 103) to 150 (much of the map, 104). The wheel used to cycle the hotbar and only Ctrl+wheel zoomed; the hotbar is 1-9 now. Build mode has its own 28-170 range and zoom. Both are kept for the session, verified across a build toggle and a respawn. Roblox's CameraMin/MaxZoomDistance are widened to match. Touch pinch is not exercised in Studio. |
 | 2.3 | ✅ | Walls, doors, windows and posts between camera and survivor fade; tree nodes and the edge pines fade when their canopy covers the survivor or stands in the sight line (87). |
 | 2.4 | ✅ | Build mode eases the camera out and back. |
 | 2.5 | ✅ | Shake on swings and falls; Settings toggle. |

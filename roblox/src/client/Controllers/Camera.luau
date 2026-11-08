@@ -1,9 +1,11 @@
 --!strict
 --[[
 	Camera: the fixed angled top-down camera (GAME_DESIGN.md "Camera"): about 55°
-	pitch, a fixed 45° yaw, smooth follow, and zoom with the mouse wheel or a
-	pinch. Build mode eases out a little for an overview. `shake` adds a short
-	decaying jolt for impacts.
+	pitch, a fixed 45° yaw and smooth follow. Zoom (checklist 2.2): the mouse wheel,
+	a touch pinch or holding + / -, eased, from close (the survivor about a quarter of
+	the screen tall) out to far (a large part of the map). Build mode has its own range
+	and zoom. Both zooms are remembered for the session (respawns keep them).
+	`shake` adds a short decaying jolt for impacts.
 ]]
 
 local Players = game:GetService("Players")
@@ -17,17 +19,19 @@ local Camera = {}
 local PITCH = math.rad(55)
 local YAW = math.rad(45)
 local FOV = 45
-local ZOOM_DEFAULT = 31 -- the survivor about 1/6-1/7 of the screen with a room around them (2.2)
-local ZOOM_MIN = 18
-local ZOOM_MAX = 70
-local ZOOM_STEP = 5
-local BUILD_EXTRA = 12
+-- Zoom ranges (camera distance in studs). At 31 the survivor stands about 1/7 of the
+-- screen; the on-screen size goes as 1/distance, so 16 puts them at about a quarter.
+local PLAY_RANGE = { min = 16, max = 150, default = 31 }
+local BUILD_RANGE = { min = 28, max = 170, default = 52 } -- an overview of the plot
+local WHEEL_STEP = 0.14 -- one wheel notch changes the distance by 14% (even steps near and far)
+local KEY_RATE = 1.1 -- holding + / - changes it by about 110% a second
 local FOLLOW_RATE = 10
 local ZOOM_RATE = 9
 local SHAKE_DECAY = 7
 
-local zoomTarget = ZOOM_DEFAULT
-local zoom = ZOOM_DEFAULT
+-- The wanted distance per mode, kept for the session.
+local targets: { [string]: number } = { play = PLAY_RANGE.default, build = BUILD_RANGE.default }
+local zoom = PLAY_RANGE.default
 local focus: Vector3? = nil
 local shakeAmount = 0
 
@@ -46,6 +50,32 @@ function Camera.setShakeEnabled(enabled: boolean)
 	if not enabled then
 		shakeAmount = 0
 	end
+end
+
+type Range = { min: number, max: number, default: number }
+
+local function mode(): string -- "play" or "build"
+	if State.ui().panel == "build" then
+		return "build"
+	end
+	return "play"
+end
+
+local function rangeFor(which: string): Range
+	return if which == "build" then BUILD_RANGE else PLAY_RANGE
+end
+
+-- Multiplies the current mode's wanted distance (below 1 zooms in), within its range.
+function Camera.zoomBy(factor: number)
+	local which = mode()
+	local range = rangeFor(which)
+	targets[which] = math.clamp(targets[which] * factor, range.min, range.max)
+end
+
+-- The current mode's wanted distance and range (for tests and the Studio capture hooks).
+function Camera.zoomState(): (number, number, number)
+	local range = rangeFor(mode())
+	return targets[mode()], range.min, range.max
 end
 
 -- The camera's yaw, for camera-relative input (touch build cursor, aiming).
@@ -72,7 +102,20 @@ local function step(dt: number)
 
 	local target = root.Position
 	focus = if focus then (focus :: Vector3):Lerp(target, 1 - math.exp(-FOLLOW_RATE * dt)) else target
-	local wanted = zoomTarget + (if State.ui().panel == "build" then BUILD_EXTRA else 0)
+	-- Holding + / - (or the keypad's) zooms smoothly.
+	local held = 0
+	if not UserInputService:GetFocusedTextBox() then
+		if UserInputService:IsKeyDown(Enum.KeyCode.Equals) or UserInputService:IsKeyDown(Enum.KeyCode.KeypadPlus) then
+			held -= 1
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Minus) or UserInputService:IsKeyDown(Enum.KeyCode.KeypadMinus) then
+			held += 1
+		end
+	end
+	if held ~= 0 then
+		Camera.zoomBy(math.exp(held * KEY_RATE * dt))
+	end
+	local wanted = targets[mode()]
 	zoom += (wanted - zoom) * (1 - math.exp(-ZOOM_RATE * dt))
 
 	local rotation = CFrame.Angles(0, YAW, 0) * CFrame.Angles(-PITCH, 0, 0)
@@ -90,30 +133,28 @@ end
 
 function Camera.start()
 	local player = Players.LocalPlayer
-	player.CameraMaxZoomDistance = ZOOM_MAX
-	player.CameraMinZoomDistance = ZOOM_MIN
+	-- The camera is scripted, but keep Roblox's own limits out of the way of our range.
+	player.CameraMaxZoomDistance = math.max(PLAY_RANGE.max, BUILD_RANGE.max)
+	player.CameraMinZoomDistance = math.min(PLAY_RANGE.min, BUILD_RANGE.min)
 	RunService:BindToRenderStep("EmberCamera", Enum.RenderPriority.Camera.Value + 1, step)
 
+	-- The wheel zooms anywhere in the world; a scrolling list under the mouse keeps it
+	-- (the event arrives processed then).
 	UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
 		if input.UserInputType == Enum.UserInputType.MouseWheel and not processed then
-			-- The plain wheel cycles the hotbar (Input); Ctrl+wheel zooms.
-			if
-				UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
-				or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
-			then
-				zoomTarget = math.clamp(zoomTarget - input.Position.Z * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
-			end
+			Camera.zoomBy(1 - input.Position.Z * WHEEL_STEP)
 		end
 	end)
-	local pinchStart = zoomTarget
+	local pinchStart = targets[mode()]
 	UserInputService.TouchPinch:Connect(function(_positions, scale, _velocity, inputState, processed)
 		if processed then
 			return
 		end
 		if inputState == Enum.UserInputState.Begin then
-			pinchStart = zoomTarget
+			pinchStart = targets[mode()]
 		end
-		zoomTarget = math.clamp(pinchStart / math.max(scale, 0.1), ZOOM_MIN, ZOOM_MAX)
+		local range = rangeFor(mode())
+		targets[mode()] = math.clamp(pinchStart / math.max(scale, 0.1), range.min, range.max)
 	end)
 end
 
