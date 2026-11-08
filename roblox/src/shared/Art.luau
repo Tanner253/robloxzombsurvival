@@ -87,7 +87,7 @@ Art.tints = {
 Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_Satchel" }
 
 Art.nodes = {
-	["node.pine_tree"] = { names = { "EO_PineConifer", "EO_PineTree" }, height = 22 },
+	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
 	["node.boulder"] = { names = { "EO_RockCluster", "EO_Boulder" }, height = 3.1 },
 	["node.loose_stones"] = { names = { "EO_LooseStonesClean", "EO_LooseStones" }, height = 1.1 },
 	["node.fallen_branches"] = { names = { "EO_BareBranches", "EO_FallenBranches" }, height = 0.94 },
@@ -120,8 +120,9 @@ Art.remnants = {
 -- (Loose stones and reeds wait on re-uploads: art/tools/glb_floaters.py found a
 -- floating stone and detached blade fragments in their meshes; the fixed GLBs pass.)
 Art.approved = {
-	-- EO_PineTree (flat khaki leaf cards, C) is retired: EO_PineConifer replaces it.
-	EO_PineConifer = true, -- tiered spruce from the conifer sheet (Tripo P2; capture 119)
+	-- The developer liked the original pines: EO_PineTree is back (S1b leftover 1). The
+	-- conifer (EO_PineConifer, capture 119) stays uploaded and unused; trees are not touched again.
+	EO_PineTree = true,
 	EO_FatwoodStump = true,
 	WallWood = true, -- the outpost kit (the lineup's exemplars)
 	WallScrap = true,

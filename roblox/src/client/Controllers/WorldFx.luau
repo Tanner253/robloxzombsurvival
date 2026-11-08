@@ -635,38 +635,78 @@ local function updateDoors()
 end
 
 -- Canopy fade ---------------------------------------------------------------------------------------
--- Tall things (tree nodes and the edge pines) whose canopy covers the survivor or stands
--- between them and the camera fade out, so the player is never hidden under a canopy
--- (LDoE does the same).
+-- A tree's canopy fades only when it really sits between the camera and the survivor: rays
+-- from the camera to the survivor's head, chest and feet that hit a tree (S1b brief,
+-- leftover 2; LDoE does the same). Only the canopy fades, partially (CANOPY_ALPHA), eased
+-- over FADE_SECONDS; the trunk stays solid, and the tree you're targeting or chopping
+-- never fades. A tree made as one mesh fades as a whole, still partially.
 
-local CANOPY_MIN_HEIGHT = 7
-local CANOPY_ALPHA = 0.94 -- QA2: faded leaves still crisscrossed the survivor at 0.85
-local faded: { [Model]: boolean } = {}
+local CANOPY_ALPHA = 0.55
+local FADE_SECONDS = 0.2
+-- The share of a tree's height below which parts count as trunk.
+local TRUNK_SHARE = 0.3
 
--- True when a canopy (base, top, radius) hides the survivor at `root` from the camera:
--- it covers them, or stands toward the camera where the sight line is still below its top.
-local function hides(root: Vector3, toCamera: Vector3, base: Vector3, top: number, radius: number): boolean
-	local flat = Vector3.new(toCamera.X, 0, toCamera.Z)
-	local reach = flat.Magnitude
-	if reach < 0.01 or top - root.Y < CANOPY_MIN_HEIGHT then
-		return false
+-- Parts easing toward a wanted LocalTransparencyModifier: `rest` is where they go back to
+-- (0, or 1 for a felled node that is hidden).
+type Fade = { now: number, target: number, rest: number }
+local fades: { [BasePart]: Fade } = {}
+
+local function fadeTo(part: BasePart, target: number, rest: number)
+	local fade = fades[part]
+	if fade == nil then
+		fades[part] = { now = part.LocalTransparencyModifier, target = target, rest = rest }
+	else
+		fade.target = target
+		fade.rest = rest
 	end
-	local dir = flat / reach
-	local offset = Vector3.new(base.X - root.X, 0, base.Z - root.Z)
-	local along = offset:Dot(dir)
-	if along < -radius then
-		return false -- behind the survivor
-	end
-	if (offset - dir * along).Magnitude > radius + 1 then
-		return false
-	end
-	local nearest = math.max(along - radius, 0)
-	return root.Y + toCamera.Y * nearest / reach < top
 end
 
--- The edge pines (World.Dressing.Edges) never move: their canopies are read once, and
--- again when more of them arrive.
-local edgeTrees: { { model: Model, base: Vector3, top: number, radius: number } } = {}
+-- Eases every fading part; parts back at rest are released.
+local function stepFades(dt: number)
+	local step = dt / FADE_SECONDS
+	for part, fade in fades do
+		if part.Parent == nil then
+			fades[part] = nil
+			continue
+		end
+		local diff = fade.target - fade.now
+		fade.now = if math.abs(diff) <= step then fade.target else fade.now + math.sign(diff) * step
+		part.LocalTransparencyModifier = fade.now
+		if fade.now == fade.target and fade.target == fade.rest then
+			fades[part] = nil
+		end
+	end
+end
+
+-- Each tree's canopy parts, read once.
+local canopyCache: { [Model]: { BasePart } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function canopyOf(model: Model): { BasePart }
+	local cached = canopyCache[model]
+	if cached then
+		return cached
+	end
+	local box, size = model:GetBoundingBox()
+	local cut = box.Position.Y - size.Y / 2 + size.Y * TRUNK_SHARE
+	local canopy: { BasePart } = {}
+	local all: { BasePart } = {}
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.Name ~= "Collider" then
+			table.insert(all, part)
+			local name = string.lower(part.Name)
+			local leafy = string.find(name, "leaf") or string.find(name, "canopy") or string.find(name, "needle")
+			if leafy or part.Position.Y - part.Size.Y / 2 >= cut then
+				table.insert(canopy, part)
+			end
+		end
+	end
+	local result = if #canopy > 0 and #canopy < #all then canopy else all
+	canopyCache[model] = result
+	return result
+end
+
+-- The edge pines (World.Dressing.Edges) never move; they are read again when more arrive.
+local edgeModels: { Model } = {}
 local edgeCount = -1
 
 local function readEdgeTrees()
@@ -681,62 +721,95 @@ local function readEdgeTrees()
 		return
 	end
 	edgeCount = #children
-	table.clear(edgeTrees)
+	table.clear(edgeModels)
 	for _, model in children do
 		if model:IsA("Model") then
-			local box, size = model:GetBoundingBox()
-			table.insert(edgeTrees, {
-				model = model,
-				base = model:GetPivot().Position,
-				top = box.Position.Y + size.Y / 2,
-				radius = math.max(size.X, size.Z) / 2,
-			})
+			table.insert(edgeModels, model)
 		end
 	end
 end
 
-local function setFade(model: Model, amount: number)
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			descendant.LocalTransparencyModifier = amount
+-- The tree model a hit part belongs to (a standing tree node or an edge tree), if any.
+local function treeOf(part: Instance, trees: { [Model]: boolean }): Model?
+	local current: Instance? = part
+	while current and current ~= workspace do
+		if current:IsA("Model") and trees[current] then
+			return current
 		end
+		current = current.Parent
 	end
+	return nil
 end
+
+local shading: { [Model]: boolean } = {}
 
 local function updateCanopy()
+	local camera = workspace.CurrentCamera
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	local near: { [Model]: boolean } = {}
-	if root then
+	local wanted: { [Model]: boolean } = {}
+	if camera and root then
 		readEdgeTrees()
-		local at = root.Position
-		local toCamera = workspace.CurrentCamera.CFrame.Position - at
+		local target = State.ui().target
+		local spared: Model? = if target then target.model else nil
+		local trees: { [Model]: boolean } = {}
+		local list: { Instance } = {}
 		for model, info in nodeFx do
-			if info.standing then
-				local box, size = model:GetBoundingBox()
-				local top = box.Position.Y + size.Y / 2
-				if hides(at, toCamera, model:GetPivot().Position, top, math.max(size.X, size.Z) / 2) then
-					near[model] = true
+			local nodeId = model:GetAttribute("NodeId")
+			if info.standing and nodeId == "node.pine_tree" and model ~= spared then
+				trees[model] = true
+				table.insert(list, model)
+			end
+		end
+		for _, model in edgeModels do
+			if model.Parent then
+				trees[model] = true
+				table.insert(list, model)
+			end
+		end
+		local from = camera.CFrame.Position
+		for _, offset in { Vector3.new(0, 2.5, 0), Vector3.zero, Vector3.new(0, -2.2, 0) } do
+			local aim = root.Position + offset
+			local cast = RaycastParams.new()
+			cast.FilterType = Enum.RaycastFilterType.Include
+			cast.FilterDescendantsInstances = list
+			for _ = 1, 4 do
+				local hit = workspace:Raycast(from, aim - from, cast)
+				if hit == nil then
+					break
 				end
-			end
-		end
-		for _, tree in edgeTrees do
-			if tree.model.Parent and hides(at, toCamera, tree.base, tree.top, tree.radius) then
-				near[tree.model] = true
+				local tree = treeOf(hit.Instance, trees)
+				if tree == nil then
+					break
+				end
+				if hit.Instance.Name ~= "Collider" then
+					wanted[tree] = true
+				end
+				-- Look past this tree for another behind it.
+				local index = table.find(list, tree)
+				if index then
+					table.remove(list, index)
+				end
+				cast.FilterDescendantsInstances = list
 			end
 		end
 	end
-	for model in near do
-		if not faded[model] then
-			faded[model] = true
-			setFade(model, CANOPY_ALPHA)
+	for model in wanted do
+		if not shading[model] then
+			shading[model] = true
+			for _, part in canopyOf(model) do
+				fadeTo(part, CANOPY_ALPHA, 0)
+			end
 		end
 	end
-	for model in faded do
-		if not near[model] then
-			faded[model] = nil
+	for model in shading do
+		if not wanted[model] then
+			shading[model] = nil
 			local info = nodeFx[model]
-			setFade(model, if info and not info.standing then 1 else 0)
+			local rest = if info and not info.standing then 1 else 0
+			for _, part in canopyOf(model) do
+				fadeTo(part, rest, rest)
+			end
 		end
 	end
 end
@@ -745,7 +818,7 @@ end
 -- Walls, doors and windows between the camera and the survivor fade (with the
 -- corner posts at their ends), so you can always see yourself inside a base.
 
-local OCCLUDE_ALPHA = 0.72
+local OCCLUDE_ALPHA = 0.6 -- partial and eased, like the canopy (S1b leftover 2)
 local OCCLUDE_LAYERS: { [string]: boolean } = { frame = true, fill = true, roof = true }
 local occluded: { [BasePart]: boolean } = {}
 
@@ -816,15 +889,13 @@ local function updateOcclusion()
 	for part in hidden do
 		if not occluded[part] then
 			occluded[part] = true
-			part.LocalTransparencyModifier = OCCLUDE_ALPHA
+			fadeTo(part, OCCLUDE_ALPHA, 0)
 		end
 	end
 	for part in occluded do
 		if not hidden[part] then
 			occluded[part] = nil
-			if part.Parent then
-				part.LocalTransparencyModifier = 0
-			end
+			fadeTo(part, 0, 0)
 		end
 	end
 end
@@ -893,6 +964,7 @@ function WorldFx.start()
 	RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
 		updateDoors()
+		stepFades(dt)
 		if elapsed >= 0.1 then
 			elapsed = 0
 			updateCanopy()
