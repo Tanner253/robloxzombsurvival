@@ -138,6 +138,29 @@ function Inventory.add(inventory: Inventory, itemId: string, count: number, item
 end
 
 --[[
+	Adds the contents of an existing slot, keeping its durability. Stackable items
+	go through `add`; an item with its own durability (worn gear) takes the first
+	empty slot as-is, so moving it never repairs it. Returns the new inventory and
+	the number of units that did not fit.
+]]
+function Inventory.addSlot(inventory: Inventory, slot: Slot, items: ItemLookup): (Inventory, number)
+	if slot.durability == nil then
+		return Inventory.add(inventory, slot.itemId, slot.count, items)
+	end
+	assertCount(slot.count)
+	local result = copyInventory(inventory)
+	for _, container: Container in { result.pockets, result.backpack } do
+		for index, existing in container do
+			if Inventory.isEmpty(existing) then
+				container[index] = { itemId = slot.itemId, count = slot.count, durability = slot.durability }
+				return result, 0
+			end
+		end
+	end
+	return inventory, slot.count
+end
+
+--[[
 	Removes exactly `count` units of `itemId`. Returns the new inventory, or nil
 	if there are not enough (the input is never partially changed).
 ]]

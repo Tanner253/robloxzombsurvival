@@ -10,6 +10,55 @@ This is the source of truth that worker sessions build against. Reference materi
 
 **Guiding rule: when in doubt, LDoE is the standard** for depth, complexity, visual quality and mechanics. Match its depth and polish everywhere. **Where we differ, we're better.** The main difference is multiplayer: the social, co-op, raiding and guild mechanics Roblox players engage with most. Back any deviation from LDoE with a reason.
 
+## Vision (creative director, full control since 2026-11-07)
+
+**The goal:** the most fun and replayable survival-crafting game on Roblox, with purchases players want to make. LDoE's depth and grind are the backbone. Four signature mechanics make it ours, plus the Roblox-native social layer LDoE never had.
+
+**Signature mechanics:**
+1. **Light is territory.**
+   - Your Hearth burns fuel, and its light radius is your safe zone and build area. Lamps and flare towers push it further.
+   - At night the Fog advances, and Hollow waves hit whatever sits in the dark. Nights play like **light tower defense**: layout, lights, traps and walls decide whether you hold. Roblox players love tower defense.
+   - Fuel is a satisfying everyday sink, constantly gathered.
+2. **Fog Runs (push your luck).**
+   - Expeditions take 8–15 minutes, solo or with players in your server.
+   - A visible **Fog meter rises the longer you stay.** Loot gets better and the Hollow get stronger. **Extract before it closes in,** or drop your pack.
+   - Location layouts and modifiers vary each run, with weekly modifiers on top. Every run plays differently.
+3. **Survivors you rescue.**
+   - Survivors are found on runs as escort events, never sold as a gacha. They move into your outpost and **staff stations, producing while you're offline.**
+   - Each has traits and levels, and there's a collection log. This is the idle and collection layer that keeps people checking in.
+4. **The Neighbourhood.**
+   - Plots sit side by side, so players see, visit and help each other.
+   - A **server-wide Blood Moon** each week has everyone defending at once, with a leaderboard.
+   - Then raids (M2) and guilds holding radio towers for server buffs (M3).
+
+**The player character:** the game owns it. Players are a **custom survivor on Roblox's standard R15 rig**, not a default Roblox avatar. They choose a look, and **outfits, gear and flame colors are the cosmetic layer.**
+
+**Retention by timescale:**
+- **Hourly:** station timers, survivor output, fuel.
+- **Daily:** contracts, login track, rotating locations.
+- **Weekly:** Blood Moon, Vault resets, modifiers.
+- **Season (6–8 weeks):** a new region and a pass.
+- **Long term:** vehicles, Hearth levels, the survivor collection, guild territory.
+
+**The first 10 minutes:**
+1. A crash-site intro run.
+2. Light your first Hearth.
+3. Survive your first short night.
+4. Rescue your first survivor.
+5. The starter offer appears **only after that first win**.
+
+**The money engine** (LDoE-proven levers, priced fairly):
+
+| Lever | What we sell |
+|---|---|
+| **Time** | Energy, speed-ups, auto-gather |
+| **Capacity** | Backpack, storage, station queues, survivor bunks |
+| **Progress** | Premium path, part packs, blueprint fill-up, starter and limited offers |
+| **Identity** | Outfits, base themes, Hearth flames, weapon skins, emotes |
+| **Recurring** | Survivor Club subscription, season pass, VIP servers |
+
+The guardrails below still apply.
+
 ## Pitch
 
 The world is lost to **the Fog**, and the **Hollow** walk inside it. Only firelight holds them back. You build and defend your **outpost** around your **Hearth**. You scavenge locations on a world map, craft your way up tier by tier, and work toward big goals: a working vehicle, a restored radio tower, the next region.
