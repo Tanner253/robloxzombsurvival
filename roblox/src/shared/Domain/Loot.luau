@@ -122,7 +122,8 @@ local function open(
 	local items = options.items
 	local drops: { Drop } = {}
 
-	for _, stack in def.guaranteed or {} do
+	local guaranteed: { Types.ItemStack } = def.guaranteed or {}
+	for _, stack in guaranteed do
 		table.insert(drops, { itemId = stack.itemId, count = stack.count, rank = rankOfItem(stack.itemId, nil, items) })
 	end
 
@@ -183,7 +184,7 @@ end
 	counters; the input pity state is not modified.
 ]]
 function Loot.roll(tables: Tables, tableId: string, rng: Rng.Source, options: Options?): Result
-	local opts = options or {}
+	local opts: Options = options or {}
 	local pity = table.clone(opts.pity or {})
 	local drops = open(tables, tableId, rng, opts, pity, 1)
 
@@ -213,7 +214,8 @@ function Loot.shares(tables: Tables, tableId: string): { [string]: number }
 		local def = tables[id]
 		assert(def, `unknown loot table '{id}'`)
 		if depth == 1 then
-			for _, stack in def.guaranteed or {} do
+			local guaranteed: { Types.ItemStack } = def.guaranteed or {}
+			for _, stack in guaranteed do
 				shares[stack.itemId] = 1
 			end
 		end

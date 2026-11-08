@@ -122,7 +122,7 @@ function Death.recover(
 	locationId: string,
 	now: number
 ): (Types.Inventory?, DroppedBackpack?, Reason?)
-	local allowed, reason = Death.canRecover(drop, userId, locationId, now)
+	local allowed: boolean, reason: Reason? = Death.canRecover(drop, userId, locationId, now)
 	if not allowed then
 		return nil, nil, reason
 	end
@@ -153,7 +153,7 @@ function Death.prune(drops: { DroppedBackpack }, now: number, maxCount: number?)
 			table.insert(live, drop)
 		end
 	end
-	table.sort(live, function(a, b)
+	table.sort(live, function(a: DroppedBackpack, b: DroppedBackpack): boolean
 		return a.droppedAt > b.droppedAt
 	end)
 	local limit = maxCount or #live

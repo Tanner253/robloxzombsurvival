@@ -139,17 +139,19 @@ function Survival.secondsUntil(state: State, config: Config, meter: Meter, level
 	return (value - level) / rate
 end
 
--- The total damage per second at the current meter values.
-function Survival.damagePerSecond(state: State, config: Config): number
+local function meterDamagePerSecond(value: number, meter: MeterConfig): number
 	local total = 0
-	for _, meter: Meter in { "hunger", "thirst" } do
-		for _, threshold in configOf(config, meter).thresholds do
-			if valueOf(state, meter) <= threshold.atOrBelow then
-				total += threshold.damagePerSecond
-			end
+	for _, threshold in meter.thresholds do
+		if value <= threshold.atOrBelow then
+			total += threshold.damagePerSecond
 		end
 	end
 	return total
+end
+
+-- The total damage per second at the current meter values.
+function Survival.damagePerSecond(state: State, config: Config): number
+	return meterDamagePerSecond(state.hunger, config.hunger) + meterDamagePerSecond(state.thirst, config.thirst)
 end
 
 return Survival

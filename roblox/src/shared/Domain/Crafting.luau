@@ -71,7 +71,7 @@ local function assertCount(count: number)
 end
 
 local function scaled(stacks: { Types.ItemStack }, times: number): { Types.ItemStack }
-	local result = table.create(#stacks)
+	local result: { Types.ItemStack } = {}
 	for index, stack in stacks do
 		result[index] = { itemId = stack.itemId, count = stack.count * times }
 	end
@@ -231,7 +231,7 @@ function Crafting.craftByHand(
 	count: number?
 ): (Types.Inventory?, Reason?)
 	local times = count or 1
-	local ok, reason = Crafting.check(recipe, inventory, progress, nil, nil, times)
+	local ok: boolean, reason: Reason? = Crafting.check(recipe, inventory, progress, nil, nil, times)
 	if not ok then
 		return nil, reason
 	end
@@ -257,7 +257,7 @@ function Crafting.start(
 	count: number?
 ): (Types.Inventory?, Station?, Reason?)
 	local times = count or 1
-	local ok, reason = Crafting.check(recipe, inventory, progress, station, stationDef, times)
+	local ok: boolean, reason: Reason? = Crafting.check(recipe, inventory, progress, station, stationDef, times)
 	if not ok then
 		return nil, nil, reason
 	end
