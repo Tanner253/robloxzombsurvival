@@ -3,8 +3,8 @@
 	Diagnostics: in Studio, pings the server once at start to prove Net works end
 	to end, and exposes PlayerScripts.EO_DevClient, a BindableFunction that tools
 	can invoke to read and drive the real client state: ("ui") returns a summary
-	of State.ui(), ("panel", name, stationUid?) opens a panel, ("action", name, ...)
-	calls an Actions function.
+	of State.ui(), ("state", section) returns a synced section, ("panel", name,
+	stationUid?) opens a panel, ("action", name, ...) calls an Actions function.
 ]]
 
 local Players = game:GetService("Players")
@@ -26,6 +26,10 @@ local function devCommand(command: string, ...: any): any
 			notices = #ui.notices,
 			rewards = #ui.rewards,
 		}
+	elseif command == "state" then
+		-- A synced section as the client holds it, e.g. ("state", "inventory").
+		local args = { ... }
+		return State.get(args[1])
 	elseif command == "panel" then
 		local args = { ... }
 		State.toggle(args[1], args[2])
