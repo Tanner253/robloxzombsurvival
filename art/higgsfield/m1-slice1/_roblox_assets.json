@@ -1,0 +1,99 @@
+{
+ "EO_BareBranches": {
+  "glb": "bare_branches.glb",
+  "assetId": 131242296768407
+ },
+ "EO_WallTimber": {
+  "glb": "timber_wall.glb",
+  "assetId": 124343239589548
+ },
+ "EO_PalisadeDoorway": {
+  "glb": "palisade_doorway.glb",
+  "assetId": 94082431833572
+ },
+ "EO_PalisadeDoor": {
+  "glb": "palisade_door.glb",
+  "assetId": 87138652228163
+ },
+ "EO_PalisadeWindow": {
+  "glb": "palisade_window.glb",
+  "assetId": 87647223753915
+ },
+ "EO_CampfireRing": {
+  "glb": "campfire.glb",
+  "assetId": 81464877202205
+ },
+ "EO_SpringBasin": {
+  "glb": "spring_basin.glb",
+  "assetId": 121429807141566
+ },
+ "EO_ReedStubbleMesh": {
+  "glb": "reed_stubble.glb",
+  "assetId": 73755966799812
+ },
+ "EO_RockCluster": {
+  "glb": "rock_cluster.glb",
+  "assetId": 112631953002450
+ },
+ "EO_LanternPost": {
+  "glb": "lantern_post.glb",
+  "assetId": 115765948750615
+ },
+ "EO_StandingTorch": {
+  "glb": "standing_torch.glb",
+  "assetId": 76894774227727
+ },
+ "EO_DeadTree": {
+  "glb": "dead_tree.glb",
+  "assetId": 125675745178137
+ },
+ "EO_StorageCrate": {
+  "glb": "storage_crate.glb",
+  "assetId": 86480969772739
+ },
+ "EO_RecyclerStation": {
+  "glb": "recycler.glb",
+  "assetId": 114511988922602
+ },
+ "EO_BarrelCluster": {
+  "glb": "barrels.glb",
+  "assetId": 97808210346830
+ },
+ "EO_SupplySacksMesh": {
+  "glb": "supply_sacks.glb",
+  "assetId": 106489665857780
+ },
+ "EO_RainCollector": {
+  "glb": "rain_collector.glb",
+  "assetId": 96623096328279
+ },
+ "EO_Signpost": {
+  "glb": "signpost.glb",
+  "assetId": 129379454140930
+ },
+ "EO_DoorwayTimber": {
+  "glb": "timber_doorway.glb",
+  "assetId": 86510148563388
+ },
+ "EO_WindowTimber": {
+  "glb": "timber_window.glb",
+  "assetId": 123523155311228
+ },
+ "EO_WorkbenchP2": {
+  "glb": "workbench_tripo_p2.glb",
+  "assetId": 104388307441616
+ },
+ "EO_Workbench_Hunyuan": {
+  "glb": "workbench_hunyuan3d.glb",
+  "assetId": 95157826685519,
+  "note": "A/B loser"
+ },
+ "EO_PineConifer": {
+  "glb": "pine_medium_p2.glb",
+  "assetId": 130639495990824
+ },
+ "EO_LooseStonesClean": {
+  "glb": "loose_stones.glb",
+  "assetId": 100348018403125
+ }
+}

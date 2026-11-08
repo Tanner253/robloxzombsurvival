@@ -9,11 +9,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require("../theme")
+local Glyph = require("./Glyph")
+local Sfx = require("../../Sfx")
 
 export type Variant = "primary" | "secondary"
 
 export type Props = {
 	text: string,
+	glyph: string?, -- an icon from the glyph set instead of the text (4.17)
 	onActivated: (() -> ())?,
 	variant: Variant?,
 	disabled: boolean?,
@@ -42,16 +45,29 @@ local function Button(props: Props)
 		LayoutOrder = props.layoutOrder,
 		AutoButtonColor = false,
 		Active = not disabled,
-		BackgroundColor3 = if primary then Theme.colors.accent else Theme.colors.panelRaised,
-		BackgroundTransparency = if disabled then 0.5 else 0,
+		BackgroundColor3 = if disabled
+			then Theme.colors.disabled
+			elseif primary then Theme.colors.accent
+			else Theme.colors.panelRaised,
+		BackgroundTransparency = 0,
 		FontFace = Theme.fonts.header,
-		Text = props.text,
+		Text = if props.glyph then "" else props.text,
 		TextSize = Theme.textSize.body,
-		TextColor3 = if primary then Theme.colors.textOnAccent else Theme.colors.text,
-		TextTransparency = if disabled then 0.4 else 0,
+		TextColor3 = if disabled
+			then Theme.colors.disabledText
+			elseif primary then Theme.colors.textOnAccent
+			else Theme.colors.text,
 		[React.Event.Activated] = function()
-			if not disabled and props.onActivated then
+			if disabled then
+				Sfx.play("uiError")
+			elseif props.onActivated then
+				Sfx.play("uiClick")
 				props.onActivated()
+			end
+		end,
+		[React.Event.MouseEnter] = function()
+			if not disabled then
+				Sfx.play("uiHover")
 			end
 		end,
 		[React.Event.MouseButton1Down] = function()
@@ -66,12 +82,25 @@ local function Button(props: Props)
 	}, {
 		Corner = React.createElement("UICorner", { CornerRadius = Theme.radius }),
 		Stroke = React.createElement("UIStroke", {
-			Color = if primary then Theme.colors.accentSoft else Theme.colors.strokeWarm,
+			Color = if disabled
+				then Theme.colors.disabledStroke
+				elseif primary then Theme.colors.accentSoft
+				else Theme.colors.strokeWarm,
 			Thickness = Theme.strokeThickness,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),
 		Scale = React.createElement("UIScale", {
 			Scale = if pressed then PRESSED_SCALE else 1,
+		}),
+		Glyph = props.glyph and React.createElement(Glyph, {
+			name = props.glyph,
+			size = UDim2.fromScale(0.55, 0.55),
+			position = UDim2.fromScale(0.5, 0.5),
+			anchorPoint = Vector2.new(0.5, 0.5),
+			color = if disabled
+				then Theme.colors.disabledText
+				elseif primary then Theme.colors.textOnAccent
+				else Theme.colors.text,
 		}),
 	})
 end

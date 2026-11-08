@@ -15,10 +15,8 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local ServerStorage = game:GetService("ServerStorage")
 
-local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
+local Stores = require("../Stores")
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Migrations = require(ReplicatedStorage.Shared.Domain.Migrations)
 local PlayerSchema = require(ReplicatedStorage.Shared.Domain.PlayerSchema)
@@ -41,6 +39,10 @@ local PlayerData = {}
 
 -- Fires (player, data) once a player's profile is loaded and migrated.
 PlayerData.loaded = Signal.new()
+-- Fires (player, data) as the player leaves, just before the profile is saved and
+-- released. Handlers write their last runtime state (meters, health) into `data`
+-- and must not yield.
+PlayerData.releasing = Signal.new()
 
 local store: any
 local profiles: { [Player]: Profile } = {}
@@ -102,12 +104,8 @@ function PlayerData.get(player: Player): PlayerData?
 end
 
 function PlayerData.init()
-	-- Cast: the solver cannot prove a typed record matches ProfileStore's JSON template type.
-	store = ProfileStore.New(STORE_NAME, PlayerSchema.template() :: any)
-	if RunService:IsStudio() then
-		-- Studio play sessions use an in-memory store so tests never touch live saves.
-		store = store.Mock
-	end
+	-- Studio play sessions use a mock (or a separate Studio store); see Stores.
+	store = Stores.open(STORE_NAME, PlayerSchema.template())
 end
 
 function PlayerData.start()
@@ -118,6 +116,7 @@ function PlayerData.start()
 	Players.PlayerRemoving:Connect(function(player)
 		local profile = profiles[player]
 		if profile then
+			PlayerData.releasing:Fire(player, profile.Data)
 			profile:EndSession()
 		end
 	end)

@@ -1,0 +1,69 @@
+icons_a 6fd34c19-a851-4b11-b9c4-f9bebe245cca
+icons_b 75daf5e4-7848-432b-93ed-6baeacd0cafc
+icons_c d0464340-0669-48ef-b680-2b55f6dfcb04
+icons_d 1f7b7da5-cfcd-4fa7-b327-950cc6d29b13
+nodes_a f22f6f69-a34b-4e1f-961c-41cf31b832e9
+nodes_b 6792ca30-02d5-4dfa-99c8-91432a8a16ae
+tools_a 0023260f-6f00-4454-9efe-ca252b85b509
+3d pine_tree 9614818e-6e98-4483-96da-b8b775377bd5
+3d boulder c0aa00b9-1523-4faf-96fd-b1b6abbee03c
+3d loose_stones 2464c353-8f45-4015-9d31-19857345864e
+3d fallen_branches c1e957d7-0395-403e-a8d8-30ba1078adc7
+3d ember_bush 9f083b94-9bd5-4a4d-a235-6054b7667ea0
+3d reed_patch 051c5c6b-85aa-4cfb-b4a2-8917f9bd195e
+3d fatwood_stump 03ee9aaa-234d-47ab-9526-3abf956faced
+3d scrap_heap 553ed0de-ceae-4847-b7b1-cb4e5dd8e6b4
+3d stone_hatchet 993affd4-9336-454f-9f75-8e0d2f2b188d
+3d stone_pick fcda320d-d144-4748-af08-3ae33b6e3f01
+3d spiked_club 1f8cbb2b-5dc5-467b-b96f-b8ce8f252b35
+3d scrapblade bd158f98-9e5f-4fe4-a8d1-2788eb97876a
+icons_v2 89559c4b-ade2-44a2-ad10-d483df8fe58e
+roblox EO_PineTree 118779507512576
+roblox EO_Boulder 74504286918510
+roblox EO_LooseStones 81045779859200
+roblox EO_FallenBranches 74341323373762
+roblox EO_EmberBush 127927334455409
+roblox EO_Reeds 133926655520860
+roblox EO_FatwoodStump 82347894052501
+roblox EO_ScrapHeap 74203943258657
+roblox EO_StoneHatchet 106528582836538
+roblox EO_StonePick 111417634803672
+roblox EO_SpikedClub 106164493087995
+roblox EO_Scrapblade 72317369810952
+image sticks_icon 4d13e2bf-163b-4afb-adc0-7565925ebc07 (2.75)
+image branches_concept a384dba2-9dc7-4f29-9b36-ba74860d9e31 (2.75)
+roblox item.sticks icon 95801563445519
+roblox loading_keyart 118390976045902 (capture, not generated)
+image nature_sheet_v1 85b5ab59-d2d6-4b76-9bff-ca4518a5804e (2.75)
+image camp_sheet_v1 dc8e4c33-3d92-4f13-a30f-dd5eb961a325 (2.75)
+# Families pass (ART_DIRECTION 10a v2). Fixed conversion settings for every asset:
+# tripo_h3_1_image_to_3d face_limit=18000 texture=true pbr=true texture_quality=detailed
+# geometry_quality=standard texture_alignment=original_image (12 credits each)
+3d campfire e050b62f-5394-46df-b58f-179dc49c8b0a (12)
+3d dead_tree c9280cbf-cd13-40f9-89b0-2edf68ba94d2 (12)
+3d bare_branches 501f3895-9dbc-441c-bbd8-faa806dd4746 (12)
+3d rock_cluster e4de9715-99a4-4db1-b01c-8f95c9498c7c (12)
+3d reed_stubble 5afcc213-f71a-4a80-8aee-1d231cfa7f69 (12)
+3d storage_crate 04439f13-f0ba-461a-97a1-8209b2975aab (12)
+3d recycler 15e02bc6-4edb-40e7-bdec-7e30996441b3 (12)
+3d spring_basin 42a05d24-6252-4be8-b92d-3b37db428e09 (12)
+3d lantern_post cc1f26eb-a9b0-44b8-9c49-bba451cd34f6 (12)
+3d standing_torch ae50e9b6-e34c-4a69-b0a0-ed7354c105fa (12)
+3d barrels c1b7e62c-754c-455d-b88f-04ef334c360d (12)
+3d supply_sacks 4114c281-ccda-4658-8ad5-81d1b913e710 (12)
+3d rain_collector bbc16a94-313c-493a-8e25-0195c3cb7b3b (12)
+image structure_sheet_v1 bb3d6e99-5652-4642-9c4d-4f6c0e4e4ea5 (2.75)
+3d palisade_doorway 578b4942-3edb-4a1f-aa90-e9da9c4545bc (12)
+3d palisade_window 0628e0c1-0e89-4de7-aeaf-6fd23fb99dd1 (12)
+3d palisade_door 1d7b0787-efb8-44fa-b08a-f6c5194c5b86 (12)
+3d signpost 1e52a800-014e-4e79-b05c-3c47215540f3 (12)
+image gear_silhouettes ee77eb57-7079-4914-9011-c38e92fe4d54 (medium 2k)
+image timber_wall_sheet_v1 5a265105-2b55-48a9-af97-ea6bc2376320 (2.75)
+3d timber_wall 278017ea-a6ed-4860-bf55-abc35ea11ed8 (12) media 565f48b2-1ba5-445a-bb7d-b4d46d2bf77f
+3d timber_doorway 7ab966cf-e357-457d-b65d-6dfea04cad02 (12) media f0bc09f8-ddef-497e-98a8-e699880f4fa6
+3d timber_window 028656e4-c13a-4ce0-a0b8-d6a2e003d6f2 (12) media c674bd2c-8b4d-4047-bf8b-66ad1ad3bc9e
+image workbench_v2 6b18edab-9178-4dae-b16e-89389741dbda (2.75) hard-surface concept
+image pine_sheet_v2 ff8861f9-01ab-436f-b0b7-74b63cca9133 (2.75) conifers, 3 sizes
+3d workbench_hunyuan3d_v3 7aacab6a-3ff2-4aaf-9b36-ad5ef832b986 (19) A/B
+3d workbench_tripo_p2 29f51f20-260e-476b-a108-431a132db927 (37) A/B
+3d pine_medium_tripo_p2 8a8c63a5-0e42-4aba-ac1c-fcc2ec5e597b (37) media 01ca0fc3-c04d-4b7a-a27b-ac0b07c99a2e

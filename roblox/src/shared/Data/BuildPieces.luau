@@ -43,6 +43,22 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		minFoundationTier = 1,
 		upgradesTo = "build.wall_scrap",
 	},
+	-- The sharpened-stake palisade reads as an outdoor fence, not a room wall: it's a Defense
+	-- piece of its own. The Timber Wall gets a solid plank wall with a top cap.
+	["build.fence_wood"] = {
+		id = "build.fence_wood",
+		name = "Palisade Fence",
+		kind = "wall",
+		tab = "defense",
+		tier = 1,
+		hp = 300,
+		cost = {
+			{ itemId = "item.timber", count = 6 },
+			{ itemId = "item.rope", count = 1 },
+		},
+		breachCost = 1,
+		minFoundationTier = 1,
+	},
 	["build.doorway_wood"] = {
 		id = "build.doorway_wood",
 		name = "Timber Doorway",
@@ -242,6 +258,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	-- Stations -----------------------------------------------------------------------------
 	["build.workbench"] = {
 		id = "build.workbench",
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
 		name = "Workbench",
 		kind = "station",
 		tier = 1,
@@ -258,12 +275,13 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	},
 	["build.campfire"] = {
 		id = "build.campfire",
+		footprint = { w = 3, d = 3 }, -- quarter cells (2 studs)
 		name = "Campfire",
 		kind = "station",
 		tier = 1,
 		hp = 200,
 		cost = {
-			{ itemId = "item.timber", count = 5 },
+			{ itemId = "item.sticks", count = 6 },
 			{ itemId = "item.stone", count = 5 },
 			{ itemId = "item.fiber", count = 2 },
 		},
@@ -273,6 +291,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	},
 	["build.recycler"] = {
 		id = "build.recycler",
+		footprint = { w = 3, d = 3 }, -- quarter cells (2 studs)
 		name = "Recycler",
 		kind = "station",
 		tier = 2,
@@ -293,6 +312,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	-- Storage --------------------------------------------------------------------------------
 	["build.crate_wood"] = {
 		id = "build.crate_wood",
+		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
 		name = "Timber Crate",
 		kind = "storage",
 		tier = 1,
@@ -309,6 +329,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	},
 	["build.crate_banded"] = {
 		id = "build.crate_banded",
+		footprint = { w = 2, d = 3 }, -- quarter cells (2 studs)
 		name = "Banded Crate",
 		kind = "storage",
 		tier = 2,

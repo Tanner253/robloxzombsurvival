@@ -370,12 +370,22 @@ function Crafting.addFuel(
 	if not taken then
 		return nil, nil, "missingInputs"
 	end
-	local burn = count * fuel.secondsPerUnit
+	local burn = count * Crafting.burnSeconds(stationDef, itemId)
 	if station.fuelEndsAt >= now then
 		return withQueue(station, station.queue, station.fuelEndsAt + burn), taken, nil
 	end
 	local queue = relay(station.queue, station.fuelEndsAt, now)
 	return withQueue(station, queue, now + burn), taken, nil
+end
+
+-- Seconds one unit of a fuel item burns: StationFuel.burnSeconds, else secondsPerUnit.
+function Crafting.burnSeconds(stationDef: Types.StationDef, itemId: Types.ItemId): number
+	local fuel = stationDef.fuel
+	if not fuel then
+		return 0
+	end
+	local perItem = fuel.burnSeconds and fuel.burnSeconds[itemId]
+	return perItem or fuel.secondsPerUnit
 end
 
 -- Seconds of fuel left (0 when out, or for stations without fuel).

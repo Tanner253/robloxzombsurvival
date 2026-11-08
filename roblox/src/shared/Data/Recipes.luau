@@ -10,7 +10,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	["recipe.stone_hatchet"] = {
 		id = "recipe.stone_hatchet",
 		inputs = {
-			{ itemId = "item.timber", count = 3 },
+			{ itemId = "item.sticks", count = 3 },
 			{ itemId = "item.stone", count = 3 },
 		},
 		outputs = { { itemId = "item.stone_hatchet", count = 1 } },
@@ -20,7 +20,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	["recipe.stone_pick"] = {
 		id = "recipe.stone_pick",
 		inputs = {
-			{ itemId = "item.timber", count = 3 },
+			{ itemId = "item.sticks", count = 3 },
 			{ itemId = "item.stone", count = 3 },
 		},
 		outputs = { { itemId = "item.stone_pick", count = 1 } },
@@ -123,7 +123,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	["recipe.arrow"] = {
 		id = "recipe.arrow",
 		inputs = {
-			{ itemId = "item.plank", count = 1 },
+			{ itemId = "item.sticks", count = 2 },
 			{ itemId = "item.scrap", count = 2 },
 			{ itemId = "item.fiber", count = 1 },
 		},

@@ -59,11 +59,40 @@ return function(test: TestKit.Register)
 		TestKit.equal(#data.inventory.backpack, Tuning.inventory.backpackSlots, "backpack")
 		TestKit.equal(data.energy.value, Tuning.energy.cap, "energy")
 		for _, section in
-			{ "storage", "lockedStash", "stations", "crops", "progression", "quests", "unlocks", "purchases", "raid" }
+			{ "storage", "inbox", "stations", "crops", "progression", "quests", "unlocks", "purchases", "raid" }
 		do
 			TestKit.truthy((data :: any)[section], section)
 		end
 		TestKit.deepEqual(data.purchases.receiptIds, {}, "receipt log")
+	end)
+
+	test("v3 profiles move the locked stash into the inbox", function()
+		local data: { [string]: any } = {
+			version = 3,
+			lockedStash = {
+				{ itemId = "item.timber", count = 40 },
+				{ itemId = "", count = 0 },
+				{ itemId = "item.stone_hatchet", count = 1, durability = 12 },
+			},
+		}
+		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
+		TestKit.truthy(ok, reason)
+		TestKit.equal(data.lockedStash, nil, "stash retired")
+		TestKit.equal(#data.inbox, 2, "empty slots dropped")
+		TestKit.equal(data.inbox[1].count, 40)
+		TestKit.equal(data.inbox[2].durability, 12, "durability kept")
+		TestKit.equal(data.inboxSeq, 2)
+	end)
+
+	test("v1 profiles migrate up with full survival meters and default settings", function()
+		local data: { [string]: any } = { version = 1 }
+		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
+		TestKit.truthy(ok, reason)
+		TestKit.equal(data.version, PlayerSchema.VERSION, "version")
+		TestKit.deepEqual(data.settings, PlayerSchema.defaultSettings(), "v3 settings")
+		TestKit.equal(data.survival.health, Tuning.player.maxHealth, "health")
+		TestKit.equal(data.survival.hunger, Tuning.survival.hunger.max, "hunger")
+		TestKit.equal(data.survival.thirst, Tuning.survival.thirst.max, "thirst")
 	end)
 
 	test("template returns a fresh table each call", function()
@@ -108,5 +137,26 @@ return function(test: TestKit.Register)
 		}, 2)
 		TestKit.equal(ok, false)
 		TestKit.truthy(string.find(reason :: string, "boom", 1, true), reason)
+	end)
+
+	test("settings from the client are clamped and malformed ones refused", function()
+		local clean = PlayerSchema.cleanSettings({
+			master = 2,
+			music = -1,
+			ambience = 0.5,
+			sfx = 1,
+			ui = 0.3,
+			shake = false,
+			uiScale = 9,
+		}) :: any
+		TestKit.equal(clean.master, 1)
+		TestKit.equal(clean.music, 0)
+		TestKit.equal(clean.uiScale, 1.25)
+		TestKit.equal(clean.shake, false)
+		TestKit.equal(PlayerSchema.cleanSettings({ master = "loud" }), nil)
+		TestKit.equal(PlayerSchema.cleanSettings(nil), nil)
+		local nan = PlayerSchema.defaultSettings() :: any
+		nan.sfx = 0 / 0
+		TestKit.equal(PlayerSchema.cleanSettings(nan), nil, "NaN refused")
 	end)
 end

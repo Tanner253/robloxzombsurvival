@@ -1,6 +1,6 @@
 --!strict
 --[[
-	PlayerSchema: the saved player profile, schema version 1 (ARCHITECTURE.md §6).
+	PlayerSchema: the saved player profile, schema version 2 (ARCHITECTURE.md §6).
 
 	To change the schema:
 	1. Bump VERSION.
@@ -20,7 +20,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 1
+PlayerSchema.VERSION = 6
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -31,6 +31,7 @@ export type Equipment = {
 	legs: Types.Slot,
 	feet: Types.Slot,
 	weapon: Types.Slot,
+	weapon2: Types.Slot, -- the secondary weapon (4.9)
 	bag: Types.Slot,
 }
 
@@ -57,6 +58,15 @@ export type RaidLogEntry = {
 	itemsLost: { Types.ItemStack },
 }
 
+-- Health and the survival meters, saved so leaving and rejoining never refills them.
+-- Meters only drain in the world (Domain/Survival), so updatedAt is reset on join.
+export type SurvivalSave = {
+	health: number,
+	hunger: number,
+	thirst: number,
+	updatedAt: number,
+}
+
 export type PlayerData = {
 	version: number,
 	meta: { createdAt: number, lastLoginAt: number, loginCount: number },
@@ -66,16 +76,75 @@ export type PlayerData = {
 		equipment: Equipment,
 	},
 	storage: { [string]: Types.Container }, -- keyed by placed storage piece UID
-	lockedStash: Types.Container, -- purchases land here; never raidable
+	-- The item inbox (checklist 4.15): rewards, purchases and overflow, no capacity
+	-- limit, never raidable, never expires. inboxSeq numbers its rows.
+	inbox: { Types.InboxEntry },
+	inboxSeq: number,
 	stations: { [string]: StationState }, -- keyed by placed station UID
 	crops: { [string]: CropState }, -- keyed by placed plot UID
 	progression: { level: number, xp: number },
-	energy: { value: number, updatedAt: number },
+	-- foodDay is the UTC day number foodGained counts for (Tuning.energy.foodDailyCap).
+	energy: { value: number, updatedAt: number, foodDay: number, foodGained: number },
+	survival: SurvivalSave,
 	quests: { active: { [string]: QuestState }, completed: { [string]: number } },
 	unlocks: { recipes: { [string]: boolean }, blueprints: { [string]: boolean } },
+	-- The crafting catalogue (5.9): starred recipes, and recipes already looked at
+	-- (anything unlocked and not seen wears a NEW badge).
+	recipeMarks: { favourites: { [string]: boolean }, seen: { [string]: boolean } },
+	-- Home resource nodes that are hit or depleted, by node key ("<nodeId>#<n>"): they
+	-- regrow on real-time stamps, so leaving and rejoining never refills the plot.
+	homeNodes: { [string]: { hitsLeft: number, respawnAt: number } },
 	purchases: { receiptIds: { string } }, -- most recent last, capped at RECEIPT_LOG_SIZE
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
+	settings: Settings,
 }
+
+-- Player settings (checklist 8.6): mixer volumes 0..1, camera shake, UI scale.
+export type Settings = {
+	master: number,
+	music: number,
+	ambience: number,
+	sfx: number,
+	ui: number,
+	shake: boolean,
+	uiScale: number,
+}
+
+-- Default settings, for new profiles and the v2 -> v3 migration.
+function PlayerSchema.defaultSettings(): Settings
+	return { master = 1, music = 0.7, ambience = 0.9, sfx = 1, ui = 0.9, shake = true, uiScale = 1 }
+end
+
+-- Settings from untrusted client input: known keys only, clamped; nil when malformed.
+function PlayerSchema.cleanSettings(input: any): Settings?
+	if type(input) ~= "table" then
+		return nil
+	end
+	local result = PlayerSchema.defaultSettings()
+	for _, key in { "master", "music", "ambience", "sfx", "ui" } do
+		local value = input[key]
+		if type(value) ~= "number" or value ~= value then
+			return nil
+		end
+		(result :: any)[key] = math.clamp(value, 0, 1)
+	end
+	if type(input.shake) ~= "boolean" or type(input.uiScale) ~= "number" or input.uiScale ~= input.uiScale then
+		return nil
+	end
+	result.shake = input.shake
+	result.uiScale = math.clamp(input.uiScale, 0.8, 1.25)
+	return result
+end
+
+-- Full health and meters, for new profiles and the v1 -> v2 migration.
+function PlayerSchema.freshSurvival(): SurvivalSave
+	return {
+		health = Tuning.player.maxHealth,
+		hunger = Tuning.survival.hunger.max,
+		thirst = Tuning.survival.thirst.max,
+		updatedAt = 0,
+	}
+end
 
 -- A fresh profile. ProfileStore copies this for new players and uses it to fill
 -- missing keys (Reconcile) after migrations run.
@@ -93,30 +162,85 @@ function PlayerSchema.template(): PlayerData
 				legs = Inventory.emptySlot(),
 				feet = Inventory.emptySlot(),
 				weapon = Inventory.emptySlot(),
+				weapon2 = Inventory.emptySlot(),
 				bag = Inventory.emptySlot(),
 			},
 		},
 		storage = {},
-		lockedStash = Inventory.newContainer(slots.lockedStashSlots),
+		inbox = {},
+		inboxSeq = 0,
 		stations = {},
 		crops = {},
 		progression = { level = 1, xp = 0 },
-		energy = { value = Tuning.energy.cap, updatedAt = 0 },
+		energy = { value = Tuning.energy.cap, updatedAt = 0, foodDay = 0, foodGained = 0 },
+		survival = PlayerSchema.freshSurvival(),
 		quests = { active = {}, completed = {} },
 		unlocks = { recipes = {}, blueprints = {} },
+		recipeMarks = { favourites = {}, seen = {} },
+		homeNodes = {},
 		purchases = { receiptIds = {} },
 		raid = { shieldUntil = 0, log = {} },
+		settings = PlayerSchema.defaultSettings(),
 	}
 end
 
---[[
-	steps[n] upgrades version n to n + 1. Version 1 is the first schema, so there
-	are none yet. Example for a future v2:
-
+-- steps[n] upgrades version n to n + 1.
+PlayerSchema.migrations = {
+	-- v2: health, hunger and thirst are saved; food energy counts toward a daily cap.
 	[1] = function(data)
-		data.progression.prestige = 0
+		if data.survival == nil then
+			data.survival = PlayerSchema.freshSurvival()
+		end
+		if type(data.energy) == "table" then
+			data.energy.foodDay = data.energy.foodDay or 0
+			data.energy.foodGained = data.energy.foodGained or 0
+		end
 	end,
-]]
-PlayerSchema.migrations = {} :: Migrations.Steps
+	-- v3: player settings (volumes, camera shake, UI scale).
+	[2] = function(data)
+		if data.settings == nil then
+			data.settings = PlayerSchema.defaultSettings()
+		end
+	end,
+	-- v4: the locked stash becomes the unlimited item inbox (its items move over), and
+	-- the crafting catalogue's favourites and seen marks start empty.
+	[3] = function(data)
+		local entries, seq = {}, 0
+		for _, slot in (if type(data.lockedStash) == "table" then data.lockedStash else {}) do
+			if type(slot) == "table" and type(slot.count) == "number" and slot.count > 0 then
+				seq += 1
+				table.insert(entries, {
+					id = `i{seq}`,
+					itemId = slot.itemId,
+					count = slot.count,
+					durability = slot.durability,
+					source = "Stash",
+					at = 0,
+				})
+			end
+		end
+		data.inbox = entries
+		data.inboxSeq = seq
+		data.lockedStash = nil
+		data.recipeMarks = { favourites = {}, seen = {} }
+	end,
+	-- v5: home resource nodes are saved (depleted ones stay depleted across sessions).
+	[4] = function(data)
+		if type(data.homeNodes) ~= "table" then
+			data.homeNodes = {}
+		end
+	end,
+	-- v6: a secondary weapon slot (the 1-9 hotbar became two weapon slots, 4.9).
+	[5] = function(data)
+		local inventory = data.inventory
+		if
+			type(inventory) == "table"
+			and type(inventory.equipment) == "table"
+			and inventory.equipment.weapon2 == nil
+		then
+			inventory.equipment.weapon2 = { itemId = "", count = 0 }
+		end
+	end,
+} :: Migrations.Steps
 
 return PlayerSchema

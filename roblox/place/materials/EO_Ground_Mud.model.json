@@ -1,0 +1,12 @@
+{
+	"className": "MaterialVariant",
+	"properties": {
+		"BaseMaterial": "Mud",
+		"ColorMap": "rbxassetid://102858946580851",
+		"NormalMap": "rbxassetid://89300845292555",
+		"RoughnessMap": "rbxassetid://82309509183542",
+		"MetalnessMap": "rbxassetid://116149418361958",
+		"MaterialPattern": "Organic",
+		"StudsPerTile": 16
+	}
+}

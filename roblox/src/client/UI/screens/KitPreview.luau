@@ -33,18 +33,24 @@ local function KitPreview()
 	local hatchet = Items["item.stone_hatchet"]
 	local wood = Items["item.timber"]
 
+	-- One item of each rarity, so every border color shows.
+	local byRarity: { [string]: string } = {}
+	for id, def in Items do
+		if byRarity[def.rarity] == nil or id < byRarity[def.rarity] then
+			byRarity[def.rarity] = id
+		end
+	end
 	local slots: { [string]: any } = {}
 	for index, rarity in RARITIES do
 		slots[rarity] = React.createElement(ItemSlot, {
-			name = wood.name,
+			itemId = byRarity[rarity] or wood.id,
 			count = index * 7,
-			rarity = rarity,
 			layoutOrder = index,
 		})
 	end
 	slots.Tool = React.createElement(ItemSlot, {
-		name = hatchet.name,
-		rarity = hatchet.rarity,
+		itemId = hatchet.id,
+		count = 1,
 		durability = 0.6,
 		selected = true,
 		layoutOrder = 10,

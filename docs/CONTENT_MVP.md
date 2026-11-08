@@ -19,7 +19,8 @@ Units: seconds, studs (one build cell = 12 studs), chances 0–1.
 
 | ID | Name | Category | Stack | Durability | Stats / effect |
 |---|---|---|---|---|---|
-| item.timber | Timber | resource | 30 | — | fuel 2 m |
+| item.sticks | Sticks | resource | 40 | — | fuel 1 m |
+| item.timber | Timber (logs) | resource | 30 | — | fuel 2 m |
 | item.stone | Fieldstone | resource | 30 | — | — |
 | item.scrap | Rusted Scrap | resource | 50 | — | — |
 | item.fiber | Reed Fiber | resource | 30 | — | — |
@@ -65,8 +66,8 @@ Armor reduction is `defense / (defense + 16.7)`, LDoE's formula: the hood and ve
 
 | Recipe | Inputs → output | Where | Time | Unlock |
 |---|---|---|---|---|
-| stone_hatchet | 3 timber + 3 stone → Stone Hatchet | hand | 5 s | start |
-| stone_pick | 3 timber + 3 stone → Stone Pick | hand | 5 s | start |
+| stone_hatchet | 3 sticks + 3 stone → Stone Hatchet | hand | 5 s | start |
+| stone_pick | 3 sticks + 3 stone → Stone Pick | hand | 5 s | start |
 | rope | 2 fiber → 1 Reed Cord | hand | 3 s | start |
 | satchel | 2 cord + 3 fiber → Reed Satchel | hand | 10 s | start |
 | field_dressing | 3 cloth → 1 Field Dressing | hand | 5 s | L2 |
@@ -77,7 +78,7 @@ Armor reduction is `defense / (defense + 16.7)`, LDoE's formula: the hood and ve
 | scrap_plate | 6 scrap → 2 Scrap Plates | Workbench | 10 m | L4 |
 | padded_hood | 4 cloth + 2 cord → Padded Hood | Workbench | 2 m | L4 |
 | shortbow | 4 plank + 4 cord + 1 glue → Reed Shortbow | Workbench | 3 m | L5 |
-| arrow | 1 plank + 2 scrap + 1 fiber → 5 arrows | Workbench | 1 m | L5 |
+| arrow | 2 sticks + 2 scrap + 1 fiber → 5 arrows | Workbench | 1 m | L5 |
 | padded_vest | 6 cloth + 3 cord + 2 plate → Padded Vest | Workbench | 5 m | L6 |
 | scrapblade | 4 plate + 2 plank + 2 cloth + 2 rivets → Scrapblade | Workbench | 5 m | L8 |
 | pack_frame | 6 cloth + 6 cord + 3 plate + 2 rivets + 1 gear → Pack Frame | Workbench L2 | 10 m | blueprint |
@@ -96,13 +97,13 @@ Processed materials craft in **batches** (4 planks per job). A job is one queue 
 | Workbench | 10 timber, 6 stone, 2 cord (on a foundation, max 2) | 1 | — | 3 | ×1 | — |
 | | | 2 | 20 plank, 10 block, 6 plate | 5 | ×1.25 | L10 |
 | | | 3 | 30 plank, 20 block, 12 plate, 3 gear | 7 | ×1.5 | L16 |
-| Campfire | 5 timber, 5 stone, 2 fiber (on the ground, max 2) | 1 | — | 3 | ×1 | — |
+| Campfire | 6 sticks, 5 stone, 2 fiber (on the ground, max 2) | 1 | — | 3 | ×1 | — |
 | | | 2 | 12 block, 4 plate | 5 | ×1.25 | L6 |
 | Recycler | 15 plank, 6 plate, 6 rivets, 2 springs (Scrap foundation, max 1) | 1 | — | 2 | ×1 | L7 |
 | | | 2 | 10 plate, 6 rivets, 2 springs | 3 | ×1.2, +5% chance | L12 |
 | | | 3 | 16 plate, 10 rivets, 4 springs, 2 gears | 4 | ×1.4, +10% chance | L18 |
 
-**Campfire fuel:** jobs only progress while fuel burns. It burns timber (2 m), planks (3 m) and fatwood (6 m), with 20 fuel slots.
+**Campfire fuel:** jobs only progress while fuel burns. It burns sticks (1 m), timber (2 m), planks (3 m) and fatwood (6 m), with 20 fuel slots.
 
 **Recycler outputs.** Chances scale with the input's remaining durability, as in LDoE.
 
@@ -122,7 +123,7 @@ Processed materials craft in **batches** (4 planks per job). A job is one queue 
 
 | Node | Tool | Hits | Yield per hit | XP per hit | Respawn |
 |---|---|---|---|---|---|
-| Fallen Branches | hand | 1 | 2 timber | 20 | 3 m |
+| Fallen Branches | hand | 1 | 2 sticks | 20 | 3 m |
 | Loose Stones | hand | 1 | 2 stone | 20 | 3 m |
 | Reed Patch | hand | 1 | 3 fiber | 20 | 2 m |
 | Emberberry Bush | hand | 1 | 3 berries | 20 | 5 m |
@@ -134,6 +135,8 @@ Processed materials craft in **batches** (4 planks per job). A job is one queue 
 | Scrap Heap | pick 1 | 4 | 2 scrap (+wire 8%, +rivets 4%) | 12 | 6 m |
 
 XP is about 10 per resource unit, as in LDoE. Respawn applies to shared instances and the home plot. "Reset on exit" locations are rebuilt on every visit anyway.
+
+**Progression ladder:** hands → sticks + stone → hatchet → timber (logs) → planks. Sticks come only from Fallen Branches at home; timber only from pines and fatwood stumps, which need a hatchet.
 
 **Home plot** (`Tuning.home`): 6 branches, 6 loose stones, 10 pines, 6 boulders, 4 reed patches, 2 berry bushes and 1 spring pool. That covers the about 60 timber and 20 stone that quests 1–5 need.
 
@@ -170,7 +173,7 @@ The Caravan opens 3 hours in every 9. Nine doesn't divide 24, so the window drif
 | enemy_runner | 1 | scrap 35 (2–4), cord 25 (1–2), cloth 25 (1–2), tin 10, wire 5 | — | — |
 | enemy_brute | 1–2 | plate 30 (1–2), rivets 25 (1–2), tin 20, spring 15, junk 10 | 3 scrap | — |
 | pine_pack | 1–3 | tin 20, cord 20 (1–3), murky 15 (1–2), cloth 15 (1–2), boiled 10, lantern 10, dressing 8, wire 8, club 2 | — | — |
-| pine_crate | 2–3 | timber 25 (3–6), plank 25 (2–4), scrap 20 (2–4), cord 15 (1–2), glue 5, hatchet 5, lantern 5 | — | — |
+| pine_crate | 2–3 | timber 20 (3–6), sticks 15 (4–8), plank 20 (2–4), scrap 20 (2–4), cord 15 (1–2), glue 5, hatchet 5, lantern 5 | — | — |
 | quarry_toolbox | 2–3 | scrap 25 (3–6), junk 22, plate 15 (1–2), rivets 15 (1–3), arrows 10 (4–8), spring 6, pick 5, glue 2 | — | — |
 | quarry_locker | 2–3 | tin 25 (1–2), boiled 20 (1–2), dressing 15 (1–2), cloth 15 (2–3), motor 6, hood 4, tonic 3, bow 2 | — | — |
 | depot_freight | 3–4 | plate 22 (2–4), rivets 18 (2–4), block 15 (2–4), junk 14, springs 12 (1–2), arrows 10 (6–10), tin 10 (1–2), stew 4, gear 4 | — | — |
@@ -247,7 +250,7 @@ Every level-up fully heals and restores 20 Energy.
 
 | # | Quest | Objectives | Rewards |
 |---|---|---|---|
-| 1 | First Light | gather 6 timber, 6 stone (hand pickups at home) | 150 XP, 2 tins |
+| 1 | First Light | gather 6 sticks, 6 stone (hand pickups at home) | 150 XP, 2 tins |
 | 2 | Tools of Survival | craft Stone Hatchet, Stone Pick | 150 XP, 6 fiber |
 | 3 | Claim the Ground | build 2 Timber Foundations, 2 Timber Walls | 200 XP, 10 timber, 4 cord |
 | 4 | A Place to Work | build a Workbench, craft planks | 250 XP, 2 murky water, 2 ashroot |
@@ -313,6 +316,6 @@ Every item grant goes into the **locked stash**, so nothing bought can be raided
 - `LocationDef.lootTableIds` and `resetSeconds` became `containers`, `reset` and `availability`.
 - What a level unlocks is never stored: scan `UnlockGate`s, `levelGate`s and `requiredLevel`s.
 - Tuning sections can be passed as is: `energy` to Energy, `survival` to Survival, `death` to Death, `building` to Grid and `travel` to Travel.
-- Fuel burn time is `fuel.burnSeconds[itemId]`, or `fuel.secondsPerUnit` for an item not listed there. **Open:** Domain/Crafting reads only `secondsPerUnit`, so fatwood (6 m) and planks (3 m) burn like timber (2 m) until it reads `burnSeconds`.
+- Fuel burn time is `fuel.burnSeconds[itemId]`, or `fuel.secondsPerUnit` for an item not listed there. Domain/Crafting reads `burnSeconds` (fixed in M1 slice 1).
 - **Open:** Domain/Grid lets any piece be placed, including an upgraded tier. With chain costs that charges only the upgrade step while a demolish refunds the whole chain, which is a resource exploit. Placement should be limited to pieces that nothing upgrades into.
 - Recycler chances get `salvageChanceBonus` from the station level added on top, then are scaled by durability when `Tuning.salvage.durabilityScalesChance` is set.

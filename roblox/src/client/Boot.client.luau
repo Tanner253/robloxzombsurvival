@@ -3,6 +3,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Lifecycle = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("Lifecycle"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Lifecycle = require(Shared:WaitForChild("Util"):WaitForChild("Lifecycle"))
 
 Lifecycle.boot(script.Parent:WaitForChild("Controllers"), "Client")

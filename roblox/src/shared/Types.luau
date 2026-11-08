@@ -46,7 +46,7 @@ export type ItemCategory =
 	| "misc"
 
 -- Matches the keys of PlayerSchema.Equipment.
-export type EquipSlot = "head" | "body" | "legs" | "feet" | "weapon" | "bag"
+export type EquipSlot = "head" | "body" | "legs" | "feet" | "weapon" | "weapon2" | "bag" -- weapon2: the secondary weapon (an item's equipSlot is "weapon")
 
 export type ToolKind = "hatchet" | "pick"
 
@@ -78,6 +78,7 @@ export type ConsumeEffect = {
 export type ItemDef = {
 	id: ItemId,
 	name: string,
+	description: string?, -- one line for tooltips and the recipe card (5.10)
 	category: ItemCategory,
 	tier: number,
 	rarity: Rarity,
@@ -292,8 +293,12 @@ export type BuildPieceDef = {
 	upgradesTo: BuildPieceId?,
 	stationId: StationId?, -- required when kind == "station"
 	storageSlots: number?, -- required when kind == "storage"
-	minFoundationTier: number?, -- nil means it can stand on bare ground
+	minFoundationTier: number?, -- objects: the lowest foundation tier they can stand on (nil: any)
+	-- Objects: the footprint on the furniture sub-grid, in quarter cells at rotation 0
+	-- (w along X, d along Z). nil means one whole cell.
+	footprint: { w: number, d: number }?,
 	maxPerPlot: number?, -- nil means no limit
+	tab: string?, -- build menu tab when it isn't the kind's own, e.g. "defense" for fences
 	unlock: UnlockGate?, -- nil means available from the start
 }
 
@@ -366,6 +371,7 @@ export type SurvivalMeter = {
 -- Sections whose shape matches a Domain module's Config can be passed to it as is:
 -- energy (Energy), survival (Survival), death (Death), building (Grid), travel (Travel).
 export type TuningDef = {
+	devSpeed: number, -- Studio-only pacing multiplier (Shared/DevSpeed); live servers use 1
 	energy: {
 		cap: number,
 		secondsPerPoint: number, -- regen, offline included
@@ -377,7 +383,6 @@ export type TuningDef = {
 		pocketSlots: number,
 		backpackSlots: number, -- with no bag equipped
 		maxBackpackSlots: number, -- largest bag plus every purchasable upgrade
-		lockedStashSlots: number,
 	},
 	player: {
 		maxHealth: number,
@@ -395,6 +400,7 @@ export type TuningDef = {
 		respawnHealth: number,
 		respawnHunger: number,
 		respawnThirst: number,
+		tickSeconds: number, -- how often the server applies drain, damage and regen
 	},
 	combat: {
 		armorConstant: number,
@@ -425,6 +431,30 @@ export type TuningDef = {
 	},
 	home: {
 		nodes: { LocationNode }, -- what grows on a fresh home plot; feeds the first quests
+		regrowHours: { [string]: { min: number, max: number } }, -- real hours, per node type
+	},
+	plots: {
+		count: number, -- plots per server (one per player)
+		columns: number, -- plots per row; rows face each other across a road
+		spacingStuds: number, -- between plot centres along a row
+		rowGapStuds: number, -- the road between the two rows
+		marginStuds: number, -- the gathering ring around the build grid
+	},
+	interaction: {
+		reachStuds: number, -- arm's reach from an object's edge (nodes, pickups, crates, stations)
+		toleranceStuds: number, -- extra the server allows for movement and latency
+	},
+	drops: {
+		lifetimeSeconds: number, -- how long a bag on the ground lasts
+	},
+	movement: {
+		hopHeight: number, -- studs a jump lifts the survivor
+		hopCooldownSeconds: number, -- seconds between hops
+	},
+	dayNight: {
+		cycleSeconds: number, -- real seconds per day and night
+		dayFraction: number, -- share of the cycle that is day (06:00-19:30)
+		offset: number, -- cycle phase at server time 0
 	},
 	newPlayer: {
 		items: { ItemStack },
@@ -460,6 +490,18 @@ export type Slot = {
 }
 
 export type Container = { Slot }
+
+-- One row of the item inbox (checklist 4.15): rewards, purchases and overflow wait
+-- here with no capacity limit until the player takes or uses them. Saved in the
+-- profile, so it is raid-proof; nothing in it expires.
+export type InboxEntry = {
+	id: string, -- "i<seq>", unique per profile
+	itemId: ItemId,
+	count: number,
+	durability: number?,
+	source: string, -- "LevelUp", "Quest", "Purchase", "Event", "Overflow", ...
+	at: number, -- os.time() it arrived (or was last added to)
+}
 
 export type Inventory = {
 	pockets: Container,

@@ -63,8 +63,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		id = "loot.pine_crate",
 		rolls = { min = 2, max = 3 },
 		entries = {
-			{ itemId = "item.timber", weight = 25, min = 3, max = 6 },
-			{ itemId = "item.plank", weight = 25, min = 2, max = 4 },
+			{ itemId = "item.timber", weight = 20, min = 3, max = 6 },
+			{ itemId = "item.sticks", weight = 15, min = 4, max = 8 },
+			{ itemId = "item.plank", weight = 20, min = 2, max = 4 },
 			{ itemId = "item.scrap", weight = 20, min = 2, max = 4 },
 			{ itemId = "item.rope", weight = 15, min = 1, max = 2 },
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
