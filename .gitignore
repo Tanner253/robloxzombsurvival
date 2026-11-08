@@ -20,3 +20,6 @@ desktop.ini
 *.swp
 *~
 .idea/
+
+# A saved copy of the live place, for tools/syncback.luau only (the repo is the master)
+roblox/place/*.rbxl

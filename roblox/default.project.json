@@ -13,6 +13,21 @@
 		"ServerStorage": {
 			"ServerPackages": {
 				"$path": "ServerPackages"
+			},
+			"EO_Kit": {
+				"$path": "place/kit/EO_Kit.rbxm"
+			},
+			"LT_Gen": {
+				"$path": "place/kit/LT_Gen.rbxm"
+			},
+			"Survivor_v3_standin": {
+				"$path": "place/kit/Survivor_v3_standin.rbxm"
+			},
+			"EO_SurvivorStatic": {
+				"$path": "place/kit/EO_SurvivorStatic.rbxm"
+			},
+			"EO_SurvivorRig_display": {
+				"$path": "place/kit/EO_SurvivorRig_display.rbxm"
 			}
 		},
 		"ServerScriptService": {
@@ -25,12 +40,18 @@
 				"Client": {
 					"$path": "src/client"
 				}
+			},
+			"StarterCharacter": {
+				"$path": "place/kit/StarterCharacter.rbxm"
 			}
 		},
 		"MaterialService": {
 			"$className": "MaterialService",
 			"EO_Materials": {
 				"$path": "place/materials"
+			},
+			"AssistantMaterials": {
+				"$path": "place/kit/AssistantMaterials.rbxm"
 			}
 		},
 		"ReplicatedFirst": {
