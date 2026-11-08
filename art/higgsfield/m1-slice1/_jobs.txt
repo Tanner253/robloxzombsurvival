@@ -66,3 +66,4 @@ image workbench_v2 6b18edab-9178-4dae-b16e-89389741dbda (2.75) hard-surface conc
 image pine_sheet_v2 ff8861f9-01ab-436f-b0b7-74b63cca9133 (2.75) conifers, 3 sizes
 3d workbench_hunyuan3d_v3 7aacab6a-3ff2-4aaf-9b36-ad5ef832b986 (19) A/B
 3d workbench_tripo_p2 29f51f20-260e-476b-a108-431a132db927 (37) A/B
+3d pine_medium_tripo_p2 8a8c63a5-0e42-4aba-ac1c-fcc2ec5e597b (37) media 01ca0fc3-c04d-4b7a-a27b-ac0b07c99a2e

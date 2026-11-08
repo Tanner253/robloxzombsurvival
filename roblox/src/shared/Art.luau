@@ -25,7 +25,7 @@ Art.WALL_HEIGHT = 8.6
 -- hairline seam between them; World/Seams adds trim and (scrap/reinforced) corner posts.
 Art.pieces = {
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
-	["build.workbench"] = { "Workbench" },
+	["build.workbench"] = { "EO_WorkbenchP2", "Workbench" },
 	["build.campfire"] = { "EO_Campfire", "Campfire" }, -- stone ring and teepee (Studio mesh generator)
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
@@ -72,6 +72,7 @@ Art.tints = {
 	EO_WindowTimber = Color3.fromRGB(255, 226, 192),
 	EO_DoorwayTimber = Color3.fromRGB(255, 212, 168), -- its grey-blue sat further off the walls
 	EO_BareBranches = Color3.fromRGB(150, 118, 92), -- weathered bark, not bleached bone
+	EO_WorkbenchP2 = Color3.fromRGB(255, 232, 204), -- its grey wood warmed toward the deck
 	EO_RockCluster = Color3.fromRGB(168, 150, 128), -- warm brown-grey, darker (concept palette)
 } :: { [string]: Color3 }
 
@@ -133,6 +134,8 @@ Art.approved = {
 	EO_BarrelCluster = true,
 	EO_SupplySacksMesh = true,
 	EO_DeadTree = true,
+	-- Workbench v2 (Tripo P2, the hard-surface A/B winner over Hunyuan3D v3; capture 115).
+	EO_WorkbenchP2 = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -160,6 +163,7 @@ Art.uploaded = {
 	EO_SupplySacksMesh = { id = 106489665857780, yaw = 0, axis = "X", size = 3.5 },
 	EO_RainCollector = { id = 96623096328279, yaw = 0, axis = "Y", size = 5 },
 	EO_Signpost = { id = 129379454140930, yaw = 0, axis = "Y", size = 7 },
+	EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean

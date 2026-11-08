@@ -78,5 +78,14 @@
  "EO_WindowTimber": {
   "glb": "timber_window.glb",
   "assetId": 123523155311228
+ },
+ "EO_WorkbenchP2": {
+  "glb": "workbench_tripo_p2.glb",
+  "assetId": 104388307441616
+ },
+ "EO_Workbench_Hunyuan": {
+  "glb": "workbench_hunyuan3d.glb",
+  "assetId": 95157826685519,
+  "note": "A/B loser"
  }
 }
