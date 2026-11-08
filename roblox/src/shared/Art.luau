@@ -30,6 +30,7 @@ Art.pieces = {
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
+	["build.ammo_press"] = { "EO_AmmoPress" }, -- press on a scrap bench (Studio mesh generator)
 } :: { [string]: { string } }
 
 -- Foundation decks per tier (1 wood, 2 scrap, 3 reinforced): a MaterialVariant on its
@@ -139,6 +140,8 @@ Art.approved = {
 	EO_WorkbenchP2 = true,
 	-- Loose fieldstones (floaters removed by the gate): the home stone source (capture 121).
 	EO_LooseStonesClean = true,
+	-- Ammo Press (13.12): cast-iron press, lever and powder can on a plank bench (slice 2B).
+	EO_AmmoPress = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -169,6 +172,7 @@ Art.uploaded = {
 	EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
 	EO_PineConifer = { id = 130639495990824, yaw = 0, axis = "Y", size = 22 },
 	EO_LooseStonesClean = { id = 100348018403125, yaw = 0, axis = "X", size = 2.4 },
+	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean
