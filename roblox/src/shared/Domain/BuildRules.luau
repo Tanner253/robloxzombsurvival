@@ -227,4 +227,69 @@ function BuildRules.catalog(defs: Grid.Defs): { Types.BuildPieceDef }
 	return result
 end
 
+--[[
+	The sentence a player sees for a refusal, with the specifics the bare reason
+	leaves out (PLAYER_EXPERIENCE_CHECKLIST 6.2): what is missing with have/need,
+	the level or blueprint that unlocks the piece, the plot limit. `items` names
+	item ids; `inventory` may be nil before the first sync.
+]]
+function BuildRules.explain(
+	reason: string?,
+	def: Types.BuildPieceDef?,
+	inventory: Types.Inventory?,
+	items: { [string]: { name: string } },
+	defs: Grid.Defs?
+): string
+	local base = BuildRules.REASON_TEXT[reason or ""] or "Can't build there"
+	if def == nil then
+		return base
+	end
+	if reason == "cantAfford" and inventory then
+		local missing: { string } = {}
+		for _, stack in def.cost do
+			local have = Inventory.count(inventory, stack.itemId)
+			if have < stack.count then
+				local item = items[stack.itemId]
+				table.insert(missing, `{if item then item.name else stack.itemId} {have}/{stack.count}`)
+			end
+		end
+		if #missing > 0 then
+			return `Not enough {table.concat(missing, ", ")}`
+		end
+	elseif reason == "locked" and def.unlock then
+		local gate = def.unlock
+		if gate.kind == "level" then
+			return `Unlocks at level {gate.level}`
+		elseif gate.kind == "blueprint" then
+			local item = items[gate.itemId]
+			return `Needs the {if item then item.name else "right"} blueprint`
+		end
+	elseif reason == "limit" and defs then
+		local limit = chainLimit(def.id, defs)
+		if limit then
+			return `Plot limit reached ({limit} per plot)`
+		end
+	end
+	return base
+end
+
+-- "Timber 12/8 · Stone 2/5": a cost with what the player has against what it needs.
+function BuildRules.costText(
+	cost: { Types.ItemStack },
+	inventory: Types.Inventory?,
+	items: { [string]: { name: string } }
+): string
+	local parts: { string } = {}
+	for _, stack in cost do
+		local item = items[stack.itemId]
+		local name = if item then item.name else stack.itemId
+		if inventory then
+			table.insert(parts, `{name} {Inventory.count(inventory, stack.itemId)}/{stack.count}`)
+		else
+			table.insert(parts, `{stack.count} {name}`)
+		end
+	end
+	return table.concat(parts, " · ")
+end
+
 return BuildRules

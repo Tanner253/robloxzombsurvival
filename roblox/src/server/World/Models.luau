@@ -19,6 +19,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Models = {}
 
 local CELL = 12
+-- Deck slabs reach this far down so uneven ground never shows under them.
+local DECK_DEPTH = 2.4
 
 type Style = { material: Enum.Material, color: Color3, trim: Enum.Material, trimColor: Color3 }
 
@@ -128,30 +130,6 @@ local function finish(model: Model): Model
 	model.WorldPivot = CFrame.identity
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	return model
-end
-
-local function foundation(style: Style): Model
-	local model = newModel("Foundation")
-	local h = Art.FLOOR_HEIGHT
-	part(model, Vector3.new(CELL - 0.1, h, CELL - 0.1), CFrame.new(0, -h / 2, 0), style.material, style.color)
-	-- A darker trim band around the edge so tiles read as tiles from above.
-	for _, side in { -1, 1 } do
-		part(
-			model,
-			Vector3.new(CELL, 0.5, 0.6),
-			CFrame.new(0, -0.3, side * (CELL / 2 - 0.3)),
-			style.trim,
-			style.trimColor
-		)
-		part(
-			model,
-			Vector3.new(0.6, 0.5, CELL),
-			CFrame.new(side * (CELL / 2 - 0.3), -0.3, 0),
-			style.trim,
-			style.trimColor
-		)
-	end
-	return finish(model)
 end
 
 -- A wall panel spanning x0..x1 (along X) and y0..y1.
@@ -378,7 +356,24 @@ end
 	The model for a build piece, pivoted per the kit convention. Attributes and
 	placement are the Building service's job.
 ]]
+-- A foundation: an exact cell-sized deck slab, pivoted at its top centre. The trim
+-- around a group of foundations comes from World/Seams.
+function Models.deck(tier: number): Model
+	local deck = Art.decks[math.clamp(tier, 1, #Art.decks)]
+	local model = newModel("Foundation")
+	local slab =
+		part(model, Vector3.new(CELL, DECK_DEPTH, CELL), CFrame.new(0, -DECK_DEPTH / 2, 0), deck.base, deck.tint)
+	slab.Name = "Deck"
+	slab.MaterialVariant = deck.variant
+	return finish(model)
+end
+
 function Models.piece(def: Types.BuildPieceDef): Model
+	if def.kind == "foundation" then
+		local deck = Models.deck(def.tier)
+		deck.Name = def.id
+		return deck
+	end
 	local names = Art.pieces[def.id]
 	local kit = if names then Models.kit(names) else nil
 	if kit then
@@ -390,9 +385,7 @@ function Models.piece(def: Types.BuildPieceDef): Model
 	end
 	local style = TIERS[math.clamp(def.tier, 1, #TIERS)]
 	local model: Model
-	if def.kind == "foundation" then
-		model = foundation(style)
-	elseif def.kind == "wall" then
+	if def.kind == "wall" then
 		model = wall(style)
 	elseif def.kind == "doorway" then
 		model = doorway(style)

@@ -107,12 +107,12 @@ end
 
 -- The hint text for the cursor: why it is invalid, or what it costs.
 local function costText(cost: { { itemId: string, count: number } }): string
-	local parts = {}
-	for _, stack in cost do
-		local def = Content.Items[stack.itemId]
-		table.insert(parts, `{stack.count} {if def then def.name else stack.itemId}`)
-	end
-	return table.concat(parts, " · ")
+	return BuildRules.costText(cost, inventory(), Content.Items :: any)
+end
+
+-- Why something can't be built or upgraded, with have/need and unlock details.
+local function why(reason: string?, def: any): string
+	return BuildRules.explain(reason, def, inventory(), Content.Items :: any, Pieces :: any)
 end
 
 -- Ghost -------------------------------------------------------------------------------------------
@@ -331,7 +331,8 @@ local function step(dt: number)
 			if ok and nextDef then
 				setHint(`Upgrade to {nextDef.name}: {costText(nextDef.cost)}`)
 			else
-				setHint(BuildRules.REASON_TEXT[(reason :: string?) or ""] or "Can't upgrade")
+				local def = Pieces[piece.pieceId]
+				setHint(why(reason, if def.upgradesTo then Pieces[def.upgradesTo] else def))
 			end
 		else
 			local refund = Grid.refundFor(piece, ctx)
@@ -374,11 +375,7 @@ local function step(dt: number)
 		highlight.FillColor = if ok then VALID else INVALID
 		highlight.OutlineColor = if ok then VALID else INVALID
 	end
-	setHint(
-		if ok
-			then `{def.name}: {costText(def.cost)}`
-			else BuildRules.REASON_TEXT[(reason :: string?) or ""] or "Can't build there"
-	)
+	setHint(if ok then `{def.name}: {costText(def.cost)}` else why(reason, def))
 
 	if painting and ok and (def.kind == "foundation" or def.kind == "wall") then
 		local key = targetKey(target)
@@ -405,7 +402,7 @@ function Building.confirm()
 		end
 		if not pending.valid then
 			Sfx.play("uiError")
-			State.notify(BuildRules.REASON_TEXT[pending.reason or ""] or "Can't build there")
+			State.notify(why(pending.reason, Pieces[pieceId]))
 			return
 		end
 		local target = pending.target

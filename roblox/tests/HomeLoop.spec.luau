@@ -272,4 +272,17 @@ return function(test: TestKit.Register)
 		end
 		TestKit.equal(recipes["recipe.plank"].inputs[1].itemId, "item.timber", "planks from timber")
 	end)
+
+	test("BuildRules.explain names what is missing, with have/need", function()
+		local wall = Content.BuildPieces["build.wall_wood"]
+		local inv = (Inventory.add(Inventory.new(10, 0), "item.timber", 3, Content.Items))
+		local text = BuildRules.explain("cantAfford", wall, inv, Content.Items :: any, Content.BuildPieces :: any)
+		TestKit.truthy(string.find(text, "Timber 3/", 1, true) ~= nil, text)
+		local reinforced = Content.BuildPieces["build.wall_reinforced"]
+		local locked = BuildRules.explain("locked", reinforced, inv, Content.Items :: any, Content.BuildPieces :: any)
+		TestKit.truthy(string.find(locked, "blueprint", 1, true) ~= nil, locked)
+		TestKit.equal(BuildRules.explain("occupied", wall, inv, Content.Items :: any), "Something is already there")
+		local cost = BuildRules.costText(wall.cost, inv, Content.Items :: any)
+		TestKit.truthy(string.find(cost, "Timber 3/", 1, true) ~= nil, cost)
+	end)
 end

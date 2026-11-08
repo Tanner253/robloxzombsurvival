@@ -27,6 +27,7 @@ local BuildRules = require(Domain.BuildRules)
 local InventoryMath = require(Domain.Inventory)
 local Net = require("../Net")
 local Models = require("../World/Models")
+local Seams = require("../World/Seams")
 local Analytics = require("./Analytics")
 local Inventory = require("./Inventory")
 local PlayerData = require("./PlayerData")
@@ -53,7 +54,11 @@ local function progressOf(player: Player): BuildRules.Progress?
 	return { level = data.progression.level, unlocks = data.unlocks }
 end
 
+-- The last refusal per player, so Studio dev commands can report why a build failed.
+Building.lastDenied = {} :: { [Player]: string }
+
 local function deny(player: Player, reason: string?)
+	Building.lastDenied[player] = reason or "unknown"
 	Sync.notice(player, BuildRules.REASON_TEXT[reason or ""] or "Can't build there")
 	Sync.fx(player, "buildDenied", { reason = reason })
 end
@@ -99,10 +104,20 @@ local function reseatObject(plot: Plots.Plot, x: number, z: number)
 	end
 end
 
+-- Rebuilds the trim and corner posts that depend on neighbouring pieces (World/Seams).
+local function renderSeams(plot: Plots.Plot)
+	local old = plot.pieces:FindFirstChild("Seams")
+	if old then
+		old:Destroy()
+	end
+	Seams.build(plot.origin, plot.layout, Pieces).Parent = plot.pieces
+end
+
 local function renderAll(player: Player, plot: Plots.Plot)
 	for _, piece in plot.layout.pieces do
 		render(plot, piece, false)
 	end
+	renderSeams(plot)
 	local data = PlayerData.get(player)
 	if data then
 		for uid, piece in plot.layout.pieces do
@@ -151,6 +166,7 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 		data.storage[piece.uid] = InventoryMath.newContainer(def.storageSlots or 0)
 	end
 	render(plot, piece, true)
+	renderSeams(plot)
 	if piece.layer == "floor" then
 		reseatObject(plot, piece.x, piece.z)
 	end
@@ -195,6 +211,7 @@ local function upgrade(player: Player, uid: string)
 		Sync.mark(player, "storage")
 	end
 	render(plot, piece, true)
+	renderSeams(plot)
 	Analytics.custom(player, "BuildUpgrade", 1, { nextDef.id })
 	Sync.fx(player, "upgraded", { uid = uid, pieceId = nextDef.id })
 end
@@ -260,12 +277,18 @@ local function demolish(player: Player, uid: string)
 			reseatObject(plot, gone.x, gone.z)
 		end
 	end
+	renderSeams(plot)
 	Net.fireAllClients("Fx", "debris", { pieces = debris })
 	Analytics.custom(player, "BuildDemolish", 1, { piece.pieceId })
 	Sync.fx(player, "items", { items = removal.refund, source = "refund" })
 end
 
 -- Lifecycle ---------------------------------------------------------------------------------------------
+
+-- Places a piece exactly as the BuildPlace remote would (Studio dev commands).
+Building.place = place
+Building.upgrade = upgrade
+Building.demolish = demolish
 
 function Building.init()
 	Net.onEvent("BuildPlace", place)

@@ -1,16 +1,32 @@
 --!strict
 --[[
-	Diagnostics: answers the example Ping remote so clients can check Net end to end,
-	and (Studio only) grants a test kit when the Workspace attribute `DevKit` is true,
-	so playtests can reach any part of the loop quickly. Never active in live games.
+	Diagnostics: answers the example Ping remote so clients can check Net end to end.
+
+	Studio only (never in live games):
+	- grants a test kit when the Workspace attribute `DevKit` is true, so playtests
+	  can reach any part of the loop quickly;
+	- exposes ServerStorage.EO_Dev, a BindableFunction that tools and the command
+	  bar can invoke to drive the real services: ("place", pieceId, x, z, axis?, rot?),
+	  ("upgrade", uid), ("demolish", uid), ("give", itemId, count), ("xp", amount),
+	  ("learn", blueprintItemId),
+	  ("bag", slots) resizes the backpack. place/upgrade return "ok" or the refusal reason.
+	  ("clock", hours).
 ]]
 
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local InventoryMath = require(ReplicatedStorage.Shared.Domain.Inventory)
 local Net = require("../Net")
+local Building = require("./Building")
 local PlayerData = require("./PlayerData")
 local Inventory = require("./Inventory")
+local Progression = require("./Progression")
+local Sync = require("./Sync")
 
 local Diagnostics = {}
 
@@ -27,6 +43,46 @@ local DEV_KIT = {
 	{ itemId = "item.fiber", count = 20 },
 }
 
+local function devCommand(command: string, ...: any): any
+	local player = Players:GetPlayers()[1]
+	if player == nil then
+		return "no player"
+	end
+	local args = { ... }
+	if command == "place" or command == "upgrade" then
+		Building.lastDenied[player] = nil
+		if command == "place" then
+			Building.place(player, args[1], args[2], args[3], args[4], args[5])
+		else
+			Building.upgrade(player, args[1])
+		end
+		return Building.lastDenied[player] or "ok"
+	elseif command == "bag" then
+		local view = Inventory.view(player)
+		local resized = view and InventoryMath.setBackpackCapacity(view, args[1])
+		if resized then
+			Inventory.commit(player, resized)
+		end
+	elseif command == "demolish" then
+		Building.demolish(player, args[1])
+	elseif command == "give" then
+		Inventory.give(player, { { itemId = args[1], count = args[2] or 1 } })
+	elseif command == "learn" then
+		local data = PlayerData.get(player)
+		if data then
+			data.unlocks.blueprints[args[1]] = true
+			Sync.mark(player, "unlocks")
+		end
+	elseif command == "xp" then
+		Progression.grantXp(player, args[1], "Dev")
+	elseif command == "clock" then
+		Lighting.ClockTime = args[1]
+	else
+		return `unknown command '{command}'`
+	end
+	return "ok"
+end
+
 function Diagnostics.init()
 	Net.onInvoke("Ping", function(_player: Player, nonce: number)
 		return nonce, workspace:GetServerTimeNow()
@@ -37,6 +93,10 @@ function Diagnostics.start()
 	if not RunService:IsStudio() then
 		return
 	end
+	local dev = Instance.new("BindableFunction")
+	dev.Name = "EO_Dev"
+	dev.OnInvoke = devCommand
+	dev.Parent = ServerStorage
 	PlayerData.loaded:Connect(function(player: Player)
 		if workspace:GetAttribute("DevKit") == true then
 			task.wait(1)

@@ -549,6 +549,94 @@ local function updateCanopy()
 	end
 end
 
+-- Occlusion fade ------------------------------------------------------------------------------------
+-- Walls, doors and windows between the camera and the survivor fade (with the
+-- corner posts at their ends), so you can always see yourself inside a base.
+
+local OCCLUDE_ALPHA = 0.72
+local OCCLUDE_LAYERS: { [string]: boolean } = { frame = true, fill = true, roof = true }
+local occluded: { [BasePart]: boolean } = {}
+
+local function pieceOf(part: Instance): Model?
+	local current: Instance? = part
+	while current and current ~= workspace do
+		if current:IsA("Model") and current:GetAttribute("Layer") ~= nil then
+			return current
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
+local function updateOcclusion()
+	local camera = workspace.CurrentCamera
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local hidden: { [BasePart]: boolean } = {}
+	if camera and root and character then
+		local from = camera.CFrame.Position
+		local walls: { [Model]: boolean } = {}
+		for _, offset in { Vector3.new(0, 2.5, 0), Vector3.zero, Vector3.new(0, -2.2, 0) } do
+			local target = root.Position + offset
+			local skip: { Instance } = { character }
+			for _ = 1, 6 do
+				local cast = RaycastParams.new()
+				cast.FilterType = Enum.RaycastFilterType.Exclude
+				cast.FilterDescendantsInstances = skip
+				local hit = workspace:Raycast(from, target - from, cast)
+				if hit == nil then
+					break
+				end
+				-- Look past anything that isn't a wall (trees, props) for walls behind it.
+				local piece = pieceOf(hit.Instance)
+				if piece and OCCLUDE_LAYERS[piece:GetAttribute("Layer") :: string] then
+					walls[piece] = true
+					table.insert(skip, piece)
+				else
+					table.insert(skip, hit.Instance)
+				end
+			end
+		end
+		for wall in walls do
+			for _, descendant in wall:GetDescendants() do
+				if descendant:IsA("BasePart") then
+					hidden[descendant] = true
+				end
+			end
+			-- The corner posts at both ends of the wall (World/Seams).
+			local seams = wall.Parent and wall.Parent:FindFirstChild("Seams")
+			if seams then
+				local pivot = wall:GetPivot()
+				local ends = { (pivot * CFrame.new(-6, 0, 0)).Position, (pivot * CFrame.new(6, 0, 0)).Position }
+				for _, partInSeams in seams:GetChildren() do
+					if partInSeams:IsA("BasePart") then
+						for _, at in ends do
+							local d = partInSeams.Position - at
+							if Vector2.new(d.X, d.Z).Magnitude < 1.6 then
+								hidden[partInSeams] = true
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	for part in hidden do
+		if not occluded[part] then
+			occluded[part] = true
+			part.LocalTransparencyModifier = OCCLUDE_ALPHA
+		end
+	end
+	for part in occluded do
+		if not hidden[part] then
+			occluded[part] = nil
+			if part.Parent then
+				part.LocalTransparencyModifier = 0
+			end
+		end
+	end
+end
+
 -- Level-ups ----------------------------------------------------------------------------------------------
 
 local function levelBurst()
@@ -616,6 +704,7 @@ function WorldFx.start()
 		if elapsed >= 0.1 then
 			elapsed = 0
 			updateStations(State.now())
+			updateOcclusion()
 		end
 	end)
 end

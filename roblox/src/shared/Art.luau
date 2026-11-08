@@ -21,10 +21,9 @@ Art.FLOOR_HEIGHT = 1
 Art.WALL_HEIGHT = 8.6
 
 -- Build pieces -> kit master names.
+-- Foundations are not kit meshes: they are exact 12 x 12 deck slabs (Art.decks) so a
+-- group of tiles reads as one floor; World/Seams adds trim and corner posts.
 Art.pieces = {
-	["build.foundation_wood"] = { "FoundWood" },
-	["build.foundation_scrap"] = { "FoundScrap" },
-	["build.foundation_reinforced"] = { "FoundReinforced" },
 	["build.wall_wood"] = { "WallWood" },
 	["build.wall_scrap"] = { "WallScrap" },
 	["build.wall_reinforced"] = { "WallReinforced" },
@@ -36,6 +35,18 @@ Art.pieces = {
 	["build.crate_wood"] = { "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
 } :: { [string]: { string } }
+
+-- Foundation decks per tier (1 wood, 2 scrap, 3 reinforced): a MaterialVariant on its
+-- base material, and the tint it is multiplied by. The variants are PBR materials made
+-- with Studio's material generator and live in the repo as Rojo model files
+-- (place/materials -> MaterialService.EO_Materials); scripts can't create them at
+-- runtime. Their 12-stud tile matches the cell, so the texture runs on unbroken
+-- across neighbouring foundations.
+Art.decks = {
+	{ base = Enum.Material.WoodPlanks, variant = "EO_Deck_Wood", tint = Color3.fromRGB(196, 168, 140) },
+	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
+	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
+} :: { { base: Enum.Material, variant: string, tint: Color3 } }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
 Art.nodes = {

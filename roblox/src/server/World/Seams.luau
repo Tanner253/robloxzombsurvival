@@ -1,0 +1,207 @@
+--!strict
+--[[
+	Seams: the pieces of a base that depend on its neighbours, so adjacent tiles read
+	as one continuous build (PLAYER_EXPERIENCE_CHECKLIST 6.9).
+
+	- Foundations are exact 12 x 12 deck slabs whose tiling material lines up
+	  across cells (Models.deck); here a trim beam runs only along edges with no
+	  foundation beyond them, so a group of tiles gets one frame around the outside.
+	- A corner post stands at every grid vertex a wall, doorway or window touches,
+	  covering the joint where walls meet and the open end of a run.
+
+	Rebuilt as one model per plot whenever the layout changes; it's cheap (a plot is
+	10 x 10 cells).
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Art = require(ReplicatedStorage.Shared.Art)
+local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local Types = require(ReplicatedStorage.Shared.Types)
+
+local Seams = {}
+
+local CELL = Grid.CELL_STUDS
+local BEAM_DEPTH = 0.8
+local BEAM_HEIGHT = 1.7
+local RIM = 0.18 -- the trim stands this far proud of the deck
+
+type Trim = { material: Enum.Material, color: Color3, post: "log" | "box", postSize: number }
+
+local TRIMS: { Trim } = {
+	{ material = Enum.Material.Wood, color = Color3.fromRGB(86, 62, 44), post = "log", postSize = 2 },
+	{ material = Enum.Material.Metal, color = Color3.fromRGB(96, 88, 80), post = "box", postSize = 1.6 },
+	{ material = Enum.Material.Concrete, color = Color3.fromRGB(116, 114, 110), post = "box", postSize = 2 },
+}
+local CAP = { Color3.fromRGB(62, 44, 32), Color3.fromRGB(70, 72, 76), Color3.fromRGB(70, 72, 76) }
+local CAP_MATERIAL = { Enum.Material.Wood, Enum.Material.DiamondPlate, Enum.Material.DiamondPlate }
+local BAND = Color3.fromRGB(150, 128, 92) -- rope lashing on log posts
+
+local function trimFor(tier: number): Trim
+	return TRIMS[math.clamp(tier, 1, #TRIMS)]
+end
+
+local function add(
+	model: Model,
+	size: Vector3,
+	cframe: CFrame,
+	material: Enum.Material,
+	color: Color3,
+	shape: Enum.PartType?
+): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Size = size
+	p.CFrame = cframe
+	p.Material = material
+	p.Color = color
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if shape then
+		p.Shape = shape
+	end
+	p.Parent = model
+	return p
+end
+
+local function cellKey(x: number, z: number): string
+	return `{x},{z}`
+end
+
+-- The beam along one exposed side of a foundation cell (plot-local studs).
+local function beam(model: Model, origin: Vector3, x: number, z: number, side: string, trim: Trim)
+	local x0, z0 = x * CELL, z * CELL
+	local top = Art.FLOOR_HEIGHT + RIM
+	local y = top - BEAM_HEIGHT / 2
+	local length = CELL + BEAM_DEPTH -- overlaps its neighbour at outside corners
+	local along = Vector3.new(length, BEAM_HEIGHT, BEAM_DEPTH)
+	local across = Vector3.new(BEAM_DEPTH, BEAM_HEIGHT, length)
+	local centre = if side == "n"
+		then Vector3.new(x0 + CELL / 2, y, z0 + BEAM_DEPTH / 2)
+		elseif side == "s" then Vector3.new(x0 + CELL / 2, y, z0 + CELL - BEAM_DEPTH / 2)
+		elseif side == "w" then Vector3.new(x0 + BEAM_DEPTH / 2, y, z0 + CELL / 2)
+		else Vector3.new(x0 + CELL - BEAM_DEPTH / 2, y, z0 + CELL / 2)
+	local size = if side == "n" or side == "s" then along else across
+	local part = add(model, size, CFrame.new(origin + centre), trim.material, trim.color)
+	part.CanCollide = false
+end
+
+local function post(model: Model, origin: Vector3, vx: number, vz: number, base: number, tier: number)
+	local trim = trimFor(tier)
+	local height = Art.WALL_HEIGHT + 0.7
+	local at = origin + Vector3.new(vx * CELL, base, vz * CELL)
+	local s = trim.postSize
+	if trim.post == "log" then
+		-- A round log standing upright (cylinders run along X, so turn it up).
+		local upright = CFrame.Angles(0, 0, math.rad(90))
+		add(
+			model,
+			Vector3.new(height, s, s),
+			CFrame.new(at + Vector3.new(0, height / 2, 0)) * upright,
+			trim.material,
+			trim.color,
+			Enum.PartType.Cylinder
+		)
+		add(
+			model,
+			Vector3.new(0.5, s + 0.12, s + 0.12),
+			CFrame.new(at + Vector3.new(0, height * 0.72, 0)) * upright,
+			Enum.Material.Fabric,
+			BAND,
+			Enum.PartType.Cylinder
+		)
+		add(
+			model,
+			Vector3.new(0.5, s + 0.12, s + 0.12),
+			CFrame.new(at + Vector3.new(0, 1.4, 0)) * upright,
+			Enum.Material.Fabric,
+			BAND,
+			Enum.PartType.Cylinder
+		)
+		add(
+			model,
+			Vector3.new(0.35, s * 0.82, s * 0.82),
+			CFrame.new(at + Vector3.new(0, height + 0.17, 0)) * upright,
+			CAP_MATERIAL[1],
+			CAP[1],
+			Enum.PartType.Cylinder
+		)
+	else
+		add(model, Vector3.new(s, height, s), CFrame.new(at + Vector3.new(0, height / 2, 0)), trim.material, trim.color)
+		add(
+			model,
+			Vector3.new(s + 0.3, 0.4, s + 0.3),
+			CFrame.new(at + Vector3.new(0, height + 0.2, 0)),
+			CAP_MATERIAL[tier],
+			CAP[tier]
+		)
+		add(
+			model,
+			Vector3.new(s + 0.3, 0.6, s + 0.3),
+			CFrame.new(at + Vector3.new(0, 0.3, 0)),
+			CAP_MATERIAL[tier],
+			CAP[tier]
+		)
+	end
+end
+
+-- The seam model for a plot: trim along the outside of each group of foundations,
+-- and a post at every vertex a wall-layer piece touches.
+function Seams.build(origin: Vector3, layout: Grid.Layout, defs: { [string]: Types.BuildPieceDef }): Model
+	local model = Instance.new("Model")
+	model.Name = "Seams"
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+
+	local floors: { [string]: number } = {}
+	local vertices: { [string]: { x: number, z: number, tier: number } } = {}
+	for _, piece in layout.pieces do
+		local def = defs[piece.pieceId]
+		if def == nil then
+			continue
+		end
+		if piece.layer == "floor" then
+			floors[cellKey(piece.x, piece.z)] = def.tier
+		elseif piece.layer == "frame" then
+			local ends: { { number } } = if piece.axis == "h"
+				then { { piece.x, piece.z }, { piece.x + 1, piece.z } }
+				else { { piece.x, piece.z }, { piece.x, piece.z + 1 } }
+			for _, v in ends do
+				local key = cellKey(v[1], v[2])
+				local existing = vertices[key]
+				vertices[key] = { x = v[1], z = v[2], tier = math.max(def.tier, if existing then existing.tier else 0) }
+			end
+		end
+	end
+
+	for key, tier in floors do
+		local x, z = string.match(key, "^(-?%d+),(-?%d+)$")
+		local cx, cz = tonumber(x) :: number, tonumber(z) :: number
+		local trim = trimFor(tier)
+		if floors[cellKey(cx, cz - 1)] == nil then
+			beam(model, origin, cx, cz, "n", trim)
+		end
+		if floors[cellKey(cx, cz + 1)] == nil then
+			beam(model, origin, cx, cz, "s", trim)
+		end
+		if floors[cellKey(cx - 1, cz)] == nil then
+			beam(model, origin, cx, cz, "w", trim)
+		end
+		if floors[cellKey(cx + 1, cz)] == nil then
+			beam(model, origin, cx, cz, "e", trim)
+		end
+	end
+
+	for _, v in vertices do
+		-- A post stands on the floor when any of the four cells around its vertex has one.
+		local onFloor = floors[cellKey(v.x, v.z)] ~= nil
+			or floors[cellKey(v.x - 1, v.z)] ~= nil
+			or floors[cellKey(v.x, v.z - 1)] ~= nil
+			or floors[cellKey(v.x - 1, v.z - 1)] ~= nil
+		post(model, origin, v.x, v.z, if onFloor then Art.FLOOR_HEIGHT else 0, v.tier)
+	end
+	return model
+end
+
+return Seams

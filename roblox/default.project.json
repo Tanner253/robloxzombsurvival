@@ -26,6 +26,12 @@
 					"$path": "src/client"
 				}
 			}
+		},
+		"MaterialService": {
+			"$className": "MaterialService",
+			"EO_Materials": {
+				"$path": "place/materials"
+			}
 		}
 	}
 }
