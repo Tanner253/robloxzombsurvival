@@ -14,6 +14,16 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
 - Survival at LDoE rates. Readable nights. The old pines restored, with the occlusion fade fixed.
 - **Ember Trail chapter 1** (quest-gated blueprints, a tracker that completes quests). A simple first-session flow.
 
+**Haven Square: the public safe-zone hub, inside every Neighbourhood server** (session S1b, after the shop). The developer's ask on 2026-11-08: "a public outpost... to meet with quests and traders and NPCs or access VIP areas like Last Day on Earth has, to drive micro txns and also allow players to meet guild and stuff in a safe zone". It follows the LDoE Settlement (rec4).
+- **Layout:** a central plaza in the middle of each Neighbourhood, with the 8 plots around it and the Trailhead just off the square. That makes it instantly multiplayer, with no new server role. It's a **safe zone**: no Hollow, and no PvP ever.
+- **The Trader** (an NPC with a stall): buys and sells basics for coins. In v0.1 it's a small fixed stock; Daily Deals come in M2.
+- **The Quest-giver** (an NPC): Ember Trail chapter hand-ins and a daily contract board (3 contracts a day).
+- **The VIP Lounge:** a game-pass-gated fenced area with a warm fire, a cosmetic flame aura, a daily VIP crate in the inbox, and a VIP Energy cap bonus. People can see it from outside, which is the point (aspiration sells).
+- **Social:** a notice board (server-wide Blood Moon later), a guild banner spot (guilds come in M3), emote space and a campfire circle.
+- **NPC dialogue in the LDoE style** (rec4 speech bubble and talk button). NPCs are survivor-rig variants, so no new credits.
+
+**Later (M3):** a large cross-server **Haven** hub as its own server role, with the guild hall, more traders, events and Haven-only quests.
+
 **Fog Runs: lootable areas, PvE, multiplayer lobbies of up to 12** (session S2B)
 - The Fog map with **3 locations**: Light, Dense and Black. Run/Walk with Energy (#38). Location panels and the loading screen.
 - Each location is a **handcrafted, dense map built from code** (world-as-code), with **lootable containers** (search bar, loot panel).

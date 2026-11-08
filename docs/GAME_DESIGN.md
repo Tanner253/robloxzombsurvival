@@ -253,6 +253,24 @@ Pets are also among Roblox's biggest genres, so companions are a major pillar fo
 
 **Later species:** cats (base buffs), crows (scouting) and mules (hauling), each a new collection to chase.
 
+## The Fog map screen: generated from data (corrected 2026-11-08)
+
+The developer clarified: "we need map consistency. I just thought the current map was a 2D image and we should procedurally generate the map view page, as it will likely grow and evolve with time. Last Day on Earth does not have a changing map."
+
+**Locations are fixed and handcrafted.** Every visit to Pine Hollow is the same place, with the same layout, as in LDoE. Only loot rolls and the Hollow vary. That replaces the earlier "seeded assembly" idea, which was a misreading of the developer.
+
+**The map SCREEN is drawn from data, not one painted image,** so it can grow:
+- A region data model describes the terrain zones (forest, fields, water, rock, ruins), roads and rivers, landmarks, and location pins with their coordinates, fog tier and unlock.
+- The UI composes the map from that data, using a small set of uploaded texture tiles and decorative icons (tree clusters, buildings, rocks), roads and rivers drawn as UI paths, and labels.
+- Adding a location, region or road means adding data, with no re-painting. Later regions extend the same canvas.
+
+**Dynamic layers on the map:**
+- **Neighbours' outposts** (M2): the players near you that you can visit or raid, filtered by level range. Online players can be raided live and defended live; offline players are raided against their defenses. Each marker shows level, defense, loot tier, shield and guild tag. This is the main thing that changes on the map.
+- **Event pins:** timed and rotating locations and supply-drop pins with countdowns (LDoE rec1 and rec3 style).
+- Your outpost, your death bag, and your crew's and guild's bases (M3).
+
+**Raiding (M2):** both **offline raids**, where the defender's turrets, traps and walls defend, and **online raids**, where the defender gets an alert and can join and defend live, along with guildmates. See "The Fog map: neighbours, raids, guilds".
+
 ## Fog Runs: shared lobbies and PvP
 
 The developer asked for this: a run should feel like a Tarkov lobby. Strangers meet, and each can team up and loot in peace or turn on the other for their loot. It has to be "healthy and balanced, so it feels real and random." The **fog tier sets the rules**, so every player picks their own risk.
