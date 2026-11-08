@@ -135,7 +135,7 @@ local function InventoryPane(props: Props)
 					layoutOrder = 3,
 				}),
 			Selected = e(Parts.Line, {
-				text = if def then def.name .. (if def.description then `  ·  {def.description}` else "") else " ",
+				text = if def then def.name .. (if def.description then `: {def.description}` else "") else " ",
 				tone = Theme.colors.text,
 				layoutOrder = 4,
 			}),

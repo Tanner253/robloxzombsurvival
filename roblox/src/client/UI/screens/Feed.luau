@@ -475,7 +475,7 @@ local function QuestDone()
 			padding = Theme.spacing.md,
 			children = {
 				Title = e(Label, {
-					text = `QUEST COMPLETE  ·  {if quest then string.upper(quest.name) else ""}`,
+					text = `QUEST COMPLETE: {if quest then string.upper(quest.name) else ""}`,
 					style = "title",
 					tone = "highlight",
 					alignX = Enum.TextXAlignment.Center,

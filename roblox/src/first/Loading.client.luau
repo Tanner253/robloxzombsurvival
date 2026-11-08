@@ -120,7 +120,7 @@ version.TextSize = 14
 version.TextColor3 = TEXT
 version.TextTransparency = 0.35
 version.TextXAlignment = Enum.TextXAlignment.Right
-version.Text = `M1 · build {game.PlaceVersion}`
+version.Text = `M1 build {game.PlaceVersion}`
 version.Parent = screen
 
 screen.Parent = playerGui

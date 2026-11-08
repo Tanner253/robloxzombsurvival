@@ -302,7 +302,7 @@ function ContextPanes.Project(props: { projectId: string, state: any, pooled: an
 					layoutOrder = 2,
 					children = {
 						Text = e(Parts.Line, {
-							text = `{format.itemName(row.itemId)}  ·  you have {have}`,
+							text = `{format.itemName(row.itemId)} (you have {have})`,
 							tone = Theme.colors.text,
 						}),
 					},

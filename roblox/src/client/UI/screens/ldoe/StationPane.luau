@@ -301,7 +301,7 @@ local function StationPane(props: Props)
 	local maxed = Converter.nextLevel(def, state.level) == nil
 
 	local statusText = if status.activity == "working"
-		then `{format.duration(status.batchRemaining)} for the next  ·  {status.batchesLeft} in the input`
+		then `{format.duration(status.batchRemaining)} for the next, {status.batchesLeft} in the input`
 		elseif status.activity == "noFuel" then "Add fuel to keep it burning"
 		elseif status.activity == "outputFull" then "The output is full: take it"
 		elseif status.activity == "short" and line then `Needs {line.inputCount} per batch`
@@ -418,7 +418,7 @@ local function StationPane(props: Props)
 						layoutOrder = 2,
 						children = {
 							Label = e(Parts.Line, {
-								text = `Fuel  ·  {format.duration(status.fuelSeconds)}`,
+								text = `Fuel: {format.duration(status.fuelSeconds)}`,
 								tone = Theme.colors.text,
 								layoutOrder = 1,
 							}),

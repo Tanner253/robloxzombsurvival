@@ -391,7 +391,7 @@ local function Build()
 		ZIndex = Theme.layers.hud,
 	}, {
 		HideWalls = e(IconButton, {
-			glyph = "walls",
+			glyph = "hide_walls",
 			size = 64,
 			active = ui.hideUpperWalls == true,
 			position = UDim2.fromOffset(H.edge, H.edge),

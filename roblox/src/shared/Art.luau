@@ -442,36 +442,35 @@ Art.glyphs = {
 	trash = "rbxassetid://120304458961712",
 	storage = "rbxassetid://104605090820806",
 	campfire = "rbxassetid://139250651894110",
-	-- Sheet C (S1b, LDOE_PARITY HUD and screens): requested from the orchestrator. Until
-	-- each is uploaded it is "" and draws nothing, and the UI gate flags it as missing.
-	axe = "", -- context button: chop
-	pick = "", -- context button: mine
-	talk = "", -- context button: talk
-	crew = "", -- menu bar
-	pass = "", -- menu bar
-	chat = "",
-	expand = "",
-	sort = "",
-	split = "",
-	upgrade = "", -- the green upgrade arrow
-	brush = "", -- storage label colour
-	recipes = "", -- ALL RECIPES
-	defense = "", -- armor stat; Defense tray tab
-	sun = "",
-	moon = "",
-	walls = "", -- hide upper walls
-	move = "",
-	rotate = "",
-	chevron = "", -- tracker collapse
-	check = "", -- objective done
-	timer = "",
-	furniture = "", -- tray tab
-	station = "", -- tray tab and station headers
-	vehicle = "", -- the wrecked hauler
-	event = "", -- top-right strip (S3)
-	offer = "",
-	gift = "",
-	fill = "", -- FILL UP
+	-- Sheet C (S1b, LDOE_PARITY HUD and screens): art/ui/glyphs, uploaded by S1b.
+	axe = "rbxassetid://132008963429716", -- context button: chop
+	pick = "rbxassetid://116723703965422", -- context button: mine
+	talk = "rbxassetid://131895473902591", -- context button: talk
+	crew = "rbxassetid://75710612953498", -- menu bar
+	pass = "rbxassetid://95275003551384", -- menu bar
+	chat = "rbxassetid://80912016428510",
+	expand = "rbxassetid://88969264987884",
+	sort = "rbxassetid://90551417983901",
+	split = "rbxassetid://138832061964321",
+	upgrade = "rbxassetid://122680927129738", -- the green upgrade arrow
+	brush = "rbxassetid://120848260300004", -- storage label colour
+	recipes = "rbxassetid://82674517043372", -- ALL RECIPES
+	defense = "rbxassetid://72325909298547", -- armor stat; Defense tray tab
+	sun = "rbxassetid://129919915537676",
+	moon = "rbxassetid://74460301341960",
+	hide_walls = "rbxassetid://140600825829489", -- hide upper walls
+	move = "rbxassetid://87099813822929",
+	rotate = "rbxassetid://116016044144367",
+	chevron = "rbxassetid://98853120119324", -- tracker collapse
+	check = "rbxassetid://88186247590426", -- objective done
+	timer = "rbxassetid://93404803435369",
+	furniture = "rbxassetid://81227467583015", -- tray tab
+	station = "rbxassetid://76437812041068", -- tray tab and station headers
+	vehicle = "rbxassetid://106222628289474", -- the wrecked hauler
+	event = "rbxassetid://128117457014617", -- top-right strip (S3)
+	offer = "rbxassetid://71527739225617",
+	gift = "rbxassetid://118846511433792",
+	fill_up = "rbxassetid://113536503595888", -- FILL UP
 } :: { [string]: string }
 
 -- The HUD meters' glyph names.
