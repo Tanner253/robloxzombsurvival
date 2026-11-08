@@ -236,7 +236,7 @@ local function StationScreen()
 		return function()
 			connection:Disconnect()
 		end
-	end, { open, selectedRecipe and selectedRecipe.id, count, uid } :: { any })
+	end, { open, if selectedRecipe then selectedRecipe.id else "", count, uid or "" } :: { any })
 
 	local body: any = nil
 	if station and def and uid and view then
