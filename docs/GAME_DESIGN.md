@@ -315,7 +315,28 @@ The developer asked for this: a run should feel like a Tarkov lobby. Strangers m
 - **Hearth level:** plot size, build tiers, stations.
 - **Blueprints and parts** from deep locations and Vaults: vehicles and advanced stations.
 - **Material tiers** for weapons, armor and building pieces: Wood → Scrap Metal → Reinforced.
-- **Pacing:** grindy by design, but each tier should land in hours to days, not weeks. Tune with retention data.
+- **Pacing: long and gruelling for a free player** (the developer, 2026-11-08: "the grind for a legit player should be long and grueling and take days of grinding"). The first hour hooks with quick wins; after that, every tier is days of grinding. Paying compresses each tier to hours.
+
+**Free-player pacing targets** (about 2–3 h of play a day; checked by the pacing simulation):
+
+| Milestone | Free player | Paying player |
+|---|---|---|
+| Hatchet, first walls, Workbench, first queue, level 5 | **first 30–60 min** (the hook) | same |
+| Timber tier: a small walled base with Campfire, Workbench and crates | end of **day 1** | first session |
+| Scrap tier: scrap walls, Recycler running, the first firearm | **days 3–5** | day 1 |
+| Reinforced tier: a fully reinforced base | **days 10–14** | days 2–3 |
+| Standard firearms and armor set | **weeks 2–3** | days 3–5 |
+| First vehicle | **weeks 4–6+** | about week 1 |
+
+**Grind levers:**
+- **Bottleneck materials:** low drop rates, found only in the higher fog tiers.
+- **Station timers that scale by tier:** minutes, then hours, then many hours.
+- **Energy caps:** they limit Runs a day. Walking is free but slow, in real time.
+- **Backpack capacity:** it limits the haul from each run.
+- **Durability:** tools and weapons wear out.
+- **Upgrade costs:** about ×2.5 each tier.
+
+**Testing:** a Studio-only **DevSpeed** multiplier compresses timers, yields and Energy so the developer and workers can playtest in minutes. It's hard-disabled on live servers.
 
 ## Combat and the arsenal
 
