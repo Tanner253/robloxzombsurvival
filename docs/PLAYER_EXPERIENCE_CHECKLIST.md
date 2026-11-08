@@ -73,6 +73,7 @@ Nothing player-facing is done until it has all ten:
 | 3.7 | Can't-gather states: "Need a hatchet", inventory full (overflow drops to the ground as a pickup, with a toast), node depleted | — | S1 |
 | 3.8 | Tool durability goes down per hit, with a low-durability warning and a break event (sound, VFX, toast) | Durability | S1 |
 | 3.9 | Auto-gather (Q) respects tools, shows its current target, walks the player between nodes, and stops on full inventory or danger | AUTO (rec3) | S1 |
+| 3.11 | **Interaction range is arm's reach, as in LDoE:** pickups, nodes, containers and stations activate only within about 5 studs of the survivor, measured from the edge of the object. Pressing E on something farther away auto-walks the survivor to it, then collects or interacts. No collecting from across the yard. Server-enforced (reject out-of-range requests), with the prompt shown only when in range. | LDoE gathering (rec3) | S1 |
 | 3.10 | Item names, icons and world models agree (sticks look like sticks, timber like logs) | — | S1 |
 
 ## 4. Inventory, hotbar, storage
