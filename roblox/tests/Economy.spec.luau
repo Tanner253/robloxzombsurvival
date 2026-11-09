@@ -61,7 +61,7 @@ return function(test: TestKit.Register)
 		-- ECONOMY §5.4's hook: the stone tools, the satchel, a Campfire, 2 Timber
 		-- foundations and 2 walls, the Saw Bench, Stonecutter and Workbench, plus First
 		-- Light's Sharpened Stake. Planks, blocks and cord are expanded through their recipes.
-		-- The trail's rewards on the way count (Claim the Ground's 10 timber and 4 cord, Tools
+		-- The trail's rewards on the way count (Claim the Ground's 20 timber and 4 cord, Tools
 		-- of Survival's 6 fiber).
 		local need: { [string]: number } = {}
 		local function add(stacks: { { itemId: string, count: number } }, times: number)
@@ -118,9 +118,58 @@ return function(test: TestKit.Register)
 		TestKit.truthy((stock["item.scrap"] or 0) >= 3, "scrap for the first club")
 	end)
 
-	test("ECONOMY §1.3: the home plot is LDoE's set, exactly: 60 timber, 21 stone, 40 scrap", function()
+	test("F-07: the plot's timber and the trail's pays for chapter 1's builds, with fuel to spare", function()
+		-- Quests 1-7's build and craft objectives, and the fire line's Stonecutter and
+		-- Workbench, with planks expanded through their recipe.
+		local plank = Content.Recipes["recipe.plank"]
+		local perPlank = plank.inputs[1].count / plank.outputs[1].count
+		local function timberIn(stacks: { { itemId: string, count: number } }, times: number): number
+			local total = 0
+			for _, stack in stacks do
+				if stack.itemId == "item.timber" then
+					total += stack.count * times
+				elseif stack.itemId == "item.plank" then
+					total += stack.count * times * perPlank
+				end
+			end
+			return total
+		end
+		local need, rewards = 0, 0
+		for _, quest in Content.Quests do
+			if quest.order > 7 then
+				continue
+			end
+			for _, objective in quest.objectives do
+				if objective.kind == "build" then
+					need += timberIn(Content.BuildPieces[objective.pieceId].cost, objective.count)
+				elseif objective.kind == "craft" then
+					need += timberIn(Content.Recipes[objective.recipeId].inputs, objective.count)
+				end
+			end
+			for _, stack in quest.rewards.items or {} do
+				rewards += if stack.itemId == "item.timber" then stack.count else 0
+			end
+		end
+		for _, id in { "build.stonecutter", "build.workbench" } do
+			need += timberIn(Content.BuildPieces[id].cost, 1)
+		end
+		local supply = (homeStock()["item.timber"] or 0) + rewards
+		TestKit.equal(rewards, 20, "Claim the Ground pays 20 timber")
+		TestKit.equal(need, 87, "the builds (Data/Quests' header)")
+		TestKit.truthy(supply >= need + 10, `{supply} timber against {need}: some left to burn`)
+		-- The last tree says so, and the Guide points at the Trailhead.
+		local gathering = fs.readFile("src/server/Services/Gathering.luau")
+		TestKit.truthy(
+			string.find(gathering, "Your plot's trees are gone for good. The Fog has more.", 1, true),
+			"the toast"
+		)
+		local guide = fs.readFile("src/client/Controllers/Guide.luau")
+		TestKit.truthy(string.find(guide, "return toTrailhead(`gather:", 1, true), "the Guide's pointer")
+	end)
+
+	test("ECONOMY §1.3: the home plot is LDoE's set plus 8 pines (F-07): 84 timber, 21 stone, 40 scrap", function()
 		local stock = homeStock()
-		TestKit.equal(stock["item.timber"], 60, "timber")
+		TestKit.equal(stock["item.timber"], 84, "timber: LDoE's 60 and 8 more pines")
 		TestKit.equal(stock["item.scrap"], 40, "scrap")
 		local boulders = 0
 		for _, entry in Content.Tuning.home.nodes do
@@ -153,12 +202,12 @@ return function(test: TestKit.Register)
 		end
 	end)
 
-	test("LDoE's home set: about 20 pines, 7 rocks, 5 scrap, 7 berry bushes and 20 reeds", function()
+	test("LDoE's home set (20 pines, 7 rocks, 5 scrap, 7 berry bushes, 20 reeds) and F-07's 8 pines", function()
 		local counts: { [string]: number } = {}
 		for _, entry in Content.Tuning.home.nodes do
 			counts[entry.nodeId] = (counts[entry.nodeId] or 0) + entry.count
 		end
-		TestKit.equal(counts["node.pine_tree"], 20)
+		TestKit.equal(counts["node.pine_tree"], 20 + 8)
 		TestKit.equal(counts["node.boulder"], 7)
 		TestKit.equal(counts["node.scrap_heap"], 5)
 		TestKit.equal(counts["node.ember_bush"], 7)

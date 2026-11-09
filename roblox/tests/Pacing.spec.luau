@@ -1168,12 +1168,12 @@ return function(test: TestKit.Register)
 		TestKit.equal(Recipes["recipe.ironbark_plank"].inputs[1].count * 4, 20, "20 logs make 4 planks")
 	end)
 
-	test("home covers the hook but not the Timber base: 60 timber against 221", function()
+	test("home covers the hook but not the Timber base: 84 timber against 221", function()
 		local timber = 0
 		for _, entry in Tuning.home.nodes do
 			timber += (Gathering.expectedYield(Nodes[entry.nodeId])["item.timber"] or 0) * entry.count
 		end
-		TestKit.equal(timber, 60, "home timber")
+		TestKit.equal(timber, 84, "home timber (28 pines, the flow review's F-07)")
 		local base = 0
 		local timberGoal = goals(false)[2]
 		for _, entry in timberGoal.pieces do

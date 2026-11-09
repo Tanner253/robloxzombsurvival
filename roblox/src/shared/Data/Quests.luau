@@ -12,7 +12,11 @@
 	what the next quests ask for. Rewards supply what the following quest needs, so nobody
 	stalls on a missing input.
 
-	The home chapter (quests 1-7) is playable on the home plot alone. Objectives with a
+	The home chapter (quests 1-7) is playable on the home plot alone (the flow review's F-07):
+	its 28 pines give 84 timber and Claim the Ground pays 20 more, 104 against the 87 that
+	quests 3, 4 and 7, the Stonecutter and the Workbench's planks take (tests/Pacing.spec),
+	so about 17 are left for fuel. Home trees never regrow: when the last one falls the
+	player is told, and the Guide points at the Trailhead, where the Fog has more. Objectives with a
 	`flag` wait on that feature (Shared/Flags): quest 6's trip to Pine Hollow, its first
 	Hollow kill and the drop that Hollow leaves (#57) need Fog Runs; until they ship those
 	objectives are left out, and quests whose every objective waits stay closed. Quest 1 has
@@ -70,7 +74,16 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			{ kind = "craft", recipeId = "recipe.stone_hatchet", count = 1 },
 			{ kind = "craft", recipeId = "recipe.stone_pick", count = 1 },
 		},
-		rewards = { xp = 150, items = { { itemId = "item.fiber", count = 6 } } },
+		-- Fiber for the cord ahead, and a third hatchet's sticks and stone: the plot's 28 pines
+		-- (F-07) take 84 swings, more than two stone hatchets last.
+		rewards = {
+			xp = 150,
+			items = {
+				{ itemId = "item.fiber", count = 6 },
+				{ itemId = "item.sticks", count = 3 },
+				{ itemId = "item.stone", count = 3 },
+			},
+		},
 	},
 	["quest.claim_the_ground"] = {
 		id = "quest.claim_the_ground",
@@ -83,9 +96,10 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			{ kind = "build", pieceId = "build.foundation_wood", count = 2 },
 			{ kind = "build", pieceId = "build.wall_wood", count = 2 },
 		},
+		-- 20 timber (F-07): with the plot's 84, chapter 1's builds are paid for.
 		rewards = {
 			xp = 200,
-			items = { { itemId = "item.timber", count = 10 }, { itemId = "item.rope", count = 4 } },
+			items = { { itemId = "item.timber", count = 20 }, { itemId = "item.rope", count = 4 } },
 		},
 	},
 	["quest.a_place_to_work"] = {

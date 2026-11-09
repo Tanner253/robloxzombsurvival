@@ -1659,8 +1659,35 @@ function PacingSim.run(content: Content, model: Model): Result
 		advance(math.ceil(minutes) + 3, false)
 	end
 
+	-- A trail player makes the tier-2 tool an open quest asks for (Heartwood, The Green Vein)
+	-- as soon as the materials are there, and one already held counts the moment the quest
+	-- opens (Domain/Quests.holdings, the flow review's F-06).
+	local function questTools()
+		for _, entry in model.laterQuests do
+			local recipeId = entry.craft
+			local quest = content.Quests[entry.questId]
+			if recipeId == nil or laterPaid[entry.questId] then
+				continue
+			end
+			if quest.prerequisite and not questDone(quest.prerequisite) then
+				continue
+			end
+			for _, kind in sortedKeys(model.toolRecipes) do
+				if model.toolRecipes[kind][2] == recipeId then
+					local key = toolKey(kind, 2)
+					if (tools[key] or 0) > 0 then
+						laterQuest("craft", recipeId)
+					elseif canMakeTool(kind, 2) then
+						ensureTools({ [key] = 1 })
+					end
+				end
+			end
+		end
+	end
+
 	local function homeActions()
 		craftHand()
+		questTools()
 		build()
 		refill()
 		build()

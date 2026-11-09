@@ -4,7 +4,8 @@
 	quest's next objective, so a new player is led through chapter 1 to their first Run
 	without a tutorial:
 	- gather: the nearest standing node of yours that yields the item wears an ember
-	  outline (it moves on as nodes are picked);
+	  outline (it moves on as nodes are picked); when your plot has none left (home nodes
+	  never regrow), the Trailhead, as for travel below;
 	- make at a station (boil water, cut planks): your nearest such station is outlined,
 	  or the Build button pulses while you have none;
 	- craft by hand: the Craft button pulses; build: the Build button pulses;
@@ -153,7 +154,12 @@ end
 local function pointFor(objective: any): ({ Instance }, string?)
 	local kind = objective.kind
 	if kind == "gather" then
-		return { nearestNode(objective.itemId) :: any }, nil
+		local node = nearestNode(objective.itemId)
+		if node == nil and not onRun() and type(State.get("plot")) == "table" then
+			-- The plot has none left (home nodes never regrow, F-07): the Fog has more.
+			return toTrailhead(`gather:{objective.itemId}`)
+		end
+		return { node :: any }, nil
 	elseif kind == "craft" then
 		local recipe = Content.Recipes[objective.recipeId]
 		if recipe and recipe.stationId then
