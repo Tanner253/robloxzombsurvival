@@ -14,6 +14,7 @@
 	`prepare` marks them as version 1 so the migrations can run.
 ]]
 
+local Nodes = require("../Data/Nodes")
 local Grid = require("./Grid")
 local Gathering = require("./Gathering")
 local Migrations = require("./Migrations")
@@ -21,7 +22,7 @@ local Project = require("./Project")
 
 local OutpostSchema = {}
 
-OutpostSchema.VERSION = 2
+OutpostSchema.VERSION = 3
 
 export type Data = {
 	version: number,
@@ -61,6 +62,20 @@ OutpostSchema.migrations = {
 		if type(data.projects) ~= "table" then
 			data.projects = {}
 		end
+	end,
+	-- v3: the economy rescale (docs/ECONOMY.md §11.3): pines and boulders take 3 hits now.
+	-- A saved node with more hits left than its node has is clamped (a clamped node with
+	-- every hit left is whole again, so its save goes); depleted nodes stay depleted.
+	[2] = function(data)
+		local nodes: { [string]: any } = if type(data.nodes) == "table" then data.nodes else {}
+		for key, saved in nodes do
+			local nodeId = if type(key) == "string" then string.match(key, "^(.-)#") else nil
+			local def = if nodeId then Nodes[nodeId] else nil
+			if def and type(saved) == "table" and type(saved.hitsLeft) == "number" and saved.hitsLeft >= def.hits then
+				nodes[key] = nil
+			end
+		end
+		data.nodes = nodes
 	end,
 } :: Migrations.Steps
 

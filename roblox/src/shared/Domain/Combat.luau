@@ -377,6 +377,47 @@ function Combat.toolWeapon(item: { tool: Types.ToolStats? }?, melee: Types.Melee
 	}
 end
 
+-- Durability (docs/ECONOMY.md §8.1) ---------------------------------------------------------------
+
+export type WearConfig = {
+	weaponDurabilityPerHit: number,
+	heavyDurabilityPerHit: number,
+	gunDurabilityPerShot: number,
+	durabilityWarn: { number },
+}
+
+-- What a weapon pays: "light" and "heavy" for a melee hit that lands, "arrow" for each
+-- arrow released, "shot" for every round fired, hit or miss (both shotgun barrels pay 2).
+export type WearAction = "light" | "heavy" | "arrow" | "shot"
+
+function Combat.wear(action: WearAction, config: WearConfig): number
+	if action == "heavy" then
+		return config.heavyDurabilityPerHit
+	elseif action == "shot" then
+		return config.gunDurabilityPerShot
+	end
+	return config.weaponDurabilityPerHit
+end
+
+--[[
+	The warning a wear step crosses, 1-based into Tuning.combat.durabilityWarn (1 = amber at
+	25%, 2 = red at 10%), or nil when it crosses none. The deepest one crossed wins, so a
+	toast fires once per threshold.
+]]
+function Combat.wearWarning(before: number, after: number, max: number, config: WearConfig): number?
+	if max <= 0 then
+		return nil
+	end
+	local crossed: number? = nil
+	for index, fraction in config.durabilityWarn do
+		local line = max * fraction
+		if before > line and after <= line then
+			crossed = index
+		end
+	end
+	return crossed
+end
+
 export type AutoCandidate = { id: string, distance: number }
 
 --[[

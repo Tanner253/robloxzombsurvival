@@ -70,7 +70,8 @@ return function(test: TestKit.Register)
 		TestKit.equal(hollow, 3, "Hollow types (shambler, runner, bloater)")
 		TestKit.equal(wildlife, 2, "wildlife (deer, wolf; LDOE_PARITY #35)")
 		TestKit.equal(#Content.Levels, 20, "player levels")
-		TestKit.truthy(count(Content.Quests) >= 8 and count(Content.Quests) <= 10, "8-10 starter quests")
+		-- The Ember Trail: 10 starter quests, then ECONOMY §11.2's three tier-2 quests.
+		TestKit.equal(count(Content.Quests), 13, "Ember Trail quests")
 		TestKit.equal(count(Content.Products), 4, "shop products")
 
 		local structural: { [string]: { [number]: boolean } } = {}
@@ -204,9 +205,9 @@ return function(test: TestKit.Register)
 
 	test("catches a node that no tool can harvest", function()
 		local errors = brokenCopy(function(c)
-			c.Nodes["node.boulder"].tool.tier = 2
+			c.Nodes["node.boulder"].tool.tier = 3
 		end)
-		TestKit.anyContains(errors, "Nodes['node.boulder']: no item is a tier 2+ pick")
+		TestKit.anyContains(errors, "Nodes['node.boulder']: no item is a tier 3+ pick")
 	end)
 
 	test("catches a loot preview that never drops at the location", function()

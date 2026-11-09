@@ -1,7 +1,7 @@
 --!strict
 --[[
 	questText: one line per Ember Trail objective, for the tracker and the quest screen
-	("Chop timber", "Build a Woodworking Bench", "Reach the crash site"), and the tracker's
+	("Chop timber", "Build a Saw Bench", "Reach the crash site"), and the tracker's
 	rows from the synced quest state (Domain/Quests.tracker).
 ]]
 
@@ -31,6 +31,10 @@ function questText.objective(objective: any): string
 		local piece = Content.BuildPieces[objective.pieceId]
 		return `Build {article(if piece then piece.name else "piece")}`
 	elseif kind == "travel" then
+		if objective.locationId == nil and objective.fogTier then
+			local tier = Content.Tuning.travel.fogTierNames[objective.fogTier]
+			return `Enter the {if tier then tier else "deep"} fog`
+		end
 		local location = Content.Locations[objective.locationId]
 		return `Reach {if location then location.name else "the place"}`
 	elseif kind == "loot" then

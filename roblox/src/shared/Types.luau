@@ -55,7 +55,7 @@ export type ToolKind = "hatchet" | "pick"
 
 export type ToolStats = {
 	kind: ToolKind,
-	tier: number, -- harvests nodes whose tool.tier is this or lower
+	tier: number, -- 1 stone, 2 forged, 3 Ember Steel (M2); harvests nodes whose tool.tier is this or lower
 }
 
 export type WeaponStats = {
@@ -225,6 +225,9 @@ export type ResourceNodeDef = {
 	tool: ToolStats?, -- nil means harvested by hand
 	hits: number, -- hits to deplete; each tool hit costs Tuning.gathering.durabilityPerHit
 	yields: { NodeYield },
+	-- Yields land only on every yieldEvery-th hit (ECONOMY §1: Ironbark gives a log every 2nd
+	-- hit). nil means every hit. `hits` must be a multiple of it. XP is still per hit.
+	yieldEvery: number?,
 	xpPerHit: number,
 	respawnSeconds: number, -- in Fog Run locations; home nodes never respawn (LDOE_PARITY #30)
 }
@@ -378,7 +381,8 @@ export type QuestObjective =
 	{ kind: "gather", itemId: ItemId, count: number, flag: string? } -- harvested from nodes
 	| { kind: "craft", recipeId: RecipeId, count: number, flag: string? } -- hand crafts or batches taken
 	| { kind: "build", pieceId: BuildPieceId, count: number, flag: string? } -- placed or upgraded into
-	| { kind: "travel", locationId: LocationId, flag: string? } -- arrive by Run or Walk
+	-- Arrive by Run or Walk: at locationId, or (with fogTier instead) at any location of that tier.
+	| { kind: "travel", locationId: LocationId?, fogTier: number?, flag: string? }
 	| { kind: "loot", count: number, locationId: LocationId?, flag: string? } -- containers opened
 	| { kind: "lootBody", count: number, flag: string? } -- Hollow bodies searched
 	| { kind: "kill", count: number, enemyId: EnemyId?, flag: string? } -- nil means any Hollow
@@ -474,7 +478,12 @@ export type TuningDef = {
 	},
 	combat: {
 		armorConstant: number,
-		weaponDurabilityPerHit: number,
+		weaponDurabilityPerHit: number, -- a light melee hit that lands, and each arrow released
+		heavyDurabilityPerHit: number, -- ECONOMY §8.1: a heavy swing that lands
+		gunDurabilityPerShot: number, -- ECONOMY §8.1: every round fired, hit or miss
+		-- Remaining-durability fractions the HUD ring and toasts warn at, highest first:
+		-- amber, then red with a toast (ECONOMY §8.1).
+		durabilityWarn: { number },
 		armorDurabilityPerHitTaken: number,
 		critChance: number, -- Fog Runs: the default chance a hit crits
 		critMultiplier: number,
@@ -545,6 +554,13 @@ export type TuningDef = {
 	},
 	raid: { lootFraction: number },
 	shield: { afterRaidSeconds: number },
+	-- ECONOMY §10.1: while a station's model is still waiting for its A grade (Art.pieces),
+	-- its converter lines run at the station named here instead (Shared/StationFallback).
+	-- Remove an entry the day its model is approved.
+	stationFallback: { [StationId]: StationId },
+	-- ECONOMY §6.2: a location quest pays once per period per player ("daily": once per UTC
+	-- day), never once per lobby, so its Rations can't turn a Run into an Energy loop.
+	locationQuests: { period: "daily" },
 	-- Fog Runs (slice 2). Off until features.fogRuns; the types are in the block below.
 	features: Features,
 	lobby: LobbyTuning,

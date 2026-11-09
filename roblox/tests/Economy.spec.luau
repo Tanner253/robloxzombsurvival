@@ -9,6 +9,8 @@ local Gathering = require("../src/shared/Domain/Gathering")
 local Rng = require("../src/shared/Domain/Rng")
 local Migrations = require("../src/shared/Domain/Migrations")
 local PlayerSchema = require("../src/shared/Domain/PlayerSchema")
+local TableUtil = require("../src/shared/Util/Table")
+local fs = require("@lune/fs")
 
 -- Everything the home plot can ever give of an item (finite nodes, guaranteed yields).
 local function homeStock(): { [string]: number }
@@ -56,14 +58,97 @@ return function(test: TestKit.Register)
 	end)
 
 	test("home starts with enough for the hook: tools, the first stations, a patched shelter", function()
+		-- ECONOMY §5.4's hook: the stone tools, the satchel, a Campfire, 2 Timber
+		-- foundations and 2 walls, the Saw Bench, Stonecutter and Workbench. Planks, blocks
+		-- and cord are expanded through their recipes. The trail's rewards on the way count
+		-- (Claim the Ground's 10 timber and 4 cord, Tools of Survival's 6 fiber).
+		local need: { [string]: number } = {}
+		local function add(stacks: { { itemId: string, count: number } }, times: number)
+			for _, stack in stacks do
+				need[stack.itemId] = (need[stack.itemId] or 0) + stack.count * times
+			end
+		end
+		-- As many stone tools as the home nodes wear through (41 rock and heap hits: 2 picks).
+		local hits: { [string]: number } = {}
+		for _, entry in Content.Tuning.home.nodes do
+			local tool = Content.Nodes[entry.nodeId].tool
+			if tool then
+				hits[tool.kind] = (hits[tool.kind] or 0) + Content.Nodes[entry.nodeId].hits * entry.count
+			end
+		end
+		for kind, recipeId in { hatchet = "recipe.stone_hatchet", pick = "recipe.stone_pick" } do
+			local tool = Content.Items[Content.Recipes[recipeId].outputs[1].itemId]
+			add(Content.Recipes[recipeId].inputs, math.ceil((hits[kind] or 0) / (tool.durability :: number)))
+		end
+		add(Content.Recipes["recipe.satchel"].inputs, 1)
+		for id, count in
+			{
+				["build.campfire"] = 1,
+				["build.foundation_wood"] = 2,
+				["build.wall_wood"] = 2,
+				["build.woodworking_bench"] = 1,
+				["build.stonecutter"] = 1,
+				["build.workbench"] = 1,
+			}
+		do
+			add(Content.BuildPieces[id].cost, count)
+		end
+		TestKit.equal((need["item.timber"] or 0), 54, "ECONOMY §11.4: 54 timber for the hook's pieces before planks")
+		for _, recipeId in { "recipe.plank", "recipe.stone_block", "recipe.rope" } do
+			local recipe = Content.Recipes[recipeId]
+			local output = recipe.outputs[1]
+			local made = need[output.itemId] or 0
+			need[output.itemId] = nil
+			add(recipe.inputs, math.ceil(made / output.count))
+		end
 		local stock = homeStock()
-		-- Hatchet and pick (3 sticks + 3 stone each), a campfire, the Woodworking Bench and
-		-- Stonecutter, 2 foundations, 2 walls, a doorway and its door; rope is 2 fiber each.
-		TestKit.truthy((stock["item.sticks"] or 0) >= 3 + 3 + 6, "sticks")
-		TestKit.truthy((stock["item.stone"] or 0) >= 3 + 3 + 5 + 6 + 10, "stone")
-		TestKit.truthy((stock["item.timber"] or 0) >= 10 + 8 + 2 * 10 + 2 * 8 + 6 + 5, "timber")
-		TestKit.truthy((stock["item.fiber"] or 0) >= 2 * (2 + 2 + 2 + 1 + 2 + 4) + 2, "fiber")
+		for _, questId in { "quest.tools_of_survival", "quest.claim_the_ground" } do
+			for _, stack in Content.Quests[questId].rewards.items or {} do
+				stock[stack.itemId] = (stock[stack.itemId] or 0) + stack.count
+			end
+		end
+		for _, itemId in TableUtil.sortedKeys(need) do
+			TestKit.truthy(
+				(stock[itemId] or 0) >= need[itemId],
+				`{itemId}: home gives {stock[itemId] or 0}, the hook needs {need[itemId]}`
+			)
+		end
 		TestKit.truthy((stock["item.scrap"] or 0) >= 3, "scrap for the first club")
+	end)
+
+	test("ECONOMY §1.3: the home plot is LDoE's set, exactly: 60 timber, 21 stone, 40 scrap", function()
+		local stock = homeStock()
+		TestKit.equal(stock["item.timber"], 60, "timber")
+		TestKit.equal(stock["item.scrap"], 40, "scrap")
+		local boulders = 0
+		for _, entry in Content.Tuning.home.nodes do
+			if entry.nodeId == "node.boulder" then
+				boulders += entry.count * Content.Nodes["node.boulder"].hits
+			end
+		end
+		TestKit.equal(boulders, 21, "stone from the boulders")
+	end)
+
+	test("Tuning.stationFallback lists exactly the converter stations with no approved model", function()
+		-- Art.luau uses Roblox enums, so read Art.pieces from its source.
+		local source = fs.readFile("src/shared/Art.luau")
+		for _, piece in Content.BuildPieces do
+			local stationId = piece.stationId
+			if stationId == nil then
+				continue
+			end
+			local escaped = (string.gsub(piece.id, "%.", "%%."))
+			local models = string.match(source, '%["' .. escaped .. '"%] = (%b{})')
+			if models == nil then
+				continue -- not a kit-model piece
+			end
+			local pending = models == "{}"
+			TestKit.equal(
+				Content.Tuning.stationFallback[stationId] ~= nil,
+				pending,
+				`{stationId}: a fallback exactly while Art.pieces has no model for {piece.id}`
+			)
+		end
 	end)
 
 	test("LDoE's home set: about 20 pines, 7 rocks, 5 scrap, 7 berry bushes and 20 reeds", function()
