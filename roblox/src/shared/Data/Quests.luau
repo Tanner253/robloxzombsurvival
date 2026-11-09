@@ -13,10 +13,11 @@
 	stalls on a missing input.
 
 	The home chapter (quests 1-7) is playable on the home plot alone. Objectives with a
-	`flag` wait on that feature (Shared/Flags): quest 1's Hollow kill and body search
-	(#57) and quest 6's trip to Pine Hollow need Fog Runs; until they ship those objectives
-	are left out, and quests whose every objective waits stay closed. (#57's one-time crash
-	site is a Fog Runs location, slice 2's to add.)
+	`flag` wait on that feature (Shared/Flags): quest 6's trip to Pine Hollow, its first
+	Hollow kill and the drop that Hollow leaves (#57) need Fog Runs; until they ship those
+	objectives are left out, and quests whose every objective waits stay closed. Quest 1 has
+	no flagged objective, so it completes at home whether Fog Runs are on or off. (#57's
+	one-time crash site is a Fog Runs location, slice 2's to add.)
 
 	Quests 11-13 (docs/ECONOMY.md §11.2) open the tier-2 ladder after the Dense fog: the
 	Forged Hatchet and Ironbark Planks, the Forged Pick and copper, then the Black fog.
@@ -44,15 +45,15 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 1,
 		chapter = HOME,
 		name = "First Light",
-		description = "The fog thins at dawn. Gather branches and stones, twist reeds into a cord, and sharpen a stake to keep in hand. Then put down the Hollow that wandered in.",
-		-- The stake takes 4 of the sticks; the other 6 and the stones make Tools of Survival.
+		description = "The fog thins at dawn. Gather branches and stones, twist reeds into a cord, and sharpen a stake to keep in hand.",
+		-- Home only, with or without Fog Runs (the flow review's F-02): every objective is
+		-- something the plot reports. The stake takes 4 of the sticks; the other 6 and the
+		-- stones make Tools of Survival. The first Hollow waits in Into the Fog.
 		objectives = {
 			{ kind = "gather", itemId = "item.sticks", count = 10 },
 			{ kind = "gather", itemId = "item.stone", count = 6 },
 			{ kind = "craft", recipeId = "recipe.sharpened_stake", count = 1 },
 			{ kind = "equip", itemId = "item.sharpened_stake" },
-			{ kind = "kill", count = 1, flag = "fogRuns" },
-			{ kind = "lootBody", count = 1, flag = "fogRuns" },
 		},
 		rewards = { xp = 150, items = { { itemId = "item.sealed_tin", count = 2 } } },
 	},
@@ -119,12 +120,16 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 6,
 		chapter = HOME,
 		name = "Into the Fog",
-		description = "Weave a satchel to carry what you find, then Run or Walk to Pine Hollow on the Fog map.",
+		description = "Weave a satchel to carry what you find, then Run or Walk to Pine Hollow on the Fog map. Put down a Hollow there and take what it drops.",
 		prerequisite = "quest.keep_the_fire",
+		-- The first kill and the first Hollow drop (#57) live here, where the Fog map opens:
+		-- Services/LocationQuests reports "kill", and "lootBody" when a Hollow's drop is picked up.
 		objectives = {
 			{ kind = "craft", recipeId = "recipe.satchel", count = 1 },
 			{ kind = "equip", itemId = "item.satchel" },
 			{ kind = "travel", locationId = "loc.pine_hollow", flag = "fogRuns" },
+			{ kind = "kill", count = 1, flag = "fogRuns" },
+			{ kind = "lootBody", count = 1, flag = "fogRuns" },
 		},
 		rewards = {
 			xp = 300,

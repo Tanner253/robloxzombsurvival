@@ -159,6 +159,43 @@ return function(test: TestKit.Register)
 		TestKit.truthy(Quests.isDormant(Content.Quests["quest.scavenger"], flags))
 	end)
 
+	test("F-02: quest 1 completes on the home plot alone, with Fog Runs on or off", function()
+		-- What a home server reports: gathering, hand crafts, station takes, building, eating
+		-- and the equipment worn. Kills, Hollow drops, loot and travel come only from a run.
+		local HOME_KINDS = { gather = true, craft = true, build = true, consume = true, equip = true }
+		local def = Content.Quests["quest.first_light"]
+		for _, flags in { { fogRuns = false }, { fogRuns = true } } do
+			for index, objective in Quests.objectives(def, flags) do
+				TestKit.truthy(HOME_KINDS[objective.kind], `objective {index} ({objective.kind}) needs a run`)
+			end
+			local state = Quests.open(Quests.newState(), Content.Quests)
+			local facts: Quests.Facts = { level = 1, equipped = {} }
+			for _, objective in Quests.objectives(def, flags) do
+				if objective.kind == "equip" then
+					facts.equipped[objective.itemId] = true
+				else
+					state = Quests.record(state, Content.Quests, flags, table.clone(objective :: any))
+				end
+			end
+			local _, done = Quests.settle(state, Content.Quests, flags, facts, T0)
+			TestKit.equal(done[1], "quest.first_light", `fogRuns = {flags.fogRuns}`)
+		end
+	end)
+
+	test("F-02: the first kill and the Hollow's drop are Into the Fog's, behind the Fog Runs flag", function()
+		local kinds: { [string]: string } = {}
+		for id, quest in Content.Quests do
+			for _, objective in quest.objectives do
+				if objective.kind == "lootBody" or (objective.kind == "kill" and quest.order <= 6) then
+					kinds[objective.kind] = id
+					TestKit.equal(objective.flag, "fogRuns", `{id}'s {objective.kind} waits on Fog Runs`)
+				end
+			end
+		end
+		TestKit.equal(kinds.kill, "quest.into_the_fog")
+		TestKit.equal(kinds.lootBody, "quest.into_the_fog")
+	end)
+
 	test("with Fog Runs on, the whole trail (quests 1-25) plays through in order", function()
 		local flags = { fogRuns = true }
 		local state = Quests.open(Quests.newState(), Content.Quests)
