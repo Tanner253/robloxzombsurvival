@@ -158,6 +158,11 @@ A feature is done only when all of these hold:
   - Workers **never** ask the developer questions (no AskUserQuestion). They send anything they truly can't resolve to the orchestrator.
   - Workers start and stop playtests themselves (`start_stop_play`). If the developer's playtest is running, stop it, work, then restart it.
   - Workers judge visuals themselves from captures.
+  - **Playtests are deterministic and never loop** (added 2026-11-08 after a tester died, blamed the menu and restarted over and over, which wasted tokens):
+    - A Studio-only `DevTest` mode (gated on `RunService:IsStudio()` plus a workspace attribute) gives god mode, no Hollow aggro unless the test asks for it, auto-dismissed intro, death and offer screens, and a known safe spawn.
+    - Logic is verified by calling services through `execute_luau` (teleport, invoke, assert). Live walk-throughs are for visual proof only: at most 2 per feature.
+    - At most 1 retry. After a second failure, stop and read the state; fix the root cause before running again.
+    - A QA subagent gets at most 2 play sessions and about 30 tool calls, then reports.
 - **The repo is the master copy of the whole place (world-as-code):**
   - World layout, dressing placement and procedural Terrain are built by Rojo-synced builder code from repo data.
   - Kit models live in the repo as `.rbxmx` files synced into ServerStorage.
