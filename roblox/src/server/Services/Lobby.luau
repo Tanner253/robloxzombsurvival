@@ -39,6 +39,7 @@ local LobbyMath = require(Domain.Lobby)
 local Matchmaking = require(Domain.Matchmaking)
 local RunTicket = require(Domain.RunTicket)
 local Net = require("../Net")
+local OnRun = require("../OnRun")
 local Map = require("../FogRuns/Map")
 local Payments = require("../FogRuns/Payments")
 local Props = require("../FogRuns/Props")
@@ -1266,6 +1267,10 @@ function Lobby.init()
 		return
 	end
 	role = Teleport.role()
+	-- The Studio simulation hosts lobbies here: whoever is seated counts as on a run (OnRun).
+	OnRun.seated = function(player: Player): boolean
+		return runs[player] ~= nil
+	end
 	Net.onEvent("PartyInvite", invite)
 	Net.onEvent("PartyRespond", respond)
 	Net.onEvent("PartyLeave", leaveParty)

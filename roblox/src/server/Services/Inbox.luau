@@ -8,6 +8,10 @@
 	Players take a row into the bag (TAKE), take everything (optionally one category),
 	or use a consumable in place. Home building and crafting also draw from it
 	(Services/Materials).
+
+	Only at home (the flow review's F-04): on a Fog Run the inbox can't be taken from or
+	eaten from (OnRun), so it is never a death-proof stash mid-run. Grants still land in it
+	there (a level-up, a quest reward), to be picked up at home.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +20,7 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local InboxMath = require(ReplicatedStorage.Shared.Domain.Inbox)
 local Net = require("../Net")
+local OnRun = require("../OnRun")
 local Analytics = require("./Analytics")
 local Inventory = require("./Inventory")
 local PlayerData = require("./PlayerData")
@@ -89,7 +94,19 @@ local function takeRow(player: Player, id: string): (boolean, boolean)
 	return moved > 0, left > 0
 end
 
+-- Whether the inbox can be used now; tells the player why not on a run.
+local function usable(player: Player): boolean
+	if OnRun.is(player) then
+		Sync.notice(player, OnRun.INBOX_NOTICE, "warn")
+		return false
+	end
+	return true
+end
+
 local function take(player: Player, id: string)
+	if not usable(player) then
+		return
+	end
 	local moved, short = takeRow(player, id)
 	if moved then
 		changed(player)
@@ -102,7 +119,7 @@ end
 
 local function takeAll(player: Player, category: string?)
 	local data = PlayerData.get(player)
-	if data == nil then
+	if data == nil or not usable(player) then
 		return
 	end
 	local anyMoved, anyShort = false, false
@@ -126,7 +143,7 @@ end
 local function use(player: Player, id: string)
 	local data = PlayerData.get(player)
 	local index = data and InboxMath.indexOf(data.inbox, id)
-	if data == nil or index == nil then
+	if data == nil or index == nil or not usable(player) then
 		return
 	end
 	local entry = data.inbox[index]

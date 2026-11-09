@@ -644,7 +644,9 @@ end
 local function MenuBar(props: { right: number })
 	local ui = hooks.useUi()
 	local inbox = hooks.useSection("inbox")
-	local inboxCount = if type(inbox) == "table" then #inbox else 0
+	-- The inbox waits at home (F-04): on a run the button opens the bag, with no inbox badge.
+	local onRun = type(hooks.useSection("run")) == "table"
+	local inboxCount = if type(inbox) == "table" and not onRun then #inbox else 0
 	local anyNew = next(ui.newItems) ~= nil
 	-- A full bag flashes the Inventory button red for a moment (the old HUD's Bag did), so
 	-- a new player whose pockets just filled sees where to make room.

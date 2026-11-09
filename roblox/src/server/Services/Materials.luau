@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Types = require(ReplicatedStorage.Shared.Types)
 local InboxMath = require(ReplicatedStorage.Shared.Domain.Inbox)
 local MaterialPool = require(ReplicatedStorage.Shared.Domain.MaterialPool)
+local OnRun = require("../OnRun")
 local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
@@ -21,9 +22,10 @@ local Sync = require("./Sync")
 
 local Materials = {}
 
--- Home is anywhere but a Fog Run (Fog Run places set this Workspace attribute).
-function Materials.atHome(_player: Player): boolean
-	return workspace:GetAttribute("FogRun") ~= true
+-- Home is anywhere but a Fog Run: not a run server or a Studio-simulated lobby (OnRun,
+-- the flow review's F-03), nor a place that sets the FogRun Workspace attribute.
+function Materials.atHome(player: Player): boolean
+	return workspace:GetAttribute("FogRun") ~= true and not OnRun.is(player)
 end
 
 local function crateKeys(data: any): { string }
