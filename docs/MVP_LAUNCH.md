@@ -64,6 +64,7 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
     | Raider Arms | 499 | The best v0.1 guns, Rail Mallet, Hidebound helmet and vest |
     | Heavy Equipment | 2,499 | Big ticket: full Hidebound set, every v0.1 gun, top melee, meds stack |
 
+  - **Every pack is repurchasable,** because everything in it is used up or wears out. Weapons, tools and armor carry durability (guns count shots); food, meds and materials are consumed. Packs are repeatable developer products ("Buy as often as you like"). Only game passes (VIP, Pack Expansion), the capacity packs and the one-time Firestarter Kit are permanent or once-only. Pack items arrive at full durability with no repair path, so the next purchase is the natural refill.
   - **Building tab capacity packs:** "+1 Smelter can be placed" 399 and "+1 Recycler" 399, following LDoE's "+1 max furnace can be placed".
   - **No ammo (decided 2026-11-08, the developer: "we don't need ammo for guns, everything runs on durability").** As in LDoE, every gun's and bow's durability is its shot count. That removes ammo items, ammo recipes and the Ammo Press from v0.1. Gun durability and re-crafts are the sink, which also drives the gun packs.
   - **The price ladder for later SKUs:** 79 / 99 / 149 / 199 / 249 / 399 / 799 / 1,199 / 1,699 / 2,499 / 4,499 / 9,999 / 17,999.
