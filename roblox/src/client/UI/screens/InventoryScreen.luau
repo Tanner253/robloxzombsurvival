@@ -38,6 +38,7 @@ local TrashGlyph = require("../components/TrashGlyph")
 local StatPairs = require("../components/StatPairs")
 local Label = require("../components/Label")
 local Sheet = require("../components/Sheet")
+local LootPane = require("./LootPane")
 
 local e = React.createElement
 
@@ -856,6 +857,8 @@ local function InventoryScreen()
 	local storage = hooks.useSection("storage")
 	local stash = nil -- the locked stash became the item inbox (4.15)
 	local inbox = hooks.useSection("inbox")
+	-- A Fog Run container, loot pile or bag takes the right pane (LDOE_PARITY #45).
+	local loot = hooks.useSection("loot")
 	local open = ui.panel == "inventory" and inventory ~= nil and inventory ~= false
 	local crate = if storage then storage else nil
 
@@ -987,8 +990,9 @@ local function InventoryScreen()
 					AnchorPoint = Vector2.new(1, 0),
 					BackgroundTransparency = 1,
 				},
-				if crate
-					then {
+				if type(loot) == "table"
+					then { Loot = e(LootPane, { loot = loot }) }
+					elseif crate then {
 						Title = e(Section, {
 							title = string.upper(if crateDef then crateDef.name else "Crate"),
 							note = `{used} / {#crate.slots}`,
@@ -1099,8 +1103,11 @@ local function InventoryScreen()
 
 	return e(Sheet, {
 		open = open,
-		title = if crate then "Crate" else "Inventory",
-		subtitle = if crate then "Your storage" else "Pockets, backpack and gear",
+		title = if type(loot) == "table" then "Loot" elseif crate then "Crate" else "Inventory",
+		subtitle = if type(loot) == "table"
+			then "Take what you can carry"
+			elseif crate then "Your storage"
+			else "Pockets, backpack and gear",
 		closeKey = "Tab",
 		onClose = Actions.toggleInventory,
 		size = UDim2.fromOffset(1040, 576),

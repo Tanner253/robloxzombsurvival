@@ -36,7 +36,33 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
 
 **Platform**
 - ProfileStore on live DataStores, with schema migrations.
-- **Monetization v0.1:** Starter Pack, Resource Pack, Energy Refill and Backpack Upgrade as developer products, with a simple shop screen in the LDoE card style. Purchases go to the inbox. Plus the moment-of-need buttons for Energy and Fill up.
+- **Monetization v0.1**, from `docs/research/ldoe-monetization-playbook.md`.
+  - **Premium currency: Embers.** Our name; it replaces the playbook's "Gold". It's needed because developer products have fixed prices, so Fill up, timer speed-ups, death recovery and Rations are priced in Embers: recover all 100, a Ration 20, speed-ups by time left.
+  - **The 10 v0.1 SKUs** (in Robux):
+
+    | SKU | Price | Notes |
+    |---|---|---|
+    | Firestarter Kit | 99 | Shown once, to never-payers only, in a 48 h window after their first win |
+    | Scavenger's Kit | 79 | A repeatable gear refill, offered on the death screen |
+    | Supply Bundle | 99 | |
+    | Builder's Crate | 399 | |
+    | Reinforced Room Kit | 1,699 | |
+    | Energy Refill | 99 | |
+    | Ember Pouch | 149 | 50 Embers |
+    | Ember Chest | 799 | 300 Embers |
+    | Pack Expansion | 199 | Game pass |
+    | VIP Lounge | 399 | Game pass (Haven Square) |
+
+  - **The price ladder for later SKUs:** 79 / 99 / 149 / 199 / 249 / 399 / 799 / 1,199 / 1,699 / 2,499 / 4,499 / 9,999 / 17,999.
+  - **Shop UX:** Last Day on Earth card style (rec8). Purchases go to the inbox.
+  - **Moment-of-need buttons:**
+    - Energy on the travel panel
+    - Fill up on craft and build
+    - a gear offer on the death screen and on a broken weapon
+    - a backpack offer when the inventory is full
+  - **Roblox rules:** discounts must be genuine sale windows of at least 72 h, a countdown never restarts for the same item, and products launched in the 14 days before Black Friday (27 Nov 2026) get bonus contents rather than a discount badge.
+  - **Raid rules:** never sell locked-stash capacity, since raid-proof storage would be raid immunity for goods. Death recovery never returns items another player has already looted.
+  - **Next in M2:** the 21-day season pass (Premium 799, plus level skips), Survivor Club (499 a month), and the VIP points ladder (1 point per 10 Robux).
 - Experience icon, 3 thumbnails and description: made by the orchestrator.
 - A publish checklist for the developer (the physical and account steps only).
 

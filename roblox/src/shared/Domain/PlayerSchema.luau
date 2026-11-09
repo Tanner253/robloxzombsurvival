@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 9
+PlayerSchema.VERSION = 10
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -95,6 +95,9 @@ export type PlayerData = {
 	recipeMarks: { favourites: { [string]: boolean }, seen: { [string]: boolean } },
 	-- The UTC day number of the last daily food and water gift (LDOE_PARITY #58).
 	gifts: { lastDay: number },
+	-- Location quests (#45) by id: the period (UTC day) each last paid out. They pay once
+	-- a day, never once per lobby (docs/ECONOMY.md §6.2, Domain/Quests.locationQuestOpen).
+	locationQuests: { [string]: number },
 	-- Robux purchases (Domain/Receipts): the receipt log (most recent last, capped at
 	-- RECEIPT_LOG_SIZE), purchases per product for limits, and backpack slots bought.
 	purchases: { receiptIds: { string }, counts: { [string]: number }, backpackSlots: number },
@@ -213,6 +216,7 @@ function PlayerSchema.template(): PlayerData
 		unlocks = { recipes = {}, blueprints = {} },
 		recipeMarks = { favourites = {}, seen = {} },
 		gifts = { lastDay = 0 },
+		locationQuests = {},
 		purchases = { receiptIds = {}, counts = {}, backpackSlots = 0 },
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
@@ -444,6 +448,157 @@ function PlayerSchema.migrateToV7(data: { [string]: any }, now: number)
 	data.inboxSeq = seq
 end
 
+-- The v7 converter lines whose ratio, timer or station changed in v8 (docs/ECONOMY.md §2).
+-- A station saved mid-way through one of these is settled under its old rule.
+local LEGACY_V7_LINES: { Types.RecipeDef } = {
+	{
+		id = "recipe.plank",
+		inputs = { { itemId = "item.timber", count = 1 } },
+		outputs = { { itemId = "item.plank", count = 1 } },
+		stationId = "station.woodworking_bench",
+		craftSeconds = 4 * 60,
+		unlock = { kind = "default" },
+	},
+	{
+		id = "recipe.stone_block",
+		inputs = { { itemId = "item.stone", count = 2 } },
+		outputs = { { itemId = "item.stone_block", count = 1 } },
+		stationId = "station.workbench",
+		craftSeconds = 4 * 60,
+		unlock = { kind = "default" },
+	},
+	{
+		id = "recipe.scrap_plate",
+		inputs = { { itemId = "item.scrap", count = 3 } },
+		outputs = { { itemId = "item.scrap_plate", count = 1 } },
+		stationId = "station.workbench",
+		craftSeconds = 4 * 60,
+		unlock = { kind = "default" },
+	},
+	{
+		id = "recipe.blackpowder",
+		inputs = { { itemId = "item.niter", count = 2 } },
+		outputs = { { itemId = "item.blackpowder", count = 2 } },
+		stationId = "station.ammo_press",
+		craftSeconds = 6 * 60,
+		unlock = { kind = "default" },
+	},
+}
+
+local function legacyLine(stationId: string, itemId: string): Types.RecipeDef?
+	for _, recipe in LEGACY_V7_LINES do
+		if recipe.stationId == stationId and recipe.inputs[1].itemId == itemId then
+			return recipe
+		end
+	end
+	return nil
+end
+
+--[[
+	v8, the economy rescale (docs/ECONOMY.md §11.3). Nothing owned is lost:
+	- A station loaded with the input of a line whose rule changed (planks 1:1, blocks and
+	  plates at the Workbench, powder 2:2) is settled under the v7 rule: the batches done by
+	  `now` (and while its fuel lasted) become outputs, and outputs, leftover input and
+	  unlit fuel all go to the inbox (source "Update"). The station restarts empty at its
+	  level. The scrap_plate line held scrap; it now takes ingots.
+	- Stack counts never change.
+	- Durability above an item's new maximum (ECONOMY §8.1: a Pipe Pistol at 120 of 140)
+	  is clamped to it, wherever the item is: pockets, backpack, equipment, crates, the
+	  inbox and station slots.
+	- PlayerData.locationQuests starts empty (location quests pay once a day, §6.2).
+]]
+function PlayerSchema.migrateToV8(data: { [string]: any }, now: number)
+	local inbox: { any } = if type(data.inbox) == "table" then data.inbox :: any else {}
+	data.inbox = inbox
+	local seq = if type(data.inboxSeq) == "number" then data.inboxSeq else 0
+	local function toInbox(slot: any)
+		if type(slot) ~= "table" or type(slot.itemId) ~= "string" or slot.itemId == "" then
+			return
+		end
+		if type(slot.count) ~= "number" or slot.count <= 0 then
+			return
+		end
+		seq += 1
+		table.insert(inbox, {
+			id = `i{seq}`,
+			itemId = slot.itemId,
+			count = slot.count,
+			durability = slot.durability,
+			source = "Update",
+			at = now,
+		})
+	end
+
+	local stations: { [string]: any } = if type(data.stations) == "table" then data.stations :: any else {}
+	for uid, record in stations do
+		local def = if type(record) == "table" then Stations[record.stationId] else nil
+		local input = if def and type(record.input) == "table" then record.input else nil
+		local legacy = if def and input then legacyLine(def.id, input.itemId) else nil
+		if def == nil or legacy == nil then
+			continue
+		end
+		local state = record :: Converter.State
+		local settled = state
+		if type(state.at) == "number" and state.at > 0 then
+			local ok, advanced = pcall(Converter.advance, state, {
+				def = def,
+				recipes = { [legacy.id] = legacy },
+				items = Items :: any,
+			}, now)
+			if ok then
+				settled = advanced
+			end
+		end
+		for _, slot in settled.output do
+			toInbox(slot)
+		end
+		toInbox(settled.input)
+		toInbox(settled.fuel)
+		local fresh = Converter.new(def, now)
+		fresh.level = math.clamp(if type(state.level) == "number" then state.level else 1, 1, #def.levels)
+		stations[uid] = fresh
+	end
+	data.stations = stations
+
+	local function clamp(slot: any)
+		local item = if type(slot) == "table" then Items[slot.itemId] else nil
+		local max = if item then item.durability else nil
+		if max and type(slot.durability) == "number" and slot.durability > max then
+			slot.durability = max
+		end
+	end
+	local function clampAll(container: any)
+		if type(container) == "table" then
+			for _, slot in container do
+				clamp(slot)
+			end
+		end
+	end
+	local inventory = data.inventory
+	if type(inventory) == "table" then
+		clampAll(inventory.pockets)
+		clampAll(inventory.backpack)
+		clampAll(inventory.equipment)
+	end
+	if type(data.storage) == "table" then
+		for _, container in data.storage do
+			clampAll(container)
+		end
+	end
+	clampAll(inbox)
+	for _, record in stations do
+		if type(record) == "table" then
+			clamp(record.input)
+			clampAll(record.output)
+		end
+	end
+
+	if type(data.locationQuests) ~= "table" then
+		data.locationQuests = {}
+	end
+	data.inboxSeq = seq
+end
+
 -- steps[n] upgrades version n to n + 1.
 PlayerSchema.migrations = {
 	-- v2: health, hunger and thirst are saved; food energy counts toward a daily cap.
@@ -505,16 +660,20 @@ PlayerSchema.migrations = {
 	[6] = function(data)
 		PlayerSchema.migrateToV7(data, os.time())
 	end,
-	-- v8: Haven Square (coins, contracts, chapter hand-ins, the VIP crate).
+	-- v8: the economy rescale (docs/ECONOMY.md). See migrateToV8.
 	[7] = function(data)
+		PlayerSchema.migrateToV8(data, os.time())
+	end,
+	-- v9: Haven Square (coins, contracts, chapter hand-ins, the VIP crate).
+	[8] = function(data)
 		if type(data.haven) ~= "table" then
 			data.haven = PlayerSchema.freshHaven()
 		end
 	end,
-	-- v9: the v0.1 shop: Embers, the first win, the VIP crate streak and Lounge trial. The
+	-- v10: the v0.1 shop: Embers, the first win, the VIP crate streak and Lounge trial. The
 	-- Backpack Upgrade product became the Pack Expansion pass: slots bought stay, counted as
 	-- the pass.
-	[8] = function(data)
+	[9] = function(data)
 		if type(data.embers) ~= "number" then
 			data.embers = 0
 		end
@@ -526,6 +685,10 @@ PlayerSchema.migrations = {
 			data.haven.vipTrialUntil = data.haven.vipTrialUntil or 0
 		end
 		local purchases: any = data.purchases
+		if type(purchases) == "table" then
+			purchases.counts = if type(purchases.counts) == "table" then purchases.counts else {}
+			purchases.backpackSlots = if type(purchases.backpackSlots) == "number" then purchases.backpackSlots else 0
+		end
 		local counts: { [string]: any }? = if type(purchases) == "table" then purchases.counts else nil
 		if type(counts) == "table" then
 			local legacy = counts["product.backpack_upgrade"]

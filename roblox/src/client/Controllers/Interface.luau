@@ -79,14 +79,15 @@ local function followPanels()
 			blurred = wantBlur
 			setBackdrop(wantBlur)
 		end
-		local wantControls = panel == "none" or panel == "build"
+		local moment = State.fullScreenMoment()
+		local wantControls = (panel == "none" or panel == "build") and not moment
 		if wantControls ~= controls then
 			controls = wantControls
 			pcall(function()
 				GuiService.TouchControlsEnabled = wantControls
 			end)
 		end
-		local want = panel == "none"
+		local want = panel == "none" and not moment
 		if want == shown then
 			return
 		end
@@ -103,7 +104,7 @@ local function followPanels()
 		end)
 	end
 	State.changed:Connect(function(key: any)
-		if key == "ui" then
+		if key == "ui" or key == "death" or key == "result" or key == "travel" or key == "run" then
 			apply()
 		end
 	end)

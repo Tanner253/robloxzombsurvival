@@ -135,7 +135,7 @@ end
 -- ALL RECIPES: every line the station converts.
 local function Recipes(props: { def: any, progress: Unlocks.Progress, level: number, onBack: () -> () })
 	local rows: { [string]: any } = {}
-	for index, line in Converter.lines(props.def, Content.Recipes) do
+	for index, line in Converter.lines(props.def, Content.Recipes, Content.Items) do
 		local locked = not Unlocks.isMet(line.unlock, props.progress)
 		local lowLevel = props.level < line.stationLevel
 		local note = if locked

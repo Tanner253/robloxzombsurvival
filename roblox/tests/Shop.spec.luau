@@ -145,6 +145,10 @@ return function(test: TestKit.Register)
 			2 * embers.fillUp["item.scrap_plate"] + 5 * embers.fillUp["item.timber"]
 		)
 		TestKit.equal(Offers.fillUpPrice({ { itemId = "item.blueprint_nope", count = 1 } }, embers), nil)
+		for itemId, unit in embers.fillUp do
+			TestKit.truthy(Content.Items[itemId] ~= nil, `Fill Up prices a real item: {itemId}`)
+			TestKit.truthy(unit >= 1 and unit == math.floor(unit), `{itemId} costs whole Embers`)
+		end
 		TestKit.equal(Offers.rationsPrice(1, embers), 20)
 		TestKit.equal(Offers.rationsPrice(5, embers), 90)
 		TestKit.equal(Offers.rationsPrice(7, embers), 130)
@@ -163,18 +167,18 @@ return function(test: TestKit.Register)
 		end
 	end)
 
-	test("v9 profiles start with no Embers and no win; the old backpack product maps to the pass", function()
+	test("v10 profiles start with no Embers and no win; the old backpack product maps to the pass", function()
 		local template: any = PlayerSchema.template()
 		TestKit.equal(template.embers, 0)
 		TestKit.equal(template.shop.firstWinAt, 0)
 		TestKit.equal(template.haven.vipTrialUntil, 0)
 		TestKit.equal(#template.purchases.receiptIds, 0)
 		local old: any = {
-			version = 8,
+			version = 9,
 			haven = PlayerSchema.freshHaven(),
 			purchases = { receiptIds = {}, counts = { ["product.backpack_upgrade"] = 1 }, backpackSlots = 5 },
 		}
-		PlayerSchema.migrations[8](old)
+		PlayerSchema.migrations[9](old)
 		TestKit.equal(old.purchases.counts["product.pack_expansion"], 1)
 		TestKit.equal(old.purchases.counts["product.backpack_upgrade"], nil)
 		TestKit.equal(old.embers, 0)

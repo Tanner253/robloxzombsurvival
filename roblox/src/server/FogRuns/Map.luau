@@ -13,6 +13,7 @@
 	- "container": a container spot; optional attribute Kind ("locker", "crate"...)
 	- "extract": an extraction point; attribute PointId matching the location data
 	- "bounds": one box around the playable area; Light fog leaves past its edge
+	- "node": a gatherable resource node spot; attribute NodeId (Gathering spawns it)
 
 	Everything degrades gracefully when a map is missing: nothing spawns, and the
 	edge and points refuse, so Phase A code never acts on a world that isn't there.
@@ -20,12 +21,13 @@
 
 local Map = {}
 
-export type Marker = "spawn" | "hollow" | "container" | "extract" | "bounds"
+export type Marker = "spawn" | "hollow" | "container" | "extract" | "bounds" | "node"
 
--- The map folder for a location, or nil when it hasn't been built.
+-- The map folder for a location, or nil when it hasn't been built (FogRuns/Maps builds it).
 function Map.of(locationId: string, runServer: boolean): Instance?
 	if runServer then
-		return workspace:FindFirstChild("FogRun")
+		local map = workspace:FindFirstChild("FogRun")
+		return if map and map:GetAttribute("LocationId") == locationId then map else nil
 	end
 	local all = workspace:FindFirstChild("FogRuns")
 	return if all then all:FindFirstChild(locationId) else nil
@@ -80,7 +82,9 @@ function Map.ground(x: number, z: number, fallbackY: number, exclude: { Instance
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = exclude
-	local hit = workspace:Raycast(Vector3.new(x, fallbackY + 40, z), Vector3.new(0, -120, 0), params)
+	params.RespectCanCollide = true
+	-- From just above its feet (a step up at most), so a roof overhead never counts as ground.
+	local hit = workspace:Raycast(Vector3.new(x, fallbackY + 4, z), Vector3.new(0, -60, 0), params)
 	return if hit then hit.Position else Vector3.new(x, fallbackY, z)
 end
 

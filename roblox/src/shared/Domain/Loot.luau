@@ -242,4 +242,45 @@ function Loot.shares(tables: Tables, tableId: string): { [string]: number }
 	return shares
 end
 
+--[[
+	The expected units of each item one open of `tableId` gives (docs/ECONOMY.md §11.4, the
+	pacing model). Rolls average (min + max) / 2, times `rollMultiplier` (a Fog meter band's
+	lootMultiplier; default 1). Each roll lands on an entry by weight and gives its average
+	count; a nested entry opens its table that many times, at multiplier 1. Guaranteed stacks
+	are added once. Pity is left out: it moves luck around, not the mean over many opens.
+]]
+function Loot.expected(tables: Tables, tableId: string, rollMultiplier: number?): { [string]: number }
+	local result: { [string]: number } = {}
+	local function visit(id: string, opens: number, multiplier: number, depth: number)
+		assert(depth <= MAX_DEPTH, `loot table '{id}' nests deeper than {MAX_DEPTH} (a cycle?)`)
+		local def = tables[id]
+		assert(def, `unknown loot table '{id}'`)
+		local guaranteed: { Types.ItemStack } = def.guaranteed or {}
+		for _, stack in guaranteed do
+			result[stack.itemId] = (result[stack.itemId] or 0) + stack.count * opens
+		end
+		local total = 0
+		for _, entry in entriesOf(def) do
+			total += math.max(0, entry.weight)
+		end
+		if total <= 0 then
+			return
+		end
+		local rolls = (def.rolls.min + def.rolls.max) / 2 * multiplier * opens
+		for _, entry in entriesOf(def) do
+			if entry.weight > 0 then
+				local count = rolls * entry.weight / total * (entry.min + entry.max) / 2
+				if entry.tableId then
+					visit(entry.tableId, count, 1, depth + 1)
+				else
+					local itemId = entry.itemId :: string
+					result[itemId] = (result[itemId] or 0) + count
+				end
+			end
+		end
+	end
+	visit(tableId, 1, rollMultiplier or 1, 1)
+	return result
+end
+
 return Loot

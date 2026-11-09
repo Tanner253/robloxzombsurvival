@@ -9,8 +9,12 @@
 	- robloxId is the developer product or game pass on universe 10775267789 (made through
 	  Open Cloud). defaultPriceRobux is a display fallback from Tuning.prices: the live price
 	  comes from MarketplaceService.
-	- The room kits are derived from the build data (Domain/Kits), so they stay complete when
-	  the economy retunes building costs.
+	- Contents follow the playbook's value rule (about 1.5 free grind-hours per 100 Robux for
+	  small packs, 1.6 for medium, 1.8 for large; the Firestarter Kit 10-20x), valued against
+	  docs/ECONOMY.md's chains: a Scrap Plate or Ironbark Plank about 20 minutes (the
+	  Workbench and Saw Bench L2 throttles), a Rivet 12, a Stone Block 4, a Hewn Plank 3, raw
+	  materials under a minute. The Firestarter Kit's Scrap room is derived from the build
+	  data (Domain/Kits), so it stays complete when building costs change.
 	- Guardrails: no shields or raid immunity, never locked-stash capacity, no random boxes,
 	  no invented "was" prices (Domain/Offers: sales are real 72 h windows that never
 	  restart).
@@ -62,8 +66,6 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 				{ itemId = "item.field_dressing", count = 10 },
 				{ itemId = "item.hearth_stew", count = 5 },
 				{ itemId = "item.ember_tonic", count = 3 },
-				{ itemId = "item.plank", count = 30 },
-				{ itemId = "item.scrap_plate", count = 10 },
 				{ itemId = "item.pack_frame", count = 1 },
 				{ itemId = "item.rations", count = 5 },
 			}),
@@ -91,49 +93,52 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 	["product.resource_pack"] = {
 		id = "product.resource_pack",
 		name = "Supply Bundle",
-		description = "Timber, stone, scrap, planks and plates: an evening of gathering for a bigger base.",
+		description = "Timber, stone, ironstone, planks and two plates: an evening of gathering for a bigger base.",
 		kind = "devProduct",
 		robloxId = 3729832298,
 		icon = "rbxassetid://88547464179013",
 		defaultPriceRobux = price["product.resource_pack"],
 		tab = "supplies",
-		grants = items({
+		grants = items({ -- about 1.7 grind-hours
 			{ itemId = "item.timber", count = 60 },
 			{ itemId = "item.stone", count = 60 },
-			{ itemId = "item.scrap", count = 40 },
-			{ itemId = "item.plank", count = 30 },
-			{ itemId = "item.scrap_plate", count = 10 },
+			{ itemId = "item.ironstone", count = 30 },
+			{ itemId = "item.plank", count = 10 },
+			{ itemId = "item.scrap_plate", count = 2 },
 		}),
 	},
 	["product.builders_crate"] = {
 		id = "product.builders_crate",
 		name = "Builder's Crate",
-		description = "The Timber-to-Scrap climb in one crate, heavy on Rivets: planks, plates, blocks and more.",
+		description = "The Timber-to-Scrap climb in one crate, heavy on Rivets: rivets, plates, planks and blocks.",
 		kind = "devProduct",
 		robloxId = 3729873035,
 		icon = "rbxassetid://121572315473616",
 		defaultPriceRobux = price["product.builders_crate"],
 		tab = "best",
-		grants = items({
-			{ itemId = "item.rivets", count = 40 },
-			{ itemId = "item.scrap_plate", count = 30 },
-			{ itemId = "item.plank", count = 60 },
-			{ itemId = "item.stone_block", count = 30 },
-			{ itemId = "item.timber", count = 120 },
-			{ itemId = "item.stone", count = 100 },
-			{ itemId = "item.rope", count = 20 },
+		grants = items({ -- about 6.4 grind-hours, Rivets the star (the Scrap bottleneck)
+			{ itemId = "item.rivets", count = 16 },
+			{ itemId = "item.scrap_plate", count = 5 },
+			{ itemId = "item.plank", count = 30 },
+			{ itemId = "item.stone_block", count = 12 },
 		}),
 	},
 	["product.room_kit_reinforced"] = {
 		id = "product.room_kit_reinforced",
 		name = "Reinforced Room Kit",
-		description = "Every material for a 3x3 Reinforced room: nine floors, eleven walls, a doorway and its door.",
+		description = "A long start on a Reinforced room: Ironbark Planks, Copper Wire, plates, rivets and blocks.",
 		kind = "devProduct",
 		robloxId = 3729873052,
 		icon = "rbxassetid://111714823062229",
 		defaultPriceRobux = price["product.room_kit_reinforced"],
 		tab = "supplies",
-		grants = items(Kits.room(BuildPieces, 3)),
+		grants = items({ -- about 32 grind-hours (the whole 3x3 room is about 145)
+			{ itemId = "item.ironbark_plank", count = 30 },
+			{ itemId = "item.copper_wire", count = 12 },
+			{ itemId = "item.scrap_plate", count = 30 },
+			{ itemId = "item.rivets", count = 20 },
+			{ itemId = "item.stone_block", count = 60 },
+		}),
 	},
 	["product.energy_refill"] = {
 		id = "product.energy_refill",

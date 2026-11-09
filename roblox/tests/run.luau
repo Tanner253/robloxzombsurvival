@@ -28,6 +28,8 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "ItemSources", spec = require("./ItemSources.spec") },
 	{ name = "DevSpeed", spec = require("./DevSpeed.spec") },
 	{ name = "Economy", spec = require("./Economy.spec") },
+	{ name = "Pacing", spec = require("./Pacing.spec") },
+	{ name = "EconomyRules", spec = require("./EconomyRules.spec") },
 	{ name = "Converter", spec = require("./Converter.spec") },
 	{ name = "Quests", spec = require("./Quests.spec") },
 	{ name = "Onboarding", spec = require("./Onboarding.spec") },
@@ -54,6 +56,8 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "FogRunRemotes", spec = require("./FogRunRemotes.spec") },
 	{ name = "RunTicket", spec = require("./RunTicket.spec") },
 	{ name = "RunSetup", spec = require("./RunSetup.spec") },
+	{ name = "FogRegions", spec = require("./FogRegions.spec") },
+	{ name = "Neighbours", spec = require("./Neighbours.spec") },
 	{ name = "Parity", spec = require("./Parity.spec") },
 }
 

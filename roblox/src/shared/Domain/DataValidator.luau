@@ -32,6 +32,10 @@
 	- Fog Runs (slice 2): firearm, bow and melee stats, flares, bursts, each
 	  location's run rules (extraction by fog tier, band loot, travel bonus), the
 	  lobby and combat tuning, and feature tags naming a real Tuning.features flag.
+	- Economy (docs/ECONOMY.md §11.1): a node's hits are a multiple of its yieldEvery; a
+	  station never has two lines for one input; every station level's upgrade cost can be
+	  crafted before that level exists (no chicken-and-egg stalls); tools stop at tier 3;
+	  Tuning.stationFallback names real stations.
 	  Boot validates the bundle with disabled features stripped (Shared/Features),
 	  so untagged content pointing at tagged content fails there.
 ]]
@@ -45,6 +49,7 @@ local DataValidator = {}
 
 local ID_FORM = "^%l+%.[%l%d_]+$"
 local MAX_BUILD_TIER = 3
+local MAX_TOOL_TIER = 3 -- stone, forged, Ember Steel (ECONOMY §4.1)
 local MAX_LOOT_DEPTH = 8 -- Domain/Loot refuses to nest deeper
 local EDGE_KINDS: { [string]: boolean } = { wall = true, doorway = true, door = true, gate = true, window = true }
 local ARMOR_SLOTS: { [string]: boolean } = { head = true, body = true, legs = true, feet = true }
@@ -301,8 +306,8 @@ local function checkItems(errors: Errors, content: Types.Content)
 			push(errors, `{where}: only weapons, armor and bags have an equipSlot`)
 		end
 
-		if item.tool and not isPositiveInteger(item.tool.tier) then
-			push(errors, `{where}.tool: tier must be a positive integer`)
+		if item.tool and (not isPositiveInteger(item.tool.tier) or item.tool.tier > MAX_TOOL_TIER) then
+			push(errors, `{where}.tool: tier must be an integer from 1 to {MAX_TOOL_TIER}`)
 		end
 		local weapon = item.weapon
 		if weapon then
@@ -424,12 +429,97 @@ local function checkSalvage(errors: Errors, content: Types.Content, where: strin
 	end
 end
 
+-- Whether `itemId` can be made without station `stationId` at `level` or above: it is raw
+-- (no recipe makes it), or some recipe off that station level makes it from such inputs.
+local function craftableBelow(
+	content: Types.Content,
+	itemId: string,
+	stationId: string,
+	level: number,
+	visiting: { [string]: boolean }
+): boolean
+	if visiting[itemId] then
+		return false
+	end
+	local made = false
+	visiting[itemId] = true
+	local ok = false
+	for _, recipeId in TableUtil.sortedKeys(content.Recipes) do
+		local recipe = content.Recipes[recipeId]
+		local makes = false
+		for _, output in recipe.outputs do
+			makes = makes or output.itemId == itemId
+		end
+		if makes then
+			made = true
+			local needsLevel = recipe.stationId == stationId and (recipe.stationLevel or 1) >= level
+			if not needsLevel then
+				local inputsOk = true
+				for _, input in recipe.inputs do
+					if not craftableBelow(content, input.itemId, stationId, level, visiting) then
+						inputsOk = false
+						break
+					end
+				end
+				if inputsOk then
+					ok = true
+					break
+				end
+			end
+		end
+	end
+	visiting[itemId] = nil
+	return ok or not made
+end
+
 local function checkStations(errors: Errors, content: Types.Content)
+	-- One line per input item on each station: a dropped stack must pick one conversion.
+	local lineInputs: { [string]: { [string]: string } } = {}
+	for _, recipeId in TableUtil.sortedKeys(content.Recipes) do
+		local recipe = content.Recipes[recipeId]
+		local stationId = recipe.stationId
+		local input = recipe.inputs[1]
+		if stationId and input then
+			local inputs = lineInputs[stationId] or {}
+			lineInputs[stationId] = inputs
+			local other = inputs[input.itemId]
+			if other then
+				push(errors, `Recipes['{recipeId}']: '{stationId}' already converts '{input.itemId}' with '{other}'`)
+			end
+			inputs[input.itemId] = recipeId
+		end
+	end
+
+	-- A station's own build cost can't need what only that station makes (the first one
+	-- could never be built).
+	for _, pieceId in TableUtil.sortedKeys(content.BuildPieces) do
+		local piece = content.BuildPieces[pieceId]
+		local stationId = piece.stationId
+		if stationId and content.Stations[stationId] then
+			for _, stack in piece.cost do
+				if content.Items[stack.itemId] and not craftableBelow(content, stack.itemId, stationId, 1, {}) then
+					push(errors, `BuildPieces['{pieceId}'].cost: '{stack.itemId}' is only made at '{stationId}' itself`)
+				end
+			end
+		end
+	end
+
 	for _, id in TableUtil.sortedKeys(content.Stations) do
 		local station = content.Stations[id]
 		local where = `Stations['{id}']`
 		if #station.levels == 0 then
 			push(errors, `{where}: needs at least one level`)
+		end
+		-- ECONOMY §3: an upgrade never needs what only that level (or higher) can make.
+		for index, level in station.levels do
+			for _, stack in level.upgradeCost do
+				if content.Items[stack.itemId] and not craftableBelow(content, stack.itemId, id, index, {}) then
+					push(
+						errors,
+						`{where}.levels[{index}].upgradeCost: '{stack.itemId}' is only made at this station's level {index} or above`
+					)
+				end
+			end
 		end
 		local previousCap = 0
 		for index, level in station.levels do
@@ -511,6 +601,10 @@ local function checkNodes(errors: Errors, content: Types.Content)
 		end
 		if not isPositiveInteger(node.hits) then
 			push(errors, `{where}: hits must be a positive integer`)
+		end
+		local every = node.yieldEvery
+		if every ~= nil and (not isPositiveInteger(every) or node.hits % every ~= 0) then
+			push(errors, `{where}: yieldEvery must be a positive integer that divides hits`)
 		end
 		if #node.yields == 0 then
 			push(errors, `{where}: needs at least one yield`)
@@ -930,8 +1024,19 @@ local function checkObjective(errors: Errors, content: Types.Content, where: str
 			push(errors, `{where}: unknown build piece '{objective.pieceId}'`)
 		end
 	elseif objective.kind == "travel" then
-		if content.Locations[objective.locationId] == nil then
-			push(errors, `{where}: unknown location '{objective.locationId}'`)
+		local locationId, fogTier = objective.locationId, objective.fogTier
+		if (locationId == nil) == (fogTier == nil) then
+			push(errors, `{where}: a travel objective names a locationId or a fogTier, not both`)
+		elseif locationId ~= nil and content.Locations[locationId] == nil then
+			push(errors, `{where}: unknown location '{locationId}'`)
+		elseif fogTier ~= nil then
+			local found = false
+			for _, location in content.Locations do
+				found = found or location.fogTier == fogTier
+			end
+			if not found then
+				push(errors, `{where}: no location is in fog tier {fogTier}`)
+			end
 		end
 	elseif objective.kind == "loot" then
 		if objective.locationId ~= nil and content.Locations[objective.locationId] == nil then
@@ -1383,6 +1488,29 @@ local function checkTuning(errors: Errors, content: Types.Content)
 	checkStacks(errors, content, "Tuning.newPlayer.items", tuning.newPlayer.items)
 	checkStacks(errors, content, "Tuning.dailyGift.items", tuning.dailyGift.items)
 	checkLevel(errors, content, "Tuning.dailyGift.untilLevel", tuning.dailyGift.untilLevel)
+	local combat = tuning.combat
+	if combat.heavyDurabilityPerHit <= 0 or combat.gunDurabilityPerShot <= 0 or combat.weaponDurabilityPerHit <= 0 then
+		push(errors, "Tuning.combat: durability costs per hit and per shot must be positive")
+	end
+	local previousWarn = 1
+	for index, fraction in combat.durabilityWarn do
+		if fraction <= 0 or fraction >= previousWarn then
+			push(errors, `Tuning.combat.durabilityWarn[{index}]: fractions fall from below 1 to above 0`)
+		end
+		previousWarn = fraction
+	end
+	for _, stationId in TableUtil.sortedKeys(tuning.stationFallback) do
+		local target = tuning.stationFallback[stationId]
+		local where = `Tuning.stationFallback['{stationId}']`
+		if content.Stations[stationId] == nil or content.Stations[target] == nil then
+			push(errors, `{where}: names an unknown station`)
+		elseif tuning.stationFallback[target] ~= nil then
+			push(errors, `{where}: '{target}' falls back itself`)
+		end
+	end
+	if tuning.locationQuests.period ~= "daily" then
+		push(errors, "Tuning.locationQuests: period must be 'daily'")
+	end
 	checkLocationNodes(errors, content, "Tuning.home.nodes", tuning.home.nodes)
 	for index, nodeId in tuning.home.renewing do
 		local listed = false

@@ -31,8 +31,27 @@ local State = require("../State")
 local Interaction = {}
 
 local tuning = Content.Tuning
-local TAGS: { [string]: string } =
-	{ node = "EO_Node", station = "EO_Station", storage = "EO_Storage", drop = "EO_Drop", haven = "EO_Haven" }
+local TAGS: { [string]: string } = {
+	node = "EO_Node",
+	station = "EO_Station",
+	storage = "EO_Storage",
+	drop = "EO_Drop",
+	-- Haven Square's NPCs and boards (World/Haven).
+	haven = "EO_Haven",
+	-- Fog Runs (FogRuns/Maps, FogRuns/Props): containers and loot piles, death bags, exits.
+	container = "EO_RunContainer",
+	bag = "EO_RunBag",
+	exit = "EO_RunExit",
+}
+local KIND_LABEL: { [string]: string } = {
+	crate = "Crate",
+	strongbox = "Strongbox",
+	locker = "Locker",
+	cabinet = "Cabinet",
+	pack = "Duffel bag",
+	trunk = "Car boot",
+	pile = "Remains",
+}
 local SCAN_SECONDS = 0.1
 local VERB: { [string]: string } = { hatchet = "Chop", pick = "Mine" }
 
@@ -77,9 +96,53 @@ local function describe(model: Model, kind: string): State.Target?
 			verb = (model:GetAttribute("Verb") :: string?) or "Talk",
 			model = model,
 		}
+	elseif kind == "container" then
+		local body = model.PrimaryPart or model:FindFirstChild("Body", true)
+		local id = (if body then body:GetAttribute("ContainerId") else nil) or model:GetAttribute("ContainerId")
+		local owner = model:GetAttribute("OwnerUserId")
+		if type(id) ~= "string" or (owner ~= nil and owner ~= player.UserId) then
+			return nil -- not stocked this lobby, or another survivor's own kill
+		end
+		local opened = (body and body:GetAttribute("Opened") == true) or model:GetAttribute("Opened") == true
+		local label = KIND_LABEL[model:GetAttribute("Kind") :: string] or "Container"
+		return {
+			kind = "container",
+			key = id,
+			label = label,
+			verb = if opened or model:GetAttribute("Kind") == "pile" then "Open" else "Search",
+			model = model,
+		}
+	elseif kind == "bag" then
+		local id = model:GetAttribute("BagId")
+		if type(id) ~= "string" then
+			return nil
+		end
+		local mine = model:GetAttribute("OwnerUserId") == player.UserId
+		return {
+			kind = "bag",
+			key = id,
+			label = if mine then "Your bag" else "A survivor's bag",
+			verb = "Open",
+			model = model,
+		}
+	elseif kind == "exit" then
+		local id = model:GetAttribute("PointId")
+		local run = State.get("run")
+		if type(id) ~= "string" or type(run) ~= "table" then
+			return nil
+		end
+		return {
+			kind = "exit",
+			key = id,
+			label = (model:GetAttribute("ExitName") :: string?) or "Exit",
+			verb = "Leave",
+			model = model,
+		}
 	end
 	if kind == "node" then
-		if model:GetAttribute("Standing") ~= true or model:GetAttribute("OwnerUserId") ~= player.UserId then
+		-- Home nodes are their owner's; Fog Run nodes (no owner) are anyone's in the lobby.
+		local owner = model:GetAttribute("OwnerUserId")
+		if model:GetAttribute("Standing") ~= true or (owner ~= nil and owner ~= player.UserId) then
 			return nil
 		end
 		local def = Content.Nodes[model:GetAttribute("NodeId") :: string]
@@ -122,7 +185,11 @@ local function describe(model: Model, kind: string): State.Target?
 end
 
 -- Arm's reach to a model's centre: the reach from its edge plus its footprint radius.
-local function reachFor(_kind: string, model: Model): number
+local function reachFor(kind: string, model: Model): number
+	if kind == "exit" then
+		local radius = model:GetAttribute("Radius")
+		return if type(radius) == "number" then radius else 10
+	end
 	local size = model:GetExtentsSize()
 	return tuning.interaction.reachStuds + math.max(size.X, size.Z) / 2
 end
@@ -147,15 +214,21 @@ local function underMouse(): (Model?, string?)
 		return nil, nil
 	end
 	local camera = workspace.CurrentCamera
-	local world = workspace:FindFirstChild("World")
-	if camera == nil or world == nil then
+	local include: { Instance } = {}
+	for _, name in { "World", "FogRuns", "FogRun" } do
+		local folder = workspace:FindFirstChild(name)
+		if folder then
+			table.insert(include, folder)
+		end
+	end
+	if camera == nil or #include == 0 then
 		return nil, nil
 	end
 	local mouse = UserInputService:GetMouseLocation()
 	local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { world }
+	params.FilterDescendantsInstances = include
 	local hit = workspace:Raycast(ray.Origin, ray.Direction * 300, params)
 	return taggedAncestor(if hit then hit.Instance else nil)
 end
@@ -460,9 +533,30 @@ local function talk(target: State.Target)
 	end
 end
 
+-- Fog Run targets: search a container, open a bag, start extracting at an exit.
+local function useRun(target: State.Target): boolean
+	if target.kind == "container" then
+		Net.fire("ContainerSearch", target.key)
+		return true
+	elseif target.kind == "bag" then
+		State.set("loot", { kind = "bag", id = target.key })
+		if State.ui().panel ~= "inventory" then
+			State.toggle("inventory")
+		end
+		return true
+	elseif target.kind == "exit" then
+		local run = State.get("run")
+		Net.fire("ExtractStart", if type(run) == "table" and run.fogTier == 1 then "edge" else target.key)
+		return true
+	end
+	return false
+end
+
 -- Uses a described target now (it is in reach).
 local function use(target: State.Target)
-	if target.kind == "haven" then
+	if useRun(target) then
+		return
+	elseif target.kind == "haven" then
 		talk(target)
 	elseif target.kind == "station" then
 		State.toggle("station", target.key)
@@ -634,7 +728,8 @@ function Interaction.start()
 		local ui = State.ui()
 		if approach then
 			approachStep()
-		elseif (gathering or ui.auto) and ui.panel == "none" then
+		elseif (gathering or ui.auto) and ui.panel == "none" and ui.gate == nil then
+			-- (Not while the UI gate emulates screens: its AUTO scene must not really gather.)
 			autoStep()
 		end
 	end)

@@ -18,13 +18,23 @@ local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local State = {}
 
-export type Panel = "none" | "inventory" | "station" | "build" | "settings" | "crafting" | "project" | "shop" | "haven"
+export type Panel =
+	"none"
+	| "inventory"
+	| "station"
+	| "build"
+	| "settings"
+	| "crafting"
+	| "project"
+	| "shop"
+	| "haven"
+	| "fogmap"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
 export type Target = {
-	kind: "node" | "station" | "storage" | "drop" | "haven",
-	key: string, -- node key, piece UID, drop id or Haven Square HavenId
+	kind: "node" | "station" | "storage" | "drop" | "container" | "bag" | "exit" | "haven",
+	key: string, -- node key, piece UID, drop id, container or bag id, or Haven Square HavenId
 	label: string,
 	verb: string, -- "Chop", "Open", ...
 	model: Model,
@@ -57,6 +67,7 @@ export type Ui = {
 	inventoryTab: string?, -- the inventory's right pane: "crafting" (default) or "inbox"
 	questCollapsed: boolean?, -- the quest tracker folded to one line (8.9)
 	projectId: string?, -- the project whose parts checklist is open (panel "project")
+	fogLocation: string?, -- the Fog map's chosen location, its panel open (panel "fogmap")
 	hideUpperWalls: boolean?, -- build mode's top-left toggle (LDOE_PARITY #25)
 	pieceActions: string?, -- build mode: the placed piece whose floating actions show (#27)
 	shopFocus: string?, -- the product a moment-of-need button opened the shop on
@@ -129,6 +140,28 @@ function State.hold(on: boolean)
 			State.set(section, value)
 		end
 	end
+end
+
+-- Whether a Fog Run's full-screen moment is up (the death screen, the results card or the
+-- run loading screen): like a full-screen panel, it hides the touch controls and chat.
+function State.fullScreenMoment(): boolean
+	if type(State.get("death")) == "table" then
+		return true
+	end
+	if type(State.get("result")) == "table" and type(State.get("run")) ~= "table" then
+		return true
+	end
+	local travel = State.get("travel")
+	if type(travel) == "table" then
+		local arrived = type(travel.arrivesAt) == "number" and State.now() >= travel.arrivesAt
+		return travel.mode == "run" or travel.matching == true or arrived
+	end
+	return false
+end
+
+-- Whether the UI gate holds the state (controllers leave fixture sections alone).
+function State.isHeld(): boolean
+	return held
 end
 
 -- A server sync: applied now, or kept until the hold ends.

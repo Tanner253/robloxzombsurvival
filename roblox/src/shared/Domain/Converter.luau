@@ -152,8 +152,13 @@ function Converter.nextLevel(def: Types.StationDef, level: number): Types.Statio
 	return nil
 end
 
--- Every conversion the station offers ("ALL RECIPES"), sorted by key.
-function Converter.lines(def: Types.StationDef, recipes: { [string]: Types.RecipeDef }): { Line }
+-- Every conversion the station offers ("ALL RECIPES"), sorted by key. With `items`, food and
+-- drink lines come first (ECONOMY §8.4: a hungry survivor cooks before making coal).
+function Converter.lines(
+	def: Types.StationDef,
+	recipes: { [string]: Types.RecipeDef },
+	items: { [string]: Types.ItemDef }?
+): { Line }
 	local result: { Line } = {}
 	for id, recipe in recipes do
 		if recipe.stationId == def.id then
@@ -185,7 +190,15 @@ function Converter.lines(def: Types.StationDef, recipes: { [string]: Types.Recip
 			unlock = DEFAULT_GATE,
 		})
 	end
+	local function food(line: Line): boolean
+		local item = if items then items[line.outputs[1].itemId] else nil
+		return line.recipeId ~= nil and item ~= nil and item.consume ~= nil
+	end
 	table.sort(result, function(a: Line, b: Line)
+		local aFood, bFood = food(a), food(b)
+		if aFood ~= bFood then
+			return aFood
+		end
 		return a.key < b.key
 	end)
 	return result

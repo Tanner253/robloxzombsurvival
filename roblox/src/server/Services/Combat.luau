@@ -152,8 +152,9 @@ local function broadcast(run: Lobby.Run, kind: string, payload: any)
 	end
 end
 
--- Wears the active hand's weapon; a broken one leaves the slot empty.
-local function wear(player: Player, fighter: Fighter)
+-- Wears the active hand's weapon (ECONOMY §8.1: a light hit 1, a heavy one 2, every round
+-- fired 1); a broken one leaves the slot empty. Toasts at the last warning line.
+local function wear(player: Player, fighter: Fighter, action: CombatMath.WearAction)
 	local data = PlayerData.get(player)
 	local key = SLOT_KEYS[fighter.hands.active]
 	if data == nil or key == nil then
@@ -164,13 +165,24 @@ local function wear(player: Player, fighter: Fighter)
 	if slot == nil or slot.count <= 0 or slot.durability == nil then
 		return
 	end
-	slot.durability -= tuning.combat.weaponDurabilityPerHit
+	local before = slot.durability
+	slot.durability -= CombatMath.wear(action, tuning.combat)
+	local def = Items[slot.itemId]
+	local warning = if def and def.durability
+		then CombatMath.wearWarning(before, slot.durability, def.durability, tuning.combat)
+		else nil
+	if slot.durability > 0 and warning ~= nil and warning == #tuning.combat.durabilityWarn then
+		Sync.notice(player, `Your {def and def.name or "weapon"} is about to break`)
+	end
 	if slot.durability <= 0 then
 		local name = Items[slot.itemId] and Items[slot.itemId].name or "weapon"
 		equipment[key] = InventoryMath.emptySlot()
 		-- LDOE_PARITY #45: switch to the other slot, or bare fists, with a toast.
 		local hands, switched = Hands.onBreak(fighter.hands, now(), Items, tuning.hands)
 		fighter.hands = hands
+		if switched then
+			Inventory.setActiveWeapon(player, hands.active) -- the held model follows
+		end
 		Sync.notice(player, if switched then `Your {name} broke: switched weapons` else `Your {name} broke`)
 		sendHands(player, fighter)
 	end
@@ -255,7 +267,7 @@ local function strike(
 			"hit",
 			{ id = target.id, damage = dealt, crit = hit.crit, hitStop = hit.hitStopSeconds, heavy = heavy }
 		)
-		wear(player, fighter)
+		wear(player, fighter, if heavy then "heavy" else "light")
 	end
 end
 
@@ -385,7 +397,7 @@ local function fireBow(
 	if CombatMath.arrowRecovered(bow, rng) then
 		Containers.spawnPile(run.hosted, impact, { { itemId = ammo, count = 1 } }, player.UserId)
 	end
-	wear(player, fighter)
+	wear(player, fighter, "arrow")
 end
 
 local function fire(player: Player, yaw: number, lockId: string?)
@@ -429,7 +441,7 @@ local function fire(player: Player, yaw: number, lockId: string?)
 	end
 	Hollow.noise(run.hosted, "gunshot", origin, firearm, `u{player.UserId}`)
 	broadcast(run, "shot", { userId = player.UserId, yaw = aim, itemId = hand.itemId })
-	wear(player, fighter)
+	wear(player, fighter, "shot")
 	sendHands(player, fighter)
 end
 
@@ -631,8 +643,15 @@ function Combat.init()
 	Net.onEvent("CombatReload", reload)
 	Net.onEvent("CombatDodge", dodge)
 	-- WeaponSelect, WeaponSwap and UseMeds belong to the Inventory service (home remotes);
-	-- it forwards them to Combat.onWeaponSelect / onWeaponSwap / onUseMeds while the player is
-	-- fighting in a lobby (slice 2 Phase B).
+	-- it forwards them here while the player is fighting in a lobby.
+	Inventory.combat = {
+		active = function(player: Player): boolean
+			return fighters[player] ~= nil
+		end,
+		select = Combat.onWeaponSelect,
+		swap = Combat.onWeaponSwap,
+		meds = Combat.onUseMeds,
+	}
 end
 
 function Combat.start()
@@ -644,8 +663,11 @@ function Combat.start()
 		return fighter ~= nil and CombatMath.invulnerable(fighter.dodge, now())
 	end
 	Lobby.entered:Connect(function(player: Player)
+		-- The run starts with whichever slot was in hand at home.
+		local hands = Hands.new(slotIds(player), Items, tuning.hands)
+		hands.active = Inventory.activeWeapon(player)
 		local fighter: Fighter = {
-			hands = Hands.new(slotIds(player), Items, tuning.hands),
+			hands = hands,
 			stamina = CombatMath.newStamina(tuning.stamina, now()),
 			dodge = CombatMath.newDodge(),
 			drawStartedAt = nil,

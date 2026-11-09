@@ -4,8 +4,8 @@
 	Pure; pass `now` and an Rng source in.
 
 	A node instance is { hitsLeft, respawnAt }. Each hit yields every
-	NodeYield.perHit (rolling `chance` when set) and wears the tool by
-	Tuning.gathering.durabilityPerHit. The last hit depletes the node until
+	NodeYield.perHit (rolling `chance` when set; on tier-2 nodes only every yieldEvery-th
+	hit yields) and wears the tool by Tuning.gathering.durabilityPerHit. The last hit depletes the node until
 	`respawnAt`; `refresh` brings it back once that time has passed. Home nodes are
 	finite (LDOE_PARITY #30): their last hit sets respawnAt to Gathering.NEVER and
 	they stay depleted for good.
@@ -109,6 +109,26 @@ function Gathering.pickTool(
 end
 
 --[[
+	Whether the hit that finds the node at `hitsLeft` yields (ResourceNodeDef.yieldEvery,
+	ECONOMY §11.1): only every yieldEvery-th hit does, counting from the first, so a 4-hit
+	Ironbark with yieldEvery 2 gives a log on hits 2 and 4. XP is still paid on every hit.
+]]
+function Gathering.yieldsOnHit(def: Types.ResourceNodeDef, hitsLeft: number): boolean
+	local every = def.yieldEvery or 1
+	return (def.hits - hitsLeft + 1) % every == 0
+end
+
+-- Units of each item one whole node gives (chance yields at their expected value).
+function Gathering.expectedYield(def: Types.ResourceNodeDef): { [Types.ItemId]: number }
+	local yielding = def.hits // (def.yieldEvery or 1)
+	local result: { [Types.ItemId]: number } = {}
+	for _, entry in def.yields do
+		result[entry.itemId] = (result[entry.itemId] or 0) + entry.perHit * (entry.chance or 1) * yielding
+	end
+	return result
+end
+
+--[[
 	One hit. Returns the new node state, what it yielded and whether this hit
 	depleted it, or nil, {}, false and "depleted" when it is not standing.
 ]]
@@ -126,9 +146,11 @@ function Gathering.hit(
 		return nil, {}, false, "depleted"
 	end
 	local yields: { Types.ItemStack } = {}
-	for _, entry in def.yields do
-		if entry.chance == nil or rng:NextNumber() < entry.chance then
-			table.insert(yields, { itemId = entry.itemId, count = entry.perHit })
+	if Gathering.yieldsOnHit(def, current.hitsLeft) then
+		for _, entry in def.yields do
+			if entry.chance == nil or rng:NextNumber() < entry.chance then
+				table.insert(yields, { itemId = entry.itemId, count = entry.perHit })
+			end
 		end
 	end
 	local hitsLeft = current.hitsLeft - 1

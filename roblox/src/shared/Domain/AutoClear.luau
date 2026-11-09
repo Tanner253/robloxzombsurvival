@@ -141,11 +141,14 @@ function AutoClear.roll(location: Types.LocationDef, ctx: Context): Haul
 		local node = ctx.nodes[entry.nodeId]
 		if node then
 			for _ = 1, portion(entry.count, ctx.config.nodeShare, ctx.rng) do
-				for _ = 1, node.hits do
+				for hit = 1, node.hits do
 					haul.xp += node.xpPerHit
-					for _, yield in node.yields do
-						if yield.chance == nil or ctx.rng:NextNumber() < yield.chance then
-							merge(haul.items, yield.itemId, yield.perHit)
+					-- Tier-2 nodes yield only on every yieldEvery-th hit (Domain/Gathering).
+					if hit % (node.yieldEvery or 1) == 0 then
+						for _, yield in node.yields do
+							if yield.chance == nil or ctx.rng:NextNumber() < yield.chance then
+								merge(haul.items, yield.itemId, yield.perHit)
+							end
 						end
 					end
 				end

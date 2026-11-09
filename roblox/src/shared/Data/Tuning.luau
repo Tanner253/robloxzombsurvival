@@ -63,7 +63,11 @@ local Tuning: Types.TuningDef = {
 	},
 	combat = {
 		armorConstant = 50 / 3, -- LDoE's damage reduction formula
-		weaponDurabilityPerHit = 1,
+		-- Durability (docs/ECONOMY.md §8.1): everything wears out at LDoE's rate or faster.
+		weaponDurabilityPerHit = 1, -- a landed light hit; each arrow released
+		heavyDurabilityPerHit = 2, -- a landed heavy swing
+		gunDurabilityPerShot = 1, -- every round fired, hit or miss (a shotgun shell is a round)
+		durabilityWarn = { 0.25, 0.10 }, -- the weapon ring turns amber, then red with a toast
 		armorDurabilityPerHitTaken = 1,
 		critChance = 0.08, -- Fog Runs: one hit in 12; rolled once per shot, not per pellet
 		critMultiplier = 1.5,
@@ -102,6 +106,9 @@ local Tuning: Types.TuningDef = {
 		-- stations, floors and walls), and it never respawns. Node state is saved per
 		-- outpost, so a restart or rejoin never refills it; repeat farming happens on Fog
 		-- Runs. The spring is a well, not a stock: it refills like a Fog Run node.
+		-- ECONOMY §1.3: 20 pines, 7 boulders and 5 heaps are LDoE's 60 timber, 21 stone and
+		-- 40 scrap. Loose stones are 11 (was 10): the hook's stations, blocks and the 2 picks
+		-- that 41 rock and heap hits wear through need 42 stone (tests/Pacing.spec).
 		nodes = {
 			{ nodeId = "node.pine_tree", count = 20 },
 			{ nodeId = "node.boulder", count = 7 },
@@ -109,7 +116,7 @@ local Tuning: Types.TuningDef = {
 			{ nodeId = "node.ember_bush", count = 7 },
 			{ nodeId = "node.reed_patch", count = 20 },
 			{ nodeId = "node.fallen_branches", count = 12 },
-			{ nodeId = "node.loose_stones", count = 10 },
+			{ nodeId = "node.loose_stones", count = 11 },
 			{ nodeId = "node.spring_pool", count = 1 },
 		},
 		-- The exception: water sources refill on their node respawnSeconds, the way LDoE's
@@ -171,6 +178,16 @@ local Tuning: Types.TuningDef = {
 	shield = {
 		afterRaidSeconds = 8 * 60 * 60,
 	},
+	-- docs/ECONOMY.md §10.1: the Smelter and Stonecutter are launch stations, but their models
+	-- still wait for an A grade (Art.pieces lists none), so their lines run here until then:
+	-- ingots at the fuelled Campfire, blocks at the Saw Bench. (Not the Workbench, as §10.1
+	-- has it: the Workbench costs blocks, so the first one could never be built.) Delete each
+	-- entry the day its model is approved (tests/Economy.spec checks this against Art.pieces).
+	-- (Both models graded A in the launch lineup, docs/milestones/m1-launch L01-L03: none left.)
+	stationFallback = {},
+	-- docs/ECONOMY.md §6.2: location quests pay once per UTC day per player, not per lobby,
+	-- so a Rations reward can never refund the Run that earned it.
+	locationQuests = { period = "daily" },
 
 	-- Fog Runs (M1 slice 2) -------------------------------------------------------------
 	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the
@@ -179,6 +196,10 @@ local Tuning: Types.TuningDef = {
 		fogRuns = false,
 		aiRaiders = false, -- M2
 		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
+		-- M4 (docs/MVP_LAUNCH.md): built and tested on the server, no client UI yet. Off, Dense
+		-- and Black fog open on the level gate alone, and no airdrops land.
+		regionGates = false,
+		airdrops = false,
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby
@@ -303,7 +324,7 @@ local Tuning: Types.TuningDef = {
 		-- needs brass and springs from Dense runs (about day 5, with level 15).
 		{
 			id = "tower_dense",
-			name = "Quarry Signal Tower",
+			name = "Crossing Signal Tower",
 			fogTier = 2,
 			parts = {
 				{ itemId = "item.plank", count = 20 },
@@ -388,6 +409,8 @@ local Tuning: Types.TuningDef = {
 		speedUpFactor = 3.9, -- Embers = max(speedUpMin, ceil(3.9 x sqrt(minutes left)))
 		speedUpMin = 2,
 		speedUpMinSeconds = 120, -- speed-ups show from 2 minutes left
+		-- Embers a missing unit: max(1, round(40 x free minutes / 60)), the minutes as in
+		-- Data/Products' header (docs/ECONOMY.md chains; rebalance with the pacing sim).
 		fillUp = {
 			["item.sticks"] = 1,
 			["item.timber"] = 1,
@@ -396,12 +419,20 @@ local Tuning: Types.TuningDef = {
 			["item.scrap"] = 1,
 			["item.emberberry"] = 1,
 			["item.rope"] = 1,
+			["item.ironstone"] = 1,
+			["item.malachite"] = 1,
+			["item.ironbark_log"] = 1,
+			["item.embercoal"] = 1,
 			["item.cloth"] = 2,
 			["item.plank"] = 2,
 			["item.stone_block"] = 3,
-			["item.scrap_plate"] = 4,
-			["item.rivets"] = 3,
+			["item.iron_ingot"] = 3,
 			["item.pitch_glue"] = 3,
+			["item.rivets"] = 8,
+			["item.scrap_plate"] = 13,
+			["item.ironbark_plank"] = 13,
+			["item.copper_wire"] = 13,
+			["item.copper_ingot"] = 20,
 		},
 		vipTrialDays = 7, -- any purchase opens the VIP Lounge for this long (LDoE's VIP 1)
 		firstPurchaseHours = 48, -- the Firestarter Kit's window after the first win

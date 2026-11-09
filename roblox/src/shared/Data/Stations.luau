@@ -8,12 +8,18 @@
 	20 at level 1 and +20 per level, as in LDoE. Fuelled stations burn fuel only while
 	converting. Stations only refine materials; gear is crafted by hand (#20).
 
-	Roster (#19): Woodworking Bench (timber -> planks), Stonecutter (stone -> blocks),
-	Smelter (scrap -> plate), Workbench (cloth and rivets), Campfire (cooking), and the
-	Recycler (junk -> parts). The Tanning Rack and Sewing Table come later.
+	Roster (#19, ECONOMY §3): the Saw Bench (station.woodworking_bench: planks; Ironbark
+	Planks at level 2), Stonecutter (blocks), Smelter (ore or scrap -> Iron Ingots; Copper
+	Ingots at level 2; fuelled), Workbench (plates, rivets, cloth; Copper Wire at level 2),
+	Campfire (cooking, Embercoal, Pitch Glue; fuelled), and the Recycler (junk -> parts).
+	The Tanning Rack and Sewing Table come later. "Woodworking Bench" is LDoE's own name, so
+	ours displays as the Saw Bench (ECONOMY §1.5); the ID stays.
 
-	Fuel burn times follow LDoE's station pages: a log 2 min, a plank 3 min, a charcoal-like
-	fatwood about 5 min.
+	Level upgrades use only lower-tier materials (no chicken-and-egg stalls, §3): the Saw
+	Bench's level 2 costs Hewn Planks, never Ironbark Planks.
+
+	Fuel burn times follow LDoE's station pages: a log 2 min, a plank 3 min, Embercoal and
+	fatwood 5 min 20 s like LDoE's charcoal. Tier-2 planks are not fuel.
 ]]
 
 local Types = require("../Types")
@@ -27,24 +33,33 @@ local function levels(level2: { Types.ItemStack }, level3: { Types.ItemStack }):
 end
 
 local WOOD_FUEL: Types.StationFuel = {
-	itemIds = { "item.sticks", "item.timber", "item.plank", "item.fatwood" },
-	secondsPerUnit = 2 * 60,
+	itemIds = {
+		"item.sticks",
+		"item.timber",
+		"item.ironbark_log",
+		"item.plank",
+		"item.fatwood",
+		"item.embercoal",
+	},
+	secondsPerUnit = 2 * 60, -- timber and Ironbark Logs
 	burnSeconds = {
 		["item.sticks"] = 60,
 		["item.plank"] = 3 * 60,
 		["item.fatwood"] = 5 * 60 + 20,
+		["item.embercoal"] = 5 * 60 + 20,
 	},
 }
 
 local Stations: { [Types.StationId]: Types.StationDef } = {
 	["station.woodworking_bench"] = {
 		id = "station.woodworking_bench",
-		name = "Woodworking Bench",
+		name = "Saw Bench",
 		levels = levels({
 			{ itemId = "item.plank", count = 20 },
 			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.rivets", count = 4 },
 		}, {
-			{ itemId = "item.plank", count = 30 },
+			{ itemId = "item.ironbark_plank", count = 20 },
 			{ itemId = "item.scrap_plate", count = 12 },
 			{ itemId = "item.brass_gear", count = 2 },
 		}),
@@ -67,6 +82,7 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 		levels = levels({
 			{ itemId = "item.stone_block", count = 20 },
 			{ itemId = "item.scrap_plate", count = 10 },
+			{ itemId = "item.rivets", count = 4 },
 		}, {
 			{ itemId = "item.stone_block", count = 30 },
 			{ itemId = "item.scrap_plate", count = 16 },
@@ -146,7 +162,8 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 				seconds = 5 * 60,
 				outputs = {
 					{ itemId = "item.scrap", min = 1, max = 3, chance = 1 },
-					{ itemId = "item.rivets", min = 2, max = 3, chance = 0.6 },
+					{ itemId = "item.copper_wire", min = 1, max = 1, chance = 0.3 },
+					{ itemId = "item.rivets", min = 1, max = 1, chance = 0.3 },
 				},
 			},
 			{
@@ -155,6 +172,7 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 				outputs = {
 					{ itemId = "item.scrap_plate", min = 1, max = 2, chance = 1 },
 					{ itemId = "item.coil_spring", min = 1, max = 2, chance = 0.6 },
+					{ itemId = "item.copper_wire", min = 1, max = 2, chance = 0.35 },
 					{ itemId = "item.brass_gear", min = 1, max = 1, chance = 0.25 },
 				},
 			},
@@ -164,6 +182,25 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 				outputs = {
 					{ itemId = "item.plank", min = 1, max = 2, chance = 1 },
 					{ itemId = "item.scrap", min = 1, max = 2, chance = 0.5 },
+				},
+			},
+			-- Forged tools (ECONOMY §3.1): worn ones still give their iron back.
+			{
+				inputItemId = "item.forged_hatchet",
+				seconds = 10 * 60,
+				outputs = {
+					{ itemId = "item.iron_ingot", min = 2, max = 3, chance = 1 },
+					{ itemId = "item.rivets", min = 1, max = 1, chance = 0.5 },
+					{ itemId = "item.plank", min = 1, max = 1, chance = 0.4 },
+				},
+			},
+			{
+				inputItemId = "item.forged_pick",
+				seconds = 10 * 60,
+				outputs = {
+					{ itemId = "item.iron_ingot", min = 2, max = 3, chance = 1 },
+					{ itemId = "item.rivets", min = 1, max = 1, chance = 0.5 },
+					{ itemId = "item.plank", min = 1, max = 1, chance = 0.4 },
 				},
 			},
 			{

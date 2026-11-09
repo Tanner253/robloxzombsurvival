@@ -77,7 +77,13 @@ local function inPlace(hosted: Lobby.Hosted, pointId: string, root: BasePart): b
 		return true -- anywhere: that's the gamble
 	end
 	local marker = Map.point(hosted.map, pointId)
-	return marker ~= nil and (marker.Position - root.Position).Magnitude <= config.radiusStuds
+	if marker == nil then
+		return false
+	end
+	-- Measured on the ground plane (a bridge deck or a slope must not push a survivor
+	-- standing in the ring out of reach), within a storey up or down.
+	local offset = marker.Position - root.Position
+	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= config.radiusStuds and math.abs(offset.Y) <= 12
 end
 
 local REASONS: { [string]: string } = {

@@ -1,0 +1,19 @@
+{
+  "creator": 11569755804,
+  "uploaded": "2026-11-08 via the Ember window's Open Cloud (uploads only)",
+  "models": {
+    "EO_SedanWreck": { "id": 121904797870360, "source": "glb/sedan_wreck.glb" },
+    "EO_PickupWreck": { "id": 112415392425301, "source": "glb/pickup_wreck.glb" },
+    "EO_VanWreck": { "id": 75377164376070, "source": "glb/van_wreck.glb" },
+    "EO_TractorWreck": { "id": 138754378882219, "source": "glb/tractor_wreck.glb" },
+    "EO_AppleTree": { "id": 119281991299964, "source": "glb/apple_tree.glb" },
+    "EO_HayBales": { "id": 98372468469042, "source": "glb/hay_bales.glb" },
+    "EO_Boxcar": { "id": 133928155401070, "source": "glb/boxcar.glb" },
+    "EO_FuelPump": { "id": 130764128762105, "source": "glb/fuel_pump.glb" },
+    "EO_Shortbow": { "id": 104799057457758, "source": "glb/shortbow.glb" },
+    "EO_FireAxe": { "id": 101477205236958, "source": "glb/fire_axe.glb" },
+    "EO_ScrapShotgun": { "id": 72894953650046, "source": "../../zona/guns/zona_sawnoff.glb", "license": "CC-BY-4.0, sawnoffs Animated by DJMaesen" },
+    "EO_Machete": { "id": 105390370970083, "source": "../../zona/melee/zona_machete.glb", "license": "CC0, Poly Haven Machete by Ulan Cabanilla" },
+    "EO_WornPistol": { "id": 137577727330156, "source": "../../zona/guns/zona_service_pistol_one.glb", "license": "CC0, Poly Haven Service Pistol by Mateusz Sadek" }
+  }
+}

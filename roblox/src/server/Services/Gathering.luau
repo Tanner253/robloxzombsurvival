@@ -37,6 +37,8 @@ local Inventory = require("./Inventory")
 local Plots = require("./Plots")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
+local Map = require("../FogRuns/Map")
+local Lobby = require("./Lobby")
 
 local Gathering = {}
 
@@ -50,7 +52,8 @@ type Node = {
 	model: Model,
 	position: Vector3,
 	radius: number,
-	plot: Plots.Plot,
+	plot: Plots.Plot?, -- a home node's plot; nil for a Fog Run node
+	lobbyId: string?, -- a Fog Run node's lobby: anyone in it may harvest (nothing regrows there)
 	-- The stump or rubble shown while the node is down: each part's authored transparency.
 	remnant: { [BasePart]: number }?,
 }
@@ -229,6 +232,65 @@ local function clearNodes(plot: Plots.Plot)
 	plot.nodes:ClearAllChildren()
 end
 
+-- Fog Runs: a lobby's nodes stand on its map's "node" markers (FogRuns/Map). Anyone in the
+-- lobby harvests them, first come first served, and they don't regrow before it closes.
+local function spawnLobbyNodes(hosted: Lobby.Hosted)
+	local random = Random.new(hosted.state.seed)
+	local folder = Instance.new("Folder")
+	folder.Name = `Nodes_{hosted.id}`
+	folder.Parent = hosted.map or workspace
+	local stamp = os.time()
+	for index, marker in Map.markers(hosted.map, "node") do
+		local nodeId = marker:GetAttribute("NodeId")
+		local def = if type(nodeId) == "string" then Content.Nodes[nodeId] else nil
+		if def == nil or not Art.nodeReady(def.id) then
+			continue -- no approved model yet: it doesn't appear (checklist §0)
+		end
+		local model = Models.node(def, random)
+		if model == nil then
+			continue
+		end
+		local key = `r{hosted.id}:{index}`
+		local position = Map.ground(marker.Position.X, marker.Position.Z, marker.Position.Y, { folder })
+		local scale = 0.88 + random:NextNumber() * 0.24
+		model:ScaleTo(model:GetScale() * scale)
+		model:PivotTo(CFrame.new(position) * CFrame.Angles(0, random:NextNumber() * math.pi * 2, 0))
+		local size = model:GetExtentsSize()
+		model:SetAttribute("NodeKey", key)
+		model:SetAttribute("NodeId", def.id)
+		model:SetAttribute("Hits", def.hits)
+		CollectionService:AddTag(model, Gathering.TAG)
+		local node: Node = {
+			key = key,
+			saveKey = key,
+			def = def,
+			state = GatheringMath.fromSave(nil, def, stamp),
+			model = model,
+			position = position,
+			radius = math.max(size.X, size.Z) / 2,
+			plot = nil,
+			lobbyId = hosted.id,
+		}
+		setStanding(node, true)
+		model:SetAttribute("HitsLeft", node.state.hitsLeft)
+		model.Parent = folder
+		nodes[key] = node
+	end
+end
+
+local function clearLobbyNodes(hosted: Lobby.Hosted)
+	for key, node in nodes do
+		if node.lobbyId == hosted.id then
+			nodes[key] = nil
+			node.model:Destroy()
+		end
+	end
+	local folder = hosted.map and hosted.map:FindFirstChild(`Nodes_{hosted.id}`)
+	if folder then
+		folder:Destroy()
+	end
+end
+
 -- Analytics ------------------------------------------------------------------------------------------
 
 local function flushAnalytics(player: Player)
@@ -266,8 +328,18 @@ end
 
 local function gather(player: Player, key: string)
 	local node = nodes[key]
-	if node == nil or node.plot.owner ~= player then
+	if node == nil then
 		return
+	end
+	if node.plot then
+		if (node.plot :: Plots.Plot).owner ~= player then
+			return
+		end
+	else
+		local run = Lobby.runOf(player)
+		if run == nil or run.hosted.id ~= node.lobbyId then
+			return
+		end
 	end
 	local now = workspace:GetServerTimeNow()
 	if now - (lastSwing[player] or 0) < tuning.gathering.swingSeconds * COOLDOWN_TOLERANCE then
@@ -293,13 +365,18 @@ local function gather(player: Player, key: string)
 		return
 	end
 	lastSwing[player] = now
-	local respawn = GatheringMath.homeRespawn(node.def.id, tuning.home.renewing)
+	-- Home nodes follow the renewing list; a Fog Run's never grow back within its lobby.
+	local respawn = if node.plot
+		then GatheringMath.homeRespawn(node.def.id, tuning.home.renewing)
+		else GatheringMath.NEVER
 	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp, respawn)
 	if nextState == nil then
 		return
 	end
 	node.state = nextState
-	saveNode(player, node)
+	if node.plot then
+		saveNode(player, node)
+	end
 	local given, leftover = Inventory.give(player, yields)
 	if #leftover > 0 then
 		-- Bag full: the rest lands beside the node as a bag to pick up later (LDoE).
@@ -374,10 +451,21 @@ function Gathering.init()
 end
 
 function Gathering.start()
+	Lobby.opened:Connect(function(hosted: Lobby.Hosted)
+		local ok, err = pcall(spawnLobbyNodes :: any, hosted)
+		if not ok then
+			warn(`Gathering: lobby nodes failed: {err}`)
+		end
+	end)
+	Lobby.closed:Connect(clearLobbyNodes)
 	Plots.claimed:Connect(spawnNodes)
 	Plots.releasing:Connect(function(player: Player, plot: Plots.Plot)
 		flushAnalytics(player)
 		clearNodes(plot)
+		lastSwing[player] = nil
+	end)
+	-- Run servers have no plots to release.
+	Players.PlayerRemoving:Connect(function(player: Player)
 		lastSwing[player] = nil
 	end)
 	task.spawn(function()
@@ -389,8 +477,9 @@ function Gathering.start()
 				if node.state.hitsLeft <= 0 and GatheringMath.isStanding(node.state, stamp) then
 					node.state = GatheringMath.refresh(node.state, node.def, stamp)
 					setStanding(node, true)
-					if node.plot.owner then
-						saveNode(node.plot.owner, node)
+					local plot = node.plot
+					if plot and plot.owner then
+						saveNode(plot.owner, node)
 					end
 				end
 			end

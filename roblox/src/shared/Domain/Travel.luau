@@ -69,7 +69,7 @@ export type Options = {
 	levelOk: boolean,
 }
 
-export type Reason = "level" | "energy" | "unavailable" | "tooLate" | "gate"
+export type Reason = "level" | "energy" | "unavailable" | "tooLate" | "walkTooLate" | "gate"
 
 local function round(value: number): number
 	return math.max(0, math.floor(value + 0.5))
@@ -104,7 +104,8 @@ end
 --[[
 	Starts a trip. Returns the trip and the new energy state, or nil, nil and a
 	reason: "level" (below the location's level gate), "unavailable" (a rotating
-	location that is closed now) or "energy" (cannot afford the Run).
+	location that is closed now), "walkTooLate" (a Walk that would arrive after a
+	rotating location closes) or "energy" (cannot afford the Run).
 ]]
 function Travel.start(destination: Destination, mode: Mode, ctx: Context): (Trip?, Energy.State?, Reason?)
 	if ctx.level < destination.levelGate then
@@ -117,6 +118,9 @@ function Travel.start(destination: Destination, mode: Mode, ctx: Context): (Trip
 		end
 	elseif availability and not Travel.isAvailable(availability, ctx.now) then
 		return nil, nil, "unavailable"
+	end
+	if mode == "walk" and Travel.walkTooLate(destination, ctx.config, ctx.now) then
+		return nil, nil, "walkTooLate"
 	end
 	if
 		destination.fogTier
@@ -227,6 +231,16 @@ end
 -- Whether a Walk started now would arrive before `deadline` (e.g. a rotating location closing).
 function Travel.walkArrivesBefore(destination: Destination, config: Config, now: number, deadline: number): boolean
 	return now + Travel.plan(destination, "walk", config).seconds < deadline
+end
+
+-- Whether a Walk to an open rotating location would arrive after it closes.
+function Travel.walkTooLate(destination: Destination, config: Config, now: number): boolean
+	local availability = destination.availability
+	if availability == nil or availability.kind ~= "rotating" or not Travel.isAvailable(availability, now) then
+		return false
+	end
+	local closes = now + Travel.secondsUntilChange(availability, now)
+	return not Travel.walkArrivesBefore(destination, config, now, closes)
 end
 
 --[[

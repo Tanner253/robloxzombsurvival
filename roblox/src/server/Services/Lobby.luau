@@ -41,6 +41,7 @@ local RunTicket = require(Domain.RunTicket)
 local Net = require("../Net")
 local Map = require("../FogRuns/Map")
 local Payments = require("../FogRuns/Payments")
+local Props = require("../FogRuns/Props")
 local Teleport = require("../FogRuns/Teleport")
 local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
@@ -48,6 +49,7 @@ local Inventory = require("./Inventory")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Progression = require("./Progression")
+local RunWorld = require("./RunWorld")
 local Sync = require("./Sync")
 
 local Lobby = {}
@@ -62,6 +64,7 @@ local TICK_SECONDS = 0.5
 local MATCH_SECONDS = 1
 local PUBLISH_SECONDS = 5
 local STATE_SECONDS = 1
+local DEATH_LINGER_SECONDS = 4 -- the death screen shows on the run server before the trip home
 
 export type RunStats = {
 	enteredAt: number,
@@ -86,10 +89,13 @@ export type Run = {
 	hosted: Hosted,
 	ticket: RunTicket.Ticket,
 	stats: RunStats,
+	-- Watches every body the player has during the run (deaths, respawns).
+	watch: RBXScriptConnection?,
+	hadBody: boolean,
 }
 
 type Party = { id: string, leader: Player, members: { Player } }
-type Queued = { entry: Matchmaking.Entry, players: { Player } }
+type Queued = { entry: Matchmaking.Entry, players: { Player }, mode: ("run" | "walk")? }
 type Reentry = { lobbyId: string, locationId: string, untilAt: number }
 
 -- Signals for the other Fog Run services.
@@ -99,7 +105,7 @@ Lobby.entered = Signal.new() -- (player, run)
 Lobby.exited = Signal.new() -- (player, run, outcome): fires before the player is sent home
 Lobby.bandChanged = Signal.new() -- (hosted, band)
 Lobby.hurt = Signal.new() -- (player, damage, cause)
-Lobby.failed = Signal.new() -- (player, reason): a trip in that never happened (refund it)
+Lobby.failed = Signal.new() -- (player, reason, ticket?): a trip in that never happened (refund it)
 
 -- Set by Combat: whether a player is inside a dodge roll's i-frames.
 Lobby.invulnerable = function(_player: Player): boolean
@@ -116,7 +122,23 @@ local queue: { [string]: Queued } = {}
 local reentries: { [Player]: Reentry } = {}
 local lastCause: { [Player]: string } = {}
 local providers: { [string]: (Player, Run) -> any } = {}
+-- What a player brought home from their last run (results card, death screen, re-entry),
+-- shown once by the client from the "homecoming" section.
+local homecomings: { [Player]: { [string]: any } } = {}
+local bagModels: { [string]: Model } = {} -- death bags in the world, by bagKey(lobby, drop)
+local pendingHosts: { [string]: boolean } = {} -- lobbies whose map is still being built
+local pendingHome: { [Player]: { data: Teleport.HomeData, homePlaceId: number, tries: number } } = {}
+local loadWaits: { [Player]: any } = {} -- run arrivals waiting on their profile
+local dispatched: { [Player]: number } = {} -- when a player's teleport to a lobby was sent
+local recoverDaily: { [Player]: DeathRecovery.DailyState } = {}
 local seq = 0
+
+local HOME_RETRIES = 3
+local DISPATCH_GRACE_SECONDS = 30
+
+local function bagKey(lobbyId: string, dropId: string): string
+	return `{lobbyId}:{dropId}`
+end
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -310,19 +332,39 @@ local function carried(player: Player): { Types.ItemStack }
 	return stacks
 end
 
-local function sendHome(player: Player, run: Run, data: Teleport.HomeData)
+-- Sends a player home, retrying a failed teleport with backoff; after the last try they
+-- are asked to rejoin (which lands them home) rather than stranded on a closed run.
+local function sendHome(player: Player, homePlaceId: number, data: Teleport.HomeData)
 	local transport = adapter
-	if transport == nil then
+	if transport == nil or player.Parent ~= Players then
+		pendingHome[player] = nil
 		return
 	end
-	local ok, err = transport.sendHome(player, run.ticket.homePlaceId, data)
-	if not ok then
-		warn(`Lobby: could not send {player.Name} home: {err}`)
+	local pending = pendingHome[player] or { data = data, homePlaceId = homePlaceId, tries = 0 }
+	pending.tries += 1
+	pendingHome[player] = pending
+	local ok, err = transport.sendHome(player, homePlaceId, data)
+	if ok then
+		if transport.kind == "simulated" then
+			pendingHome[player] = nil -- home already
+		end
+		return
 	end
+	warn(`Lobby: could not send {player.Name} home (try {pending.tries}): {err}`)
+	if pending.tries >= HOME_RETRIES then
+		pendingHome[player] = nil
+		player:Kick("Couldn't get you home. Rejoin to return to your outpost.")
+		return
+	end
+	task.delay(2 ^ pending.tries, function()
+		if pendingHome[player] == pending then
+			sendHome(player, homePlaceId, data)
+		end
+	end)
 end
 
 -- Ends a player's run: results, XP, the exited signal, then home.
-local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome)
+local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome, death: { [string]: any }?)
 	if runs[player] ~= run then
 		return
 	end
@@ -339,6 +381,10 @@ local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome)
 	}, tuning.extraction)
 	-- Others (Combat unloading magazines, Extraction, Containers) tidy up first.
 	Lobby.exited:Fire(player, run, outcome)
+	if run.watch then
+		run.watch:Disconnect()
+		run.watch = nil
+	end
 	runs[player] = nil
 	hosted.players[player] = nil
 	lastCause[player] = nil
@@ -347,14 +393,19 @@ local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome)
 	end
 	Sync.fx(player, "runResult", result)
 	Analytics.custom(player, "FogRunEnd", result.seconds, { hosted.location.id, outcome })
-	local home: Teleport.HomeData = { v = 1 }
+	local home: Teleport.HomeData = { v = 1, result = result :: any, death = death }
 	if outcome == "died" then
 		local closesAt = LobbyMath.closesAt(hosted.state, lobbyConfig) or stamp
 		home.lobbyId = hosted.id
 		home.locationId = hosted.location.id
 		home.reentryUntil = closesAt - lobbyConfig.reentryCutoffSeconds
 	end
-	sendHome(player, run, home)
+	-- A death lingers on its screen before the trip home; an extraction leaves at once.
+	task.delay(if outcome == "died" then DEATH_LINGER_SECONDS else 0, function()
+		if player.Parent == Players then
+			sendHome(player, run.ticket.homePlaceId, home)
+		end
+	end)
 end
 
 -- Death drops by fog tier (Domain/Lobby), written back to the profile.
@@ -387,12 +438,27 @@ local function onDied(player: Player, run: Run)
 	end
 	local result = applyDeath(player, run, false)
 	local drop = result and result.drop
-	Sync.fx(player, "runDeath", {
+	if drop and drop.position then
+		local root = rootOf(player)
+		local y = if root then root.Position.Y - 2 else 0
+		local model = Props.bag(
+			run.hosted.map or workspace,
+			Vector3.new(drop.position.x, y, drop.position.z),
+			drop.id,
+			player.UserId
+		)
+		if model then
+			bagModels[bagKey(run.hosted.id, drop.id)] = model
+		end
+	end
+	local death = {
 		cause = lastCause[player] or "hollow",
 		lost = if drop then { backpack = drop.backpack, equipment = drop.equipment } else nil,
 		bagId = if drop then drop.id else nil,
-	})
-	finish(player, run, "died")
+		locationId = run.hosted.location.id,
+	}
+	Sync.fx(player, "runDeath", death)
+	finish(player, run, "died", death)
 end
 
 -- Extraction got the player out alive.
@@ -413,12 +479,17 @@ local function publish(hosted: Hosted, force: boolean?)
 	end
 	hosted.lastPublish = stamp
 	local phase = LobbyMath.phase(hosted.state, stamp, lobbyConfig)
+	local seated: { number } = {}
+	for userId in hosted.state.members do
+		table.insert(seated, userId)
+	end
 	transport.publish({
 		id = hosted.id,
 		locationId = hosted.location.id,
 		powerBand = hosted.state.powerBand,
 		freeSeats = LobbyMath.freeSeats(hosted.state, stamp, lobbyConfig),
 		joinable = phase == "open" or phase == "joinable",
+		seated = seated,
 	}, lobbyConfig.durationSeconds + lobbyConfig.openTimeoutSeconds)
 end
 
@@ -430,6 +501,22 @@ local function host(lobbyId: string, locationId: string, powerBand: number): Hos
 	local existing = hostedLobbies[lobbyId]
 	if existing then
 		return existing
+	end
+	-- The map build yields; a second arrival meanwhile waits for this one's record.
+	if pendingHosts[lobbyId] then
+		while pendingHosts[lobbyId] do
+			task.wait(0.1)
+		end
+		return hostedLobbies[lobbyId]
+	end
+	pendingHosts[lobbyId] = true
+	local ok, map = pcall(function()
+		return RunWorld.map(locationId) or Map.of(locationId, role == "run")
+	end)
+	pendingHosts[lobbyId] = nil
+	if not ok then
+		warn(`Lobby: couldn't build the map for {lobbyId}: {map}`)
+		return nil
 	end
 	local hosted: Hosted = {
 		id = lobbyId,
@@ -445,7 +532,7 @@ local function host(lobbyId: string, locationId: string, powerBand: number): Hos
 		band = 1,
 		warned = false,
 		players = {},
-		map = Map.of(locationId, role == "run"),
+		map = map,
 		lastPublish = 0,
 	}
 	hostedLobbies[lobbyId] = hosted
@@ -468,7 +555,7 @@ end
 
 local function refuse(player: Player, ticket: RunTicket.Ticket, reason: string)
 	Sync.notice(player, `Couldn't join that lobby ({reason})`)
-	Lobby.failed:Fire(player, reason)
+	Lobby.failed:Fire(player, reason, ticket :: RunTicket.Ticket?)
 	local transport = adapter
 	if transport then
 		transport.sendHome(player, ticket.homePlaceId, { v = 1 })
@@ -483,6 +570,9 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 	local hosted: Hosted? = hostedLobbies[ticket.lobbyId]
 	if hosted == nil and role == "run" then
 		hosted = host(ticket.lobbyId, ticket.locationId, ticket.powerBand)
+		if player.Parent ~= Players then
+			return -- left while the map was built
+		end
 	end
 	if hosted == nil or hosted.location.id ~= ticket.locationId then
 		refuse(player, ticket, "closed")
@@ -509,20 +599,44 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 		hosted = hosted,
 		ticket = ticket,
 		stats = { enteredAt = stamp, kills = 0, containers = 0, exposure = 0 },
+		hadBody = false,
 	}
 	runs[player] = run
 	hosted.players[player] = true
 	reentries[player] = nil
-	local spawn = spawnFor(hosted)
-	local character = player.Character
-	if spawn and character then
-		character:PivotTo(spawn)
+	dispatched[player] = nil
+	local function placeAndWatch(character: Model)
+		local spawn = spawnFor(hosted)
+		if spawn then
+			pcall(function()
+				player:RequestStreamAroundAsync(spawn.Position, 5)
+			end)
+			character:PivotTo(spawn)
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+			or character:WaitForChild("Humanoid", 5) :: Humanoid?
+		if humanoid and humanoid:IsA("Humanoid") then
+			humanoid.Died:Once(function()
+				onDied(player, run)
+			end)
+		end
 	end
-	local humanoid = humanoidOf(player)
-	if humanoid then
-		humanoid.Died:Once(function()
+	-- Every body during the run is watched: one that spawns before the profile loads, and
+	-- a fresh one that appears without a recorded death (that counts as the death).
+	run.watch = player.CharacterAdded:Connect(function(character: Model)
+		if runs[player] ~= run then
+			return
+		end
+		if run.hadBody then
 			onDied(player, run)
-		end)
+			return
+		end
+		run.hadBody = true
+		placeAndWatch(character)
+	end)
+	if player.Character then
+		run.hadBody = true
+		placeAndWatch(player.Character)
 	end
 	publish(hosted, true)
 	Lobby.entered:Fire(player, run)
@@ -531,10 +645,25 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 end
 
 -- The simulation's way home: back to the player's plot.
+local function welcomeHome(player: Player, data: Teleport.HomeData)
+	homecomings[player] = {
+		at = now(),
+		result = data.result,
+		death = data.death,
+		reentry = if data.lobbyId
+				and data.locationId
+				and data.reentryUntil
+			then { locationId = data.locationId, untilAt = data.reentryUntil }
+			else nil,
+	}
+	Sync.mark(player, "homecoming")
+end
+
 local function homeLocally(player: Player, data: Teleport.HomeData)
 	if data.lobbyId and data.locationId and data.reentryUntil then
 		reentries[player] = { lobbyId = data.lobbyId, locationId = data.locationId, untilAt = data.reentryUntil }
 	end
+	welcomeHome(player, data)
 	local plot = Plots.of(player)
 	local character = player.Character
 	local humanoid = humanoidOf(player)
@@ -560,6 +689,13 @@ local function closeHosted(hosted: Hosted, lost: { number })
 		end
 	end
 	hostedLobbies[hosted.id] = nil
+	local prefix = `{hosted.id}:`
+	for key, model in bagModels do
+		if string.sub(key, 1, #prefix) == prefix then
+			model:Destroy()
+			bagModels[key] = nil
+		end
+	end
 	local transport = adapter
 	if transport then
 		transport.unpublish(hosted.id, hosted.location.id)
@@ -627,6 +763,9 @@ local function runState(player: Player, run: Run): any
 			at = if drop.position then { drop.position.x, drop.position.z } else nil,
 			canOpen = canOpen,
 			mine = drop.ownerUserId == player.UserId,
+			-- What's inside, for the bag's loot pane (only to those allowed to open it).
+			backpack = if canOpen then drop.backpack else nil,
+			equipment = if canOpen then drop.equipment else nil,
 		})
 	end
 	local payload: { [string]: any } = {
@@ -681,8 +820,16 @@ local function takeFromBag(player: Player, bagId: string, section: LobbyMath.Sec
 		return false
 	end
 	local given, leftover = Inventory.giveSlots(player, { slot })
+	if #leftover > 0 and state.drops[bagId] == nil then
+		state.drops[bagId] = drop -- taking the last slot emptied it: put the record back whole
+	end
 	for _, rest in leftover do
 		LobbyMath.returnToDrop(state, bagId, section, rest, now(), drop.ownerUserId)
+	end
+	local key = bagKey(run.hosted.id, bagId)
+	if state.drops[bagId] == nil and bagModels[key] then
+		bagModels[key]:Destroy() -- emptied
+		bagModels[key] = nil
 	end
 	if #given == 0 then
 		Sync.notice(player, "Your bag is full")
@@ -713,8 +860,6 @@ end
 
 -- "Recover all" (LDOE_PARITY #46): the death screen sends the whole drop to the inbox,
 -- by rewarded ad once a day or by premium (both verified by S3 through Payments).
-local recoverDaily: { [Player]: DeathRecovery.DailyState } = {}
-
 local function recoverAll(player: Player, bagId: string, method: DeathRecovery.Method)
 	local stamp = now()
 	local daily = recoverDaily[player] or { day = 0, used = 0 }
@@ -731,6 +876,11 @@ local function recoverAll(player: Player, bagId: string, method: DeathRecovery.M
 			end
 			local slots = LobbyMath.recoverAll(hosted.state, bagId, player.UserId, stamp, lobbyConfig)
 			if slots then
+				local key = bagKey(hosted.id, bagId)
+				if bagModels[key] then
+					bagModels[key]:Destroy()
+					bagModels[key] = nil
+				end
 				Inbox.grant(player, slots, "Recovery")
 				if method == "ad" then
 					recoverDaily[player] = DeathRecovery.useRecoverAll(daily, stamp)
@@ -835,7 +985,7 @@ end
 	Queues players (a whole party, or one) for a lobby at `locationId`. Travel calls
 	this when their trip arrives. They are matched within seconds (Matchmaking).
 ]]
-function Lobby.enqueue(players: { Player }, locationId: string)
+function Lobby.enqueue(players: { Player }, locationId: string, mode: ("run" | "walk")?)
 	if not Features.on(tuning, "fogRuns") or #players == 0 then
 		return
 	end
@@ -846,7 +996,7 @@ function Lobby.enqueue(players: { Player }, locationId: string)
 	end
 	local id = nextId("q")
 	local entry = Matchmaking.entry(id, locationId, ids, powers, Lobby.partyIdOf(players[1]), now(), tuning.matchmaking)
-	queue[id] = { entry = entry, players = table.clone(players) }
+	queue[id] = { entry = entry, players = table.clone(players), mode = mode }
 	for _, player in players do
 		Sync.fx(player, "matching", { locationId = locationId })
 	end
@@ -874,6 +1024,38 @@ function Lobby.reenter(player: Player, locationId: string): boolean
 	return ok
 end
 
+-- Takes a queue entry out, refunding whoever is still here and waiting on it.
+local function dropQueued(id: string, reason: string, except: Player?)
+	local queued = queue[id]
+	if queued == nil then
+		return
+	end
+	queue[id] = nil
+	for _, member in queued.players do
+		if member ~= except and member.Parent == Players and runs[member] == nil then
+			Sync.notice(member, `Matchmaking stopped ({reason})`)
+			Lobby.failed:Fire(member, reason, nil :: RunTicket.Ticket?)
+		end
+	end
+end
+
+-- Whether a player is already queued, mid-teleport into a lobby or on a run.
+function Lobby.busy(player: Player): boolean
+	if runs[player] then
+		return true
+	end
+	local sentAt = dispatched[player]
+	if sentAt and now() - sentAt < DISPATCH_GRACE_SECONDS then
+		return true
+	end
+	for _, queued in queue do
+		if table.find(queued.players, player) then
+			return true
+		end
+	end
+	return false
+end
+
 local function dispatch(queued: Queued, lobbyId: string, powerBand: number)
 	local transport = adapter :: Teleport.Adapter
 	local ticket = RunTicket.new(
@@ -883,12 +1065,19 @@ local function dispatch(queued: Queued, lobbyId: string, powerBand: number)
 		queued.entry.partyId,
 		false,
 		game.PlaceId,
-		math.floor(now())
+		math.floor(now()),
+		queued.mode
 	)
 	local ok, err = transport.send(queued.players, ticket)
 	if not ok then
 		for _, player in queued.players do
-			Lobby.failed:Fire(player, err or "teleport failed")
+			Lobby.failed:Fire(player, err or "teleport failed", nil :: RunTicket.Ticket?)
+		end
+		return
+	end
+	if transport.kind ~= "simulated" then
+		for _, player in queued.players do
+			dispatched[player] = now()
 		end
 	end
 end
@@ -900,11 +1089,11 @@ local function matchmake()
 		return
 	end
 	matching = true
-	-- Drop anyone who left or started a run while queued.
+	-- Drop entries where someone left or started a run while queued (the rest are refunded).
 	for id, queued in queue do
 		for _, player in queued.players do
 			if player.Parent ~= Players or runs[player] then
-				queue[id] = nil
+				dropQueued(id, if player.Parent ~= Players then "a party member left" else "already on a run", player)
 				break
 			end
 		end
@@ -924,7 +1113,7 @@ local function matchmake()
 		local plan = Matchmaking.tick(entries, open, now(), tuning.matchmaking, lobbyConfig.capacity)
 		for _, join in plan.joins do
 			local queued = queue[join.entryId]
-			if queued and transport.claimSeats(join.lobbyId, locationId, #queued.players, ttl) then
+			if queued and transport.claimSeats(join.lobbyId, locationId, queued.entry.userIds, ttl) then
 				queue[join.entryId] = nil
 				local band = queued.entry.band
 				for _, info in open do
@@ -940,7 +1129,7 @@ local function matchmake()
 			if lobbyId then
 				for _, entryId in created.entryIds do
 					local queued = queue[entryId]
-					if queued and transport.claimSeats(lobbyId, locationId, #queued.players, ttl) then
+					if queued and transport.claimSeats(lobbyId, locationId, queued.entry.userIds, ttl) then
 						queue[entryId] = nil
 						dispatch(queued, lobbyId, created.powerBand)
 					end
@@ -975,36 +1164,99 @@ local function onPlayerAdded(player: Player)
 		connection = PlayerData.loaded:Connect(function(loadedPlayer: Player)
 			if loadedPlayer == player then
 				connection:Disconnect()
+				loadWaits[player] = nil
 				arrive(player, accepted)
 			end
 		end)
+		loadWaits[player] = connection
 		if PlayerData.get(player) then
 			connection:Disconnect()
+			loadWaits[player] = nil
 			arrive(player, accepted)
 		end
-	elseif type(data) == "table" and data.v == 1 and type(data.lobbyId) == "string" then
-		-- Home from a run they died in: offer re-entry (the run server re-checks it all).
-		if type(data.locationId) == "string" and type(data.reentryUntil) == "number" then
+	elseif type(data) == "table" and data.v == 1 then
+		-- Home from a run: offer re-entry if they died (the run server re-checks it all),
+		-- and show the results card or death screen once (display only, never trusted).
+		if
+			type(data.lobbyId) == "string"
+			and type(data.locationId) == "string"
+			and type(data.reentryUntil) == "number"
+		then
 			reentries[player] = { lobbyId = data.lobbyId, locationId = data.locationId, untilAt = data.reentryUntil }
 		end
+		welcomeHome(player, {
+			v = 1,
+			lobbyId = if type(data.lobbyId) == "string" then data.lobbyId else nil,
+			locationId = if type(data.locationId) == "string" then data.locationId else nil,
+			reentryUntil = if type(data.reentryUntil) == "number" then data.reentryUntil else nil,
+			result = if type(data.result) == "table" then data.result else nil,
+			death = if type(data.death) == "table" then data.death else nil,
+		})
 	end
 end
 
+-- Leaving mid-run is a death (the bag stays in the lobby): quitting can't carry loot out.
+-- Runs at profile release, so the drop is saved with the profile.
+local function leftMidRun(player: Player)
+	local run = runs[player]
+	if run == nil then
+		return
+	end
+	lastCause[player] = "left"
+	local result = applyDeath(player, run, false)
+	local drop = result and result.drop
+	if drop and drop.position then
+		local root = rootOf(player)
+		local model = Props.bag(
+			run.hosted.map or workspace,
+			Vector3.new(drop.position.x, if root then root.Position.Y - 2 else 0, drop.position.z),
+			drop.id,
+			player.UserId
+		)
+		if model then
+			bagModels[bagKey(run.hosted.id, drop.id)] = model
+		end
+	end
+	Lobby.exited:Fire(player, run, "died")
+	if run.watch then
+		run.watch:Disconnect()
+		run.watch = nil
+	end
+	runs[player] = nil
+	run.hosted.players[player] = nil
+end
+
 local function onPlayerRemoving(player: Player)
+	-- Whichever leave handler runs first applies the death while the profile is loaded.
+	if runs[player] and PlayerData.get(player) then
+		leftMidRun(player)
+	end
 	local run = runs[player]
 	if run then
+		-- Without a profile there's nothing to drop: just unseat.
 		LobbyMath.leave(run.hosted.state, player.UserId)
 		Lobby.exited:Fire(player, run, "left")
+		if run.watch then
+			run.watch:Disconnect()
+		end
 		runs[player] = nil
 		run.hosted.players[player] = nil
 	end
 	leaveParty(player)
 	invites[player] = nil
 	reentries[player] = nil
+	homecomings[player] = nil
 	lastCause[player] = nil
+	pendingHome[player] = nil
+	dispatched[player] = nil
+	recoverDaily[player] = nil
+	if loadWaits[player] then
+		loadWaits[player]:Disconnect()
+		loadWaits[player] = nil
+	end
 	for id, queued in queue do
 		if table.find(queued.players, player) then
-			queue[id] = nil
+			dropQueued(id, "a party member left", player)
 		end
 	end
 end
@@ -1039,9 +1291,23 @@ function Lobby.start()
 		})
 	adapter = transport
 	transport.onFailure(function(player: Player, message: string)
-		Lobby.failed:Fire(player, message)
+		local pending = pendingHome[player]
+		if pending then
+			-- The trip home failed after it started: try again (with backoff).
+			task.delay(2 ^ pending.tries, function()
+				if pendingHome[player] == pending then
+					sendHome(player, pending.homePlaceId, pending.data)
+				end
+			end)
+			return
+		end
+		Lobby.failed:Fire(player, message, nil :: RunTicket.Ticket?)
 	end)
+	PlayerData.releasing:Connect(leftMidRun)
 	print(`Lobby: Fog Runs on ({role} server, {transport.kind} teleports)`)
+	Sync.provide("homecoming", function(player: Player): any
+		return homecomings[player] or false
+	end)
 
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	for _, player in Players:GetPlayers() do

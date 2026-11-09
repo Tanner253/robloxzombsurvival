@@ -23,3 +23,9 @@ roblox product.embers_50 3729873068 (149) icon 94850842702164
 roblox product.embers_300 3729873080 (799) icon 76937309861540
 roblox pass.pack_expansion 2076082454 (199) icon 114676220253346
 updated product.energy_refill 3729832267 -> 99; product.starter_offer 3729832319 -> Firestarter Kit 99; product.resource_pack 3729832298 -> Supply Bundle 99; product.backpack_upgrade 3729832309 -> not for sale
+# Economy v0.1 item icons: ONE sheet, gpt_image_2_6 3:2 transparent, style ref icons_v2 (89559c4b...), 2 variants (0.5)
+image economy_icons_a b0104c76-85f3-4341-9df5-6d31a87e1355 (picked) / economy_icons_b c2ed9834-ab05-42e9-ae12-da8a4da7c648
+sliced by connected components to icons/item.*.png (256 px), uploaded via Studio upload_image:
+ironbark_log 119915856776923, ironbark_plank 71333371293679, ironstone 128948840936073, iron_ingot 132615750371222,
+malachite 93949528651215, copper_ingot 116107751360894, copper_wire 117484328235022, embercoal 91538870894309,
+forged_hatchet 84771320691583, forged_pick 130436492368559

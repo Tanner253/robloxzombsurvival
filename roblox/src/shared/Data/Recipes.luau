@@ -3,9 +3,14 @@
 	Recipe definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
 
 	Hand recipes (no stationId) are the crafting catalogue: every tool, weapon, armor piece,
-	bag and food mix is made by hand (LDOE_PARITY #20). Station recipes are converter lines
-	(#18): one input stack -> one output stack, one batch per craftSeconds, at LDoE's pace
-	(a plank or stone block every 4 minutes, cooking every 2).
+	bag, food mix and round of ammo is made by hand (LDOE_PARITY #20). Station recipes are
+	converter lines (#18): one input stack -> one output stack, one batch per craftSeconds.
+
+	Economy (docs/ECONOMY.md §2, binding): every refinement is LDoE's ratio and timer or
+	harsher. 2 timber make a plank, 5 Ironbark Logs an Ironbark Plank, 3 stone a block;
+	ore or scrap smelts to Iron Ingots, an ingot is hammered into a Scrap Plate (20 min),
+	a plate cuts to 2 rivets. Tier-2 lines need a level 2 station (stationLevel). Worn gear
+	is re-crafted from these recipes (§8.2): the rare parts in them are the sink.
 
 	Unlocks (#49): only the hatchet, pick, satchel (and the cord it needs) start unlocked.
 	Everything else unlocks by completing an Ember Trail quest (Data/Quests), or by reading
@@ -18,12 +23,9 @@ local function quest(questId: string): Types.UnlockGate
 	return { kind = "quest", questId = questId }
 end
 
--- v0.1 launch set (docs/MVP_LAUNCH.md): Campfire, Woodworking Bench and Workbench. The
--- Stonecutter and Smelter wait on their models grading A (Art.pieces), so stone blocks
--- and scrap plates are made at the Workbench until then; point these back at
--- "station.stonecutter" and "station.smelter" when the models pass.
-local STONE_STATION: Types.StationId = "station.workbench"
-local PLATE_STATION: Types.StationId = "station.workbench"
+-- Every line sits on its own station (ECONOMY §10.1: the Smelter and Stonecutter are launch
+-- requirements). While one of their models still waits for its A grade, Tuning.stationFallback
+-- moves its lines (Shared/StationFallback): ingots to the Campfire, blocks to the Saw Bench.
 
 local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	-- Hand-crafted: the starter set ----------------------------------------------------
@@ -68,7 +70,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	-- Hand-crafted: unlocked along the Ember Trail ---------------------------------------
 	["recipe.field_dressing"] = {
 		id = "recipe.field_dressing",
-		inputs = { { itemId = "item.cloth", count = 3 } },
+		inputs = { { itemId = "item.cloth", count = 5 } }, -- LDoE's bandage: 5 cloth (ECONOMY §8.2)
 		outputs = { { itemId = "item.field_dressing", count = 1 } },
 		craftSeconds = 5,
 		unlock = quest("quest.keep_the_fire"),
@@ -110,7 +112,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		inputs = {
 			{ itemId = "item.plank", count = 4 },
 			{ itemId = "item.rope", count = 4 },
-			{ itemId = "item.pitch_glue", count = 1 },
+			{ itemId = "item.pitch_glue", count = 2 }, -- ECONOMY §8.2 (was 1)
 		},
 		outputs = { { itemId = "item.shortbow", count = 1 } },
 		craftSeconds = 10,
@@ -133,6 +135,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.cloth", count = 6 },
 			{ itemId = "item.rope", count = 3 },
 			{ itemId = "item.scrap_plate", count = 2 },
+			{ itemId = "item.pitch_glue", count = 1 }, -- ECONOMY §8.2
 		},
 		outputs = { { itemId = "item.padded_vest", count = 1 } },
 		craftSeconds = 10,
@@ -145,6 +148,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.plank", count = 2 },
 			{ itemId = "item.cloth", count = 2 },
 			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.pitch_glue", count = 1 }, -- ECONOMY §8.2
 		},
 		outputs = { { itemId = "item.scrapblade", count = 1 } },
 		craftSeconds = 10,
@@ -163,38 +167,109 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		craftSeconds = 15,
 		unlock = { kind = "blueprint", itemId = "item.bp_pack_frame" },
 	},
+	-- Forged tools (ECONOMY §4.1): LDoE's Iron Hatchet and Iron Pickaxe, unlocked with the
+	-- Dense fog as LDoE's "Limestone Cliffs" quest unlocks the iron tools.
+	["recipe.forged_hatchet"] = {
+		id = "recipe.forged_hatchet",
+		inputs = {
+			{ itemId = "item.iron_ingot", count = 5 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.pitch_glue", count = 2 },
+		},
+		outputs = { { itemId = "item.forged_hatchet", count = 1 } },
+		craftSeconds = 10,
+		unlock = quest("quest.the_dense_fog"),
+	},
+	["recipe.forged_pick"] = {
+		id = "recipe.forged_pick",
+		inputs = {
+			{ itemId = "item.iron_ingot", count = 5 },
+			{ itemId = "item.plank", count = 3 },
+			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.pitch_glue", count = 2 },
+		},
+		outputs = { { itemId = "item.forged_pick", count = 1 } },
+		craftSeconds = 10,
+		unlock = quest("quest.the_dense_fog"),
+	},
 
-	-- Woodworking Bench ------------------------------------------------------------------
+	-- Saw Bench (station.woodworking_bench) ------------------------------------------------------
 	["recipe.plank"] = {
 		id = "recipe.plank",
-		inputs = { { itemId = "item.timber", count = 1 } },
+		inputs = { { itemId = "item.timber", count = 2 } }, -- LDoE 1 -> 1: 2x harsher
 		outputs = { { itemId = "item.plank", count = 1 } },
 		stationId = "station.woodworking_bench",
 		craftSeconds = 4 * 60,
 		unlock = quest("quest.claim_the_ground"),
 	},
+	["recipe.ironbark_plank"] = {
+		id = "recipe.ironbark_plank",
+		-- LDoE 3 oak -> 1 in 20 min. A full level 1 slot (20 logs) is the developer's "20 logs
+		-- turns into 4 planks"; the line needs a level 2 bench.
+		inputs = { { itemId = "item.ironbark_log", count = 5 } },
+		outputs = { { itemId = "item.ironbark_plank", count = 1 } },
+		stationId = "station.woodworking_bench",
+		stationLevel = 2,
+		craftSeconds = 20 * 60,
+		unlock = quest("quest.heartwood"),
+	},
 
-	-- Stonecutter (at the Workbench for v0.1: STONE_STATION) ---------------------------------
+	-- Stonecutter -----------------------------------------------------------------------------
 	["recipe.stone_block"] = {
 		id = "recipe.stone_block",
-		inputs = { { itemId = "item.stone", count = 2 } },
+		inputs = { { itemId = "item.stone", count = 3 } }, -- LDoE 2 -> 1 in 4 min
 		outputs = { { itemId = "item.stone_block", count = 1 } },
-		stationId = STONE_STATION,
-		craftSeconds = 4 * 60,
+		stationId = "station.stonecutter",
+		craftSeconds = 5 * 60,
 		unlock = quest("quest.a_place_to_work"),
 	},
 
-	-- Smelter (at the Workbench for v0.1: PLATE_STATION) -------------------------------------
-	["recipe.scrap_plate"] = {
-		id = "recipe.scrap_plate",
-		inputs = { { itemId = "item.scrap", count = 3 } },
-		outputs = { { itemId = "item.scrap_plate", count = 1 } },
-		stationId = PLATE_STATION,
+	-- Smelter (fuelled) -----------------------------------------------------------------------
+	["recipe.iron_ingot"] = {
+		id = "recipe.iron_ingot",
+		inputs = { { itemId = "item.ironstone", count = 2 } }, -- LDoE's iron bar: equal
+		outputs = { { itemId = "item.iron_ingot", count = 1 } },
+		stationId = "station.smelter",
 		craftSeconds = 4 * 60,
 		unlock = quest("quest.into_the_fog"),
 	},
+	["recipe.iron_ingot_from_scrap"] = {
+		id = "recipe.iron_ingot_from_scrap",
+		inputs = { { itemId = "item.scrap", count = 5 } }, -- LDoE 4 scrap: mining ore pays better
+		outputs = { { itemId = "item.iron_ingot", count = 1 } },
+		stationId = "station.smelter",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.into_the_fog"),
+	},
+	["recipe.copper_ingot"] = {
+		id = "recipe.copper_ingot",
+		inputs = { { itemId = "item.malachite", count = 5 } }, -- LDoE's copper bar: 5 ore, 1 h
+		outputs = { { itemId = "item.copper_ingot", count = 1 } },
+		stationId = "station.smelter",
+		stationLevel = 2,
+		craftSeconds = 60 * 60,
+		unlock = quest("quest.green_vein"),
+	},
 
-	-- Workbench: parts -----------------------------------------------------------------------
+	-- Workbench: plates and parts ---------------------------------------------------------------
+	["recipe.scrap_plate"] = {
+		id = "recipe.scrap_plate",
+		inputs = { { itemId = "item.iron_ingot", count = 1 } }, -- LDoE's iron plate: 1 bar, 20 min
+		outputs = { { itemId = "item.scrap_plate", count = 1 } },
+		stationId = "station.workbench",
+		craftSeconds = 20 * 60,
+		unlock = quest("quest.into_the_fog"),
+	},
+	["recipe.copper_wire"] = {
+		id = "recipe.copper_wire",
+		inputs = { { itemId = "item.copper_ingot", count = 1 } },
+		outputs = { { itemId = "item.copper_wire", count = 2 } },
+		stationId = "station.workbench",
+		stationLevel = 2,
+		craftSeconds = 10 * 60,
+		unlock = quest("quest.green_vein"),
+	},
 	["recipe.cloth"] = {
 		id = "recipe.cloth",
 		inputs = { { itemId = "item.fiber", count = 2 } },
@@ -212,7 +287,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		unlock = quest("quest.hold_the_door"),
 	},
 
-	-- Campfire: cooking ----------------------------------------------------------------------
+	-- Campfire (fuelled): cooking first, then coal and glue ------------------------------------
 	["recipe.boiled_water"] = {
 		id = "recipe.boiled_water",
 		inputs = { { itemId = "item.murky_water", count = 1 } },
@@ -245,6 +320,16 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		craftSeconds = 4 * 60,
 		unlock = quest("quest.keep_the_fire"),
 	},
+	["recipe.embercoal"] = {
+		id = "recipe.embercoal",
+		-- LDoE's charcoal is 1 log; ours is 2. Coal loses burn-minutes but packs a 20-item fuel
+		-- slot 2.7x longer than timber: long smelts need it (ECONOMY §2.2).
+		inputs = { { itemId = "item.timber", count = 2 } },
+		outputs = { { itemId = "item.embercoal", count = 1 } },
+		stationId = "station.campfire",
+		craftSeconds = 4 * 60,
+		unlock = quest("quest.keep_the_fire"),
+	},
 
 	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns ----------------------------
 	-- Pacing (GAME_DESIGN free-player targets, about 2-3 h a day): level 10 and Workbench
@@ -257,6 +342,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.scrap_plate", count = 5 },
 			{ itemId = "item.rivets", count = 3 },
 			{ itemId = "item.cloth", count = 2 },
+			{ itemId = "item.pitch_glue", count = 1 }, -- ECONOMY §8.2
 		},
 		outputs = { { itemId = "item.machete", count = 1 } },
 		craftSeconds = 10 * 60,
@@ -318,11 +404,13 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		feature = "fogRuns",
 	},
 
-	-- Ammo Press: the steady ammo sink (GAME_DESIGN "Combat and the arsenal").
+	-- Ammo (ECONOMY §8.3): the Ammo Press stays a converter (niter -> powder); rounds, shells
+	-- and flares are hand recipes, so no multi-input recipe sits on a one-input station.
+	-- Every shot costs a round and a point of gun durability: two sinks.
 	["recipe.blackpowder"] = {
 		id = "recipe.blackpowder",
 		inputs = { { itemId = "item.niter", count = 2 } }, -- fatwood is the press fuel now
-		outputs = { { itemId = "item.blackpowder", count = 2 } },
+		outputs = { { itemId = "item.blackpowder", count = 1 } }, -- was 2 -> 2
 		stationId = "station.ammo_press",
 		craftSeconds = 6 * 60,
 		unlock = quest("quest.the_dense_fog"), -- was level 10: recipes unlock on the Ember Trail (LDOE_PARITY #49)
@@ -334,8 +422,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.scrap", count = 2 },
 			{ itemId = "item.blackpowder", count = 1 },
 		},
-		outputs = { { itemId = "item.light_rounds", count = 6 } },
-		craftSeconds = 4 * 60, -- a full 3-job queue is 18 rounds: about one Dense run's shooting
+		outputs = { { itemId = "item.light_rounds", count = 4 } }, -- was 6
+		craftSeconds = 10,
 		unlock = quest("quest.the_dense_fog"), -- was level 11: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
@@ -347,7 +435,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.cloth", count = 1 },
 		},
 		outputs = { { itemId = "item.flare", count = 2 } },
-		craftSeconds = 8 * 60,
+		craftSeconds = 10,
 		unlock = quest("quest.the_dense_fog"), -- was level 12: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
@@ -358,8 +446,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 			{ itemId = "item.blackpowder", count = 2 },
 			{ itemId = "item.cloth", count = 1 },
 		},
-		outputs = { { itemId = "item.shells", count = 4 } },
-		craftSeconds = 6 * 60,
+		outputs = { { itemId = "item.shells", count = 3 } }, -- was 4
+		craftSeconds = 10,
 		unlock = quest("quest.the_dense_fog"), -- was level 14: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},

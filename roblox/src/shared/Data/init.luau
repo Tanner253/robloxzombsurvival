@@ -10,6 +10,7 @@
 local Types = require("./Types")
 local DevSpeed = require("./DevSpeed")
 local Features = require("./Features")
+local StationFallback = require("./StationFallback")
 local TableUtil = require("./Util/Table")
 
 local Content: Types.Content = {
@@ -33,6 +34,9 @@ local Content: Types.Content = {
 -- Studio playtests run the pacing sped up (Tuning.devSpeed; live servers always 1).
 -- It has to happen here, before the freeze, so every reader sees the same numbers.
 DevSpeed.apply(Content, DevSpeed.factor(Content))
+
+-- A launch station still waiting for its model runs its lines at a stand-in (ECONOMY §10.1).
+StationFallback.apply(Content)
 
 -- Content behind a feature flag that is off (Tuning.features) is left out entirely.
 Features.strip(Content)

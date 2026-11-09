@@ -4,6 +4,8 @@ The human-readable view of `roblox/src/shared/Data/`. The data files are the sou
 
 **Counts:** 39 items, 22 recipes, 10 salvage entries, 6 stations, 10 resource nodes, 3 Hollow types, 12 loot tables, 5 locations, 23 build pieces, 20 levels, 10 quests, 4 products, 1 project and the starter shelter.
 
+**Economy rescale (2026-11-08, v0.1):** [ECONOMY.md](ECONOMY.md) is binding and wins over this page wherever they differ: the refinement ratios and timers, station lines and level costs, node hits, tool, weapon and armor durability, Scrap and Reinforced piece costs, ammo yields, the XP curve and quests 11-13. Where a table below still shows an older number, the data and ECONOMY.md are right.
+
 **LDoE parity (2026-11-08):** the binding rulings in [LDOE_PARITY.md](LDOE_PARITY.md) reshaped this content: stations are converters (#18-19), gear is crafted by hand (#20), stacks are 20 (#15), survival uses LDoE's numbers (#33), home nodes are finite (#30), and blueprints unlock through the Ember Trail quests (#48-49).
 
 **Checks:** `DataValidator` (Lune test and server boot) rejects any broken reference. It also fails the build when:
@@ -151,7 +153,7 @@ XP is about 10 per resource unit, as in LDoE. Respawn applies to Fog Run locatio
 
 **Progression ladder:** hands → sticks + stone → hatchet → timber (logs) → planks. Sticks come only from Fallen Branches at home; timber only from pines and fatwood stumps, which need a hatchet.
 
-**Home plot** (`Tuning.home`, LDoE's set): 20 pines, 7 boulders, 5 scrap heaps, 7 berry bushes, 20 reed patches, 12 fallen branches, 10 loose stones and the spring. It is finite and saved per outpost: about 80 timber and 55 stone in all, enough for the tools, the first stations and the shelter's repairs, and far short of a Timber-tier base. The bulk comes from Fog Runs.
+**Home plot** (`Tuning.home`, LDoE's set): 20 pines, 7 boulders, 5 scrap heaps, 7 berry bushes, 20 reed patches, 12 fallen branches, 11 loose stones and the spring. It is finite and saved per outpost: 60 timber, 43 stone and 40 scrap in all (ECONOMY §1.3), enough for the tools, the first stations and the shelter's repairs, and far short of a Timber-tier base (221 timber). The bulk comes from Fog Runs.
 
 **Starter shelter** (`Data/StarterShelter`, #56): every new plot starts with a damaged timber room: 9 foundations, 5 broken walls, a cold Campfire and a Timber Crate, open to the road. **Wrecked hauler** (`Data/Projects`): its parts checklist (20 plate, 16 rivets, 6 springs, 4 gears, a seized motor, 10 cord) is the long-term goal; its model waits on the art gate.
 

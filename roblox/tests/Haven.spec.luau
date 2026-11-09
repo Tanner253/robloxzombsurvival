@@ -147,14 +147,14 @@ return function(test: TestKit.Register)
 		TestKit.equal(#Market.claimable(rewards, quests, { a = 1, b = 2, c = 3 }, { One = 100, Two = 200 }), 0)
 	end)
 
-	test("the home chapter has a Trail Keeper reward and the v8 profile starts with no coins", function()
+	test("the home chapter has a Trail Keeper reward and the v9 profile starts with no coins", function()
 		TestKit.truthy(Market.chapterDone(Content.Quests :: any, {}, "Ashes and Embers") == false)
 		TestKit.truthy(Haven.chapterRewards["Ashes and Embers"] ~= nil)
 		local fresh = PlayerSchema.template()
 		TestKit.equal(fresh.haven.coins, 0)
 		TestKit.equal(fresh.haven.vipCrateDay, 0)
 		local old: any = { version = 7 }
-		PlayerSchema.migrations[7](old)
+		PlayerSchema.migrations[8](old)
 		TestKit.equal(old.haven.coins, 0)
 	end)
 end

@@ -32,6 +32,7 @@ local Loot = require(Domain.Loot)
 local Rng = require(Domain.Rng)
 local Net = require("../Net")
 local Map = require("../FogRuns/Map")
+local Props = require("../FogRuns/Props")
 local Hollow = require("./Hollow")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
@@ -54,6 +55,7 @@ type World = {
 	states: { [string]: ContainersMath.State },
 	positions: { [string]: Vector3 },
 	markers: { [string]: BasePart },
+	piles: { [string]: Model }, -- the visible loot piles (FogRuns/Props)
 	rng: Rng.Source,
 	pity: { [number]: Loot.PityState },
 	seq: number,
@@ -93,6 +95,7 @@ local function open(hosted: Lobby.Hosted)
 		states = {},
 		positions = {},
 		markers = {},
+		piles = {},
 		rng = Rng.new(hosted.state.seed + 1),
 		pity = {},
 		seq = 0,
@@ -157,6 +160,11 @@ function Containers.spawnPile(
 	end
 	world.states[id] = state
 	world.positions[id] = position
+	local model =
+		Props.pile(hosted.map or workspace, position, id, if state.mode == "personal" then ownerUserId else nil)
+	if model then
+		world.piles[id] = model
+	end
 	for player in hosted.players do
 		Sync.fx(
 			player,
@@ -241,7 +249,15 @@ local function giveFrom(player: Player, id: string, stacks: { Types.ItemStack })
 	if #leftover > 0 then
 		Sync.notice(player, "Your bag is full")
 	end
-	show(player, id, ContainersMath.view(state, player.UserId))
+	local left = ContainersMath.view(state, player.UserId) or {}
+	show(player, id, left)
+	-- An emptied loot pile is gone (a personal one empties for its owner).
+	local home = world :: World
+	local pile = home.piles[id]
+	if pile and #left == 0 then
+		pile:Destroy()
+		home.piles[id] = nil
+	end
 end
 
 local function takeOne(player: Player, id: string, index: number)
@@ -285,6 +301,12 @@ function Containers.start()
 	end
 	Lobby.opened:Connect(open)
 	Lobby.closed:Connect(function(hosted: Lobby.Hosted)
+		local world = worlds[hosted.id]
+		if world then
+			for _, pile in world.piles do
+				pile:Destroy()
+			end
+		end
 		worlds[hosted.id] = nil
 		for player, active in searching do
 			if active.world.hosted == hosted then

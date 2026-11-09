@@ -31,6 +31,7 @@ local Shelter = require(ReplicatedStorage.Shared.Domain.Shelter)
 local Stores = require("../Stores")
 local PlayerData = require("./PlayerData")
 local Sync = require("./Sync")
+local Teleport = require("../FogRuns/Teleport")
 
 local Plots = {}
 
@@ -472,6 +473,10 @@ function Plots.init()
 end
 
 function Plots.start()
+	-- A Fog Run lobby server (same place, reserved) builds its location instead (RunWorld).
+	if Teleport.role() == "run" then
+		return
+	end
 	buildWorld()
 	Sync.provide("plot", function(player: Player)
 		local plot = byPlayer[player]

@@ -40,6 +40,8 @@ local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
+local Maps = require("../FogRuns/Maps")
+local Teleport = require("../FogRuns/Teleport")
 
 local Travel = {}
 
@@ -73,6 +75,7 @@ local REASONS: { [string]: string } = {
 	energy = "Not enough Energy for a Run",
 	unavailable = "That location isn't open right now",
 	tooLate = "The Fog closes too soon to get back in",
+	walkTooLate = "It closes before you'd walk there: take a Run",
 	gate = "Repair the signal tower to open this fog",
 }
 
@@ -117,7 +120,8 @@ local function context(player: Player): TravelMath.Context?
 		energy = state,
 		energyConfig = config,
 		config = travelConfig,
-		gates = tuning.regionGates,
+		-- The signal towers (M4) gate Dense and Black only once their UI ships.
+		gates = if Features.on(tuning, "regionGates") then tuning.regionGates else nil,
 		repairedGates = repaired[player] or {},
 		airdropPin = #FogMap.livePins(pins[player] or {}, stamp) > 0,
 	}
@@ -142,6 +146,9 @@ local function spendEnergy(
 	local was = EnergyMath.current(before, stamp, config).value
 	Energy.set(player, after, -cost, reason)
 	lastSpend[player] = { amount = cost, at = stamp }
+	if not Features.on(tuning, "airdrops") then
+		return
+	end
 	local crossed, day =
 		FogMap.airdropsCrossed(was, after.value, airdropDays[player] or { day = 0, fired = {} }, stamp, tuning.airdrops)
 	airdropDays[player] = day
@@ -166,7 +173,11 @@ end
 
 local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	local location = Content.Locations[locationId]
-	if location == nil or trips[player] or Lobby.runOf(player) then
+	if location == nil or trips[player] or Lobby.busy(player) then
+		return
+	end
+	if not Maps.has(locationId) then
+		Sync.notice(player, "That place can't be reached yet")
 		return
 	end
 	if not Lobby.isPartyLeader(player) then
@@ -177,6 +188,10 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	-- Everyone checks out first; nobody pays unless everybody can go.
 	local plans: { [Player]: { trip: TravelMath.Trip, energy: EnergyMath.State, before: EnergyMath.State } } = {}
 	for _, member in members do
+		if member ~= player and (trips[member] or Lobby.busy(member)) then
+			Sync.notice(player, `{member.DisplayName} is already on their way somewhere`)
+			return
+		end
 		if not atDeparture(member) then
 			Sync.notice(
 				player,
@@ -239,7 +254,7 @@ end
 local function reenter(player: Player, locationId: string)
 	local entry = Lobby.reentryOf(player)
 	local location = Content.Locations[locationId]
-	if entry == nil or location == nil or entry.locationId ~= locationId or trips[player] or Lobby.runOf(player) then
+	if entry == nil or location == nil or entry.locationId ~= locationId or trips[player] or Lobby.busy(player) then
 		Sync.notice(player, "There's no bag of yours to go back for")
 		return
 	end
@@ -263,17 +278,6 @@ local function arrive(record: Trip)
 		if member.Parent == Players and trips[member] == record then
 			trips[member] = nil
 			table.insert(present, member)
-			local bonus =
-				TravelBonus.roll(record.location.id, record.location.run.travelBonusTableId, record.trip.mode, {
-					tables = Content.LootTables :: any,
-					rng = rng,
-					items = Items,
-					config = tuning.travelBonus,
-				})
-			if bonus then
-				bonuses[member] = bonus
-				Sync.fx(member, "travelBonus", { items = bonus.items })
-			end
 		end
 	end
 	if #present == 0 then
@@ -284,7 +288,7 @@ local function arrive(record: Trip)
 			refund(present[1], record.spent[present[1]] or 0, "ReentryRefund")
 		end
 	else
-		Lobby.enqueue(present, record.location.id)
+		Lobby.enqueue(present, record.location.id, record.trip.mode)
 	end
 end
 
@@ -480,25 +484,66 @@ function Travel.init()
 	Net.onEvent("TravelBonusTakeAll", takeAll)
 	Net.onEvent("TravelHurry", hurry)
 	Net.onEvent("AutoClear", autoClear)
-	Net.onEvent("GateFill", gateFill)
-	Net.onEvent("GateFinalize", gateFinalize)
+	if Features.on(tuning, "regionGates") then
+		Net.onEvent("GateFill", gateFill)
+		Net.onEvent("GateFinalize", gateFinalize)
+	else
+		-- Declared but idle until M4: handled (and rate limited) so nothing queues up.
+		Net.onEvent("GateFill", function() end)
+		Net.onEvent("GateFinalize", function() end)
+	end
 end
 
 function Travel.start()
 	if not Features.on(tuning, "fogRuns") then
 		return
 	end
-	-- A trip in that never seated the player gives its Energy back once.
-	Lobby.failed:Connect(function(player: Player, reason: string)
+	-- A trip in that never seated the player gives its Energy back once: from the spend
+	-- this server recorded, or on a run server (where the spend happened elsewhere) the
+	-- price the ticket's trip costs, read from Content (never from the ticket itself).
+	local refundedTickets: { [string]: boolean } = {}
+	Lobby.failed:Connect(function(player: Player, reason: string, ticket: any)
 		local spend = lastSpend[player]
 		lastSpend[player] = nil
+		local amount = 0
 		if spend and now() - spend.at <= REFUND_WINDOW_SECONDS then
-			refund(player, spend.amount, "RunRefund")
+			amount = spend.amount
+		elseif type(ticket) == "table" and Teleport.role() == "run" then
+			local key = `{player.UserId}:{ticket.issuedAt}`
+			local location = Content.Locations[ticket.locationId]
+			if location and not refundedTickets[key] then
+				refundedTickets[key] = true
+				amount = if ticket.reentry
+					then TravelMath.reentryPlan(location :: any, travelConfig).energyCost
+					elseif ticket.mode == "run" then TravelMath.plan(location :: any, "run", travelConfig).energyCost
+					else 0
+			end
+		end
+		if amount > 0 then
+			refund(player, amount, "RunRefund")
 			Sync.notice(player, `Trip cancelled ({reason}); Energy refunded`, "info")
 		end
+		Sync.fx(player, "travelCancelled")
 	end)
-	Lobby.entered:Connect(function(player: Player)
+	Lobby.entered:Connect(function(player: Player, run: Lobby.Run)
 		lastSpend[player] = nil
+		-- "Found on the way" (checklist 11.6): rolled where the run is hosted, so it is there
+		-- on arrival whether the lobby is a reserved server or simulated here.
+		local mode = run.ticket.mode
+		if mode == nil or run.ticket.reentry then
+			return
+		end
+		local location = run.hosted.location
+		local bonus = TravelBonus.roll(location.id, location.run.travelBonusTableId, mode :: TravelMath.Mode, {
+			tables = Content.LootTables :: any,
+			rng = rng,
+			items = Items,
+			config = tuning.travelBonus,
+		})
+		if bonus then
+			bonuses[player] = bonus
+			Sync.fx(player, "travelBonus", { items = bonus.items })
+		end
 	end)
 	Lobby.exited:Connect(function(player: Player)
 		local bonus = bonuses[player]

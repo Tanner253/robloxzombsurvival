@@ -198,12 +198,202 @@ local function baseSections(): { [string]: any }
 		storage = false,
 		unlocks = { recipes = {}, blueprints = {} },
 		projects = {},
+		-- Fog Run sections start clear; their scenes set what they show.
+		run = false,
+		loot = false,
+		death = false,
+		result = false,
+		travel = false,
+		combatTarget = false,
+		search = false,
+		extracting = false,
+		arrival = false,
+		travelBonus = false,
+		hands = false,
+		homecoming = false,
+		neighbours = false,
 	}
 end
 
 -- Screen states ----------------------------------------------------------------------------------
 
 type Scene = { name: string, sections: { [string]: any }?, ui: { [string]: any } }
+
+-- The Fog map and a run's screens, from fixture state.
+local function fogRunScenes(): { Scene }
+	local now = workspace:GetServerTimeNow()
+	local run = {
+		locationId = "loc.pine_hollow",
+		lobbyId = "gate",
+		fogTier = 1,
+		phase = "open",
+		meter = 0.35,
+		band = 1,
+		bandName = "Thin",
+		closesAt = now + 600,
+		serverTime = now,
+		drops = {
+			{
+				id = "b1",
+				mine = true,
+				position = { x = 6, z = 4 },
+				backpack = { slot("item.light_rounds", 12), slot("item.rations", 1), slot("item.niter", 4) },
+				equipment = { slot("item.pipe_pistol", 1, 60) },
+			},
+		},
+		exposure = 0,
+	}
+	local energy = { value = 140, cap = 200, secondsPerPoint = 300, updatedAt = now }
+	local lost = {}
+	for index, itemId in
+		{
+			"item.light_rounds",
+			"item.rations",
+			"item.niter",
+			"item.steel_pipe",
+			"item.timber",
+			"item.stone",
+			"item.scrap",
+		}
+	do
+		lost[index] = slot(itemId, index * 2)
+	end
+	for index, itemId in { "item.fiber", "item.rope", "item.plank", "item.hide", "item.leather" } do
+		table.insert(lost, slot(itemId, index))
+	end
+	return {
+		{ name = "fogmap", sections = { energy = energy }, ui = { panel = "fogmap" } },
+		{
+			name = "fogmap.location",
+			sections = { energy = energy },
+			ui = { panel = "fogmap", fogLocation = "loc.sunken_quarry" },
+		},
+		-- Neighbours' outposts (M2's raid layer, fed by a fixture until then).
+		{
+			name = "fogmap.neighbours",
+			sections = {
+				energy = energy,
+				neighbours = {
+					{
+						userId = 11,
+						name = "Marrow",
+						hearthLevel = 6,
+						defense = 420,
+						stockValue = 1800,
+						online = true,
+						createdAt = 0,
+						guildTag = "ASH",
+					},
+					{
+						userId = 12,
+						name = "Wrenfield",
+						hearthLevel = 5,
+						defense = 260,
+						stockValue = 500,
+						online = false,
+						createdAt = 0,
+						shieldUntil = now + 7 * 3600,
+					},
+					{
+						userId = 13,
+						name = "Tallowmere",
+						hearthLevel = 7,
+						defense = 610,
+						stockValue = 90,
+						online = false,
+						createdAt = 0,
+					},
+				} :: { any },
+			},
+			ui = { panel = "fogmap" },
+		},
+		-- The event location: its pin's countdown, and Run and Walk below it (locked by level).
+		{
+			name = "fogmap.event",
+			sections = { energy = energy },
+			ui = { panel = "fogmap", fogLocation = "loc.stranded_caravan" },
+		},
+		{
+			name = "fogmap.walking",
+			sections = {
+				energy = energy,
+				travel = { mode = "walk", locationId = "loc.pine_hollow", departedAt = now - 30, arrivesAt = now + 600 },
+			},
+			ui = { panel = "fogmap" },
+		},
+		{ name = "run.hud", sections = { run = run, hands = { active = 1, slots = {} } }, ui = { panel = "none" } },
+		{
+			name = "run.cards",
+			sections = {
+				run = run,
+				combatTarget = { name = "Shambler", hp = 60 },
+				search = { startedAt = now, endsAt = now + 30 },
+				arrival = { at = os.clock(), locationId = "loc.pine_hollow" },
+				travelBonus = {
+					items = { slot("item.light_rounds", 6), slot("item.rations", 1), slot("item.niter", 3) },
+				},
+			},
+			ui = { panel = "none" },
+		},
+		{
+			name = "run.loot",
+			sections = {
+				run = run,
+				loot = {
+					kind = "container",
+					id = "c1",
+					items = { slot("item.light_rounds", 8), slot("item.scrap", 6), slot("item.niter", 2) },
+				},
+			},
+			ui = { panel = "inventory" },
+		},
+		{
+			name = "run.bag",
+			sections = { run = run, loot = { kind = "bag", id = "b1" } },
+			ui = { panel = "inventory" },
+		},
+		{
+			name = "run.death",
+			sections = {
+				run = false,
+				death = {
+					info = {
+						cause = "hollow",
+						lost = { backpack = lost, equipment = { slot("item.pipe_pistol", 1) } },
+						locationId = "loc.ashfall_depot",
+					},
+					reentry = { untilAt = now + 300 },
+				},
+			},
+			ui = { panel = "none" },
+		},
+		{
+			name = "run.result",
+			sections = {
+				run = false,
+				result = {
+					info = {
+						outcome = "extracted",
+						carriedOut = lost,
+						seconds = 754,
+						kills = 12,
+						containersSearched = 9,
+						xp = 340,
+					},
+				},
+			},
+			ui = { panel = "none" },
+		},
+		{
+			name = "run.loading",
+			sections = {
+				run = false,
+				travel = { mode = "run", locationId = "loc.ashfall_depot", departedAt = now, arrivesAt = now + 60 },
+			},
+			ui = { panel = "none" },
+		},
+	}
+end
 
 local function scenes(): { Scene }
 	local list: { Scene } = {
@@ -324,6 +514,12 @@ local function scenes(): { Scene }
 		{ name = "build.hint", ui = { panel = "build", buildMode = "place", buildHint = "Needs a Timber floor" } },
 		{ name = "build.hideWalls", ui = { panel = "build", buildMode = "place", hideUpperWalls = true } },
 	}
+	-- Fog Runs (slice 2), while the feature is on.
+	if Content.Tuning.features.fogRuns then
+		for _, scene in fogRunScenes() do
+			table.insert(list, scene)
+		end
+	end
 	for stationId in Content.Stations do
 		table.insert(list, {
 			name = `station.{stationId}`,
@@ -336,7 +532,9 @@ end
 
 -- Zones of Roblox's own UI, in screen pixels (checklist 4.18).
 local function zones(profile: Profile, origin: Vector2, scale: number, panel: string): { UiAudit.Zone }
-	local playing = panel == "none"
+	-- A Fog Run's full-screen moment hides chat and the touch controls like a panel does.
+	local moment = State.fullScreenMoment()
+	local playing = panel == "none" and not moment
 	local result: { UiAudit.Zone } = {}
 	local hud = Theme.hud
 	-- The docked chat bar (LDOE_PARITY #10): bottom left, right of AUTO, above the level bar.
@@ -354,7 +552,7 @@ local function zones(profile: Profile, origin: Vector2, scale: number, panel: st
 		})
 	end
 	-- Touch controls show while playing and building; a panel hides them (Interface).
-	if profile.touch and (playing or panel == "build") then
+	if profile.touch and (playing or panel == "build") and not moment then
 		for _, zone in UiAudit.touchZones(profile.width, profile.height) do
 			table.insert(result, {
 				name = zone.name,
@@ -445,7 +643,8 @@ local function run()
 				"havenId",
 				"havenTab",
 				"shopTab",
-				"emberAsk"
+				"emberAsk",
+				"fogLocation"
 			)
 			table.clear(Boundary.failures)
 			State.patch(scene.ui)
@@ -504,7 +703,8 @@ local function run()
 		"havenId",
 		"havenTab",
 		"shopTab",
-		"emberAsk"
+		"emberAsk",
+		"fogLocation"
 	)
 	for name in touched do
 		State.set(name, savedSections[name])

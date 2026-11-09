@@ -17,6 +17,8 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Actions = require("../Actions")
 local State = require("../State")
 local Building = require("./Building")
+local CombatControl = require("./CombatControl")
+local FogRun = require("./FogRun")
 local Interaction = require("./Interaction")
 
 local Input = {}
@@ -50,8 +52,14 @@ local function onKey(key: Enum.KeyCode)
 		Actions.toggleAuto()
 	elseif key == Enum.KeyCode.O then
 		Actions.toggleSettings()
+	elseif key == Enum.KeyCode.C and playing and FogRun.active() then
+		CombatControl.dodge() -- on a run C rolls (13.11); crafting waits for home
 	elseif key == Enum.KeyCode.C then
 		Actions.toggleCrafting()
+	elseif key == Enum.KeyCode.R and playing and FogRun.active() then
+		CombatControl.reload()
+	elseif key == Enum.KeyCode.M and Content.Tuning.features.fogRuns then
+		Actions.toggleFogMap()
 	elseif
 		ui.auto and (key == Enum.KeyCode.W or key == Enum.KeyCode.A or key == Enum.KeyCode.S or key == Enum.KeyCode.D)
 	then
@@ -116,6 +124,8 @@ function Input.start()
 					return -- walking there to use it (3.11)
 				elseif ui.target and ui.target.kind == "node" then
 					Actions.setGathering(true)
+				elseif FogRun.active() then
+					CombatControl.press() -- on a run LMB attacks (13.3)
 				else
 					Interaction.aimAtMouse()
 				end
@@ -127,6 +137,7 @@ function Input.start()
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			Building.setPainting(false)
 			Actions.setGathering(false)
+			CombatControl.release()
 		elseif input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
 			Actions.setSprint(false)
 		elseif input.KeyCode == Enum.KeyCode.E then

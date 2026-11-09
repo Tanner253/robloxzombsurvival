@@ -4,7 +4,9 @@
 	character and rigs, material sets) out of a saved place file into the repo as .rbxm
 	models under place/kit/, so `rojo build` rebuilds the whole place from the repo.
 
-	Usage (from roblox/): lune run tools/syncback.luau [place/ember.rbxl]
+	Usage (from roblox/): lune run tools/syncback.luau [place/ember.rbxl] [Name ...]
+	Names after the place limit the copy to those entries (e.g. EO_Hollow), so a place
+	that only carries some of the art can be synced back without touching the rest.
 	Everything else in the place is code: scripts and data (src/), terrain, lighting,
 	dressing and plots (Services/Scenery, Services/Plots), deck materials (place/materials).
 ]]
@@ -25,7 +27,17 @@ local EXTRACT = {
 	{ "ServerStorage", "EO_SurvivorRig_display" },
 	{ "StarterPlayer", "StarterCharacter", "keepScripts" }, -- its Animate script drives idle/walk/run
 	{ "MaterialService", "AssistantMaterials" },
+	{ "ReplicatedStorage", "EO_Hollow" }, -- the Hollow rigs HollowView clones (Fog Runs)
 }
+
+local only: { [string]: boolean }? = nil
+if #process.args > 1 then
+	local names: { [string]: boolean } = {}
+	for index = 2, #process.args do
+		names[process.args[index]] = true
+	end
+	only = names
+end
 
 if not fs.isDir("place/kit") then
 	fs.writeDir("place/kit")
@@ -33,6 +45,9 @@ end
 
 local wrote = 0
 for _, entry in EXTRACT do
+	if only and not only[entry[2]] then
+		continue
+	end
 	local service = game:GetService(entry[1])
 	local instance = service:FindFirstChild(entry[2])
 	if instance == nil then
@@ -53,6 +68,8 @@ for _, entry in EXTRACT do
 	local path = `place/kit/{entry[2]}.rbxm`
 	fs.writeFile(path, roblox.serializeModel({ instance }))
 	wrote += 1
-	print(`{path}: {#instance:GetDescendants()} descendants{if stripped > 0 then `, {stripped} scripts stripped` else ""}`)
+	print(
+		`{path}: {#instance:GetDescendants()} descendants{if stripped > 0 then `, {stripped} scripts stripped` else ""}`
+	)
 end
 print(`{wrote} models written`)
