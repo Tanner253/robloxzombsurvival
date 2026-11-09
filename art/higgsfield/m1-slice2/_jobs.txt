@@ -29,3 +29,6 @@ image weapons_guns_sheet_v1 6557efe3-a05d-407f-bb5c-8f83add53df4 (2.75)
 3d pipe_pistol 3db0707a-3269-4c3e-b664-25c9e8807c2d (12) media b86f1608-ac33-479d-9509-d002c9ed6269
 3d scrap_shotgun 6f3ce37c-4bfe-4245-83b8-45776cb14189 (12) media a7b095c9-cd61-4dae-8746-e8aa00789810
 image fog_map_v1 c157368b-5b3d-4c4e-b072-1441b4ee41f5 (2.75)
+# Flare pistol, photoreal (authorised: one generation). gpt_image_2_6 high 2k 3:2, then tripo image-to-3D.
+image flare_pistol_photo_v2 c197d301-3608-4b4d-8465-c46338a5026f (2.75)
+3d flare_pistol_photo_v2 f9564805-e3a9-4b85-9439-ccd47493a050 (12) from image job c197d301

@@ -14,6 +14,7 @@
     "EO_FireAxe": { "id": 101477205236958, "source": "glb/fire_axe.glb" },
     "EO_ScrapShotgun": { "id": 72894953650046, "source": "../../zona/guns/zona_sawnoff.glb", "license": "CC-BY-4.0, sawnoffs Animated by DJMaesen" },
     "EO_Machete": { "id": 105390370970083, "source": "../../zona/melee/zona_machete.glb", "license": "CC0, Poly Haven Machete by Ulan Cabanilla" },
-    "EO_WornPistol": { "id": 137577727330156, "source": "../../zona/guns/zona_service_pistol_one.glb", "license": "CC0, Poly Haven Service Pistol by Mateusz Sadek" }
+    "EO_WornPistol": { "id": 137577727330156, "source": "../../zona/guns/zona_service_pistol_one.glb", "license": "CC0, Poly Haven Service Pistol by Mateusz Sadek" },
+    "EO_FlarePistol": { "id": 130325429565330, "source": "glb/flare_pistol_v2.glb", "license": "ours: generated (gpt_image_2_6 c197d301, tripo f9564805)" }
   }
 }

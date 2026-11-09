@@ -199,8 +199,9 @@ Art.approved = {
 	EO_Boxcar = true,
 	EO_FuelPump = true,
 	-- Weapons (realistic per the developer, 2026-11-08): Zona's service pistol (CC0) and
-	-- sawn-off (CC-BY), its machete (CC0); our fire axe and shortbow.
+	-- sawn-off (CC-BY), its machete (CC0); our fire axe, shortbow and photoreal flare pistol.
 	EO_WornPistol = true,
+	EO_FlarePistol = true,
 	EO_ScrapShotgun = true,
 	EO_Machete = true,
 	EO_FireAxe = true,
@@ -250,6 +251,7 @@ Art.uploaded = {
 	EO_FuelPump = { id = 130764128762105, yaw = 0, axis = "Y", size = 6 },
 	-- Held weapons (scaled again to Art.held lengths in the hand).
 	EO_WornPistol = { id = 137577727330156, yaw = 0, axis = "Y", size = 1 },
+	EO_FlarePistol = { id = 130325429565330, yaw = 0, axis = "Z", size = 1.25 },
 	EO_ScrapShotgun = { id = 72894953650046, yaw = 0, axis = "Y", size = 1 },
 	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
 	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
@@ -307,6 +309,7 @@ Art.items = {
 	-- Fog Run weapons (slice 2B): realistic guns and the machete from the Zona sources
 	-- (CREDITS.md), the fire axe and shortbow from the slice 2 family sheets.
 	["item.pipe_pistol"] = { "EO_WornPistol" },
+	["item.flare_pistol"] = { "EO_FlarePistol" },
 	["item.scrap_shotgun"] = { "EO_ScrapShotgun" },
 	["item.machete"] = { "EO_Machete" },
 	["item.fire_axe"] = { "EO_FireAxe" },
@@ -368,6 +371,15 @@ Art.held = {
 		length = 1.1,
 		holster = "belt",
 		drop = 0.28,
+	},
+	-- An orange signal pistol, a little longer than the service pistol (about 24 cm).
+	["item.flare_pistol"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.2,
+		length = 1.25,
+		holster = "belt",
+		drop = 0.3,
 	},
 	["item.scrap_shotgun"] = {
 		axis = Vector3.new(0, 0, -1),
