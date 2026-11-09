@@ -222,13 +222,13 @@ local function finish(model: Model): Model
 	return model
 end
 
--- The campfire's flame and glow (off until fuelled; WorldFx lights them), on an
--- invisible core `height` studs above the model's pivot.
-local function addFireCore(model: Model, height: number)
+-- A fuelled station's flame and glow (off until fuelled; WorldFx lights them), on an
+-- invisible core at `at` from the model's pivot, the flame `size` tall.
+local function addFireCore(model: Model, at: Vector3, size: number?)
 	local core = part(
 		model,
 		Vector3.new(0.6, 0.6, 0.6),
-		model:GetPivot() * CFrame.new(0, height, 0),
+		model:GetPivot() * CFrame.new(at),
 		Enum.Material.Neon,
 		EMBER,
 		Enum.PartType.Ball
@@ -241,7 +241,7 @@ local function addFireCore(model: Model, height: number)
 	fire.Name = "Flame"
 	fire.Enabled = false
 	fire.Heat = 9
-	fire.Size = 4
+	fire.Size = size or 4
 	fire.Color = EMBER
 	fire.SecondaryColor = Color3.fromRGB(255, 181, 71)
 	fire.Parent = core
@@ -431,7 +431,11 @@ function Models.piece(def: Types.BuildPieceDef): Model?
 		band(kit)
 	end
 	if def.stationId == "station.campfire" and kit:FindFirstChild("FireCore", true) == nil then
-		addFireCore(kit, 1)
+		addFireCore(kit, Vector3.new(0, 1, 0))
+	elseif def.stationId == "station.smelter" and kit:FindFirstChild("FireCore", true) == nil then
+		-- The Smelter burns out of its chimney (off the model's centre: the bellows widen it),
+		-- so the flame shows over the dome from the camera above.
+		addFireCore(kit, Vector3.new(-0.44, kit:GetExtentsSize().Y - 0.3, 0.38), 2.2)
 	end
 	kit.Name = def.id
 	return kit
