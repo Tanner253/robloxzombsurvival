@@ -107,7 +107,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(Receipts.productByRobloxId(Products, 0), nil)
 	end)
 
-	test("the room kits hold every material for a 3x3 room up the upgrade chain", function()
+	test("Kits.room: every material for a 3x3 room up the upgrade chain (the Firestarter's Scrap room)", function()
 		local kit = Kits.room(Content.BuildPieces :: any, 3)
 		TestKit.truthy(#kit > 0, "materials")
 		-- Exactly the chain costs: 9 foundations, 11 walls, a doorway and a door.
@@ -120,7 +120,8 @@ return function(test: TestKit.Register)
 		for _, stack in kit do
 			TestKit.equal(stack.count, expect[stack.itemId], stack.itemId)
 		end
-		-- The Reinforced kit costs more than the Scrap room in the Firestarter Kit.
+		-- A Reinforced room costs more than the Scrap room in the Firestarter Kit. (The Reinforced
+		-- Room Kit product is a head start on it, not the whole room: Data/Products.)
 		local scrap = 0
 		for _, stack in Kits.room(Content.BuildPieces :: any, 2) do
 			scrap += stack.count
