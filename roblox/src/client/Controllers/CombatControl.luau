@@ -27,6 +27,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local UalClips = require(ReplicatedStorage.Shared.Data.UalClips)
 local Net = require("../Net")
 local Sfx = require("../Sfx")
 local State = require("../State")
@@ -282,6 +283,116 @@ local SPECS: { [string]: Spec } = {
 
 local clips: { [string]: Animation } = {}
 
+-- Clips retargeted from Quaternius's Universal Animation Library (CC0, Data/UalClips):
+-- the gun, the hit and the fall. Melee swings stay hand-keyed above, timed to the hit
+-- frame (UAL's sword attack is a long spinning slash), and so does the quick dodge
+-- (UAL's roll takes 1.5 s with its get-up).
+local UAL: { [string]: { clip: string, loop: boolean? } } = {
+	aim = { clip = "Pistol_Aim_Neutral", loop = true },
+	recoil = { clip = "Pistol_Shoot" },
+	reload = { clip = "Pistol_Reload" },
+	hitReact = { clip = "Hit_Chest" },
+	collapse = { clip = "Death01" },
+}
+
+local UAL_PARENTS: { [string]: string } = table.clone(PARENTS)
+UAL_PARENTS.RightFoot = "RightLowerLeg"
+UAL_PARENTS.LeftFoot = "LeftLowerLeg"
+
+--[[
+	Each joint's rest frame in character space, read from the rig (AnimationConstraint
+	attachments, or Motor6D C0 and C1). UAL rotations are in character space; a joint
+	takes one as J^-1 * D * J. nil when the rig lacks a part UAL drives.
+]]
+local function jointFrames(character: Model): { [string]: CFrame }?
+	local parentOf: { [string]: string } = {}
+	local near: { [string]: CFrame } = {}
+	local far: { [string]: CFrame } = {}
+	for _, joint in character:GetDescendants() do
+		if joint:IsA("AnimationConstraint") then
+			local a0, a1 = joint.Attachment0, joint.Attachment1
+			if a0 and a1 and a0.Parent and a1.Parent then
+				local child = (a1.Parent :: Instance).Name
+				parentOf[child] = (a0.Parent :: Instance).Name
+				near[child] = a0.CFrame.Rotation
+				far[child] = a1.CFrame.Rotation
+			end
+		elseif joint:IsA("Motor6D") and joint.Part0 and joint.Part1 then
+			local child = (joint.Part1 :: BasePart).Name
+			parentOf[child] = (joint.Part0 :: BasePart).Name
+			near[child] = joint.C0.Rotation
+			far[child] = joint.C1.Rotation
+		end
+	end
+	local rest: { [string]: CFrame } = { HumanoidRootPart = CFrame.identity }
+	local frames: { [string]: CFrame } = {}
+	local function restOf(name: string, depth: number): CFrame?
+		if rest[name] then
+			return rest[name]
+		end
+		local parentName = parentOf[name]
+		local parentRest = if parentName and depth < 12 then restOf(parentName, depth + 1) else nil
+		if parentRest == nil then
+			return nil
+		end
+		frames[name] = parentRest * near[name]
+		rest[name] = frames[name] * far[name]:Inverse()
+		return rest[name]
+	end
+	for _, part in UalClips.PARTS do
+		if restOf(part, 0) == nil then
+			return nil
+		end
+	end
+	return frames
+end
+
+local function buildUal(name: string, loop: boolean, frames: { [string]: CFrame }): KeyframeSequence
+	local source = UalClips.clips[name]
+	local sequence = Instance.new("KeyframeSequence")
+	sequence.Loop = loop
+	sequence.Priority = Enum.AnimationPriority.Action2
+	for _, key in source.keys do
+		local keyframe = Instance.new("Keyframe")
+		keyframe.Time = key.t
+		local made: { [string]: Pose } = {}
+		local root = Instance.new("Pose")
+		root.Name = "HumanoidRootPart"
+		root.Weight = 0
+		root.Parent = keyframe
+		made.HumanoidRootPart = root
+		local values: { [string]: { number } } = {}
+		for index, part in UalClips.PARTS do
+			values[part] = key.p[index]
+		end
+		local function poseFor(part: string): Pose
+			if made[part] then
+				return made[part]
+			end
+			local v = values[part]
+			local frame = frames[part]
+			local turn = CFrame.new(0, 0, 0, v[1], v[2], v[3], v[4])
+			local cframe = frame:Inverse() * turn * frame
+			if v[5] then
+				cframe = CFrame.new(frame:Inverse() * Vector3.new(v[5], v[6], v[7])) * cframe
+			end
+			local pose = Instance.new("Pose")
+			pose.Name = part
+			pose.CFrame = cframe
+			pose.Parent = poseFor(UAL_PARENTS[part])
+			made[part] = pose
+			return pose
+		end
+		for _, part in UalClips.PARTS do
+			poseFor(part)
+		end
+		keyframe.Parent = sequence
+	end
+	return sequence
+end
+
+local ualFrames: { [string]: CFrame }? = nil
+
 local function build(spec: Spec): KeyframeSequence
 	local sequence = Instance.new("KeyframeSequence")
 	sequence.Loop = spec.loop == true
@@ -313,15 +424,26 @@ local function build(spec: Spec): KeyframeSequence
 	return sequence
 end
 
-local function clip(name: string): Animation?
+local function clip(name: string, character: Model?): Animation?
 	if clips[name] then
 		return clips[name]
 	end
-	local spec = SPECS[name]
-	if spec == nil then
-		return nil
+	-- A UAL clip once the rig's joint frames are known; the hand-keyed spec otherwise.
+	local ual = UAL[name]
+	if ual and ualFrames == nil and character then
+		ualFrames = jointFrames(character)
 	end
-	local ok, id = pcall(AnimationClipProvider.RegisterAnimationClip, AnimationClipProvider, build(spec))
+	local sequence: KeyframeSequence
+	if ual and ualFrames then
+		sequence = buildUal(ual.clip, ual.loop == true, ualFrames)
+	else
+		local spec = SPECS[name]
+		if spec == nil then
+			return nil
+		end
+		sequence = build(spec)
+	end
+	local ok, id = pcall(AnimationClipProvider.RegisterAnimationClip, AnimationClipProvider, sequence)
 	if not ok then
 		return nil
 	end
@@ -336,7 +458,7 @@ local loaded: { [Animator]: { [string]: AnimationTrack } } = {}
 local function play(character: Model?, name: string, speed: number?): AnimationTrack?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	local animation = clip(name)
+	local animation = clip(name, character)
 	if animator == nil or animation == nil then
 		return nil
 	end
@@ -352,6 +474,15 @@ local function play(character: Model?, name: string, speed: number?): AnimationT
 	end
 	local t = track :: AnimationTrack
 	t:Play(0.06, 1, speed or 1)
+	if name == "collapse" then
+		-- The fall holds its last pose rather than springing back up.
+		local length = t.Length
+		task.delay(math.max(0, length / (speed or 1) - 0.08), function()
+			if t.IsPlaying then
+				t:AdjustSpeed(0)
+			end
+		end)
+	end
 	return t
 end
 

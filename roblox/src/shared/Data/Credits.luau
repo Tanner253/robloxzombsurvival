@@ -34,6 +34,13 @@ local Credits: { Credit } = {
 		licence = "CC0",
 		source = "polyhaven.com",
 	},
+	{
+		usedAs = "Gun, hit and fall animations",
+		title = "Universal Animation Library",
+		author = "Quaternius",
+		licence = "CC0",
+		source = "quaternius.com",
+	},
 }
 
 return Credits
