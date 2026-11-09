@@ -8,10 +8,12 @@
 	  takes the items and pays coins and XP, once a day per contract.
 	- Chapter hand-ins: ChapterClaim(chapter) pays a finished Ember Trail chapter's
 	  reward (coins, items to the inbox) once.
-	- VIP Lounge (game pass Data/Haven.vip.passId): members wear the VIP attribute (Energy
-	  reads it for the +20% cap), a flame aura and the gate's collision group, and get the
-	  daily crate in the inbox on their first visit each UTC day. VipBuy prompts the pass.
-	  Non-members found inside the fence are put back outside the gate.
+	- VIP Lounge (game pass Data/Haven.vip.passId, or a week after any purchase: Services/Shop
+	  sets haven.vipTrialUntil): members wear the VIP attribute (Energy reads it for the +40
+	  cap), a flame aura and the gate's collision group, and get the fixed daily crate in the
+	  inbox on their first visit each UTC day, with a Trail Ration every 7th day in a row.
+	  VipBuy prompts the pass. Non-members found inside the fence are put back outside the
+	  gate.
 	- Every trade checks the survivor stands by the NPC or board (reach plus lag).
 	- Safe zone: no Hollow spawns in a Neighbourhood and there is no PvP in M1; the
 	  square's folder carries the SafeZone attribute for M2's PvP rules.
@@ -49,7 +51,9 @@ local GATE_SECONDS = 0.5
 local DAY = 24 * 60 * 60
 local DEFAULT_ORIGIN = Vector3.new(0, 2.06, 900) -- Services/Scenery's, for a World without one
 
-local members: { [Player]: boolean } = {}
+local members: { [Player]: boolean } = {} -- the VIP attribute is on (pass or trial)
+local owners: { [Player]: boolean } = {} -- they own the VIP Lounge pass
+local TRIAL_CHECK_SECONDS = 30
 
 local function itemName(itemId: string): string
 	local def = Content.Items[itemId]
@@ -275,8 +279,16 @@ local function crate(player: Player)
 	if data.haven.vipCrateDay == today then
 		return
 	end
+	-- Days in a row: every streakDays-th consecutive crate adds the bonus (a Trail Ration).
+	data.haven.vipStreak = if data.haven.vipCrateDay == today - 1 then data.haven.vipStreak + 1 else 1
 	data.haven.vipCrateDay = today
-	Inbox.grant(player, slotsOf(havenData.vip.dailyCrate), "VIP crate")
+	local contents = table.clone(havenData.vip.dailyCrate)
+	if data.haven.vipStreak % havenData.vip.streakDays == 0 then
+		for _, stack in havenData.vip.streakBonus do
+			table.insert(contents, stack)
+		end
+	end
+	Inbox.grant(player, slotsOf(contents), "VIP crate")
 	Sync.notice(player, "Your VIP crate is in the inbox", "good")
 	Sync.mark(player, "haven")
 end
@@ -298,20 +310,36 @@ local function setMember(player: Player, member: boolean)
 	crate(player)
 end
 
+-- Whether the player is a member now: the pass, a purchase's week, or the Studio switch.
+local function entitled(player: Player): boolean
+	if owners[player] then
+		return true
+	end
+	if RunService:IsStudio() and workspace:GetAttribute("HavenTestVip") ~= nil then
+		return workspace:GetAttribute("HavenTestVip") == true
+	end
+	local data = PlayerData.get(player)
+	return data ~= nil and data.haven.vipTrialUntil > os.time()
+end
+
+-- Puts the VIP attribute, aura and gate in line with the player's membership (Services/Shop
+-- calls it after a purchase opens the Lounge for a week).
+function Haven.refreshMember(player: Player)
+	setMember(player, entitled(player))
+end
+
 local function checkPass(player: Player)
-	if RunService:IsStudio() and workspace:GetAttribute("HavenTestVip") == true then
-		setMember(player, true)
-		return
+	if havenData.vip.passId ~= 0 then
+		local ok, owns = pcall(function()
+			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, havenData.vip.passId)
+		end)
+		if ok and owns == true then
+			owners[player] = true
+		else
+			owners[player] = nil
+		end
 	end
-	if havenData.vip.passId == 0 then
-		return
-	end
-	local ok, owns = pcall(function()
-		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, havenData.vip.passId)
-	end)
-	if ok and owns == true then
-		setMember(player, true)
-	end
+	Haven.refreshMember(player)
 end
 
 local function buyPass(player: Player)
@@ -369,6 +397,8 @@ local function view(player: Player): any
 			data.haven.chapters
 		),
 		vip = isMember(player),
+		vipOwned = owners[player] == true,
+		vipUntil = data.haven.vipTrialUntil,
 		vipPrice = havenData.vip.priceRobux,
 		crateAt = if data.haven.vipCrateDay == today then (today + 1) * DAY else 0,
 	}
@@ -400,11 +430,13 @@ function Haven.start()
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		members[player] = nil
+		owners[player] = nil
 	end)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(
 		function(player: Player, passId: number, purchased: boolean)
 			if purchased and passId == havenData.vip.passId then
-				setMember(player, true)
+				owners[player] = true
+				Haven.refreshMember(player)
 				Sync.notice(player, "Welcome to the VIP Lounge", "good")
 			end
 		end
@@ -412,7 +444,7 @@ function Haven.start()
 	if RunService:IsStudio() then
 		workspace:GetAttributeChangedSignal("HavenTestVip"):Connect(function()
 			for _, player in Players:GetPlayers() do
-				setMember(player, workspace:GetAttribute("HavenTestVip") == true)
+				Haven.refreshMember(player)
 			end
 		end)
 		workspace:GetAttributeChangedSignal("HavenTestCoins"):Connect(function()
@@ -428,9 +460,17 @@ function Haven.start()
 	end
 	task.spawn(function()
 		local lastDay = os.time() // DAY
+		local sinceTrialCheck = 0
 		while true do
 			task.wait(GATE_SECONDS)
 			guardGate()
+			sinceTrialCheck += GATE_SECONDS
+			if sinceTrialCheck >= TRIAL_CHECK_SECONDS then
+				sinceTrialCheck = 0
+				for _, player in Players:GetPlayers() do
+					Haven.refreshMember(player) -- a purchase's week ran out
+				end
+			end
 			-- A new UTC day: fresh contract boards and the next VIP crate.
 			local day = os.time() // DAY
 			if day ~= lastDay then

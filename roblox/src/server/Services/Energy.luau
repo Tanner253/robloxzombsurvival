@@ -6,7 +6,7 @@
 	Regeneration is computed from the saved timestamp, so the client draws the
 	countdown itself from the synced { value, updatedAt }. Food and drink energy
 	counts toward Tuning.energy.foodDailyCap per UTC day. VIP Lounge members (the VIP
-	attribute, Services/Haven) have a cap Data/Haven.vip.energyCapBonus higher.
+	attribute, Services/Haven) have a cap Data/Haven.vip.energyCapBonus higher (200 to 240).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,7 +21,7 @@ local Energy = {}
 
 local config: EnergyMath.Config = Content.Tuning.energy :: any
 local vipConfig: EnergyMath.Config = table.clone(config)
-vipConfig.cap = math.floor(config.cap * (1 + Content.Haven.vip.energyCapBonus))
+vipConfig.cap = config.cap + Content.Haven.vip.energyCapBonus
 local foodDailyCap = Content.Tuning.energy.foodDailyCap
 local DAY = 24 * 60 * 60
 

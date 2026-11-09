@@ -71,7 +71,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(wildlife, 2, "wildlife (deer, wolf; LDOE_PARITY #35)")
 		TestKit.equal(#Content.Levels, 20, "player levels")
 		TestKit.truthy(count(Content.Quests) >= 8 and count(Content.Quests) <= 10, "8-10 starter quests")
-		TestKit.equal(count(Content.Products), 4, "shop products")
+		TestKit.equal(count(Content.Products), 10, "shop products (MVP_LAUNCH Monetization v0.1)")
 
 		local structural: { [string]: { [number]: boolean } } = {}
 		for _, piece in Content.BuildPieces do

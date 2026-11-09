@@ -153,6 +153,7 @@ local function Panels()
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
 	local haven = hooks.useSection("haven")
+	local wallet = hooks.useSection("wallet")
 	local pooled = hooks.usePooled()
 	local now = hooks.useClock(1)
 	local modalState, setModal = React.useState(nil :: any)
@@ -445,9 +446,9 @@ local function Panels()
 		inventory = inventory,
 		selected = selected,
 		newItems = ui.newItems,
-		balance = if type(haven) == "table" then haven.coins else nil, -- Haven Square's coins
+		balance = if type(wallet) == "table" then wallet.embers else 0, -- Embers, the premium currency
 		onShop = function()
-			Actions.openShop()
+			Actions.openShop(nil, "embers")
 		end,
 		main = mainAction(),
 		onSelect = select,

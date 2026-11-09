@@ -360,17 +360,51 @@ local Tuning: Types.TuningDef = {
 		spawnSpreadStuds = 40,
 		hitRadiusStuds = 1.6,
 	},
-	-- Robux prices: PLACEHOLDERS until the monetization playbook sets them. Data/Products
-	-- and Data/Haven read these; the live price on Roblox (Open Cloud) is what the shop shows
-	-- once loaded, so changing a price here also means updating the product or pass there.
+	-- Robux prices of the v0.1 shop (MVP_LAUNCH Monetization v0.1; the ladder is
+	-- 79/99/149/199/249/399/799/1,199/1,699/...). Data/Products reads these as display
+	-- fallbacks; the live price on Roblox (Open Cloud) is what the shop shows once loaded, so
+	-- changing one here also means updating the product or pass there.
 	prices = {
-		products = {
-			["product.resource_pack"] = 199,
-			["product.energy_refill"] = 49,
-			["product.backpack_upgrade"] = 149,
-			["product.starter_offer"] = 149,
+		robux = {
+			["product.starter_offer"] = 99, -- Firestarter Kit
+			["product.scavenger_kit"] = 79,
+			["product.resource_pack"] = 99, -- Supply Bundle
+			["product.builders_crate"] = 399,
+			["product.room_kit_reinforced"] = 1699,
+			["product.energy_refill"] = 99,
+			["product.embers_50"] = 149, -- Ember Pouch
+			["product.embers_300"] = 799, -- Ember Chest
+			["product.pack_expansion"] = 199,
+			["product.vip_lounge"] = 399,
 		},
-		vipLounge = 399,
+	},
+	-- Embers, the premium currency (playbook §7.2, at LDoE coin parity). Sinks: Recover all,
+	-- Trail Rations, speed-ups by time left, Fill Up per missing unit (40 Embers per free
+	-- grind-hour, at least 1 a unit; per-unit numbers rebalance with the ECONOMY pacing test).
+	embers = {
+		recoverAll = 100,
+		ration = 20,
+		rationsFive = 90,
+		speedUpFactor = 3.9, -- Embers = max(speedUpMin, ceil(3.9 x sqrt(minutes left)))
+		speedUpMin = 2,
+		speedUpMinSeconds = 120, -- speed-ups show from 2 minutes left
+		fillUp = {
+			["item.sticks"] = 1,
+			["item.timber"] = 1,
+			["item.stone"] = 1,
+			["item.fiber"] = 1,
+			["item.scrap"] = 1,
+			["item.emberberry"] = 1,
+			["item.rope"] = 1,
+			["item.cloth"] = 2,
+			["item.plank"] = 2,
+			["item.stone_block"] = 3,
+			["item.scrap_plate"] = 4,
+			["item.rivets"] = 3,
+			["item.pitch_glue"] = 3,
+		},
+		vipTrialDays = 7, -- any purchase opens the VIP Lounge for this long (LDoE's VIP 1)
+		firstPurchaseHours = 48, -- the Firestarter Kit's window after the first win
 	},
 }
 

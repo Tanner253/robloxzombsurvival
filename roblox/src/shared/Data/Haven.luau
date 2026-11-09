@@ -9,7 +9,7 @@
 	  what you buy from her, `sell` what she buys from you.
 	- contracts: the daily contract board, three a day per survivor, reset at 00:00 UTC.
 	- chapterRewards: what the Trail Keeper hands over for a finished Ember Trail chapter.
-	- vip: the VIP Lounge game pass and its perks.
+	- vip: the VIP Lounge game pass and its perks (playbook §6.1).
 ]]
 
 local Types = require("../Types")
@@ -112,18 +112,21 @@ Haven.chapterRewards = {
 } :: { [string]: { coins: number, items: { Types.ItemStack } } }
 
 Haven.vip = {
-	-- The VIP game pass on universe 10775267789 (made through Open Cloud).
+	-- The VIP game pass on universe 10775267789 (made through Open Cloud). Any purchase also
+	-- opens the Lounge for Tuning.embers.vipTrialDays (LDoE's VIP 1).
 	passId = 2075836390,
-	priceRobux = Tuning.prices.vipLounge, -- placeholder until the monetization playbook
+	priceRobux = Tuning.prices.robux["product.vip_lounge"],
 	icon = "rbxassetid://91515713612492",
-	energyCapBonus = 0.2, -- +20% Energy cap while you hold the pass
-	-- The daily crate, to the inbox, once a UTC day.
+	energyCapBonus = 40, -- the Energy cap goes up by this much (200 to 240)
+	-- The daily crate, to the inbox, once a UTC day: fixed contents (no odds rule applies).
 	dailyCrate = {
-		{ itemId = "item.sealed_tin", count = 2 },
-		{ itemId = "item.boiled_water", count = 2 },
+		{ itemId = "item.hearth_stew", count = 1 },
+		{ itemId = "item.boiled_water", count = 1 },
 		{ itemId = "item.field_dressing", count = 1 },
-		{ itemId = "item.fatwood", count = 4 },
 	},
+	-- Every 7th consecutive day's crate adds a Trail Ration.
+	streakDays = 7,
+	streakBonus = { { itemId = "item.rations", count = 1 } },
 }
 
 return Haven

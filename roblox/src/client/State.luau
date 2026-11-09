@@ -63,6 +63,10 @@ export type Ui = {
 	settingsView: string?, -- the Settings sheet's page: nil (settings) or "credits"
 	guide: string?, -- the HUD button the first-session guide points at: "craft", "build", "inventory", "map"
 	guideLocation: string?, -- the location the guide sends you to (the Fog map marks its pin and Run)
+	shopTab: string?, -- the shop's tab: "best" (default), "supplies", "embers", "passes"
+	-- An Ember purchase waiting for BUY (screens/ldoe/EmberConfirm): what, the price, and
+	-- what BUY does.
+	emberAsk: { title: string, text: string, price: number, run: () -> () }?,
 	havenId: string?, -- who or what on Haven Square the "haven" panel is talking to
 	havenTab: string?, -- the Trader's tab: "buy" (default) or "sell"
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size

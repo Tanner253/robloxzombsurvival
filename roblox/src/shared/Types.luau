@@ -413,6 +413,8 @@ export type ProductGrant =
 	{ kind: "item", itemId: ItemId, count: number }
 	| { kind: "energy", amount: number } -- may overfill up to Tuning.energy.hardCap
 	| { kind: "backpackSlots", amount: number }
+	| { kind: "embers", amount: number } -- the premium currency
+	| { kind: "vipLounge" } -- the VIP Lounge pass (Services/Haven)
 
 export type ProductDef = {
 	id: ProductId,
@@ -426,6 +428,10 @@ export type ProductDef = {
 	defaultPriceRobux: number,
 	limit: number?, -- purchases per player; nil means unlimited (game passes are 1)
 	offerMaxLevel: number?, -- only offered at or below this player level
+	-- "firstPurchase": shown only to accounts that never paid, for Tuning.embers.
+	-- firstPurchaseHours after their first win, once (Domain/Offers).
+	offer: "firstPurchase"?,
+	tab: "best" | "supplies" | "embers" | "passes", -- the shop tab it sits on
 	grants: { ProductGrant }, -- item grants go into the locked stash (ARCHITECTURE.md §6)
 }
 
@@ -569,9 +575,19 @@ export type TuningDef = {
 	fogExposure: FogExposureTuning,
 	deathRecovery: DeathRecoveryTuning,
 	hollow: HollowTuning,
-	-- Robux prices (placeholders until the monetization playbook): each developer product by
-	-- ID, and the VIP Lounge game pass.
-	prices: { products: { [ProductId]: number }, vipLounge: number },
+	-- Robux prices by product or pass ID (display fallbacks; Data/Products).
+	prices: { robux: { [string]: number } },
+	embers: {
+		recoverAll: number,
+		ration: number,
+		rationsFive: number,
+		speedUpFactor: number,
+		speedUpMin: number,
+		speedUpMinSeconds: number,
+		fillUp: { [ItemId]: number },
+		vipTrialDays: number,
+		firstPurchaseHours: number,
+	},
 }
 
 -- Fog Runs (slice 2) -------------------------------------------------------------------
@@ -875,8 +891,10 @@ export type HavenDef = {
 		passId: number,
 		priceRobux: number,
 		icon: string,
-		energyCapBonus: number,
+		energyCapBonus: number, -- added to the Energy cap
 		dailyCrate: { ItemStack },
+		streakDays: number, -- every this-many consecutive crates adds streakBonus
+		streakBonus: { ItemStack },
 	},
 }
 

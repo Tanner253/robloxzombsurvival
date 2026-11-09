@@ -25,10 +25,12 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Domain = ReplicatedStorage.Shared.Domain
 local Converter = require(Domain.Converter)
 local Crafting = require(Domain.Crafting)
+local Offers = require(Domain.Offers)
 local Rng = require(Domain.Rng)
 local Net = require("../Net")
 local Events = require("../Events")
 local Analytics = require("./Analytics")
+local Embers = require("./Embers")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Materials = require("./Materials")
@@ -323,6 +325,39 @@ local function takeOutput(player: Player, uid: string, index: number)
 	Sync.fx(player, "items", { items = taken, source = "station", uid = uid })
 end
 
+-- Speed up (MVP_LAUNCH v0.1): Embers finish the work the station would do now, the batches
+-- in its input as far as its fuel goes, priced by the time skipped (Domain/Offers).
+local function workLeft(c: Context): number
+	local status = Converter.status(c.station, c.ctx)
+	if status.activity ~= "working" or status.line == nil then
+		return 0
+	end
+	local left = status.batchRemaining + math.max(0, status.batchesLeft - 1) * status.batchSeconds
+	return if c.def.fuel then math.min(left, status.fuelSeconds) else left
+end
+
+local function speedUp(player: Player, uid: string)
+	local c = open(player, uid)
+	if c == nil then
+		return
+	end
+	local seconds = workLeft(c)
+	local price = Offers.speedUpPrice(seconds, tuning.embers :: any)
+	if price == nil then
+		Sync.notice(player, "Less than 2 minutes left")
+		return
+	end
+	if not Embers.spend(player, price, "SpeedUp") then
+		Embers.short(player, price)
+		return
+	end
+	local skipped = table.clone(c.station)
+	skipped.at -= seconds
+	local advanced = Converter.advance(skipped, c.ctx, os.time())
+	save(player, c, uid, advanced)
+	Sync.fx(player, "spedUp", { uid = uid })
+end
+
 local function upgrade(player: Player, uid: string)
 	local c = open(player, uid)
 	if c == nil then
@@ -411,6 +446,7 @@ function Stations.init()
 	Net.onEvent("StationTakeFuel", takeFuel)
 	Net.onEvent("StationTakeOutput", takeOutput)
 	Net.onEvent("StationUpgrade", upgrade)
+	Net.onEvent("StationSpeedUp", speedUp)
 	Net.onEvent("HandCraft", handCraft)
 	Net.onEvent("RecipeFavourite", favourite)
 	Net.onEvent("RecipesSeen", seen)

@@ -680,7 +680,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://117713218223504", -- art/higgsfield/m1-launch/icons/item.rations.png
 		flags = { ignoresFoodEnergyCap = true },
 		consume = { energy = 60 },
 	},

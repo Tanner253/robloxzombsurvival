@@ -8,8 +8,10 @@
 	- forNotice(text): an offer on the "bag full" toast and on storage/placement limits
 	- buyEnergy(): the Energy Refill product, for the travel panel when Energy is short
 	- openShop(productId?): the shop, e.g. from the inventory's currency "+"
-	Controllers/Shop sets fillUp (it opens the shop on the Resource Pack), buyEnergy and
-	openShop for v0.1 (MVP_LAUNCH).
+	- gear(): the Scavenger's Kit, for the death screen and after a weapon breaks
+	Controllers/Shop sets them for v0.1 (MVP_LAUNCH Monetization v0.1): Fill up asks to buy
+	the shortfall with Embers, forNotice puts "View offer" on the bag-full and broken-weapon
+	toasts (once a day each), buyEnergy prompts the Energy Refill.
 ]]
 
 export type Offer = { label: string, onActivated: () -> () }
@@ -20,6 +22,7 @@ local offers = {
 	forNotice = nil :: ((text: string) -> Offer?)?,
 	buyEnergy = nil :: (() -> ())?,
 	openShop = nil :: ((productId: string?) -> ())?,
+	gear = nil :: (() -> ())?,
 }
 
 return offers

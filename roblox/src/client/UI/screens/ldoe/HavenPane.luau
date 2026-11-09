@@ -47,6 +47,31 @@ export type Props = {
 
 -- Pieces ----------------------------------------------------------------------------------------------
 
+-- Haven Square's coins (the trade currency, earned and spent on the square) wear the price
+-- tag glyph; the coin glyph is the Embers premium currency's.
+local function CoinsBalance(props: { coins: number })
+	return e(Layout.Stack, {
+		direction = "row",
+		gap = Theme.spacing.xs,
+		alignY = Enum.VerticalAlignment.Center,
+		size = UDim2.fromOffset(0, 44),
+		autoSize = Enum.AutomaticSize.X,
+		children = {
+			Tag = e(Glyph, { name = "offer", size = UDim2.fromOffset(26, 26), layoutOrder = 1 }),
+			Amount = e("TextLabel", {
+				Size = UDim2.fromOffset(0, 26),
+				AutomaticSize = Enum.AutomaticSize.X,
+				BackgroundTransparency = 1,
+				FontFace = Theme.fonts.header,
+				Text = `{props.coins} coins`,
+				TextSize = Theme.textSize.body,
+				TextColor3 = Theme.colors.text,
+				LayoutOrder = 2,
+			}),
+		},
+	})
+end
+
 -- A teal button showing a price in coins (LDoE's buy and sell buttons).
 local function CoinButton(props: { coins: number, disabled: boolean, layoutOrder: number, onActivated: () -> () })
 	return e("TextButton", {
@@ -78,7 +103,7 @@ local function CoinButton(props: { coins: number, disabled: boolean, layoutOrder
 			alignX = Enum.HorizontalAlignment.Center,
 			alignY = Enum.VerticalAlignment.Center,
 			children = {
-				Coin = e(Glyph, { name = "coin", size = UDim2.fromOffset(22, 22), layoutOrder = 1 }),
+				Coin = e(Glyph, { name = "offer", size = UDim2.fromOffset(22, 22), layoutOrder = 1 }),
 				Amount = e("TextLabel", {
 					Size = UDim2.fromOffset(0, 24),
 					AutomaticSize = Enum.AutomaticSize.X,
@@ -259,7 +284,12 @@ local function Trader(props: Props)
 		})
 	end
 	return e(Parts.Pane, {
-		header = e(Parts.Header, { glyph = "talk", title = "Trading Post", chip = true }),
+		header = e(Parts.Header, {
+			glyph = "talk",
+			title = "Trading Post",
+			chip = true,
+			right = { Coins = e(CoinsBalance, { coins = coins }) },
+		}),
 		body = body({
 			Speech = Speech("npc.trader", props.now),
 			List = List(rows, 2),
@@ -334,6 +364,7 @@ local function Contracts(props: Props)
 			glyph = if keeper then "talk" else "quests",
 			title = if keeper then "Trail Keeper" else "Contract Board",
 			chip = true,
+			right = { Coins = e(CoinsBalance, { coins = if haven then haven.coins else 0 }) },
 		}),
 		body = body({
 			Speech = if keeper then Speech("npc.keeper", props.now) else nil,
@@ -432,7 +463,7 @@ end
 
 local NOTICES = {
 	{ glyph = "defense", title = "Safe ground", detail = "No Hollow and no fighting on Haven Square" },
-	{ glyph = "coin", title = "Trading Post", detail = "Mara buys timber, stone and scrap and sells supplies" },
+	{ glyph = "offer", title = "Trading Post", detail = "Mara buys timber, stone and scrap and sells supplies" },
 	{ glyph = "quests", title = "Contracts", detail = "Three jobs a day on Old Hale's board" },
 	{ glyph = "map", title = "The Trailhead", detail = "The trail to the Fog leaves north of the square" },
 	{ glyph = "pass", title = "VIP Lounge", detail = "Members rest by their own fire, south-east" },

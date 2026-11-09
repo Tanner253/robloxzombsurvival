@@ -1,9 +1,8 @@
 --!strict
 --[[
 	InventoryPane: the left half of LDoE's two-pane screen (LDOE_PARITY #13, rec2_04):
-	- header: the backpack glyph, "INVENTORY", and the premium balance with its "+" that
-	  opens the shop (LDoE). v0.1 has no premium currency yet, so the balance hides and
-	  the button carries the shop glyph;
+	- header: the backpack glyph, "INVENTORY", and the Embers balance (the coin glyph) with
+	  its "+" that opens the shop's EMBERS tab (LDoE);
 	- pockets 2 x 5 and the backpack 5 wide, each with its rotated side label;
 	- the action bar: the main action, SPLIT, sort and trash.
 
@@ -29,7 +28,7 @@ export type Props = {
 	inventory: any,
 	selected: { ref: string, index: number }?,
 	newItems: { [string]: boolean }?,
-	balance: number?, -- the premium balance; nil while the game has no premium currency
+	balance: number?, -- the Embers balance (nil hides it)
 	onShop: (() -> ())?, -- the "+" (or the shop button) opens the shop
 	main: Action, -- the context's main action for the selected slot
 	onSelect: (ref: string, index: number) -> (),

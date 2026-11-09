@@ -52,6 +52,10 @@ end
 local LONG_TITLE = 18
 
 function Parts.Header(props: { glyph: string, title: string, chip: boolean?, right: { [string]: any }? })
+	local textSize = if props.chip and #props.title > LONG_TITLE then Theme.textSize.section else Theme.textSize.title
+	-- A chip sizes to its text, plus slack: at a fractional UI scale a label sized exactly to
+	-- its text can round a pixel short and truncate (the UI gate caught "VIP LOUNGE" on a phone).
+	local chipMin = math.min(#props.title * textSize * 0.62 + 24, P.pane - 150)
 	local children: { [string]: any } = {
 		Icon = e(Glyph, {
 			name = props.glyph,
@@ -73,16 +77,17 @@ function Parts.Header(props: { glyph: string, title: string, chip: boolean?, rig
 					FontFace = Theme.fonts.header,
 					Text = string.upper(props.title),
 					-- A long name ("WOODWORKING BENCH LVL 1") steps down a size to fit the chip.
-					TextSize = if props.chip and #props.title > LONG_TITLE
-						then Theme.textSize.section
-						else Theme.textSize.title,
+					TextSize = textSize,
 					TextColor3 = Theme.colors.text,
-					TextXAlignment = Enum.TextXAlignment.Left,
+					TextXAlignment = if props.chip then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left,
 					TextTruncate = Enum.TextTruncate.AtEnd,
 				}, {
 					Corner = props.chip and e("UICorner", { CornerRadius = UDim.new(0, 4) }),
 					Padding = props.chip and Layout.pad(0, { left = 10, right = 10 }),
-					Max = props.chip and e("UISizeConstraint", { MaxSize = Vector2.new(P.pane - 150, 60) }),
+					Max = props.chip and e("UISizeConstraint", {
+						MinSize = Vector2.new(chipMin, 0),
+						MaxSize = Vector2.new(P.pane - 150, 60),
+					}),
 				}),
 			},
 		}),

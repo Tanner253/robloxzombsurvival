@@ -151,6 +151,28 @@ Remotes.list = {
 		validate = Check.args(Check.contentId("product")),
 		description = "(productId) asks the server to prompt that developer product, if it is on offer",
 	},
+	-- Embers (Services/Shop, Services/Stations; MVP_LAUNCH Monetization v0.1) ------------------
+	EmbersRations = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.integer(1, 5)),
+		description = "(count) buys 1 or 5 Trail Rations with Embers (to the inbox)",
+	},
+	FillUp = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.stacks(12, 999)),
+		description = "(stacks) buys missing materials with Embers at Fill Up rates",
+	},
+	StationSpeedUp = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.string(64)),
+		description = "(uid) finishes a station's work now for Embers, priced by the time left",
+	},
 	-- Haven Square (Services/Haven) -----------------------------------------------------------
 	HavenBuy = {
 		kind = "event",

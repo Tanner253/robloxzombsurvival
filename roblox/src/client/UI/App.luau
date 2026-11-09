@@ -35,6 +35,7 @@ local Panels = require("./screens/ldoe/Panels")
 local LdoeHud = require("./screens/ldoe/Hud")
 local LdoeBuild = require("./screens/ldoe/Build")
 local Shop = require("./screens/ldoe/Shop")
+local EmberConfirm = require("./screens/ldoe/EmberConfirm")
 local hooks = require("./hooks")
 
 local e = React.createElement
@@ -133,6 +134,7 @@ local function App(props: Props)
 		Settings = e(Boundary, { name = "Settings" }, { Screen = e(SettingsScreen) }),
 		Crafting = e(Boundary, { name = "Crafting" }, { Screen = e(CraftingScreen) }),
 		Shop = e(Boundary, { name = "Shop" }, { Screen = e(Shop) }),
+		EmberConfirm = e(Boundary, { name = "EmberConfirm" }, { Screen = e(EmberConfirm) }),
 		KitPreview = RunService:IsStudio() and showKit and e(KitPreview),
 	})
 end

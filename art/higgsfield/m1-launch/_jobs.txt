@@ -15,3 +15,11 @@ media stonecutter ce57c4a5-9419-4478-b800-33b3356c941d
 roblox EO_Smelter 134220739947756 (Art.uploaded yaw 90, X 5.8; tint 190,168,144)
 roblox EO_Stonecutter 96553555280227 (Art.uploaded yaw 90, X 5.6; tint 255,232,204)
 # Spend: 0.5 (two concept variants) + 24 (two conversions) = 24.5 credits.
+# v0.1 shop (Open Cloud, universe 10775267789): icons art/ui/products/*.png (scratchpad shop_icons.py style)
+roblox product.scavenger_kit 3729872993 (79) icon 103183324723356
+roblox product.builders_crate 3729873035 (399) icon 121572315473616
+roblox product.room_kit_reinforced 3729873052 (1699) icon 111714823062229
+roblox product.embers_50 3729873068 (149) icon 94850842702164
+roblox product.embers_300 3729873080 (799) icon 76937309861540
+roblox pass.pack_expansion 2076082454 (199) icon 114676220253346
+updated product.energy_refill 3729832267 -> 99; product.starter_offer 3729832319 -> Firestarter Kit 99; product.resource_pack 3729832298 -> Supply Bundle 99; product.backpack_upgrade 3729832309 -> not for sale

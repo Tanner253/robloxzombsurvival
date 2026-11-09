@@ -154,10 +154,29 @@ local function fixtureHaven(): any
 	}
 end
 
+-- The "shop" section as the server sends it: everything on offer, the Firestarter Kit's
+-- window open with 47 h left; `owned` products at their limit.
+local function fixtureShop(owned: { string }?): any
+	local result: { [string]: any } = {}
+	for id, product in Content.Products do
+		local isOwned = owned ~= nil and table.find(owned, id) ~= nil
+		result[id] = {
+			price = product.defaultPriceRobux,
+			bought = if isOwned then 1 else 0,
+			available = not isOwned,
+			reason = if isOwned then "limit" else nil,
+			endsAt = if id == "product.starter_offer" then workspace:GetServerTimeNow() + 47 * 3600 + 720 else 0,
+		}
+	end
+	return result
+end
+
 local function baseSections(): { [string]: any }
 	return {
 		inventory = fixtureInventory(),
 		haven = fixtureHaven(),
+		shop = fixtureShop(),
+		wallet = { embers = 120 },
 		survival = {
 			health = 84,
 			maxHealth = 100,
@@ -268,7 +287,38 @@ local function scenes(): { Scene }
 			ui = { panel = "haven", havenId = "npc.warden" },
 		},
 		{ name = "haven.notice", ui = { panel = "haven", havenId = "board.notice" } },
-		{ name = "shop.focus", ui = { panel = "shop", shopFocus = "product.resource_pack" } },
+		{ name = "shop.focus", ui = { panel = "shop", shopFocus = "product.resource_pack", shopTab = "supplies" } },
+		{ name = "shop.supplies", ui = { panel = "shop", shopTab = "supplies" } },
+		{ name = "shop.embers", ui = { panel = "shop", shopTab = "embers" } },
+		{
+			name = "shop.passes.owned",
+			sections = { shop = fixtureShop({ "product.pack_expansion" }) },
+			ui = { panel = "shop", shopTab = "passes" },
+		},
+		{
+			name = "shop.best.noStarter",
+			sections = { shop = fixtureShop({ "product.starter_offer" }) },
+			ui = { panel = "shop", shopTab = "best" },
+		},
+		{
+			name = "ember.ask",
+			ui = {
+				panel = "inventory",
+				emberAsk = {
+					title = "Fill up",
+					text = "37 Scrap Plate, 12 Hewn Plank",
+					price = 172,
+					run = function() end,
+				},
+			},
+		},
+		{
+			name = "ember.ask.enough",
+			ui = {
+				panel = "inventory",
+				emberAsk = { title = "Fill up", text = "5 Timber", price = 5, run = function() end },
+			},
+		},
 		{ name = "project.hauler", ui = { panel = "project", projectId = "project.hauler" } },
 		{ name = "build", ui = { panel = "build", buildMode = "place" } },
 		{ name = "build.hint", ui = { panel = "build", buildMode = "place", buildHint = "Needs a Timber floor" } },
@@ -393,7 +443,9 @@ local function run()
 				"shopFocus",
 				"settingsView",
 				"havenId",
-				"havenTab"
+				"havenTab",
+				"shopTab",
+				"emberAsk"
 			)
 			table.clear(Boundary.failures)
 			State.patch(scene.ui)
@@ -450,7 +502,9 @@ local function run()
 		"shopFocus",
 		"settingsView",
 		"havenId",
-		"havenTab"
+		"havenTab",
+		"shopTab",
+		"emberAsk"
 	)
 	for name in touched do
 		State.set(name, savedSections[name])

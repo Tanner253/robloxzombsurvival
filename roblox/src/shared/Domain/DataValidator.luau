@@ -1096,7 +1096,11 @@ local function checkProducts(errors: Errors, content: Types.Content)
 			checkLevel(errors, content, `{where}.offerMaxLevel`, product.offerMaxLevel)
 		end
 		for index, grant in product.grants do
-			if grant.kind == "item" then
+			if grant.kind == "vipLounge" then
+				if product.kind ~= "gamePass" then
+					push(errors, `{where}.grants[{index}]: the VIP Lounge is a game pass`)
+				end
+			elseif grant.kind == "item" then
 				checkItemRef(errors, content, `{where}.grants[{index}]`, grant.itemId)
 				if not isPositiveInteger(grant.count) then
 					push(errors, `{where}.grants[{index}]: count must be a positive integer`)

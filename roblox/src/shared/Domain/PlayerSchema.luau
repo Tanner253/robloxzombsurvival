@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 8
+PlayerSchema.VERSION = 9
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -101,20 +101,35 @@ export type PlayerData = {
 	raid: { shieldUntil: number, log: { RaidLogEntry } },
 	settings: Settings,
 	haven: HavenSave,
+	-- Embers, the premium currency (MVP_LAUNCH Monetization v0.1): bought, never raidable.
+	embers: number,
+	-- The shop: when the player first won (the first night survived or the first
+	-- extraction; 0 = not yet), which opens the Firestarter Kit's window (Domain/Offers).
+	shop: { firstWinAt: number },
 }
 
 -- Haven Square (Services/Haven): coins from the Trader and contracts, today's contract
 -- deliveries (Domain/Contracts), chapters handed in to the Trail Keeper (chapter -> UTC
--- time) and the UTC day of the last VIP crate.
+-- time), the UTC day of the last VIP crate and how many days in a row it came, and until
+-- when a purchase opened the Lounge (UTC seconds, 0 = never).
 export type HavenSave = {
 	coins: number,
 	contracts: { day: number, done: { [string]: boolean } },
 	chapters: { [string]: number },
 	vipCrateDay: number,
+	vipStreak: number,
+	vipTrialUntil: number,
 }
 
 function PlayerSchema.freshHaven(): HavenSave
-	return { coins = 0, contracts = { day = 0, done = {} }, chapters = {}, vipCrateDay = 0 }
+	return {
+		coins = 0,
+		contracts = { day = 0, done = {} },
+		chapters = {},
+		vipCrateDay = 0,
+		vipStreak = 0,
+		vipTrialUntil = 0,
+	}
 end
 
 -- Player settings (checklist 8.6): mixer volumes 0..1, camera shake, UI scale.
@@ -202,6 +217,8 @@ function PlayerSchema.template(): PlayerData
 		raid = { shieldUntil = 0, log = {} },
 		settings = PlayerSchema.defaultSettings(),
 		haven = PlayerSchema.freshHaven(),
+		embers = 0,
+		shop = { firstWinAt = 0 },
 	}
 end
 
@@ -492,6 +509,30 @@ PlayerSchema.migrations = {
 	[7] = function(data)
 		if type(data.haven) ~= "table" then
 			data.haven = PlayerSchema.freshHaven()
+		end
+	end,
+	-- v9: the v0.1 shop: Embers, the first win, the VIP crate streak and Lounge trial. The
+	-- Backpack Upgrade product became the Pack Expansion pass: slots bought stay, counted as
+	-- the pass.
+	[8] = function(data)
+		if type(data.embers) ~= "number" then
+			data.embers = 0
+		end
+		if type(data.shop) ~= "table" then
+			data.shop = { firstWinAt = 0 }
+		end
+		if type(data.haven) == "table" then
+			data.haven.vipStreak = data.haven.vipStreak or 0
+			data.haven.vipTrialUntil = data.haven.vipTrialUntil or 0
+		end
+		local purchases: any = data.purchases
+		local counts: { [string]: any }? = if type(purchases) == "table" then purchases.counts else nil
+		if type(counts) == "table" then
+			local legacy = counts["product.backpack_upgrade"]
+			if type(legacy) == "number" and legacy > 0 then
+				counts["product.pack_expansion"] = 1
+			end
+			counts["product.backpack_upgrade"] = nil
 		end
 	end,
 } :: Migrations.Steps
