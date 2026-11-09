@@ -719,6 +719,122 @@ Art.hollowAnimations = {
 	},
 } :: { [string]: { [string]: string } }
 
+-- Wildlife rigs (LDOE_PARITY #35): the deer and the wolf carry no clips. Controllers/Gait
+-- drives their joints from how fast they move. Each leg lists its joints from the body
+-- down, how far each one swings with the stride (`swing`) and folds while the foot is in
+-- the air (`fold`), in radians per unit of stride, and where the leg sits in the walk and
+-- the run (a share of the cycle). Rest axes: X across the body, Y up, -Z forward.
+-- Models: the Creator Store's "Rocky Mountain Elk" (deer) and "Adult Dire wolf 2" (wolf),
+-- re-jointed and scaled for the outpost (CREDITS.md).
+export type WildlifeLeg = {
+	joints: { string },
+	swing: { number },
+	fold: { number },
+	walk: number,
+	run: number,
+}
+export type WildlifeRig = {
+	root: string, -- the body's joint to the root: bob, lunge, flinch, fall
+	spine: string?, -- flexes on the run
+	legs: { WildlifeLeg },
+	neck: { string },
+	jaw: string?,
+	ears: { string }?,
+	tail: { string }?,
+	stride: number, -- studs per cycle at a walk
+	grazes: boolean, -- drops its head to feed when idle
+}
+
+local ELK_FRONT_SWING = { 1, 0.2, 0, 0 }
+local ELK_FRONT_FOLD = { 0, 0.35, -1.2, -0.6 }
+local ELK_HIND_SWING = { 1, 0, 0, 0 }
+local ELK_HIND_FOLD = { 0.2, 0.7, -1.1, 0.5 }
+local WOLF_FRONT_SWING = { 0.45, 0.6, 0, 0, 0 }
+local WOLF_FRONT_FOLD = { 0, 0.25, 0.2, -1.1, -0.6 }
+local WOLF_HIND_SWING = { 1, 0, 0, 0 }
+local WOLF_HIND_FOLD = { 0.2, 0.8, -1.1, 0.5 }
+
+Art.wildlifeRigs = {
+	["enemy.deer"] = {
+		root = "Shoulders",
+		spine = "Hips",
+		legs = {
+			{
+				joints = { "LThigh", "LCalf", "LAnkle", "LFoot" },
+				swing = ELK_HIND_SWING,
+				fold = ELK_HIND_FOLD,
+				walk = 0,
+				run = 0,
+			},
+			{
+				joints = { "LArm1", "LArm2", "LArm3", "LWrist" },
+				swing = ELK_FRONT_SWING,
+				fold = ELK_FRONT_FOLD,
+				walk = 0.25,
+				run = 0.55,
+			},
+			{
+				joints = { "RThigh", "RCalf", "RAnkle", "RFoot" },
+				swing = ELK_HIND_SWING,
+				fold = ELK_HIND_FOLD,
+				walk = 0.5,
+				run = 0.1,
+			},
+			{
+				joints = { "RArm1", "RArm2", "RArm3", "RWrist" },
+				swing = ELK_FRONT_SWING,
+				fold = ELK_FRONT_FOLD,
+				walk = 0.75,
+				run = 0.65,
+			},
+		},
+		neck = { "Neck1", "Neck2", "Neck3", "FakeHead" },
+		jaw = "Jaw",
+		ears = { "LEar", "REar" },
+		stride = 3.6,
+		grazes = true,
+	},
+	["enemy.wolf"] = {
+		root = "Chest",
+		spine = "Waist",
+		legs = {
+			{
+				joints = { "ThighL", "CalfL", "FootL", "PawHL" },
+				swing = WOLF_HIND_SWING,
+				fold = WOLF_HIND_FOLD,
+				walk = 0,
+				run = 0,
+			},
+			{
+				joints = { "ShoulderL", "UpperarmL", "ForearmL", "WristL", "PawFL" },
+				swing = WOLF_FRONT_SWING,
+				fold = WOLF_FRONT_FOLD,
+				walk = 0.25,
+				run = 0.55,
+			},
+			{
+				joints = { "ThighR", "CalfR", "FootR", "PawHR" },
+				swing = WOLF_HIND_SWING,
+				fold = WOLF_HIND_FOLD,
+				walk = 0.5,
+				run = 0.1,
+			},
+			{
+				joints = { "ShoulderR", "UpperarmR", "ForearmR", "WristR", "PawFR" },
+				swing = WOLF_FRONT_SWING,
+				fold = WOLF_FRONT_FOLD,
+				walk = 0.75,
+				run = 0.65,
+			},
+		},
+		neck = { "Neck1", "Neck2", "Neck3", "RealHead" },
+		jaw = "Jaw",
+		tail = { "Tail1", "Tail2", "Tail3", "Tail4", "Tail5", "Tail6" },
+		stride = 2.8,
+		grazes = false,
+	},
+} :: { [string]: WildlifeRig }
+
 -- The HUD meters' glyph names.
 Art.meterGlyphs = {
 	health = "health",

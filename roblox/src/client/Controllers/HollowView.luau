@@ -27,6 +27,7 @@ local TweenService = game:GetService("TweenService")
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local TableUtil = require(ReplicatedStorage.Shared.Util.Table)
+local Gait = require("./Gait")
 local Net = require("../Net")
 local Sfx = require("../Sfx")
 local State = require("../State")
@@ -53,6 +54,7 @@ type View = {
 	tracks: { [string]: AnimationTrack },
 	playing: string?,
 	diedAt: number?,
+	gait: Gait.Rig?, -- wildlife: joints driven procedurally, no clips
 }
 
 local views: { [string]: View } = {}
@@ -101,9 +103,10 @@ local function animatorOf(model: Model): Animator?
 	return animator
 end
 
--- Cold eyes and fog wisps, added to every rig on spawn.
-local function dress(model: Model)
-	local head = model:FindFirstChild("Head", true)
+-- Cold eyes and fog wisps, added to every Hollow on spawn (not to wildlife: an animal is
+-- just an animal).
+local function dress(model: Model, wildlife: boolean)
+	local head = if wildlife then nil else model:FindFirstChild("Head", true)
 	if head and head:IsA("BasePart") then
 		local glow = Instance.new("PointLight")
 		glow.Color = EYE_COLOR
@@ -112,7 +115,7 @@ local function dress(model: Model)
 		glow.Shadows = false
 		glow.Parent = head
 	end
-	local torso = model:FindFirstChild("UpperTorso", true) or model.PrimaryPart
+	local torso = if wildlife then nil else model:FindFirstChild("UpperTorso", true) or model.PrimaryPart
 	if torso and torso:IsA("BasePart") then
 		local wisps = Instance.new("ParticleEmitter")
 		wisps.Name = "FogWisps"
@@ -222,14 +225,17 @@ local function spawnView(id: string, enemyId: string): View
 		tracks = {},
 		playing = nil,
 		diedAt = nil,
+		gait = nil,
 	}
 	local source = template(enemyId)
 	if source then
 		local model = source:Clone()
 		model.Name = id
-		dress(model)
+		local def = Content.Enemies[enemyId]
+		dress(model, def ~= nil and def.wildlife ~= nil)
 		model.Parent = container()
 		view.model = model
+		view.gait = Gait.bind(model, enemyId)
 		loadTracks(view)
 	end
 	views[id] = view
@@ -337,6 +343,21 @@ local function dissolve(view: View)
 	Sfx.play("hollowDeath", centre)
 end
 
+-- An animal falls (Gait), lies a moment, then fades: no ash, it was never fog-touched.
+local function fade(view: View)
+	local model = view.model
+	if model == nil then
+		return
+	end
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			TweenService:Create(part, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Transparency = 1,
+			}):Play()
+		end
+	end
+end
+
 local function cloud(at: Vector3, radius: number, seconds: number)
 	local holder = anchorAt(at + Vector3.new(0, 1.5, 0), seconds + 2)
 	local emitter = Instance.new("ParticleEmitter")
@@ -420,12 +441,18 @@ local function onCue(cue: { any })
 				size = NumberSequence.new(0.6, 1.2),
 				speed = NumberRange.new(3, 6),
 			})
+			if view.gait then
+				Gait.cue(view.gait, "hit")
+			end
 			playOnce(view, "hit")
 			Sfx.play("hitThud", top)
 		end
 	elseif kind == "attack" then
 		local view = views[cue[2]]
 		if view then
+			if view.gait then
+				Gait.cue(view.gait, "attack")
+			end
 			playOnce(view, "attack")
 			if view.model then
 				Sfx.play("hollowAttack", view.model:GetPivot().Position)
@@ -436,8 +463,13 @@ local function onCue(cue: { any })
 		if view and view.alive then
 			view.alive = false
 			view.diedAt = os.clock()
-			playOnce(view, "death")
-			task.delay(0.5, dissolve, view)
+			if view.gait then
+				Gait.cue(view.gait, "dead")
+				task.delay(3, fade, view)
+			else
+				playOnce(view, "death")
+				task.delay(0.5, dissolve, view)
+			end
 		end
 	elseif kind == "burst" then
 		cloud(Vector3.new(cue[3], 0, cue[4]) + Vector3.new(0, HollowView.groundY(cue[3], cue[4]), 0), cue[5], 6)
@@ -505,7 +537,7 @@ local function onSync(payload: any)
 	end
 end
 
-local function step()
+local function step(dt: number)
 	local renderAt = os.clock() + serverOffset - INTERP_DELAY
 	for _, view in views do
 		local model = view.model
@@ -528,7 +560,17 @@ local function step()
 		local yaw = a.yaw + turn * alpha
 		-- Server yaw points along (sin, cos) on the ground; rigs face -Z at rest.
 		model:PivotTo(CFrame.new(position) * CFrame.Angles(0, yaw + math.pi, 0))
-		if view.alive then
+		local gait = view.gait
+		if gait then
+			-- Wildlife: the stride follows the ground actually covered between snapshots.
+			if not view.alive and gait.diedAt == nil then
+				Gait.cue(gait, "dead")
+			end
+			local first, last = samples[1], samples[#samples]
+			local window = last.t - first.t
+			local flat = Vector3.new(last.position.X - first.position.X, 0, last.position.Z - first.position.Z)
+			Gait.step(gait, dt, if window > 0 then flat.Magnitude / window else 0, view.state)
+		elseif view.alive then
 			local moving = (b.position - a.position).Magnitude > 0.05
 			if view.state == "chase" or view.state == "flee" then
 				playLoop(view, if moving then "run" else "idle")
