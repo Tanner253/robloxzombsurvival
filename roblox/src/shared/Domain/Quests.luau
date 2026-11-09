@@ -16,6 +16,11 @@
 	  in one call. The caller pays the rewards into the inbox.
 	- Objectives with a flag that is off are left out. A quest with no objectives left is
 	  dormant: it never completes, and the tracker skips it.
+
+	Location quests (LDOE_PARITY #45) pay once per Tuning.locationQuests period per player
+	(ECONOMY §6.2: once per UTC day), never once per lobby: a Rations reward that repeated
+	every lobby would refund the Run's Energy. PlayerData.locationQuests remembers the period
+	each one last paid (`locationQuestOpen`, `markLocationQuest`).
 ]]
 
 local Types = require("../Types")
@@ -38,6 +43,7 @@ export type Event = {
 	recipeId: string?,
 	pieceId: string?,
 	locationId: string?,
+	fogTier: number?, -- travel: the fog tier of the location arrived at
 	enemyId: string?,
 	count: number?,
 }
@@ -103,7 +109,10 @@ local function matches(objective: Types.QuestObjective, event: Event): boolean
 	elseif objective.kind == "build" then
 		return objective.pieceId == event.pieceId
 	elseif objective.kind == "travel" then
-		return objective.locationId == event.locationId
+		if objective.locationId ~= nil then
+			return objective.locationId == event.locationId
+		end
+		return objective.fogTier ~= nil and objective.fogTier == event.fogTier
 	elseif objective.kind == "loot" then
 		return objective.locationId == nil or objective.locationId == event.locationId
 	elseif objective.kind == "kill" then
@@ -219,6 +228,41 @@ function Quests.settle(state: State, defs: Defs, flags: Flags, facts: Facts, now
 		end
 	end
 	return result, done
+end
+
+-- Location quests --------------------------------------------------------------------------
+
+-- questId -> the period number (a UTC day for "daily") it last paid out.
+export type LocationQuestLog = { [string]: number }
+
+local DAY_SECONDS = 24 * 60 * 60
+
+-- The period `now` falls in (Tuning.locationQuests.period).
+function Quests.periodOf(now: number, config: { period: "daily" }): number
+	assert(config.period == "daily", "unknown location quest period")
+	return now // DAY_SECONDS
+end
+
+-- Whether a location quest can still pay out in this period.
+function Quests.locationQuestOpen(
+	log: LocationQuestLog,
+	questId: Types.QuestId,
+	now: number,
+	config: { period: "daily" }
+): boolean
+	return log[questId] ~= Quests.periodOf(now, config)
+end
+
+-- The log after a location quest paid out at `now` (a new table).
+function Quests.markLocationQuest(
+	log: LocationQuestLog,
+	questId: Types.QuestId,
+	now: number,
+	config: { period: "daily" }
+): LocationQuestLog
+	local result = table.clone(log)
+	result[questId] = Quests.periodOf(now, config)
+	return result
 end
 
 -- The tracker (#50): up to `limit` active quests that can progress, in trail order, each

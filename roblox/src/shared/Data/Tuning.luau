@@ -63,7 +63,11 @@ local Tuning: Types.TuningDef = {
 	},
 	combat = {
 		armorConstant = 50 / 3, -- LDoE's damage reduction formula
-		weaponDurabilityPerHit = 1,
+		-- Durability (docs/ECONOMY.md §8.1): everything wears out at LDoE's rate or faster.
+		weaponDurabilityPerHit = 1, -- a landed light hit; each arrow released
+		heavyDurabilityPerHit = 2, -- a landed heavy swing
+		gunDurabilityPerShot = 1, -- every round fired, hit or miss (a shotgun shell is a round)
+		durabilityWarn = { 0.25, 0.10 }, -- the weapon ring turns amber, then red with a toast
 		armorDurabilityPerHitTaken = 1,
 		critChance = 0.08, -- Fog Runs: one hit in 12; rolled once per shot, not per pellet
 		critMultiplier = 1.5,
@@ -167,6 +171,17 @@ local Tuning: Types.TuningDef = {
 	shield = {
 		afterRaidSeconds = 8 * 60 * 60,
 	},
+	-- docs/ECONOMY.md §10.1: the Smelter and Stonecutter are launch stations, but their models
+	-- still wait for an A grade (Art.pieces lists none), so their lines run here until then:
+	-- ingots at the fuelled Campfire, blocks at the Workbench. Delete each entry the day its
+	-- model is approved (tests/Economy.spec checks this list against Art.pieces).
+	stationFallback = {
+		["station.smelter"] = "station.campfire",
+		["station.stonecutter"] = "station.workbench",
+	},
+	-- docs/ECONOMY.md §6.2: location quests pay once per UTC day per player, not per lobby,
+	-- so a Rations reward can never refund the Run that earned it.
+	locationQuests = { period = "daily" },
 
 	-- Fog Runs (M1 slice 2) -------------------------------------------------------------
 	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the

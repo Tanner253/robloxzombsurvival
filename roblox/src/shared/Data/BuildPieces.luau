@@ -15,6 +15,11 @@
 	Unlocks (#49): only the Timber Crate (LDoE's Small Box) starts unlocked; every other
 	piece unlocks with an Ember Trail quest (Data/Quests), and the reinforced tier with
 	its found plans.
+
+	Costs (docs/ECONOMY.md §5.2, binding): Timber is LDoE's log tier. Scrap blends LDoE's
+	plank-and-brick L2 with L3's iron-plate floor; Reinforced is LDoE's stone L3 and harsher,
+	with Ironbark Planks for oak plus plates, rivets and copper wire. HP and breach costs are
+	unchanged.
 ]]
 
 local Types = require("../Types")
@@ -126,7 +131,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		hp = 1200,
 		cost = {
 			{ itemId = "item.plank", count = 6 },
-			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.stone_block", count = 4 },
+			{ itemId = "item.scrap_plate", count = 3 },
 		},
 		breachCost = 4,
 		unlock = SCRAP_TIER,
@@ -139,8 +145,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 800,
 		cost = {
-			{ itemId = "item.plank", count = 4 },
-			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.plank", count = 8 },
+			{ itemId = "item.stone_block", count = 4 },
+			{ itemId = "item.scrap_plate", count = 2 },
 		},
 		breachCost = 2,
 		minFoundationTier = 2,
@@ -154,8 +161,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 700,
 		cost = {
-			{ itemId = "item.plank", count = 3 },
-			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.stone_block", count = 4 },
+			{ itemId = "item.scrap_plate", count = 2 },
 		},
 		breachCost = 2,
 		minFoundationTier = 2,
@@ -169,9 +177,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 600,
 		cost = {
-			{ itemId = "item.plank", count = 2 },
+			{ itemId = "item.plank", count = 6 },
 			{ itemId = "item.scrap_plate", count = 3 },
-			{ itemId = "item.rivets", count = 1 },
+			{ itemId = "item.rivets", count = 4 },
 		},
 		breachCost = 2,
 		minFoundationTier = 2,
@@ -185,8 +193,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 2,
 		hp = 700,
 		cost = {
-			{ itemId = "item.plank", count = 3 },
-			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.plank", count = 8 },
+			{ itemId = "item.stone_block", count = 4 },
+			{ itemId = "item.scrap_plate", count = 2 },
 		},
 		breachCost = 2,
 		minFoundationTier = 2,
@@ -202,9 +211,9 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 2400,
 		cost = {
-			{ itemId = "item.stone_block", count = 10 },
-			{ itemId = "item.scrap_plate", count = 6 },
-			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.stone_block", count = 12 },
+			{ itemId = "item.scrap_plate", count = 8 },
+			{ itemId = "item.rivets", count = 4 },
 		},
 		breachCost = 8,
 		unlock = REINFORCED_TIER,
@@ -216,9 +225,11 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1600,
 		cost = {
-			{ itemId = "item.stone_block", count = 8 },
+			{ itemId = "item.stone_block", count = 12 },
+			{ itemId = "item.ironbark_plank", count = 7 },
 			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.copper_wire", count = 2 },
 		},
 		breachCost = 4,
 		minFoundationTier = 3,
@@ -231,9 +242,11 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1400,
 		cost = {
-			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.stone_block", count = 10 },
+			{ itemId = "item.ironbark_plank", count = 7 },
 			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.copper_wire", count = 2 },
 		},
 		breachCost = 4,
 		minFoundationTier = 3,
@@ -246,8 +259,10 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1200,
 		cost = {
+			{ itemId = "item.ironbark_plank", count = 7 },
 			{ itemId = "item.scrap_plate", count = 6 },
-			{ itemId = "item.rivets", count = 3 },
+			{ itemId = "item.rivets", count = 6 },
+			{ itemId = "item.copper_wire", count = 4 },
 			{ itemId = "item.coil_spring", count = 1 },
 		},
 		breachCost = 3,
@@ -261,9 +276,11 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 3,
 		hp = 1400,
 		cost = {
-			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.stone_block", count = 12 },
+			{ itemId = "item.ironbark_plank", count = 7 },
 			{ itemId = "item.scrap_plate", count = 4 },
-			{ itemId = "item.rivets", count = 2 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.copper_wire", count = 2 },
 		},
 		breachCost = 3,
 		minFoundationTier = 3,
@@ -274,7 +291,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 	["build.woodworking_bench"] = {
 		id = "build.woodworking_bench",
 		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
-		name = "Woodworking Bench",
+		name = "Saw Bench", -- LDoE calls theirs the Woodworking Bench (ECONOMY §1.5)
 		kind = "station",
 		tier = 1,
 		hp = 300,
@@ -297,7 +314,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 1,
 		hp = 350,
 		cost = {
-			{ itemId = "item.plank", count = 8 },
+			{ itemId = "item.timber", count = 8 },
 			{ itemId = "item.stone", count = 10 },
 			{ itemId = "item.rope", count = 2 },
 		},
@@ -332,8 +349,8 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		tier = 1,
 		hp = 300,
 		cost = {
-			{ itemId = "item.plank", count = 10 },
-			{ itemId = "item.stone_block", count = 6 },
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.stone_block", count = 3 },
 			{ itemId = "item.rope", count = 4 },
 		},
 		breachCost = 1,

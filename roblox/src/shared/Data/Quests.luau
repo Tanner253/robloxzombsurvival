@@ -17,6 +17,9 @@
 	(#57) and quest 6's trip to Pine Hollow need Fog Runs; until they ship those objectives
 	are left out, and quests whose every objective waits stay closed. (#57's one-time crash
 	site is a Fog Runs location, slice 2's to add.)
+
+	Quests 11-13 (docs/ECONOMY.md §11.2) open the tier-2 ladder after the Dense fog: the
+	Forged Hatchet and Ironbark Planks, the Forged Pick and copper, then the Black fog.
 ]]
 
 local Types = require("../Types")
@@ -73,7 +76,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 4,
 		chapter = HOME,
 		name = "A Place to Work",
-		description = "Build a Woodworking Bench and feed it timber. It saws planks while you are away.",
+		description = "Build a Saw Bench and feed it timber. It saws planks while you are away.",
 		prerequisite = "quest.claim_the_ground",
 		objectives = {
 			{ kind = "build", pieceId = "build.woodworking_bench", count = 1 },
@@ -164,7 +167,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 10,
 		chapter = FOG,
 		name = "The Dense Fog",
-		description = "Grow strong enough to face the Dense fog, then reach the Sunken Quarry.",
+		description = "Grow strong enough to face the Dense fog, then reach the Sunken Quarry. Iron tools come next.",
 		prerequisite = "quest.scavenger",
 		objectives = {
 			{ kind = "reachLevel", level = 8 }, -- the Dense fog's level gate (GAME_DESIGN, slice 2)
@@ -174,6 +177,45 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			xp = 500,
 			items = { { itemId = "item.ember_tonic", count = 1 }, { itemId = "item.scrap", count = 6 } },
 		},
+	},
+	["quest.heartwood"] = {
+		id = "quest.heartwood",
+		order = 11,
+		chapter = FOG,
+		name = "Heartwood",
+		description = "Forge an iron hatchet and fell Ironbark. Its logs saw down to the planks a reinforced wall needs.",
+		prerequisite = "quest.the_dense_fog",
+		objectives = {
+			{ kind = "craft", recipeId = "recipe.forged_hatchet", count = 1 },
+			{ kind = "gather", itemId = "item.ironbark_log", count = 10, flag = "fogRuns" },
+		},
+		rewards = { xp = 600, items = { { itemId = "item.pitch_glue", count = 4 } } },
+	},
+	["quest.green_vein"] = {
+		id = "quest.green_vein",
+		order = 12,
+		chapter = FOG,
+		name = "The Green Vein",
+		description = "Forge an iron pick and break the green veins. Copper smelts slow and draws into wire.",
+		prerequisite = "quest.the_dense_fog",
+		objectives = {
+			{ kind = "craft", recipeId = "recipe.forged_pick", count = 1 },
+			{ kind = "gather", itemId = "item.malachite", count = 6, flag = "fogRuns" },
+		},
+		rewards = { xp = 600, items = { { itemId = "item.embercoal", count = 10 } } },
+	},
+	["quest.into_the_black"] = {
+		id = "quest.into_the_black",
+		order = 13,
+		chapter = FOG,
+		name = "Into the Black",
+		description = "Grow strong enough for the Black fog and walk into it. The plans for reinforced walls are out there.",
+		prerequisite = "quest.green_vein",
+		objectives = {
+			{ kind = "reachLevel", level = 15 }, -- the Black fog's level gate (GAME_DESIGN)
+			{ kind = "travel", fogTier = 3, flag = "fogRuns" },
+		},
+		rewards = { xp = 1000, items = { { itemId = "item.coil_spring", count = 2 } } },
 	},
 }
 

@@ -97,6 +97,10 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			{ nodeId = "node.ashroot_mound", count = 4 },
 			{ nodeId = "node.niter_seam", count = 4 },
 			{ nodeId = "node.spring_pool", count = 2 },
+			-- Interim (docs/briefs/economy-notes-for-s2b.md): the tier-2 nodes' only Dense home
+			-- until Ironbark Stand and Greenvein Bluffs (ECONOMY §6.2) take them over.
+			{ nodeId = "node.ironbark_tree", count = 4 },
+			{ nodeId = "node.malachite_vein", count = 4 },
 		},
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 8, max = 10 } },
@@ -174,6 +178,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			{ nodeId = "node.boulder", count = 6 },
 			{ nodeId = "node.niter_seam", count = 6 },
 			{ nodeId = "node.spring_pool", count = 1 },
+			{ nodeId = "node.ironstone_rock", count = 8 }, -- the quarry pit (ECONOMY §6.3)
 		},
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 8, max = 12 } },

@@ -3,6 +3,9 @@
 -- Stacks are LDoE's (LDOE_PARITY #15): 20 for everything stackable, 50 for scrap. Bags add
 -- +5, +10 or +15 backpack slots. Food and drink never restore Energy (#33); only the rare
 -- Ember Tonic does.
+-- Economy (docs/ECONOMY.md, binding): the wood, stone and ore ladder (§1), the forge chain
+-- (§2) and durability (§8.1): every tool, weapon and armor piece wears out at LDoE's value
+-- or faster, and nothing is repaired early; worn gear is re-crafted from its recipe.
 
 local Types = require("../Types")
 
@@ -42,7 +45,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.scrap"] = {
 		id = "item.scrap",
 		name = "Rusted Scrap",
-		description = "Rusted metal pulled from heaps. Hammered into plate and rivets.",
+		description = "Rusted metal pulled from heaps. Five smelt down to an Iron Ingot.",
 		category = "resource",
 		tier = 1,
 		rarity = "common",
@@ -85,7 +88,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.plank"] = {
 		id = "item.plank",
 		name = "Hewn Plank",
-		description = "Timber sawn flat at the Workbench, for furniture and frames.",
+		description = "Two timber sawn flat at the Saw Bench, for furniture and frames.",
 		category = "material",
 		tier = 1,
 		rarity = "common",
@@ -125,12 +128,95 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.scrap_plate"] = {
 		id = "item.scrap_plate",
 		name = "Scrap Plate",
-		description = "Hammered scrap for second-tier walls and blades.",
+		description = "An Iron Ingot hammered flat at the Workbench, for second-tier walls and blades.",
 		category = "material",
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 20,
 		icon = "rbxassetid://125799632435564",
+	},
+
+	-- The economy ladder (ECONOMY §1-2): tier-2 wood, the ores and the forge chain ---------------
+	-- Icons are "" until their painted icons are made (checklist §0).
+	["item.ironbark_log"] = {
+		id = "item.ironbark_log",
+		name = "Ironbark Log",
+		description = "Dense grey heartwood. Needs a Forged Hatchet; five saw down to one Ironbark Plank.",
+		category = "resource",
+		tier = 2,
+		rarity = "uncommon",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.ironbark_plank"] = {
+		id = "item.ironbark_plank",
+		name = "Ironbark Plank",
+		description = "A heavy plank from five Ironbark Logs, sawn at a level 2 Saw Bench. Reinforced walls and doors.",
+		category = "material",
+		tier = 3,
+		rarity = "uncommon",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.ironstone"] = {
+		id = "item.ironstone",
+		name = "Ironstone",
+		description = "Rust-red ore from the outcrops. Two smelt down to an Iron Ingot.",
+		category = "resource",
+		tier = 1,
+		rarity = "common",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.iron_ingot"] = {
+		id = "item.iron_ingot",
+		name = "Iron Ingot",
+		description = "Smelted from ironstone or scrap. Hammered into Scrap Plate at the Workbench.",
+		category = "material",
+		tier = 2,
+		rarity = "common",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.malachite"] = {
+		id = "item.malachite",
+		name = "Malachite",
+		description = "Green copper ore. Needs a Forged Pick; five smelt to a Copper Ingot at a level 2 Smelter.",
+		category = "resource",
+		tier = 2,
+		rarity = "uncommon",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.copper_ingot"] = {
+		id = "item.copper_ingot",
+		name = "Copper Ingot",
+		description = "Smelted from malachite. Drawn into Copper Wire at a level 2 Workbench.",
+		category = "material",
+		tier = 3,
+		rarity = "uncommon",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.copper_wire"] = {
+		id = "item.copper_wire",
+		name = "Copper Wire",
+		description = "Drawn copper wire. Reinforced walls and doors need it.",
+		category = "part",
+		tier = 3,
+		rarity = "uncommon",
+		stackSize = 20,
+		icon = "",
+	},
+	["item.embercoal"] = {
+		id = "item.embercoal",
+		name = "Embercoal",
+		description = "Timber charred at the Campfire. Burns more than twice as long as timber in a fuel slot.",
+		category = "material",
+		tier = 1,
+		rarity = "common",
+		stackSize = 20,
+		icon = "",
 	},
 
 	-- Parts -----------------------------------------------------------------
@@ -216,7 +302,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 1,
-		durability = 60,
+		durability = 40, -- ECONOMY §8.1 (was 60)
 		icon = "rbxassetid://76006509682187",
 		tool = { kind = "hatchet", tier = 1 },
 	},
@@ -228,9 +314,34 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 1,
-		durability = 60,
+		durability = 40, -- ECONOMY §8.1 (was 60)
 		icon = "rbxassetid://93490362412249",
 		tool = { kind = "pick", tier = 1 },
+	},
+	-- Tier 2 (ECONOMY §4.1): LDoE's Iron Hatchet and Iron Pickaxe, 75 durability.
+	["item.forged_hatchet"] = {
+		id = "item.forged_hatchet",
+		name = "Forged Hatchet",
+		description = "An iron-headed hatchet. Fells Ironbark as well as pine.",
+		category = "tool",
+		tier = 2,
+		rarity = "uncommon",
+		stackSize = 1,
+		durability = 75,
+		icon = "",
+		tool = { kind = "hatchet", tier = 2 },
+	},
+	["item.forged_pick"] = {
+		id = "item.forged_pick",
+		name = "Forged Pick",
+		description = "An iron-headed pick. Breaks Malachite veins and anything softer.",
+		category = "tool",
+		tier = 2,
+		rarity = "uncommon",
+		stackSize = 1,
+		durability = 75,
+		icon = "",
+		tool = { kind = "pick", tier = 2 },
 	},
 
 	-- Weapons and ammo -----------------------------------------------------------
@@ -242,7 +353,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 1,
-		durability = 110,
+		durability = 80, -- ECONOMY §8.1 (was 110)
 		icon = "rbxassetid://130094172132646",
 		equipSlot = "weapon",
 		weapon = { kind = "melee", damage = 14, attacksPerSecond = 1.0, range = 6 },
@@ -255,7 +366,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 120,
+		durability = 80, -- ECONOMY §8.1 (was 120)
 		icon = "rbxassetid://133473045968137",
 		equipSlot = "weapon",
 		weapon = { kind = "melee", damage = 24, attacksPerSecond = 1.3, range = 7 },
@@ -268,7 +379,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 60,
+		durability = 40, -- ECONOMY §8.1 (was 60)
 		icon = "rbxassetid://78122730028517",
 		equipSlot = "weapon",
 		weapon = {
@@ -300,7 +411,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 1,
-		durability = 120,
+		durability = 80, -- ECONOMY §8.1 (was 120)
 		icon = "rbxassetid://76447712786468",
 		equipSlot = "head",
 		armor = { defense = 3, fogResist = 0.1 }, -- fogResist: LDOE_PARITY #37 (slice 2)
@@ -313,7 +424,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 150,
+		durability = 100, -- ECONOMY §8.1 (was 150)
 		icon = "rbxassetid://129117819249762",
 		equipSlot = "body",
 		armor = { defense = 6, fogResist = 0.15 },
@@ -426,7 +537,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.field_dressing"] = {
 		id = "item.field_dressing",
 		name = "Field Dressing",
-		description = "Clean cloth and glue. Patches you up fast.",
+		description = "Five strips of clean reedcloth. Patches you up fast.",
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
@@ -486,7 +597,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.blackpowder"] = {
 		id = "item.blackpowder",
 		name = "Blackpowder",
-		description = "Niter and charred fatwood, ground fine. Every round needs some.",
+		description = "Two niter ground fine at the Ammo Press. Every round needs some.",
 		category = "material",
 		tier = 2,
 		rarity = "uncommon",
@@ -553,7 +664,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 130,
+		durability = 70, -- ECONOMY §8.1 (was 130)
 		icon = "",
 		equipSlot = "weapon",
 		weapon = { kind = "melee", damage = 22, attacksPerSecond = 1.6, range = 6.5, critChance = 0.12 },
@@ -566,7 +677,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 1,
-		durability = 150,
+		durability = 50, -- ECONOMY §8.1 (was 150)
 		icon = "",
 		equipSlot = "weapon",
 		weapon = {
@@ -587,7 +698,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 140,
+		durability = 50, -- ECONOMY §8.1 (was 140)
 		icon = "",
 		equipSlot = "weapon",
 		weapon = {
@@ -617,7 +728,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 1,
-		durability = 120,
+		durability = 30, -- ECONOMY §8.1 (was 120)
 		icon = "",
 		equipSlot = "weapon",
 		weapon = {
@@ -649,7 +760,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 100,
+		durability = 24, -- ECONOMY §8.1 (was 100)
 		icon = "",
 		equipSlot = "weapon",
 		weapon = {
