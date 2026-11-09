@@ -41,6 +41,8 @@ local player = Players.LocalPlayer
 local STALE_SECONDS = 3
 local updateCombatMusic: (onRun: boolean, dt: number) -> ()
 local CONTAINER_TAG = "EO_RunContainer"
+local EXIT_TAG = "EO_RunExit"
+local CLOSED_EXIT = Color3.fromRGB(92, 96, 100)
 local CANOPY_TAG = "EO_Canopy"
 local ROOF_TAG = "EO_Roof"
 
@@ -375,6 +377,43 @@ updateCombatMusic = function(onRun: boolean, dt: number)
 	end
 end
 
+-- The exits this lobby's seed left open (run.extraction.open), or nil when every way out
+-- works (Light fog's edge, or no run).
+local function openExits(): { [string]: boolean }?
+	local run = State.get("run")
+	local exits = if type(run) == "table" then run.extraction else nil
+	if type(exits) ~= "table" or exits.kind ~= "points" or type(exits.open) ~= "table" then
+		return nil
+	end
+	local open: { [string]: boolean } = {}
+	for _, id in exits.open do
+		open[id] = true
+	end
+	return open
+end
+
+-- A closed exit looks shut: its ring and flare pole go grey and unlit instead of green.
+local function paintExits()
+	local open = openExits()
+	for _, exit in CollectionService:GetTagged(EXIT_TAG) do
+		local id = exit:GetAttribute("PointId")
+		local closed = open ~= nil and type(id) == "string" and not open[id]
+		for _, part in exit:GetDescendants() do
+			if part:IsA("BasePart") then
+				if part:GetAttribute("LitColor") == nil then
+					part:SetAttribute("LitColor", part.Color)
+					part:SetAttribute("LitMaterial", part.Material.Name)
+				end
+				local litMaterial = part:GetAttribute("LitMaterial") :: string
+				part.Color = if closed then CLOSED_EXIT else part:GetAttribute("LitColor") :: Color3
+				part.Material = if closed
+					then Enum.Material.SmoothPlastic
+					else (Enum.Material :: any)[litMaterial] :: Enum.Material
+			end
+		end
+	end
+end
+
 -- Server effects ---------------------------------------------------------------------------------------
 
 local function onFx(kind: string, payload: any)
@@ -395,6 +434,11 @@ local function onFx(kind: string, payload: any)
 		end
 	elseif kind == "runEnter" then
 		TeleportScreen.prepare(nil) -- the way out of a run is a teleport home
+		-- The Fog map the trip was planned on (or a Walk was watched on) closes on arrival.
+		if State.ui().panel == "fogmap" then
+			State.patch({ panel = "none" })
+			State.clear("fogLocation")
+		end
 		State.set("travel", false)
 		State.set("death", false)
 		State.set("result", false)
@@ -484,7 +528,9 @@ function FogRun.start()
 	end)
 	State.fx:Connect(onFx)
 	State.changed:Connect(function(key: string)
-		if key == "homecoming" then
+		if key == "run" then
+			paintExits()
+		elseif key == "homecoming" then
 			onHomecoming()
 		elseif key == "ui" then
 			-- Closing the inventory closes the loot pane with it.

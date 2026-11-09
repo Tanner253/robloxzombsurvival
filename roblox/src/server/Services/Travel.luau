@@ -119,7 +119,8 @@ local function context(player: Player): TravelMath.Context?
 		energy = state,
 		energyConfig = config,
 		config = travelConfig,
-		gates = tuning.regionGates,
+		-- The signal towers (M4) gate Dense and Black only once their UI ships.
+		gates = if Features.on(tuning, "regionGates") then tuning.regionGates else nil,
 		repairedGates = repaired[player] or {},
 		airdropPin = #FogMap.livePins(pins[player] or {}, stamp) > 0,
 	}
@@ -144,6 +145,9 @@ local function spendEnergy(
 	local was = EnergyMath.current(before, stamp, config).value
 	Energy.set(player, after, -cost, reason)
 	lastSpend[player] = { amount = cost, at = stamp }
+	if not Features.on(tuning, "airdrops") then
+		return
+	end
 	local crossed, day =
 		FogMap.airdropsCrossed(was, after.value, airdropDays[player] or { day = 0, fired = {} }, stamp, tuning.airdrops)
 	airdropDays[player] = day
@@ -479,8 +483,10 @@ function Travel.init()
 	Net.onEvent("TravelBonusTakeAll", takeAll)
 	Net.onEvent("TravelHurry", hurry)
 	Net.onEvent("AutoClear", autoClear)
-	Net.onEvent("GateFill", gateFill)
-	Net.onEvent("GateFinalize", gateFinalize)
+	if Features.on(tuning, "regionGates") then
+		Net.onEvent("GateFill", gateFill)
+		Net.onEvent("GateFinalize", gateFinalize)
+	end
 end
 
 function Travel.start()

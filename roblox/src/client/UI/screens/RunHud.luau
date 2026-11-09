@@ -153,17 +153,20 @@ function RunHud.RunMinimap(props: { position: UDim2?, anchorPoint: Vector2? }?)
 		end
 	end
 	-- Exits: green arcs (#42), closed ones greyed.
-	local open: { [string]: boolean } = {}
+	-- The server sends the open point ids (run.extraction.open); every other point is shut.
+	local open: { [string]: boolean }? = nil
 	local exits = run.extraction
-	if type(exits) == "table" and type(exits.points) == "table" then
-		for _, point in exits.points do
-			open[point.id] = point.open
+	if type(exits) == "table" and exits.kind == "points" and type(exits.open) == "table" then
+		local set: { [string]: boolean } = {}
+		for _, id in exits.open do
+			set[id] = true
 		end
+		open = set
 	end
 	for index, exit in CollectionService:GetTagged("EO_RunExit") do
 		if exit:IsA("Model") and near(exit:GetPivot().Position, 30) then
 			local id = exit:GetAttribute("PointId") :: string
-			local closed = open[id] == false
+			local closed = open ~= nil and not open[id]
 			children[`X{index}`] = e("Frame", {
 				Size = UDim2.fromOffset(18, 18),
 				Position = at(exit:GetPivot().Position),

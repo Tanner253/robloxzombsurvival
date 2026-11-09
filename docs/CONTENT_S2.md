@@ -18,6 +18,8 @@ Units: seconds, studs, chances 0–1. Pacing assumes a free player at about 2–
 | Black fog | about day 5–6 | level gate 15, plus the Depot tower (brass gears, springs, steel pipe from Dense runs) |
 | Reinforced tier | days 10–14 | unchanged; Black fog strongboxes still carry the plans |
 
+The signal towers and airdrops are M4 (docs/MVP_LAUNCH.md). They sit behind `Tuning.features.regionGates` and `.airdrops`, both off in v0.1: Dense and Black fog open on the level gate alone, and no airdrops land. The server logic and tests stay in place for M4.
+
 A paying player can compress the parts grind to day 1 with part packs (S3). Energy (LDOE_PARITY #38): cap 200, 1 point per 5 min, so a full bar plus a play session of regen is about 10 Dense Runs (22 each), or free Walks.
 
 ## Items

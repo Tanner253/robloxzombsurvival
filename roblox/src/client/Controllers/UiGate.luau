@@ -231,6 +231,12 @@ local function fogRunScenes(): { Scene }
 			sections = { energy = energy },
 			ui = { panel = "fogmap", fogLocation = "loc.sunken_quarry" },
 		},
+		-- The event location: its pin's countdown, and Run and Walk below it (locked by level).
+		{
+			name = "fogmap.event",
+			sections = { energy = energy },
+			ui = { panel = "fogmap", fogLocation = "loc.stranded_caravan" },
+		},
 		{
 			name = "fogmap.walking",
 			sections = {

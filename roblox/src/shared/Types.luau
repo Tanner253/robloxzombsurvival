@@ -570,12 +570,14 @@ export type TuningDef = {
 -- Fog Runs (slice 2) -------------------------------------------------------------------
 -- Everything here is read only while Tuning.features.fogRuns is on (Shared/Features).
 
-export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift"
+export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops"
 
 export type Features = {
 	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
 	aiRaiders: boolean, -- M2: AI survivor bands backfill short lobbies
 	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift (cut from v0.1, MVP_LAUNCH)
+	regionGates: boolean, -- M4: LDOE_PARITY #43's signal towers before Dense and Black fog
+	airdrops: boolean, -- M4: LDOE_PARITY #43's supply drops as Energy falls
 }
 
 -- Per-weapon melee overrides; anything missing comes from Tuning.melee.

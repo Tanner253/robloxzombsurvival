@@ -684,7 +684,7 @@ local function lootGrid(items: { string }, size: number, order: number, columns:
 	}, children)
 end
 
-local function Panel(props: { location: any, onClose: () -> () })
+local function Panel(props: { location: any, onClose: () -> (), blocked: string? })
 	local location = props.location
 	local art = Art.fogMap.art[location.id]
 	local hollow: { string } = {}
@@ -793,8 +793,9 @@ local function Panel(props: { location: any, onClose: () -> () })
 			Possible = lootGrid(location.possibleLoot, 58, 8, 6),
 		}),
 		Auto = e(Button, {
-			text = "AUTO: clear it for 1 Ration",
+			text = if props.blocked then `AUTO: {props.blocked}` else "AUTO: clear it for 1 Ration",
 			variant = "secondary",
+			disabled = props.blocked ~= nil,
 			size = UDim2.new(1, -32, 0, 48),
 			position = UDim2.new(0, 16, 1, -62),
 			onActivated = function()
@@ -865,6 +866,7 @@ local function FogMap()
 	local energy = hooks.useSection("energy")
 	local inventory = hooks.useSection("inventory")
 	local travel = hooks.useSection("travel")
+	local progression = hooks.useSection("progression")
 	-- The chosen location lives in the UI state, so the guide and the UI gate can open it.
 	local selected: string? = ui.fogLocation
 	local function setSelected(id: string?)
@@ -911,6 +913,21 @@ local function FogMap()
 	end
 	local energyValue = energyNow(energy, State.now())
 	local walking = type(travel) == "table" and travel.mode == "walk"
+	-- Why the chosen location can't be travelled to now, if it can't (the server refuses
+	-- the same trips): below its level, or an event location between its windows.
+	local level = if type(progression) == "table" then progression.level or 1 else 1
+	local blocked: string? = nil
+	if location then
+		local _, openNow = eventClock(location, now)
+		if level < location.levelGate then
+			blocked = `Level {location.levelGate}+`
+		elseif not openNow then
+			blocked = "Closed now"
+		end
+	end
+	local short = location ~= nil and energyValue < location.energyCost
+	-- An event pin's countdown sits under its name: the Run and Walk buttons go below it.
+	local countdownGap = if location and eventClock(location, now) ~= nil then 20 else 0
 	-- The map reaches REACH design pixels above the safe area, under Roblox's top bar
 	-- (as UI/components/FullScreen's dim does); the chrome keeps to the safe area.
 	local topInset = REACH
@@ -940,7 +957,7 @@ local function FogMap()
 					at.X * size.X - (ROUND + 26),
 					at.Y * size.Y - PIN / 2 - 6,
 					at.X * size.X + (ROUND + 26),
-					at.Y * size.Y + PIN / 2 + 30 + ROUND + 46
+					at.Y * size.Y + PIN / 2 + 30 + countdownGap + ROUND + 46
 				),
 			}),
 			Home = e("Frame", {
@@ -974,7 +991,7 @@ local function FogMap()
 			Pins = e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 4 }, pins),
 			Travel = location and at and not walking and e("Frame", {
 				Size = UDim2.fromOffset(2 * (ROUND + 20) + 12, ROUND + 40),
-				Position = UDim2.new(at.X, 0, at.Y, PIN / 2 + 30),
+				Position = UDim2.new(at.X, 0, at.Y, PIN / 2 + 30 + countdownGap),
 				AnchorPoint = Vector2.new(0.5, 0),
 				BackgroundTransparency = 1,
 				ZIndex = 5,
@@ -989,8 +1006,8 @@ local function FogMap()
 					label = "RUN",
 					glyph = "sprint",
 					detail = `{location.energyCost}`,
-					note = if energyValue < location.energyCost then "Not enough Energy" else "a few seconds",
-					enabled = ready and energyValue >= location.energyCost,
+					note = blocked or if short then "Not enough Energy" else "a few seconds",
+					enabled = ready and blocked == nil and not short,
 					order = 1,
 					onActivated = function()
 						Actions.travel(location.id, "run")
@@ -1000,8 +1017,8 @@ local function FogMap()
 					label = "WALK",
 					glyph = "map",
 					detail = "free",
-					note = clock(location.walkSeconds),
-					enabled = ready,
+					note = blocked or clock(location.walkSeconds),
+					enabled = ready and blocked == nil,
 					order = 2,
 					onActivated = function()
 						Actions.travel(location.id, "walk")
@@ -1031,6 +1048,7 @@ local function FogMap()
 			Energy = e(EnergyCard, { energy = energy, rations = countOf(inventory, "item.rations") }),
 			Panel = location and e(Panel, {
 				location = location,
+				blocked = blocked,
 				onClose = function()
 					setSelected(nil)
 				end,
