@@ -569,6 +569,37 @@ end
 
 -- People -------------------------------------------------------------------------------------------
 
+-- The ground's height under a point: the terrain the square is painted on.
+local function groundBelow(at: Vector3): number?
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { workspace.Terrain }
+	local hit = workspace:Raycast(at + Vector3.new(0, 20, 0), Vector3.new(0, -60, 0), params)
+	return if hit then hit.Position.Y else nil
+end
+
+-- The lowest point of a rig's feet (their parts' corners), for resting them on the ground.
+local FEET = { "LeftFoot", "RightFoot", "Left Leg", "Right Leg" }
+
+function Haven.lowestFoot(rig: Model): number?
+	local low: number? = nil
+	for _, name in FEET do
+		local foot = rig:FindFirstChild(name)
+		if foot and foot:IsA("BasePart") then
+			local half = foot.Size / 2
+			for _, x in { -1, 1 } do
+				for _, y in { -1, 1 } do
+					for _, z in { -1, 1 } do
+						local corner = (foot.CFrame * Vector3.new(half.X * x, half.Y * y, half.Z * z)).Y
+						low = if low then math.min(low, corner) else corner
+					end
+				end
+			end
+		end
+	end
+	return low
+end
+
 type Look = { jacket: string, pants: string, keepsPack: boolean? }
 type Pose = "idle" | "sit"
 
@@ -617,7 +648,16 @@ local function figure(parent: Instance, name: string, look: Look, frame: CFrame,
 	-- Placed by the root (the rig's own pivot is at its feet): standing on the ground, or
 	-- seated with the thighs on the seat.
 	local lift = if pose == "sit" then SIT_LIFT else humanoid.HipHeight + root.Size.Y / 2
-	rig:PivotTo((frame + Vector3.new(0, lift, 0)) * root.CFrame:ToObjectSpace(rig:GetPivot()))
+	-- Standing settlers stand on the ground actually under them (the terrain), not on the
+	-- frame's height.
+	local ground = if pose == "idle" then groundBelow(frame.Position) else nil
+	local base = if ground then frame + Vector3.new(0, ground - frame.Position.Y, 0) else frame
+	rig:PivotTo((base + Vector3.new(0, lift, 0)) * root.CFrame:ToObjectSpace(rig:GetPivot()))
+	-- Then rest the feet exactly on it, whatever the rig's proportions (the root stays anchored).
+	local low = if ground then Haven.lowestFoot(rig) else nil
+	if ground and low then
+		rig:PivotTo(rig:GetPivot() + Vector3.new(0, ground - low, 0))
+	end
 	rig.Parent = parent
 	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator")
 	animator.Parent = humanoid

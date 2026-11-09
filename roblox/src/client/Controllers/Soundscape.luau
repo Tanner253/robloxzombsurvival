@@ -6,8 +6,9 @@
 	  and a low eerie bed) loops, crossfaded by Lighting.ClockTime.
 	- Music: sparse, like LDoE. A calm day track or a tense night drone plays,
 	  then the world is quiet for a few minutes before the next one.
-	- Footsteps: one step sound per stride, chosen by the floor material, with a
-	  light dust puff when sprinting. The default Roblox running loop is muted.
+	- Footsteps: one step sound per stride, chosen by the floor material. No dust puff
+	  (a puff trailing at the feet read as something else). The default Roblox running
+	  loop is muted.
 	- Station loops: the campfire crackles while it burns and work stations saw
 	  while it converts (the Burning / Working attributes from the server).
 	- Low meters: a heartbeat fades in while health, hunger or thirst is low.
@@ -120,35 +121,6 @@ end
 -- Footsteps ---------------------------------------------------------------------------------------
 
 local strideLeft = STRIDE_STUDS
-local dust: ParticleEmitter? = nil
-
-local function dustFor(root: BasePart): ParticleEmitter
-	if dust and dust.Parent and (dust.Parent :: Instance).Parent == root then
-		return dust
-	end
-	local attachment = Instance.new("Attachment")
-	attachment.Name = "EO_FootDust"
-	attachment.Position = Vector3.new(0, -2.8, 0)
-	attachment.Parent = root
-	local emitter = Instance.new("ParticleEmitter")
-	emitter.Enabled = false
-	emitter.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	emitter.Color = ColorSequence.new(Color3.fromRGB(168, 150, 120))
-	emitter.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.55),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 2.2) })
-	emitter.Lifetime = NumberRange.new(0.5, 0.8)
-	emitter.Speed = NumberRange.new(1, 2.5)
-	emitter.SpreadAngle = Vector2.new(60, 20)
-	emitter.Acceleration = Vector3.new(0, 1.5, 0)
-	emitter.Drag = 3
-	emitter.Parent = attachment
-	dust = emitter
-	return emitter
-end
-
 local function muteDefaultRunning(character: Model)
 	local root = character:WaitForChild("HumanoidRootPart", 10)
 	if root == nil then
@@ -192,9 +164,6 @@ local function updateFootsteps(dt: number)
 	local name = STEP_BY_MATERIAL[humanoid.FloorMaterial] or "stepStone"
 	local sprinting = State.ui().sprinting
 	Sfx.play(name, root.Position - Vector3.new(0, 2.8, 0), if sprinting then 1.15 else 0.85)
-	if sprinting and name ~= "stepWood" then
-		dustFor(root):Emit(3)
-	end
 end
 
 -- Station loops -----------------------------------------------------------------------------------

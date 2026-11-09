@@ -19,7 +19,8 @@
 	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
 	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("wear", itemId) puts armor in its
 	  slot, ("energy", n) sets Energy,
-	  ("meter", seconds) ages your lobby by that long.
+	  ("meter", seconds) ages your lobby by that long. ("npcfeet") reports each Haven NPC's
+	  foot-to-ground gap (seated settlers report their seat height).
 	- puts the Dev Armory crate by each claimed plot: one of every weapon and armor piece
 	  into the inbox, so the developer can try all the gear.
 ]]
@@ -144,6 +145,28 @@ local function devCommand(command: string, ...: any): any
 		equipment[key] = { itemId = item.id, count = 1, durability = item.durability }
 		Sync.mark(player, "inventory")
 		return "ok"
+	elseif command == "npcfeet" then
+		-- Every standing Haven NPC's gap between its lowest foot point and the ground under
+		-- it (studs); the check wants each within 0.15.
+		local HavenWorld = require("../World/Haven")
+		local haven = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Haven")
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		local report = {}
+		for _, humanoid in (if haven then haven:GetDescendants() else {}) do
+			if humanoid:IsA("Humanoid") and humanoid.Parent and humanoid.Parent:IsA("Model") then
+				local rig = humanoid.Parent :: Model
+				local root = rig:FindFirstChild("HumanoidRootPart") :: BasePart?
+				local low = HavenWorld.lowestFoot(rig)
+				if root and low then
+					local hit = workspace:Raycast(root.Position + Vector3.new(0, 5, 0), Vector3.new(0, -40, 0), params)
+					local gap = if hit then low - hit.Position.Y else 999
+					table.insert(report, string.format("%s %.3f", rig.Name, gap))
+				end
+			end
+		end
+		return table.concat(report, " | ")
 	elseif command == "wear" then
 		local data = PlayerData.get(player)
 		local item = Content.Items[args[1]]
