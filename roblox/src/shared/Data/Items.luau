@@ -146,7 +146,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://119915856776923",
 	},
 	["item.ironbark_plank"] = {
 		id = "item.ironbark_plank",
@@ -156,7 +156,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "uncommon",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://71333371293679",
 	},
 	["item.ironstone"] = {
 		id = "item.ironstone",
@@ -166,7 +166,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://128948840936073",
 	},
 	["item.iron_ingot"] = {
 		id = "item.iron_ingot",
@@ -176,7 +176,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://132615750371222",
 	},
 	["item.malachite"] = {
 		id = "item.malachite",
@@ -186,7 +186,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://93949528651215",
 	},
 	["item.copper_ingot"] = {
 		id = "item.copper_ingot",
@@ -196,7 +196,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "uncommon",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://116107751360894",
 	},
 	["item.copper_wire"] = {
 		id = "item.copper_wire",
@@ -206,7 +206,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 3,
 		rarity = "uncommon",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://117484328235022",
 	},
 	["item.embercoal"] = {
 		id = "item.embercoal",
@@ -216,7 +216,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 1,
 		rarity = "common",
 		stackSize = 20,
-		icon = "",
+		icon = "rbxassetid://91538870894309",
 	},
 
 	-- Parts -----------------------------------------------------------------
@@ -328,7 +328,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 75,
-		icon = "",
+		icon = "rbxassetid://84771320691583",
 		tool = { kind = "hatchet", tier = 2 },
 	},
 	["item.forged_pick"] = {
@@ -340,7 +340,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "uncommon",
 		stackSize = 1,
 		durability = 75,
-		icon = "",
+		icon = "rbxassetid://130436492368559",
 		tool = { kind = "pick", tier = 2 },
 	},
 

@@ -474,10 +474,12 @@ end
 
 -- Containers by ref ------------------------------------------------------------------------------
 
-local function bagSlots(equipment: { [string]: Types.Slot }): number
+-- The backpack's size: the base, the equipped bag, and any slots bought (Backpack Upgrade).
+local function bagSlots(equipment: { [string]: Types.Slot }, data: PlayerData): number
 	local bag = equipment.bag
 	local def = if bag and bag.count > 0 then Items[bag.itemId] else nil
-	return tuning.inventory.backpackSlots + (if def and def.bagSlots then def.bagSlots else 0)
+	local bought = if data.purchases and data.purchases.backpackSlots then data.purchases.backpackSlots else 0
+	return tuning.inventory.backpackSlots + (if def and def.bagSlots then def.bagSlots else 0) + bought
 end
 
 local function storageInReach(player: Player, uid: string): boolean
@@ -537,7 +539,7 @@ local function apply(player: Player, data: PlayerData, changed: { [string]: Cont
 		}
 		-- The Studio test base (Diagnostics) lends a bigger backpack; it must survive gear changes.
 		local devSlots = player:GetAttribute("DevBackpackSlots")
-		local slots = math.max(bagSlots(equipment), if type(devSlots) == "number" then devSlots else 0)
+		local slots = math.max(bagSlots(equipment, data), if type(devSlots) == "number" then devSlots else 0)
 		local resized = InventoryMath.setBackpackCapacity(inventory, slots)
 		if resized == nil then
 			return false
@@ -875,9 +877,9 @@ local function welcome(player: Player, data: PlayerData)
 			Analytics.funnelStep(player, "Onboarding", 1, "FirstJoin")
 		end
 	end
-	-- A bag equipped in an older save sets the backpack size.
+	-- A bag equipped in an older save (and any slots bought) sets the backpack size.
 	local inventory = { pockets = data.inventory.pockets, backpack = data.inventory.backpack }
-	local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(data.inventory.equipment :: any))
+	local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(data.inventory.equipment :: any, data))
 	if resized then
 		data.inventory.backpack = resized.backpack
 	end
@@ -893,11 +895,25 @@ function Inventory.equipBag(player: Player, itemId: string)
 	local equipment = data.inventory.equipment :: any
 	equipment.bag = { itemId = itemId, count = 1 }
 	local inventory = { pockets = data.inventory.pockets, backpack = data.inventory.backpack }
-	local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(equipment))
+	local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(equipment, data))
 	if resized then
 		data.inventory.backpack = resized.backpack
 	end
 	Sync.mark(player, "inventory")
+end
+
+-- Resizes the backpack after slots were bought (Services/Shop); it only grows here.
+function Inventory.refreshBackpack(player: Player)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return
+	end
+	local inventory = { pockets = data.inventory.pockets, backpack = data.inventory.backpack }
+	local resized = InventoryMath.setBackpackCapacity(inventory, bagSlots(data.inventory.equipment :: any, data))
+	if resized then
+		data.inventory.backpack = resized.backpack
+		Sync.mark(player, "inventory")
+	end
 end
 
 function Inventory.init()

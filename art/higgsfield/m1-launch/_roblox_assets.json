@@ -1,0 +1,10 @@
+{
+ "EO_Smelter": {
+  "glb": "smelter.glb",
+  "assetId": 134220739947756
+ },
+ "EO_Stonecutter": {
+  "glb": "stonecutter.glb",
+  "assetId": 96553555280227
+ }
+}

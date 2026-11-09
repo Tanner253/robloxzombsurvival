@@ -138,9 +138,45 @@ local function fixtureLayout(): any
 	return Grid.serialize(layout)
 end
 
+local function fixtureHaven(): any
+	return {
+		coins = 144,
+		contracts = {
+			{ id = "contract.timber", itemId = "item.timber", count = 30, coins = 60, xp = 150, done = false },
+			{ id = "contract.scrap", itemId = "item.scrap", count = 15, coins = 75, xp = 180, done = true },
+			{ id = "contract.rope", itemId = "item.rope", count = 6, coins = 60, xp = 150, done = false },
+		},
+		resetsAt = workspace:GetServerTimeNow() + 5 * 3600 + 720,
+		chapters = { "Ashes and Embers" },
+		vip = false,
+		vipPrice = 399,
+		crateAt = 0,
+	}
+end
+
+-- The "shop" section as the server sends it: everything on offer, the Firestarter Kit's
+-- window open with 47 h left; `owned` products at their limit.
+local function fixtureShop(owned: { string }?): any
+	local result: { [string]: any } = {}
+	for id, product in Content.Products do
+		local isOwned = owned ~= nil and table.find(owned, id) ~= nil
+		result[id] = {
+			price = product.defaultPriceRobux,
+			bought = if isOwned then 1 else 0,
+			available = not isOwned,
+			reason = if isOwned then "limit" else nil,
+			endsAt = if id == "product.starter_offer" then workspace:GetServerTimeNow() + 47 * 3600 + 720 else 0,
+		}
+	end
+	return result
+end
+
 local function baseSections(): { [string]: any }
 	return {
 		inventory = fixtureInventory(),
+		haven = fixtureHaven(),
+		shop = fixtureShop(),
+		wallet = { embers = 120 },
 		survival = {
 			health = 84,
 			maxHealth = 100,
@@ -413,7 +449,66 @@ local function scenes(): { Scene }
 		{ name = "inventory.inbox", ui = { panel = "inventory", inventoryTab = "inbox" } },
 		{ name = "crafting", ui = { panel = "crafting" } },
 		{ name = "settings", ui = { panel = "settings" } },
-		{ name = "settings.credits", ui = { panel = "settings", settingsTab = "credits" } },
+		{ name = "settings.credits", ui = { panel = "settings", settingsView = "credits" } },
+		{ name = "shop", ui = { panel = "shop" } },
+		{ name = "haven.trader", ui = { panel = "haven", havenId = "npc.trader" } },
+		{
+			name = "haven.trader.sell",
+			ui = {
+				panel = "haven",
+				havenId = "npc.trader",
+				havenTab = "sell",
+				selected = { ref = "pockets", index = 1 },
+			},
+		},
+		{ name = "haven.keeper", ui = { panel = "haven", havenId = "npc.keeper" } },
+		{ name = "haven.board", ui = { panel = "haven", havenId = "board.contracts" } },
+		{ name = "haven.vip", ui = { panel = "haven", havenId = "npc.warden" } },
+		{
+			name = "haven.vip.member",
+			sections = {
+				haven = (function()
+					local haven = fixtureHaven()
+					haven.vip = true
+					haven.crateAt = workspace:GetServerTimeNow() + 6 * 3600
+					return haven
+				end)(),
+			},
+			ui = { panel = "haven", havenId = "npc.warden" },
+		},
+		{ name = "haven.notice", ui = { panel = "haven", havenId = "board.notice" } },
+		{ name = "shop.focus", ui = { panel = "shop", shopFocus = "product.resource_pack", shopTab = "supplies" } },
+		{ name = "shop.supplies", ui = { panel = "shop", shopTab = "supplies" } },
+		{ name = "shop.embers", ui = { panel = "shop", shopTab = "embers" } },
+		{
+			name = "shop.passes.owned",
+			sections = { shop = fixtureShop({ "product.pack_expansion" }) },
+			ui = { panel = "shop", shopTab = "passes" },
+		},
+		{
+			name = "shop.best.noStarter",
+			sections = { shop = fixtureShop({ "product.starter_offer" }) },
+			ui = { panel = "shop", shopTab = "best" },
+		},
+		{
+			name = "ember.ask",
+			ui = {
+				panel = "inventory",
+				emberAsk = {
+					title = "Fill up",
+					text = "37 Scrap Plate, 12 Hewn Plank",
+					price = 172,
+					run = function() end,
+				},
+			},
+		},
+		{
+			name = "ember.ask.enough",
+			ui = {
+				panel = "inventory",
+				emberAsk = { title = "Fill up", text = "5 Timber", price = 5, run = function() end },
+			},
+		},
 		{ name = "project.hauler", ui = { panel = "project", projectId = "project.hauler" } },
 		{ name = "build", ui = { panel = "build", buildMode = "place" } },
 		{ name = "build.hint", ui = { panel = "build", buildMode = "place", buildHint = "Needs a Timber floor" } },
@@ -543,8 +638,13 @@ local function run()
 				"buildHint",
 				"pieceActions",
 				"inventoryTab",
-				"fogLocation",
-				"settingsTab"
+				"shopFocus",
+				"settingsView",
+				"havenId",
+				"havenTab",
+				"shopTab",
+				"emberAsk",
+				"fogLocation"
 			)
 			table.clear(Boundary.failures)
 			State.patch(scene.ui)
@@ -591,7 +691,21 @@ local function run()
 		questCollapsed = savedUi.questCollapsed,
 		hideUpperWalls = savedUi.hideUpperWalls,
 	})
-	State.clear("selected", "stationUid", "projectId", "buildHint", "pieceActions", "inventoryTab")
+	State.clear(
+		"selected",
+		"stationUid",
+		"projectId",
+		"buildHint",
+		"pieceActions",
+		"inventoryTab",
+		"shopFocus",
+		"settingsView",
+		"havenId",
+		"havenTab",
+		"shopTab",
+		"emberAsk",
+		"fogLocation"
+	)
 	for name in touched do
 		State.set(name, savedSections[name])
 	end

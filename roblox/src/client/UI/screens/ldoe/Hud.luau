@@ -60,6 +60,8 @@ local FULL_SCREEN: { [string]: boolean } = {
 	project = true,
 	crafting = true,
 	settings = true,
+	shop = true,
+	haven = true,
 	fogmap = true,
 }
 
@@ -308,6 +310,7 @@ local function SunMoon()
 end
 
 local function TopRight()
+	local ui = hooks.useUi()
 	local run = hooks.useSection("run")
 	local onRun = type(run) == "table"
 	local mapHeight = if onRun then H.minimap + RunHud.METER_HEIGHT else H.minimap
@@ -361,10 +364,14 @@ local function TopRight()
 				size = UDim2.new(1, 0, 0, Theme.tapTarget * 2 + 24),
 				layoutOrder = 3,
 				children = {
+					-- The first-session guide (Controllers/Guide) rings the button the next
+					-- Ember Trail step needs.
 					Craft = e(IconButton, {
 						glyph = "craft",
 						size = 52,
 						key = "C",
+						active = ui.guide == "craft",
+						ring = Theme.colors.accentSoft,
 						layoutOrder = 1,
 						onPress = Actions.toggleCrafting,
 					}),
@@ -372,6 +379,8 @@ local function TopRight()
 						glyph = "build",
 						size = 52,
 						key = "B",
+						active = ui.guide == "build",
+						ring = Theme.colors.accentSoft,
 						layoutOrder = 2,
 						onPress = Actions.toggleBuild,
 					}),
@@ -505,6 +514,8 @@ local function contextGlyph(target: State.Target?): string
 		return "station"
 	elseif target.kind == "storage" then
 		return "storage"
+	elseif target.kind == "haven" then
+		return "talk"
 	end
 	return "interact"
 end
@@ -652,6 +663,15 @@ local function MenuBar(props: { right: number })
 		position = UDim2.new(1, -props.right, 1, -(H.edge + 18)),
 		anchorPoint = Vector2.new(1, 1),
 		children = {
+			Shop = e(IconButton, {
+				glyph = "shop",
+				size = H.menuIcon,
+				square = true,
+				layoutOrder = 6,
+				onPress = function()
+					Actions.openShop()
+				end,
+			}),
 			Inventory = e(IconButton, {
 				glyph = "backpack",
 				size = H.menuIcon,
@@ -659,8 +679,8 @@ local function MenuBar(props: { right: number })
 				key = "Tab",
 				badge = inboxCount,
 				new = anyNew and inboxCount == 0,
-				active = flashing,
-				ring = Theme.colors.danger,
+				active = flashing or ui.guide == "inventory",
+				ring = if flashing then Theme.colors.danger else Theme.colors.accentSoft,
 				layoutOrder = 7,
 				onPress = if inboxCount > 0 and not anyNew then Actions.openInbox else Actions.toggleInventory,
 			}),

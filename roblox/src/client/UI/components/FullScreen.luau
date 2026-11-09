@@ -7,6 +7,8 @@
 	`left` and `right` are the panes' contents; each pane is a column with a header row,
 	a body and an action bar, laid out by UIListLayout so nothing is hand-placed. The
 	panes and the strip are siblings in one horizontal Stack, so they can't overlap.
+	A screen that isn't two panes (the shop) passes `body` instead: it fills the area
+	left of the CLOSE strip.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +27,7 @@ export type Props = {
 	onClose: () -> (),
 	left: any?,
 	right: any?,
+	body: any?, -- instead of the two panes: one area filling what the CLOSE strip leaves
 	rightWidth: number?, -- the right pane's width (defaults to Theme.panel.pane)
 }
 
@@ -102,27 +105,31 @@ local function FullScreen(props: Props)
 				Area = e(Layout.Fill, {
 					direction = "row",
 					layoutOrder = 1,
-					children = {
-						Panes = e(Layout.Stack, {
-							direction = "row",
-							gap = Theme.panel.gap,
-							alignX = Enum.HorizontalAlignment.Center,
-							alignY = Enum.VerticalAlignment.Center,
-							padding = Theme.spacing.xl,
-							children = {
-								Left = e("Frame", {
-									Size = UDim2.new(0, paneWidth, 1, 0),
-									BackgroundTransparency = 1,
-									LayoutOrder = 1,
-								}, props.left),
-								Right = e("Frame", {
-									Size = UDim2.new(0, rightWidth, 1, 0),
-									BackgroundTransparency = 1,
-									LayoutOrder = 2,
-								}, props.right),
-							},
-						}),
-					},
+					children = if props.body
+						then {
+							Body = e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, props.body),
+						}
+						else {
+							Panes = e(Layout.Stack, {
+								direction = "row",
+								gap = Theme.panel.gap,
+								alignX = Enum.HorizontalAlignment.Center,
+								alignY = Enum.VerticalAlignment.Center,
+								padding = Theme.spacing.xl,
+								children = {
+									Left = e("Frame", {
+										Size = UDim2.new(0, paneWidth, 1, 0),
+										BackgroundTransparency = 1,
+										LayoutOrder = 1,
+									}, props.left),
+									Right = e("Frame", {
+										Size = UDim2.new(0, rightWidth, 1, 0),
+										BackgroundTransparency = 1,
+										LayoutOrder = 2,
+									}, props.right),
+								},
+							}),
+						},
 				}),
 				Close = e(CloseStrip, { onClose = props.onClose }),
 			},

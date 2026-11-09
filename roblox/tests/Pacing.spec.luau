@@ -976,6 +976,15 @@ local function content(fallback: boolean): PacingSim.Content
 		Tuning = Tuning,
 	}
 	if fallback then
+		-- The layout used while the Smelter and Stonecutter had no approved model (both are
+		-- graded A now, so Tuning.stationFallback is empty): kept so that if a model is ever
+		-- pulled, the game is still known to be playable on the stand-ins.
+		local tuning: any = table.clone(Tuning)
+		tuning.stationFallback = {
+			["station.smelter"] = "station.campfire",
+			["station.stonecutter"] = "station.woodworking_bench",
+		}
+		result.Tuning = tuning
 		StationFallback.apply(result)
 	end
 	return result :: any

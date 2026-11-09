@@ -72,7 +72,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(#Content.Levels, 20, "player levels")
 		-- The Ember Trail: 10 starter quests, then ECONOMY §11.2's three tier-2 quests.
 		TestKit.equal(count(Content.Quests), 13, "Ember Trail quests")
-		TestKit.equal(count(Content.Products), 4, "shop products")
+		TestKit.equal(count(Content.Products), 10, "shop products (MVP_LAUNCH Monetization v0.1)")
 
 		local structural: { [string]: { [number]: boolean } } = {}
 		for _, piece in Content.BuildPieces do

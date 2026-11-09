@@ -131,6 +131,10 @@ local Tuning: Types.TuningDef = {
 		spacingStuds = 184,
 		rowGapStuds = 36,
 		marginStuds = 28,
+		-- Haven Square (Domain/Neighbourhood): the paved middle, half its width and depth.
+		-- Two plots stand each side of it in both rows; the road runs through it.
+		plazaHalfStuds = 56,
+		plazaDepthStuds = 80,
 	},
 	interaction = {
 		-- Arm's reach (checklist 3.11): how far from an object's edge (its footprint
@@ -179,10 +183,8 @@ local Tuning: Types.TuningDef = {
 	-- ingots at the fuelled Campfire, blocks at the Saw Bench. (Not the Workbench, as §10.1
 	-- has it: the Workbench costs blocks, so the first one could never be built.) Delete each
 	-- entry the day its model is approved (tests/Economy.spec checks this against Art.pieces).
-	stationFallback = {
-		["station.smelter"] = "station.campfire",
-		["station.stonecutter"] = "station.woodworking_bench",
-	},
+	-- (Both models graded A in the launch lineup, docs/milestones/m1-launch L01-L03: none left.)
+	stationFallback = {},
 	-- docs/ECONOMY.md §6.2: location quests pay once per UTC day per player, not per lobby,
 	-- so a Rations reward can never refund the Run that earned it.
 	locationQuests = { period = "daily" },
@@ -378,6 +380,62 @@ local Tuning: Types.TuningDef = {
 		maxActive = 60,
 		spawnSpreadStuds = 40,
 		hitRadiusStuds = 1.6,
+	},
+	-- Robux prices of the v0.1 shop (MVP_LAUNCH Monetization v0.1; the ladder is
+	-- 79/99/149/199/249/399/799/1,199/1,699/...). Data/Products reads these as display
+	-- fallbacks; the live price on Roblox (Open Cloud) is what the shop shows once loaded, so
+	-- changing one here also means updating the product or pass there.
+	prices = {
+		robux = {
+			["product.starter_offer"] = 99, -- Firestarter Kit
+			["product.scavenger_kit"] = 79,
+			["product.resource_pack"] = 99, -- Supply Bundle
+			["product.builders_crate"] = 399,
+			["product.room_kit_reinforced"] = 1699,
+			["product.energy_refill"] = 99,
+			["product.embers_50"] = 149, -- Ember Pouch
+			["product.embers_300"] = 799, -- Ember Chest
+			["product.pack_expansion"] = 199,
+			["product.vip_lounge"] = 399,
+		},
+	},
+	-- Embers, the premium currency (playbook §7.2, at LDoE coin parity). Sinks: Recover all,
+	-- Trail Rations, speed-ups by time left, Fill Up per missing unit (40 Embers per free
+	-- grind-hour, at least 1 a unit; per-unit numbers rebalance with the ECONOMY pacing test).
+	embers = {
+		recoverAll = 100,
+		ration = 20,
+		rationsFive = 90,
+		speedUpFactor = 3.9, -- Embers = max(speedUpMin, ceil(3.9 x sqrt(minutes left)))
+		speedUpMin = 2,
+		speedUpMinSeconds = 120, -- speed-ups show from 2 minutes left
+		-- Embers a missing unit: max(1, round(40 x free minutes / 60)), the minutes as in
+		-- Data/Products' header (docs/ECONOMY.md chains; rebalance with the pacing sim).
+		fillUp = {
+			["item.sticks"] = 1,
+			["item.timber"] = 1,
+			["item.stone"] = 1,
+			["item.fiber"] = 1,
+			["item.scrap"] = 1,
+			["item.emberberry"] = 1,
+			["item.rope"] = 1,
+			["item.ironstone"] = 1,
+			["item.malachite"] = 1,
+			["item.ironbark_log"] = 1,
+			["item.embercoal"] = 1,
+			["item.cloth"] = 2,
+			["item.plank"] = 2,
+			["item.stone_block"] = 3,
+			["item.iron_ingot"] = 3,
+			["item.pitch_glue"] = 3,
+			["item.rivets"] = 8,
+			["item.scrap_plate"] = 13,
+			["item.ironbark_plank"] = 13,
+			["item.copper_wire"] = 13,
+			["item.copper_ingot"] = 20,
+		},
+		vipTrialDays = 7, -- any purchase opens the VIP Lounge for this long (LDoE's VIP 1)
+		firstPurchaseHours = 48, -- the Firestarter Kit's window after the first win
 	},
 }
 

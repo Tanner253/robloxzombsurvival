@@ -2,7 +2,8 @@
 --[[
 	Interaction: what the player is about to use, and using it.
 
-	Ten times a second it picks a target: the node, station, crate or pickup under
+	Ten times a second it picks a target: the node, station, crate, pickup or Haven
+	Square NPC or board (World/Haven, tagged EO_Haven) under
 	the mouse when it is within arm's reach (Tuning.interaction.reachStuds from its
 	edge, checklist 3.11), otherwise the nearest one in reach. The HUD's prompt and
 	highlight draw State.ui().target, so they only show in reach. `activate` (E, or the
@@ -35,6 +36,8 @@ local TAGS: { [string]: string } = {
 	station = "EO_Station",
 	storage = "EO_Storage",
 	drop = "EO_Drop",
+	-- Haven Square's NPCs and boards (World/Haven).
+	haven = "EO_Haven",
 	-- Fog Runs (FogRuns/Maps, FogRuns/Props): containers and loot piles, death bags, exits.
 	container = "EO_RunContainer",
 	bag = "EO_RunBag",
@@ -81,7 +84,19 @@ local function flat(a: Vector3, b: Vector3): number
 end
 
 local function describe(model: Model, kind: string): State.Target?
-	if kind == "container" then
+	if kind == "haven" then
+		local havenId = model:GetAttribute("HavenId")
+		if type(havenId) ~= "string" then
+			return nil
+		end
+		return {
+			kind = "haven",
+			key = havenId,
+			label = (model:GetAttribute("Label") :: string?) or "",
+			verb = (model:GetAttribute("Verb") :: string?) or "Talk",
+			model = model,
+		}
+	elseif kind == "container" then
 		local body = model.PrimaryPart or model:FindFirstChild("Body", true)
 		local id = (if body then body:GetAttribute("ContainerId") else nil) or model:GetAttribute("ContainerId")
 		local owner = model:GetAttribute("OwnerUserId")
@@ -218,9 +233,44 @@ local function underMouse(): (Model?, string?)
 	return taggedAncestor(if hit then hit.Instance else nil)
 end
 
+-- Haven Square's NPCs say their line over their heads while you are near (LDoE rec4_01).
+local GREET_STUDS = 30
+
+local function greetings(here: BasePart)
+	for _, model in CollectionService:GetTagged(TAGS.haven) do
+		local head = model:FindFirstChild("Head")
+		local bubble = head and head:FindFirstChild("Greeting")
+		if bubble and bubble:IsA("BillboardGui") and model:IsA("Model") then
+			local near = flat(model:GetPivot().Position, here.Position) <= GREET_STUDS
+			if bubble.Enabled ~= near then
+				bubble.Enabled = near
+			end
+		end
+	end
+end
+
+-- Walking away from whoever you are talking to closes their panel.
+local function walkedAway(here: BasePart)
+	local havenId = State.ui().havenId
+	for _, model in CollectionService:GetTagged(TAGS.haven) do
+		if model:IsA("Model") and model:GetAttribute("HavenId") == havenId then
+			if flat(model:GetPivot().Position, here.Position) <= reachFor("haven", model) + 6 then
+				return
+			end
+		end
+	end
+	State.toggle("haven")
+end
+
 local function scan()
 	local here = root()
 	local ui = State.ui()
+	if here then
+		greetings(here)
+		if ui.panel == "haven" and ui.gate == nil then
+			walkedAway(here)
+		end
+	end
 	if here == nil or ui.panel == "build" then
 		if ui.target then
 			State.clear("target")
@@ -475,6 +525,14 @@ function Interaction.cancelApproach()
 	end
 end
 
+-- Opens the Haven Square panel for an NPC or board (talking, LDoE rec4).
+local function talk(target: State.Target)
+	State.patch({ havenId = target.key })
+	if State.ui().panel ~= "haven" then
+		State.toggle("haven")
+	end
+end
+
 -- Fog Run targets: search a container, open a bag, start extracting at an exit.
 local function useRun(target: State.Target): boolean
 	if target.kind == "container" then
@@ -498,6 +556,8 @@ end
 local function use(target: State.Target)
 	if useRun(target) then
 		return
+	elseif target.kind == "haven" then
+		talk(target)
 	elseif target.kind == "station" then
 		State.toggle("station", target.key)
 	elseif target.kind == "drop" then
@@ -623,19 +683,10 @@ function Interaction.activate()
 		end
 		return
 	end
-	if useRun(target) then
-		return
-	elseif target.kind == "station" then
-		State.toggle("station", target.key)
-	elseif target.kind == "drop" then
-		Net.fire("PickupDrop", target.key)
-	elseif target.kind == "storage" then
-		Net.fire("StorageOpen", target.key)
-		if State.ui().panel ~= "inventory" then
-			State.toggle("inventory")
-		end
-	else
+	if target.kind == "node" then
 		swing()
+	else
+		use(target)
 	end
 end
 
@@ -677,7 +728,8 @@ function Interaction.start()
 		local ui = State.ui()
 		if approach then
 			approachStep()
-		elseif (gathering or ui.auto) and ui.panel == "none" then
+		elseif (gathering or ui.auto) and ui.panel == "none" and ui.gate == nil then
+			-- (Not while the UI gate emulates screens: its AUTO scene must not really gather.)
 			autoStep()
 		end
 	end)

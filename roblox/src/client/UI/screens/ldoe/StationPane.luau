@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Converter = require(ReplicatedStorage.Shared.Domain.Converter)
+local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local Net = require("../../../Net")
 local Theme = require("../../theme")
@@ -488,7 +489,63 @@ local function StationPane(props: Props)
 			else converter,
 	})
 
-	return e(Parts.Pane, { header = header, body = body })
+	-- Speed up (MVP_LAUNCH v0.1): finish the work the station would do now for Embers, priced
+	-- by the time left (Domain/Offers); one tap, the price on the button (LDoE).
+	local left = if status.activity == "working" and line
+		then status.batchRemaining + math.max(0, status.batchesLeft - 1) * status.batchSeconds
+		else 0
+	if def.fuel then
+		left = math.min(left, status.fuelSeconds)
+	end
+	local speedPrice = Offers.speedUpPrice(left, Content.Tuning.embers :: any)
+	local bar = speedPrice
+		and e(Parts.Bar, {
+			alignX = Enum.HorizontalAlignment.Center,
+			children = {
+				SpeedUp = e("TextButton", {
+					Size = UDim2.fromOffset(180, Theme.tapTarget),
+					BackgroundColor3 = Theme.colors.chip,
+					Text = "",
+					LayoutOrder = 2,
+					[React.Event.Activated] = function()
+						Net.fire("StationSpeedUp", props.uid)
+					end,
+				}, {
+					Corner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
+					Row = e(Layout.Stack, {
+						direction = "row",
+						gap = Theme.spacing.xs,
+						alignX = Enum.HorizontalAlignment.Center,
+						alignY = Enum.VerticalAlignment.Center,
+						children = {
+							Label = e("TextLabel", {
+								Size = UDim2.fromOffset(0, 24),
+								AutomaticSize = Enum.AutomaticSize.X,
+								BackgroundTransparency = 1,
+								FontFace = Theme.fonts.header,
+								Text = "SPEED UP",
+								TextSize = Theme.textSize.body,
+								TextColor3 = Theme.colors.text,
+								LayoutOrder = 1,
+							}),
+							Coin = e(Glyph, { name = "coin", size = UDim2.fromOffset(22, 22), layoutOrder = 2 }),
+							Price = e("TextLabel", {
+								Size = UDim2.fromOffset(0, 24),
+								AutomaticSize = Enum.AutomaticSize.X,
+								BackgroundTransparency = 1,
+								FontFace = Theme.fonts.header,
+								Text = tostring(speedPrice),
+								TextSize = Theme.textSize.body,
+								TextColor3 = Theme.colors.text,
+								LayoutOrder = 3,
+							}),
+						},
+					}),
+				}),
+			},
+		})
+
+	return e(Parts.Pane, { header = header, body = body, bar = bar })
 end
 
 return {

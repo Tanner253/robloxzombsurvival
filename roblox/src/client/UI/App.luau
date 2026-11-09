@@ -34,6 +34,8 @@ local CraftingScreen = require("./screens/CraftingScreen")
 local Panels = require("./screens/ldoe/Panels")
 local LdoeHud = require("./screens/ldoe/Hud")
 local LdoeBuild = require("./screens/ldoe/Build")
+local Shop = require("./screens/ldoe/Shop")
+local EmberConfirm = require("./screens/ldoe/EmberConfirm")
 local FogMap = require("./screens/FogMap")
 local RunHud = require("./screens/RunHud")
 local hooks = require("./hooks")
@@ -133,6 +135,8 @@ local function App(props: Props)
 		Build = e(Boundary, { name = "Build" }, { Screen = if ldoeBuild then e(LdoeBuild) else e(BuildMenu) }),
 		Settings = e(Boundary, { name = "Settings" }, { Screen = e(SettingsScreen) }),
 		Crafting = e(Boundary, { name = "Crafting" }, { Screen = e(CraftingScreen) }),
+		Shop = e(Boundary, { name = "Shop" }, { Screen = e(Shop) }),
+		EmberConfirm = e(Boundary, { name = "EmberConfirm" }, { Screen = e(EmberConfirm) }),
 		-- Fog Runs (M1 slice 2): the travel map, and everything a run adds to the screen.
 		FogMap = e(Boundary, { name = "FogMap" }, { Screen = e(FogMap) }),
 		Run = e(Boundary, { name = "Run" }, { Screen = e(RunHud.Screen) }),

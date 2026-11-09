@@ -162,6 +162,27 @@ function Models.kit(names: { string }): Model?
 	return nil
 end
 
+-- The family lantern post's warm glow: the lantern hangs from the arm about two thirds up.
+-- Returns the light (nil when the model has no part to hold it).
+function Models.lanternGlow(model: Model): PointLight?
+	local mesh = model:FindFirstChildWhichIsA("BasePart", true)
+	if mesh == nil then
+		return nil
+	end
+	local _, size = model:GetBoundingBox()
+	local glow = Instance.new("Attachment")
+	glow.Name = "Glow"
+	glow.WorldPosition = model:GetPivot().Position + Vector3.new(0, size.Y * 0.62, 0)
+	glow.Parent = mesh
+	local lamp = Instance.new("PointLight")
+	lamp.Range = 18
+	lamp.Brightness = 0.9
+	lamp.Color = Color3.fromRGB(255, 196, 140)
+	lamp.Shadows = false
+	lamp.Parent = glow
+	return lamp
+end
+
 -- Fallback builder helpers ----------------------------------------------------------------
 
 local function part(
@@ -201,13 +222,13 @@ local function finish(model: Model): Model
 	return model
 end
 
--- The campfire's flame and glow (off until fuelled; WorldFx lights them), on an
--- invisible core `height` studs above the model's pivot.
-local function addFireCore(model: Model, height: number)
+-- A fuelled station's flame and glow (off until fuelled; WorldFx lights them), on an
+-- invisible core at `at` from the model's pivot, the flame `size` tall.
+local function addFireCore(model: Model, at: Vector3, size: number?)
 	local core = part(
 		model,
 		Vector3.new(0.6, 0.6, 0.6),
-		model:GetPivot() * CFrame.new(0, height, 0),
+		model:GetPivot() * CFrame.new(at),
 		Enum.Material.Neon,
 		EMBER,
 		Enum.PartType.Ball
@@ -220,7 +241,7 @@ local function addFireCore(model: Model, height: number)
 	fire.Name = "Flame"
 	fire.Enabled = false
 	fire.Heat = 9
-	fire.Size = 4
+	fire.Size = size or 4
 	fire.Color = EMBER
 	fire.SecondaryColor = Color3.fromRGB(255, 181, 71)
 	fire.Parent = core
@@ -272,15 +293,15 @@ function Models.deck(tier: number): Model
 	return finish(model)
 end
 
--- Stretches a wall-layer kit model (authored for the old 12-stud cell) to span exactly one
--- cell and stand WALL_HEIGHT tall, about its pivot (base centre, length along X).
-local function fitEdge(model: Model)
+-- Stretches a wall-layer kit model to span `length` studs and stand `height` tall, about
+-- its pivot (base centre, length along X). Haven Square's lounge fence uses it directly.
+function Models.fitEdgeTo(model: Model, length: number, height: number)
 	local pivot = model:GetPivot()
 	local size = model:GetExtentsSize()
 	if size.X < 0.01 or size.Y < 0.01 then
 		return
 	end
-	local sx, sy = CELL / size.X, Art.WALL_HEIGHT / size.Y
+	local sx, sy = length / size.X, height / size.Y
 	local function along(axis: Vector3): number
 		local a = pivot:VectorToObjectSpace(axis)
 		return math.abs(a.X) * sx + math.abs(a.Y) * sy + math.abs(a.Z)
@@ -298,6 +319,12 @@ local function fitEdge(model: Model)
 			piece.CFrame = pivot * (CFrame.new(moved) * local_.Rotation)
 		end
 	end
+end
+
+-- A wall-layer kit model (authored for the old 12-stud cell) spanning exactly one cell
+-- and standing WALL_HEIGHT tall.
+local function fitEdge(model: Model)
+	Models.fitEdgeTo(model, CELL, Art.WALL_HEIGHT)
 end
 
 -- Structure (ART_DIRECTION §4, one material per tier): walls, doorways, windows and doors
@@ -404,7 +431,11 @@ function Models.piece(def: Types.BuildPieceDef): Model?
 		band(kit)
 	end
 	if def.stationId == "station.campfire" and kit:FindFirstChild("FireCore", true) == nil then
-		addFireCore(kit, 1)
+		addFireCore(kit, Vector3.new(0, 1, 0))
+	elseif def.stationId == "station.smelter" and kit:FindFirstChild("FireCore", true) == nil then
+		-- The Smelter burns out of its chimney (off the model's centre: the bellows widen it),
+		-- so the flame shows over the dome from the camera above.
+		addFireCore(kit, Vector3.new(-0.44, kit:GetExtentsSize().Y - 0.3, 0.38), 2.2)
 	end
 	kit.Name = def.id
 	return kit

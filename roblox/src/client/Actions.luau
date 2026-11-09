@@ -149,6 +149,30 @@ function Actions.toggleCrafting()
 	Sfx.play(if State.ui().panel == "crafting" then "uiOpen" else "uiClose")
 end
 
+-- Opens the shop (the menu bar, the inventory's "+", a moment-of-need offer), on a
+-- product (outlined, on its tab) or a tab.
+function Actions.openShop(focus: string?, tab: string?)
+	local product = if focus then Content.Products[focus] else nil
+	local onTab = tab or (if product then product.tab else nil) or "best"
+	if focus == "product.starter_offer" or focus == "product.builders_crate" then
+		onTab = "best"
+	end
+	State.patch({ shopFocus = focus, shopTab = onTab })
+	if focus == nil then
+		State.clear("shopFocus")
+	end
+	if State.ui().panel ~= "shop" then
+		State.toggle("shop")
+		Sfx.play("uiOpen")
+	end
+end
+
+-- Asks the server to prompt a product (it checks the offer first; Services/Shop).
+function Actions.buyProduct(productId: string)
+	Net.fire("ShopBuy", productId)
+	Sfx.play("uiClick")
+end
+
 function Actions.closePanel()
 	seenInventory()
 	seenRecipes()
