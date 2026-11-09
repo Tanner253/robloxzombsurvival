@@ -139,60 +139,6 @@ local function gearPlan(data: PlayerData, handRef: string): { [string]: string }
 	return plan
 end
 
--- A body part's rest rotation relative to the root, from the StarterCharacter, so a
--- mount is laid out in the character's frame (forward, up) whatever the custom
--- rig's part axes are, and still follows the part when it animates.
-local restRotations: { [string]: CFrame } = {}
-local function restRotation(partName: string): CFrame
-	local cached = restRotations[partName]
-	if cached then
-		return cached
-	end
-	local rig = game:GetService("StarterPlayer"):FindFirstChild("StarterCharacter")
-	local root = rig and rig:FindFirstChild("HumanoidRootPart")
-	local part = rig and rig:FindFirstChild(partName)
-	local rotation = CFrame.identity
-	if root and part and root:IsA("BasePart") and part:IsA("BasePart") then
-		rotation = root.CFrame:ToObjectSpace(part.CFrame).Rotation
-	end
-	restRotations[partName] = rotation
-	return rotation
-end
-
--- The mount's frame on `part`: the part's live rotation with its rest rotation removed.
-local function bodyFrame(part: BasePart, at: Vector3): CFrame
-	return CFrame.new(at) * part.CFrame.Rotation * restRotation(part.Name):Inverse()
-end
-
-local function mountCFrame(character: Model, mount: string): (CFrame?, BasePart?)
-	local function partNamed(name: string): BasePart?
-		local found = character:FindFirstChild(name)
-		return if found and found:IsA("BasePart") then found else nil
-	end
-	if mount == "hand" then
-		local hand = partNamed("RightHand") or partNamed("Right Arm")
-		if hand == nil then
-			return nil, nil
-		end
-		local grip = hand:FindFirstChild("RightGripAttachment") :: Attachment?
-		local at = if grip then grip.WorldPosition else hand.Position
-		return bodyFrame(hand, at), hand
-	elseif mount == "back" then
-		local torso = partNamed("UpperTorso") or partNamed("Torso")
-		if torso == nil then
-			return nil, nil
-		end
-		local frame = bodyFrame(torso, torso.Position)
-		return frame * CFrame.new(-0.35, 0.1, 0.78), torso
-	end
-	local hips = partNamed("LowerTorso") or partNamed("Torso")
-	if hips == nil then
-		return nil, nil
-	end
-	local side = if mount == "belt" then 1 else -1
-	return bodyFrame(hips, hips.Position) * CFrame.new(0.78 * side, -0.25, 0.1), hips
-end
-
 -- Rebuilds the visible gear (in hand and holstered) when what the player carries changes.
 local function refreshHeld(player: Player)
 	local data = PlayerData.get(player)
@@ -214,7 +160,7 @@ local function refreshHeld(player: Player)
 	made:SetAttribute("Signature", signature)
 	made:SetAttribute("HandItem", plan.hand or "")
 	for mount, itemId in plan do
-		local where, anchor = mountCFrame(character, mount)
+		local where, anchor = Models.mountFrame(character, mount :: Models.Mount)
 		local gear = if where and anchor then Models.held(itemId, Items[itemId], mount :: any) else nil
 		if gear and where and anchor then
 			gear.model.Name = mount

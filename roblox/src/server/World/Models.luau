@@ -12,6 +12,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local Art = require(ReplicatedStorage.Shared.Art)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -693,6 +694,62 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 	local rotation = MOUNT_FRAMES[mount] * frame(axis, -edge):Inverse()
 	model.Name = itemId
 	return { model = model, rotation = rotation, gripPoint = gripPoint }
+end
+
+-- A body part's rest rotation relative to the root, from the StarterCharacter, so a
+-- mount is laid out in the character's frame (forward, up) whatever the custom
+-- rig's part axes are, and still follows the part when it animates.
+local restRotations: { [string]: CFrame } = {}
+local function restRotation(partName: string): CFrame
+	local cached = restRotations[partName]
+	if cached then
+		return cached
+	end
+	local rig = StarterPlayer:FindFirstChild("StarterCharacter")
+	local root = rig and rig:FindFirstChild("HumanoidRootPart")
+	local body = rig and rig:FindFirstChild(partName)
+	local rotation = CFrame.identity
+	if root and body and root:IsA("BasePart") and body:IsA("BasePart") then
+		rotation = root.CFrame:ToObjectSpace(body.CFrame).Rotation
+	end
+	restRotations[partName] = rotation
+	return rotation
+end
+
+-- The mount's frame on `part`: the part's live rotation with its rest rotation removed.
+local function bodyFrame(body: BasePart, at: Vector3): CFrame
+	return CFrame.new(at) * body.CFrame.Rotation * restRotation(body.Name):Inverse()
+end
+
+-- Where a mount sits on a survivor rig (a player's character or a Haven NPC) and the
+-- part it rides on: the right fist, across the back, or either hip.
+function Models.mountFrame(character: Model, mount: Mount): (CFrame?, BasePart?)
+	local function partNamed(name: string): BasePart?
+		local found = character:FindFirstChild(name)
+		return if found and found:IsA("BasePart") then found else nil
+	end
+	if mount == "hand" then
+		local hand = partNamed("RightHand") or partNamed("Right Arm")
+		if hand == nil then
+			return nil, nil
+		end
+		local grip = hand:FindFirstChild("RightGripAttachment") :: Attachment?
+		local at = if grip then grip.WorldPosition else hand.Position
+		return bodyFrame(hand, at), hand
+	elseif mount == "back" then
+		local torso = partNamed("UpperTorso") or partNamed("Torso")
+		if torso == nil then
+			return nil, nil
+		end
+		local back = bodyFrame(torso, torso.Position)
+		return back * CFrame.new(-0.35, 0.1, 0.78), torso
+	end
+	local hips = partNamed("LowerTorso") or partNamed("Torso")
+	if hips == nil then
+		return nil, nil
+	end
+	local side = if mount == "belt" then 1 else -1
+	return bodyFrame(hips, hips.Position) * CFrame.new(0.78 * side, -0.25, 0.1), hips
 end
 
 -- Places a held model on a mount (a world CFrame) and welds it to `anchorPart`.

@@ -131,10 +131,11 @@ local Tuning: Types.TuningDef = {
 		spacingStuds = 184,
 		rowGapStuds = 36,
 		marginStuds = 28,
-		-- Haven Square (Domain/Neighbourhood): the paved middle, half its width and depth.
-		-- Two plots stand each side of it in both rows; the road runs through it.
-		plazaHalfStuds = 56,
-		plazaDepthStuds = 80,
+		-- Haven Square (Domain/Neighbourhood): the trodden middle inside its palisade, half
+		-- its width and depth. Tight like LDoE's settlement (rec4_01): 0.6 of the first
+		-- cut's area. Two plots stand each side of it in both rows; the road runs through it.
+		plazaHalfStuds = 44,
+		plazaDepthStuds = 62,
 	},
 	interaction = {
 		-- Arm's reach (checklist 3.11): how far from an object's edge (its footprint
