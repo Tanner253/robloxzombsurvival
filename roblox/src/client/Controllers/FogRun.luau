@@ -117,13 +117,14 @@ local function restoreHome()
 	end
 	homeLook = nil
 	local a, g = atmosphere(), grade()
-	if a and saved.density then
-		a.Density = saved.density
+	local density: number?, saturation: number? = saved.density, saved.saturation
+	if a and density then
+		a.Density = density
 		a.Haze = saved.haze
 		a.Offset = saved.offset
 	end
-	if g and saved.saturation then
-		g.Saturation = saved.saturation
+	if g and saturation then
+		g.Saturation = saturation
 		g.Contrast = saved.contrast
 	end
 end
@@ -243,15 +244,16 @@ local function watchContainer(instance: Instance)
 	end
 	local holder = instance :: Model
 	-- Parts can stream in after the tagged model: wait a moment for the body.
-	local body = marker(holder)
+	local found = marker(holder)
 	local waited = 0
-	while body == nil and waited < 10 and holder.Parent do
+	while found == nil and waited < 10 and holder.Parent do
 		waited += task.wait(0.25)
-		body = marker(holder)
+		found = marker(holder)
 	end
-	if body == nil then
+	if found == nil then
 		return
 	end
+	local body: BasePart = found
 	holder:SetAttribute("Watched", true)
 	local function refresh(animate: boolean)
 		local run = FogRun.state()
@@ -418,7 +420,7 @@ end
 
 -- Server effects ---------------------------------------------------------------------------------------
 
-local function onFx(kind: string, payload: any)
+local function onFx(kind: any, payload: any)
 	if kind == "travel" then
 		State.set("travel", payload)
 		Sfx.play("uiOpen")

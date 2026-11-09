@@ -45,8 +45,11 @@ export type Rig = {
 local function motorsOf(model: Model): { [string]: Motor6D }
 	local found: { [string]: Motor6D } = {}
 	for _, motor in model:GetDescendants() do
-		if motor:IsA("Motor6D") and motor.Part1 then
-			found[motor.Part1.Name] = motor
+		if motor:IsA("Motor6D") then
+			local part1 = motor.Part1
+			if part1 then
+				found[part1.Name] = motor
+			end
 		end
 	end
 	return found

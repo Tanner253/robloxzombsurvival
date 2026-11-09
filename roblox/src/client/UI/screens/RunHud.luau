@@ -338,9 +338,12 @@ local function TargetBar()
 	})
 end
 
+-- A timed search or extraction as Controllers/FogRun stores it (false when idle).
+type Channel = { endsAt: number, startedAt: number, kind: string? }
+
 local function Progress()
-	local search = hooks.useSection("search")
-	local extracting = hooks.useSection("extracting")
+	local search: Channel | false | nil = hooks.useSection("search")
+	local extracting: Channel | false | nil = hooks.useSection("extracting")
 	local now = hooks.useClock(0.05)
 	local active = if type(extracting) == "table" then extracting elseif type(search) == "table" then search else nil
 	if active == nil then

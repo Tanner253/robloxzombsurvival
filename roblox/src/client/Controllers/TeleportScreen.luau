@@ -74,7 +74,8 @@ end
 function TeleportScreen.prepare(locationId: string?)
 	local gui = build(locationId)
 	local ok = pcall(function()
-		TeleportService:SetTeleportGui(gui)
+		-- The engine takes a ScreenGui here; the API definitions say GuiObject.
+		TeleportService:SetTeleportGui(gui :: any)
 	end)
 	if not ok then
 		gui:Destroy()

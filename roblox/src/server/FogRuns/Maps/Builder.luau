@@ -435,13 +435,14 @@ function Builder.terrain(ctx: Ctx, spec: TerrainSpec)
 		local size = region.Size / res
 		local nx, ny, nz = math.floor(size.X + 0.5), math.floor(size.Y + 0.5), math.floor(size.Z + 0.5)
 		local corner = region.CFrame.Position - region.Size / 2
-		local materials: { { { any } } } = table.create(nx)
-		local occupancy: { { { number } } } = table.create(nx)
+		-- table.create without a fill value leaves the element type open, so the grids assert theirs.
+		local materials = table.create(nx) :: { { { any } } }
+		local occupancy = table.create(nx) :: { { { number } } }
 		for ix = 1, nx do
-			local mx: { { any } }, ox: { { number } } = table.create(ny), table.create(ny)
+			local mx, ox = table.create(ny) :: { { any } }, table.create(ny) :: { { number } }
 			for iy = 1, ny do
-				mx[iy] = table.create(nz)
-				ox[iy] = table.create(nz)
+				mx[iy] = table.create(nz) :: { any }
+				ox[iy] = table.create(nz) :: { number }
 			end
 			materials[ix], occupancy[ix] = mx, ox
 			local wx = corner.X + (ix - 0.5) * res
@@ -660,7 +661,8 @@ function Builder.scatter(
 			clear = false
 		end
 		if clear then
-			local opts: KitOptions = table.clone(options or {})
+			local given: KitOptions = options or {}
+			local opts = table.clone(given)
 			if opts.height then
 				opts.height = (opts.height :: number) * (0.85 + ctx.rng:NextNumber() * 0.3)
 			end
@@ -1696,7 +1698,7 @@ function Builder.utilityPole(ctx: Ctx, x: number, z: number, wireTo: Vector2?)
 		local to = Builder.at(ctx, wireTo.X, wireTo.Y, 18.7)
 		local mid = (from + to) / 2 - Vector3.new(0, 1.4, 0)
 		for _, sag in { { from, mid }, { mid, to } } do
-			local a, b = sag[1], sag[2]
+			local a: Vector3, b: Vector3 = sag[1], sag[2]
 			local wire = Builder.part(
 				holder,
 				Vector3.new(0.08, 0.08, (b - a).Magnitude),

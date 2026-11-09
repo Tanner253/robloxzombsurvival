@@ -950,7 +950,7 @@ function CombatControl.start()
 	if not Content.Tuning.features.fogRuns then
 		return
 	end
-	State.fx:Connect(function(kind: string, payload: any)
+	State.fx:Connect(function(kind: any, payload: any)
 		if kind == "shot" then
 			onShot(payload)
 		elseif kind == "swing" then

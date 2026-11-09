@@ -37,6 +37,7 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Clock = require(ReplicatedStorage.Shared.Clock)
 local Flags = require(ReplicatedStorage.Shared.Flags)
 local Progression = require(ReplicatedStorage.Shared.Domain.Progression)
+local Types = require(ReplicatedStorage.Shared.Types)
 local Actions = require("../../../Actions")
 local State = require("../../../State")
 local Theme = require("../../theme")
@@ -190,9 +191,9 @@ local function locationRows(run: any): { { name: string, step: string } }
 		return rows
 	end
 	local location = Content.Locations[run.locationId or ""]
-	local defs: { any } = if location and location.run then location.run.quests else {}
+	local defs: { Types.LocationQuest } = if location and location.run then location.run.quests else {}
 	for _, row in run.locationQuests do
-		local def
+		local def: Types.LocationQuest? = nil
 		for _, quest in defs do
 			if quest.id == row.id then
 				def = quest
