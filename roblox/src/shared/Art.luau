@@ -849,6 +849,10 @@ Art.wildlifeRigs = {
 	},
 } :: { [string]: WildlifeRig }
 
+-- The soft amber mark on the ground at an exit a survivor stands near (checklist 12.10:
+-- no bright circles; art/ui/fogmap/exit_ground_glow.png, made by a script, not generated).
+Art.exitGroundGlow = "rbxassetid://132317298258032"
+
 -- The HUD meters' glyph names.
 Art.meterGlyphs = {
 	health = "health",

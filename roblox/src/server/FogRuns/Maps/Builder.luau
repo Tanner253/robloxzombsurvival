@@ -105,6 +105,11 @@ Builder.paints = {
 		material = Enum.Material.Wood,
 		color = rgb(178, 150, 112),
 	},
+	flareRed = {
+		-- A road flare's red paper casing, sun-faded.
+		material = Enum.Material.Plastic,
+		color = rgb(146, 58, 46),
+	},
 	charred = {
 		-- Fire-blackened boards (Gloaming Deep's burnt cabin and bridge).
 		material = Enum.Material.Wood,
@@ -718,71 +723,145 @@ end
 	(PointId) and the exit tag for the minimap arc. `edge` exits (Light fog) are the
 	same overlay at a road or trail leaving the map.
 ]]
-function Builder.exit(ctx: Ctx, pointId: string, name: string, x: number, z: number, radius: number, yaw: number)
+-- How an extraction point shows in the world (checklist 12.10: no bright flat circles).
+-- "sign": a Light map's worn trail leaving the map, marked by a weathered signpost;
+-- "flare": a Dense or Black point's smouldering flare stake; "lantern": a lantern post;
+-- "none": the layout's own landmark marks it (the Old Bridge, a parked truck).
+export type ExitLandmark = "sign" | "flare" | "lantern" | "none"
+
+-- A weathered signpost beside the trail, its board pointing off the map.
+local function exitSign(ctx: Ctx, holder: Model, name: string, x: number, z: number, radius: number)
+	local out = if math.abs(x) >= math.abs(z) then Vector2.new(math.sign(x), 0) else Vector2.new(0, math.sign(z))
+	local side = Vector2.new(-out.Y, out.X)
+	local at = Vector2.new(x, z) + side * (radius * 0.7) - out * 2
+	local facing = math.deg(math.atan2(out.X, out.Y))
+	local base = Builder.frame(ctx, at.X, at.Y, facing) * CFrame.Angles(math.rad(3), 0, math.rad(-4))
+	Builder.part(holder, Vector3.new(0.6, 6.6, 0.6), base * CFrame.new(0, 3, 0), "trim", "Post")
+	-- The board runs along the way out (local -Z), sagged on its nail so its painted face
+	-- turns up to the sky (QA: upright, the top-down camera saw only its edge); its tip a
+	-- diamond for an arrow head.
+	local board = Builder.part(
+		holder,
+		Vector3.new(0.22, 1.4, 4.6),
+		base * CFrame.new(0.2, 5.4, -1.6) * CFrame.Angles(0, 0, math.rad(58)),
+		"boards",
+		"Board"
+	)
+	Builder.part(
+		holder,
+		Vector3.new(0.22, 1, 1),
+		board.CFrame * CFrame.new(0, 0, -2.3) * CFrame.Angles(math.rad(45), 0, 0),
+		"boards",
+		"Tip"
+	)
+	for _, face in { Enum.NormalId.Right } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 1
+		gui.Parent = board
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(0.92, 0.8)
+		label.Position = UDim2.fromScale(0.04, 0.1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.SpecialElite
+		label.Text = string.upper(name)
+		label.TextScaled = true
+		label.TextColor3 = Color3.fromRGB(214, 202, 178)
+		label.TextTransparency = 0.18
+		label.Parent = gui
+	end
+	-- A second, older board fallen askew below it.
+	Builder.part(
+		holder,
+		Vector3.new(0.14, 0.7, 2.6),
+		base * CFrame.new(0.05, 3.6, -0.6) * CFrame.Angles(math.rad(-14), 0, math.rad(4)),
+		"boards",
+		"OldBoard"
+	)
+end
+
+-- A road flare tied to a stake, smouldering: a dim warm light and a thread of smoke.
+local function exitFlare(ctx: Ctx, holder: Model, x: number, z: number)
+	local base = Builder.frame(ctx, x, z, (x * 37 + z * 11) % 360) * CFrame.Angles(math.rad(4), 0, math.rad(-3))
+	Builder.part(holder, Vector3.new(0.32, 4.4, 0.32), base * CFrame.new(0, 1.9, 0), "trim", "Stake")
+	Builder.cylinder(holder, 1.1, 0.34, base * CFrame.new(0.32, 3.2, 0), "flareRed")
+	local ember =
+		Builder.part(holder, Vector3.new(0.3, 0.3, 0.3), base * CFrame.new(0.32, 3.85, 0), "flareRed", "Ember")
+	ember.Material = Enum.Material.Neon
+	ember.Color = Color3.fromRGB(232, 126, 64)
+	ember:SetAttribute("Glow", true)
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(236, 150, 84)
+	light.Range = 13
+	light.Brightness = 0.9
+	light.Shadows = false
+	light.Parent = ember
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(150, 132, 120), Color3.fromRGB(110, 106, 104))
+	smoke.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.7),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	smoke.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1.6) })
+	smoke.Lifetime = NumberRange.new(2, 3.2)
+	smoke.Rate = 3
+	smoke.Speed = NumberRange.new(0.8, 1.4)
+	smoke.SpreadAngle = Vector2.new(8, 8)
+	smoke.Acceleration = Vector3.new(0.3, 0.4, 0)
+	smoke.LightEmission = 0.05
+	smoke.Parent = ember
+	-- A few stones round the foot of the stake.
+	for step = 0, 4 do
+		local angle = step / 5 * math.pi * 2 + 0.4
+		Builder.part(
+			holder,
+			Vector3.new(0.7, 0.45, 0.6),
+			base * CFrame.new(math.cos(angle) * 0.75, 0.15, math.sin(angle) * 0.75) * CFrame.Angles(0, angle, 0.2),
+			"rubble",
+			"Stone"
+		)
+	end
+end
+
+--[[
+	An extraction point (#42), diegetic (checklist 12.10). The world shows only the
+	landmark; a soft amber ground mark and the prompt appear on the client when a survivor
+	comes near (Controllers/FogRun), and a closed point's landmark goes cold and unlit.
+	The model's pivot is the point's centre (the minimap's arcs read it).
+]]
+function Builder.exit(
+	ctx: Ctx,
+	pointId: string,
+	name: string,
+	x: number,
+	z: number,
+	radius: number,
+	yaw: number,
+	landmark: ExitLandmark?
+)
 	local holder = model(Builder.folder(ctx, "Exits"), `Exit_{pointId}`)
 	holder:SetAttribute("PointId", pointId)
 	holder:SetAttribute("ExitName", name)
 	holder:SetAttribute("Radius", radius)
-	local centre = Builder.at(ctx, x, z, 0.12)
-	-- The overlay: a soft translucent green disc just over the highest ground under it (so
-	-- slopes never cut it), and a thin glowing rim laid segment by segment on the ground.
-	local top = ctx.groundHeight(x, z)
-	for step = 0, 11 do
-		local angle = step / 12 * math.pi * 2
-		top = math.max(top, ctx.groundHeight(x + math.cos(angle) * radius, z + math.sin(angle) * radius))
+	holder:SetAttribute("Yaw", yaw)
+	local kind: ExitLandmark = landmark or (if pointId == "edge" then "sign" else "flare")
+	if kind == "sign" then
+		exitSign(ctx, holder, name, x, z, radius)
+	elseif kind == "flare" then
+		exitFlare(ctx, holder, x, z)
+	elseif kind == "lantern" then
+		local post = Builder.kit(ctx, { "EO_LanternPost" }, x + radius * 0.6, z, yaw)
+		if post then
+			post.Parent = holder
+		end
+		local lamp = Builder.lamp(ctx, x + radius * 0.6, z, 6.5, true, 16)
+		lamp:SetAttribute("Glow", true)
+		lamp.Parent = holder
 	end
-	-- Just clear of a road surface too (Builder.road pieces stand 0.2 + lift above ground).
-	local discCentre = ctx.origin + Vector3.new(x, top + 0.45, z)
-	local disc = Instance.new("Part")
-	disc.Name = "Overlay"
-	disc.Shape = Enum.PartType.Cylinder
-	disc.Size = Vector3.new(0.1, radius * 2, radius * 2)
-	disc.CFrame = CFrame.new(discCentre) * CFrame.Angles(0, 0, math.rad(90))
-	disc.Anchored = true
-	disc.CanCollide = false
-	disc.CanQuery = false
-	disc.CanTouch = false
-	disc.CastShadow = false
-	Builder.paint(disc, "exitGlow")
-	disc.Material = Enum.Material.SmoothPlastic
-	disc.Transparency = 0.7
-	disc.Parent = holder
-	local segments = 28
-	for step = 0, segments - 1 do
-		local a0 = step / segments * math.pi * 2
-		local a1 = (step + 1) / segments * math.pi * 2
-		local p0 = Builder.at(ctx, x + math.cos(a0) * radius, z + math.sin(a0) * radius, 0.2)
-		local p1 = Builder.at(ctx, x + math.cos(a1) * radius, z + math.sin(a1) * radius, 0.2)
-		local seg = Instance.new("Part")
-		seg.Name = "Rim"
-		seg.Size = Vector3.new(0.35, 0.12, (p1 - p0).Magnitude + 0.1)
-		seg.CFrame = CFrame.lookAt((p0 + p1) / 2, p1)
-		seg.Anchored = true
-		seg.CanCollide = false
-		seg.CanQuery = false
-		seg.CanTouch = false
-		seg.CastShadow = false
-		Builder.paint(seg, "exitGlow")
-		seg.Transparency = 0.2
-		seg.Parent = holder
-	end
-	-- A pole with a green lantern, so the point reads from afar and at night.
-	local pole = Builder.part(
-		holder,
-		Vector3.new(0.4, 7, 0.4),
-		CFrame.new(centre + Vector3.new(0, 3.5, 0)) * CFrame.Angles(0, math.rad(yaw), 0),
-		"darkMetal",
-		"Pole"
-	)
-	local lamp =
-		Builder.part(holder, Vector3.new(0.9, 0.9, 0.9), pole.CFrame * CFrame.new(0, 3.6, 0), "exitGlow", "Lamp")
-	lamp.Transparency = 0.15
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(110, 230, 130)
-	light.Range = radius + 8
-	light.Brightness = 1.2
-	light.Shadows = false
-	light.Parent = lamp
+	holder.WorldPivot = CFrame.new(Builder.at(ctx, x, z, 0))
 	CollectionService:AddTag(holder, Builder.EXIT_TAG)
 	Builder.marker(ctx, "extract", x, z, { PointId = pointId, ExitName = name })
 end
@@ -1797,7 +1876,7 @@ function Builder.toLocal(ctx: Ctx, frame: CFrame): (number, number)
 	return p.X, p.Z
 end
 
-function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: boolean, range: number?)
+function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: boolean, range: number?): BasePart
 	local part = Builder.part(
 		Builder.folder(ctx, "Lights"),
 		Vector3.new(0.6, 0.6, 0.6),
@@ -1813,6 +1892,7 @@ function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: bool
 	light.Brightness = if warm then 1.1 else 0.6
 	light.Shadows = false
 	light.Parent = part
+	return part
 end
 
 -- Edges -------------------------------------------------------------------------------------------

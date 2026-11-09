@@ -26,7 +26,7 @@ export type Clearing = { at: Vector2, radius: number }
 export type Pond = { at: Vector2, radius: number }
 export type Ridge = { points: { Vector2 }, width: number, height: number } -- a rock bluff
 export type Pit = { at: Vector2, radius: number, depth: number } -- a quarry cut in benches
-export type Exit = { id: string, name: string, at: Vector2, yaw: number }
+export type Exit = { id: string, name: string, at: Vector2, yaw: number, landmark: Builder.ExitLandmark? }
 export type Spot = { kind: string, at: Vector2, yaw: number }
 
 export type Spec = {
@@ -539,7 +539,7 @@ local function markers(ctx: Builder.Ctx, spec: Spec)
 		Builder.marker(ctx, "hollow", at.X, at.Y)
 	end
 	for _, exit in spec.exits do
-		Builder.exit(ctx, exit.id, exit.name, exit.at.X, exit.at.Y, 9, exit.yaw)
+		Builder.exit(ctx, exit.id, exit.name, exit.at.X, exit.at.Y, 9, exit.yaw, exit.landmark)
 	end
 	for _, spot in spec.containers do
 		Builder.container(ctx, spot.kind, spot.at.X, spot.at.Y, spot.yaw)
