@@ -259,10 +259,8 @@ end
 
 local function yard(ctx: Builder.Ctx)
 	-- Wrecks and junk crowd the yard, with lanterns on posts and a fenced paddock.
-	Builder.kit(ctx, { "EO_PickupWreck" }, -14, 0, 104, { height = 7, tilt = 3 })
-	Builder.container(ctx, "trunk", -20, 6, 104)
-	Builder.kit(ctx, { "EO_SedanWreck" }, 16, -2, 20, { height = 6 })
-	Builder.container(ctx, "trunk", 20, 4, 20)
+	Builder.vehicle(ctx, "EO_PickupWreck", -14, 0, 104, { height = 7, tilt = 3 }, true)
+	Builder.vehicle(ctx, "EO_SedanWreck", 16, -2, 20, { height = 6 }, true)
 	Builder.kit(ctx, { "EO_BarrelCluster" }, -2, -48, 10)
 	Builder.kit(ctx, { "EO_StorageCrate" }, 8, -50, 30)
 	Builder.kit(ctx, { "EO_ScrapHeapClean" }, 30, -8, 140)
@@ -315,19 +313,7 @@ end
 
 local function pondCamp(ctx: Builder.Ctx)
 	-- A tarp lean-to over a cold fire by the reeds: someone camped here and left fast.
-	local folder = Builder.model(Builder.folder(ctx, "Dressing"), "HunterCamp")
-	local base = Builder.frame(ctx, CAMP.X, CAMP.Y, 25)
-	for _, side in { -5, 5 } do
-		Builder.part(folder, Vector3.new(0.4, 7, 0.4), base * CFrame.new(side, 3.5, -3.5), "trim", "Pole")
-	end
-	Builder.part(folder, Vector3.new(11, 0.25, 0.3), base * CFrame.new(0, 7, -3.5), "trim", "Ridge")
-	Builder.part(
-		folder,
-		Vector3.new(11.4, 0.12, 8.6),
-		base * CFrame.new(0, 3.8, -0.2) * CFrame.Angles(math.rad(-56), 0, 0),
-		"tarp",
-		"Tarp"
-	)
+	Builder.leanTo(ctx, "HunterCamp", CAMP.X, CAMP.Y, 214, "tarp")
 	Builder.kit(ctx, { "EO_CampfireRing" }, CAMP.X + 4, CAMP.Y + 6, 0)
 	Builder.kit(ctx, { "EO_BarrelCluster" }, CAMP.X - 9, CAMP.Y + 2, 70)
 	Builder.kit(ctx, { "EO_SupplySacksMesh" }, CAMP.X + 9, CAMP.Y - 2, 20)
@@ -336,8 +322,7 @@ local function pondCamp(ctx: Builder.Ctx)
 	Builder.container(ctx, "pack", CAMP.X - 2, CAMP.Y - 1, 10)
 	Builder.container(ctx, "pack", CAMP.X + 3, CAMP.Y + 1, 200)
 	Builder.container(ctx, "crate", CAMP.X - 11, CAMP.Y - 6, 110)
-	Builder.kit(ctx, { "EO_VanWreck" }, CAMP.X + 26, CAMP.Y - 4, 160, { height = 8.5, tilt = 2 })
-	Builder.container(ctx, "trunk", CAMP.X + 26, CAMP.Y + 4, 160)
+	Builder.vehicle(ctx, "EO_VanWreck", CAMP.X + 26, CAMP.Y - 4, 160, { height = 8.5, tilt = 2 }, true)
 	-- Reeds and stones round the pond.
 	local rng = ctx.rng
 	for index = 1, 22 do
@@ -455,8 +440,7 @@ local function woods(ctx: Builder.Ctx)
 	Builder.container(ctx, "pack", -60, 108, 40)
 	Builder.container(ctx, "pack", 48, -100, 300)
 	Builder.container(ctx, "crate", -104, 6, 0)
-	Builder.kit(ctx, { "EO_SedanWreck" }, 14, 70, 168, { height = 6, tilt = 4 })
-	Builder.container(ctx, "trunk", 14, 76, 168)
+	Builder.vehicle(ctx, "EO_SedanWreck", 14, 70, 168, { height = 6, tilt = 4 }, true)
 end
 
 local function edges(ctx: Builder.Ctx)

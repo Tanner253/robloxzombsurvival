@@ -259,6 +259,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		nodes = {
 			{ nodeId = "node.scrap_heap", count = 6 },
 			{ nodeId = "node.fatwood_stump", count = 4 },
+			{ nodeId = "node.pine_tree", count = 6 },
+			{ nodeId = "node.reed_patch", count = 4 },
 		},
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 6, max = 8 } },

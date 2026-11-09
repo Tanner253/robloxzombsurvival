@@ -437,12 +437,9 @@ local function street(ctx: Builder.Ctx)
 	}
 	for index, car in cars do
 		local names = { CARS[(index % #CARS) + 1] }
-		Builder.kit(ctx, names, car[1], car[2], car[3], { height = if names[1] == "EO_VanWreck" then 7 else 5.5 })
-		-- Every other sedan's boot is still worth a look.
-		if names[1] == "EO_SedanWreck" then
-			local yaw = math.rad(car[3])
-			Builder.container(ctx, "trunk", car[1] + math.sin(yaw) * 5.2, car[2] + math.cos(yaw) * 5.2, car[3])
-		end
+		-- Every sedan's boot is a container spot.
+		local tall = if names[1] == "EO_VanWreck" then 7 else 5.5
+		Builder.vehicle(ctx, names[1], car[1], car[2], car[3], { height = tall }, names[1] == "EO_SedanWreck")
 	end
 	-- Barricades where someone tried to hold Main Street, and a checkpoint on the highway.
 	for x = -12, 12, 6.5 do

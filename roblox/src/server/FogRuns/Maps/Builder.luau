@@ -394,6 +394,14 @@ function Builder.terrain(ctx: Ctx, spec: TerrainSpec)
 		end
 		terrain:SetMaterialColor(material, look.tint)
 	end
+	if spec.water then
+		-- Murky woodland water, not Roblox's bright default (only Fog Run maps have water).
+		terrain.WaterColor = Color3.fromRGB(58, 70, 56)
+		terrain.WaterTransparency = 0.2
+		terrain.WaterReflectance = 0.25
+		terrain.WaterWaveSize = 0.06
+		terrain.WaterWaveSpeed = 6
+	end
 	local res = 4
 	local extent = spec.extent
 	local minY = -48 -- deep enough for the quarry pit
@@ -536,6 +544,7 @@ export type KitOptions = {
 	solid: boolean?,
 	lift: number?,
 	tilt: number?, -- degrees of lean, for wrecks and fallen things
+	pitch: number?, -- degrees about the width axis (a vehicle: positive drops its nose)
 	canopy: boolean?, -- tall foliage: fades when it hides the survivor
 	parent: Instance?,
 }
@@ -560,6 +569,9 @@ function Builder.kit(ctx: Ctx, names: { string }, x: number, z: number, yaw: num
 	if opts.tilt then
 		frame *= CFrame.Angles(math.rad(opts.tilt), 0, 0)
 	end
+	if opts.pitch then
+		frame *= CFrame.Angles(0, 0, math.rad(opts.pitch))
+	end
 	placed:PivotTo(frame)
 	local solid = opts.solid ~= false
 	for _, descendant in placed:GetDescendants() do
@@ -573,6 +585,30 @@ function Builder.kit(ctx: Ctx, names: { string }, x: number, z: number, yaw: num
 	end
 	placed.Parent = opts.parent or Builder.folder(ctx, "Dressing")
 	Builder.breathe(ctx, 4)
+	return placed
+end
+
+--[[
+	A vehicle wreck. Every vehicle model has its rear (boot, tailgate, back doors) at its
+	+X end and its length along X, so `yaw` 0 parks it east-west, nose to the west. With
+	`trunk`, a trunk container spot sits at the rear (the lobby stocks some of them).
+]]
+function Builder.vehicle(
+	ctx: Ctx,
+	name: string,
+	x: number,
+	z: number,
+	yaw: number,
+	options: KitOptions?,
+	trunk: boolean?
+): Model?
+	local placed = Builder.kit(ctx, { name }, x, z, yaw, options)
+	if placed and trunk then
+		local frame, size = placed:GetBoundingBox()
+		local rear = frame * CFrame.new(size.X / 2 + 0.5, 0, 0)
+		local at = rear.Position - ctx.origin
+		Builder.container(ctx, "trunk", at.X, at.Z, yaw + 90)
+	end
 	return placed
 end
 
@@ -1671,6 +1707,73 @@ end
 -- Lights ---------------------------------------------------------------------------------------------------
 
 -- A warm hanging lamp or a cold flicker, for interiors and yards (ART_DIRECTION §5).
+--[[
+	A tarp lean-to: a ridge on two poles, the tarp sloping from it to the ground behind,
+	pegged out with guy ropes. Its open side faces the way `yaw` points (0 is north).
+	Returns the frame at its foot, for placing things under it.
+]]
+function Builder.leanTo(
+	ctx: Ctx,
+	name: string,
+	x: number,
+	z: number,
+	yaw: number,
+	paint: string?,
+	width: number?
+): CFrame
+	local folder = model(Builder.folder(ctx, "Dressing"), name)
+	local base = Builder.frame(ctx, x, z, yaw)
+	local ridge, reach = 7, 8 -- the ridge's height, and how far back the tarp meets the ground
+	local wide = width or 11.4
+	local post = wide / 2 - 0.7
+	for _, side in { -post, post } do
+		Builder.part(
+			folder,
+			Vector3.new(0.4, ridge + 0.3, 0.4),
+			base * CFrame.new(side, ridge / 2, -3.5),
+			"trim",
+			"Pole"
+		)
+	end
+	Builder.part(folder, Vector3.new(wide - 0.4, 0.25, 0.3), base * CFrame.new(0, ridge, -3.5), "trim", "Ridge")
+	local length = math.sqrt(reach * reach + ridge * ridge)
+	local slope = math.atan2(ridge - 0.2, reach)
+	Builder.part(
+		folder,
+		Vector3.new(wide, 0.12, length),
+		base * CFrame.new(0, ridge / 2 + 0.1, -3.5 + reach / 2) * CFrame.Angles(slope, 0, 0),
+		paint or "tarp",
+		"Tarp"
+	)
+	-- Guy ropes from the pole tops out to the sides, and pegs along the tarp's foot.
+	local spread = math.atan2(ridge, 4)
+	for _, sign in { -1, 1 } do
+		local rope = Builder.part(
+			folder,
+			Vector3.new(math.sqrt(16 + ridge * ridge), 0.1, 0.1),
+			base * CFrame.new(sign * (post + 2), ridge / 2, -3.5) * CFrame.Angles(0, 0, -sign * spread),
+			"cloth",
+			"Rope"
+		)
+		rope.CanCollide = false
+		Builder.part(folder, Vector3.new(0.3, 0.6, 0.3), base * CFrame.new(sign * 9, 0.3, -3.5), "trim", "Peg")
+		Builder.part(
+			folder,
+			Vector3.new(0.3, 0.6, 0.3),
+			base * CFrame.new(sign * 5.4, 0.3, -3.5 + reach),
+			"trim",
+			"Peg"
+		)
+	end
+	return base
+end
+
+-- A map-local point from a world frame (for placing things relative to a built piece).
+function Builder.toLocal(ctx: Ctx, frame: CFrame): (number, number)
+	local p = frame.Position - ctx.origin
+	return p.X, p.Z
+end
+
 function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: boolean, range: number?)
 	local part = Builder.part(
 		Builder.folder(ctx, "Lights"),

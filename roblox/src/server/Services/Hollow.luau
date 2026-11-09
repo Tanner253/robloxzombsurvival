@@ -25,6 +25,7 @@
 
 local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Features = require(ReplicatedStorage.Shared.Features)
@@ -401,6 +402,8 @@ end
 
 -- AI tick -------------------------------------------------------------------------------------
 
+local STUDIO = RunService:IsStudio()
+
 local function senses(world: World, record: Record, exclude: { Instance }): { HollowAI.Target }
 	local targets: { HollowAI.Target } = {}
 	local eye = record.position + Vector3.new(0, EYE_HEIGHT, 0)
@@ -408,6 +411,10 @@ local function senses(world: World, record: Record, exclude: { Instance }): { Ho
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = exclude
 	for player in world.hosted.players do
+		-- Studio captures only: a DevUnseen player is invisible to the Hollow.
+		if STUDIO and player:GetAttribute("DevUnseen") == true then
+			continue
+		end
 		local character = player.Character
 		local head = character and character:FindFirstChild("Head") :: BasePart?
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")

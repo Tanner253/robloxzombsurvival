@@ -8,8 +8,8 @@
 	Workspace.FogRuns.<locationId>, each far from the Neighbourhood. Either way the
 	folder carries Ready = true once it is finished, and FogRuns/Map reads it.
 
-	Locations without a layout (the rotating event spot, the airdrop) can't be
-	travelled to yet: Travel refuses them and the Fog map leaves them off.
+	Locations without a layout (the airdrop) can't be travelled to: Travel refuses
+	them, and the Fog map only pins locations listed in Data/FogRegions.
 ]]
 
 local Builder = require("@self/Builder")
@@ -26,6 +26,7 @@ Maps.layouts = {
 	["loc.pine_hollow"] = require("@self/PineHollow") :: Layout,
 	["loc.sunken_quarry"] = require("@self/Rustwater") :: Layout,
 	["loc.ashfall_depot"] = require("@self/AshfallDepot") :: Layout,
+	["loc.stranded_caravan"] = require("@self/StrandedCaravan") :: Layout,
 } :: { [string]: Layout }
 
 -- Where each map sits when they share a server with the Neighbourhood (Studio).
@@ -33,6 +34,7 @@ local SIMULATED_ORIGINS: { [string]: Vector3 } = {
 	["loc.pine_hollow"] = Vector3.new(3200, 2, -400),
 	["loc.sunken_quarry"] = Vector3.new(3200, 2, 800),
 	["loc.ashfall_depot"] = Vector3.new(3200, 2, 2000),
+	["loc.stranded_caravan"] = Vector3.new(3200, 2, 3200),
 }
 local RUN_ORIGIN = Vector3.new(0, 2, 0)
 
