@@ -333,8 +333,25 @@ end
 	The Fog meter's band makes the Hollow stronger (Tuning.lobby.bands): HP and
 	damage scale by `strength`. Returns the scaled HP and damage.
 ]]
-function HollowAI.scaled(enemy: Types.EnemyDef, strength: number): (number, number)
-	return enemy.hp * strength, enemy.damage * strength
+export type TierScale = { health: { number }, damage: { number } }
+
+--[[
+	Health and damage at the lobby's Fog-meter `strength`, times the fog tier's scale when
+	one is given (ECONOMY §6.4, Tuning.hollowTierScale: Light, Dense, Black). Wildlife
+	keeps its stats on every tier.
+]]
+function HollowAI.scaled(
+	enemy: Types.EnemyDef,
+	strength: number,
+	tierScale: TierScale?,
+	fogTier: number?
+): (number, number)
+	local health, damage = 1, 1
+	if tierScale and fogTier and enemy.wildlife == nil then
+		health = tierScale.health[fogTier] or 1
+		damage = tierScale.damage[fogTier] or 1
+	end
+	return enemy.hp * strength * health, enemy.damage * strength * damage
 end
 
 export type SpawnGroup = { enemyId: Types.EnemyId, count: number }

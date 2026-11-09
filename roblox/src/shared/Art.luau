@@ -649,6 +649,13 @@ Art.fogMap = {
 		["loc.sunken_quarry"] = "rbxassetid://78393149598495",
 		["loc.ashfall_depot"] = "rbxassetid://114701602305172",
 		["loc.stranded_caravan"] = "rbxassetid://137407895553916",
+		-- The resource zones: corners of the same painting until their maps are rendered.
+		["loc.bracken_edge"] = "rbxassetid://96114023676635",
+		["loc.ironbark_stand"] = "rbxassetid://89748983476178",
+		["loc.gloaming_deep"] = "rbxassetid://96078812443149",
+		["loc.rockfall_slope"] = "rbxassetid://103015990609868",
+		["loc.greenvein_bluffs"] = "rbxassetid://140391888762231",
+		["loc.deepcut_pit"] = "rbxassetid://120630890068398",
 	} :: { [string]: string },
 }
 

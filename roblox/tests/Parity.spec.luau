@@ -91,7 +91,8 @@ return function(test: TestKit.Register)
 			config = TUNING.autoClear,
 		}
 		local haul = AutoClear.roll(QUARRY, ctx)
-		TestKit.truthy(haul.containers >= 3 and haul.containers <= 5, `containers {haul.containers}`)
+		-- Rustwater, a loot hub since ECONOMY §6.3: 3-4 cabinets, 2-3 boots, 2-3 lockers.
+		TestKit.truthy(haul.containers >= 7 and haul.containers <= 10, `containers {haul.containers}`)
 		TestKit.truthy(haul.kills >= 5 and haul.kills <= 8, `kills {haul.kills}`)
 		TestKit.truthy(haul.xp > 0 and #haul.items > 0, "XP and items")
 		local stone = 0

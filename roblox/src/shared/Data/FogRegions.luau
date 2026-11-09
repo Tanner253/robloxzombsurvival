@@ -77,6 +77,9 @@ FogRegions.list = {
 			{ kind = "rock", at = V2(0.95, 0.62), size = V2(0.12, 0.18) },
 			{ kind = "rock", at = V2(0.72, 0.64), size = V2(0.09, 0.08) },
 			{ kind = "water", at = V2(0.085, 0.53), size = V2(0.05, 0.04) },
+			-- The mines' rock: Deepcut Pit north of the town, Greenvein's bluffs to the east.
+			{ kind = "rock", at = V2(0.72, 0.19), size = V2(0.13, 0.09) },
+			{ kind = "rock", at = V2(0.33, 0.78), size = V2(0.09, 0.07) },
 		},
 		paths = {
 			{
@@ -110,6 +113,15 @@ FogRegions.list = {
 			{ kind = "trail", points = { V2(0.465, 0.53), V2(0.33, 0.49), V2(0.22, 0.43), V2(0.17, 0.33) } },
 			{ kind = "trail", points = { V2(0.47, 0.66), V2(0.38, 0.64), V2(0.29, 0.62) } },
 			{ kind = "rail", points = { V2(0.66, 0.6), V2(0.78, 0.53), V2(0.88, 0.48), V2(1.02, 0.41) } },
+			-- Trails out to the resource zones (ECONOMY §6).
+			{ kind = "trail", points = { V2(0.22, 0.43), V2(0.15, 0.45), V2(0.09, 0.44) } },
+			{
+				kind = "trail",
+				points = { V2(0.66, 0.33), V2(0.65, 0.4), V2(0.66, 0.46), V2(0.7, 0.55), V2(0.74, 0.64) },
+			},
+			{ kind = "trail", points = { V2(0.88, 0.48), V2(0.9, 0.54), V2(0.91, 0.6) } },
+			{ kind = "trail", points = { V2(0.485, 0.74), V2(0.41, 0.77), V2(0.32, 0.79) } },
+			{ kind = "trail", points = { V2(0.62, 0.3), V2(0.67, 0.26), V2(0.72, 0.22) } },
 		},
 		landmarks = {
 			{ sprite = "farm", at = V2(0.15, 0.25), width = 0.2 },
@@ -118,6 +130,9 @@ FogRegions.list = {
 			{ sprite = "railcars", at = V2(0.86, 0.47), width = 0.15, rotation = -12 },
 			{ sprite = "outpost", at = V2(0.485, 0.77), width = 0.16 },
 			{ sprite = "caravan", at = V2(0.29, 0.585), width = 0.15 },
+			{ sprite = "cliff", at = V2(0.73, 0.18), width = 0.08 },
+			{ sprite = "cliff", at = V2(0.9, 0.56), width = 0.09 },
+			{ sprite = "cliff", at = V2(0.33, 0.76), width = 0.07 },
 			{ sprite = "cliff", at = V2(0.94, 0.66), width = 0.1 },
 			{ sprite = "cliff", at = V2(0.72, 0.66), width = 0.08 },
 		},
@@ -133,6 +148,9 @@ FogRegions.list = {
 			{ at = V2(0.33, 0.3), size = V2(0.1, 0.12), count = 4 },
 			{ at = V2(0.75, 0.47), size = V2(0.08, 0.12), count = 4 },
 			{ at = V2(0.2, 0.52), size = V2(0.1, 0.08), count = 3 },
+			{ at = V2(0.09, 0.44), size = V2(0.14, 0.14), count = 7 }, -- Bracken Edge
+			{ at = V2(0.66, 0.44), size = V2(0.14, 0.12), count = 6 }, -- Ironbark Stand
+			{ at = V2(0.74, 0.66), size = V2(0.15, 0.13), count = 7 }, -- Gloaming Deep
 		},
 		fog = { V2(0.96, 0.06), V2(0.02, 0.44), V2(0.6, 0.92), V2(0.32, 0.96), V2(0.98, 0.9), V2(0.7, 0.56) },
 		pins = {
@@ -140,6 +158,13 @@ FogRegions.list = {
 			{ locationId = "loc.sunken_quarry", at = V2(0.5, 0.21) },
 			{ locationId = "loc.ashfall_depot", at = V2(0.85, 0.33) },
 			{ locationId = "loc.stranded_caravan", at = V2(0.29, 0.62), event = true },
+			-- The resource zones (ECONOMY §6): Forests and Mines, L1 to L3.
+			{ locationId = "loc.bracken_edge", at = V2(0.09, 0.44) },
+			{ locationId = "loc.rockfall_slope", at = V2(0.32, 0.79) },
+			{ locationId = "loc.ironbark_stand", at = V2(0.66, 0.46) },
+			{ locationId = "loc.greenvein_bluffs", at = V2(0.91, 0.6) },
+			{ locationId = "loc.gloaming_deep", at = V2(0.74, 0.64) },
+			{ locationId = "loc.deepcut_pit", at = V2(0.72, 0.22) },
 		},
 		neighbourSlots = {
 			V2(0.2, 0.84),

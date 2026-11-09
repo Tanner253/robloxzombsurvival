@@ -11,7 +11,7 @@ CC0 assets are listed too, as a courtesy.
 | Scrap Shotgun | "sawnoffs Animated" | DJMaesen | [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/) | [Sketchfab](https://sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb) |
 | Worn Pistol | "Service Pistol" | Mateusz Sadek | CC0 | [Poly Haven](https://polyhaven.com/a/service_pistol) |
 | Machete | "Machete" | Ulan Cabanilla | CC0 | [Poly Haven](https://polyhaven.com/a/machete) |
-| Gun, hit and fall animations | "Universal Animation Library" | Quaternius | CC0 | [quaternius.com](https://quaternius.com) |
+| Combat animations (gun, hit, fall) | "Universal Animation Library" | Quaternius | CC0 | [quaternius.com](https://quaternius.com) |
 
 This work is based on "sawnoffs Animated"
 (https://sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb) by DJMaesen

@@ -317,6 +317,14 @@ local function onGather(payload: any)
 	if model == nil then
 		return
 	end
+	if payload.personal then
+		-- A personal lobby node: only this player's copy changed, so the attributes the
+		-- server leaves untouched are set here, locally (a felled copy goes for us alone).
+		model:SetAttribute("HitsLeft", payload.hitsLeft or 0)
+		if payload.depleted then
+			model:SetAttribute("Standing", false)
+		end
+	end
 	local def = Content.Nodes[payload.nodeId]
 	local tool = if def and def.tool then def.tool.kind else "hand"
 	local top = model:GetPivot().Position + Vector3.new(0, math.min(model:GetExtentsSize().Y * 0.5, 4), 0)

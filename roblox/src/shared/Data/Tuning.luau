@@ -186,6 +186,12 @@ local Tuning: Types.TuningDef = {
 	-- docs/ECONOMY.md §6.2: location quests pay once per UTC day per player, not per lobby,
 	-- so a Rations reward can never refund the Run that earned it.
 	locationQuests = { period = "daily" },
+	-- ECONOMY §1/§11.1: resource nodes are personal in a lobby (every player gets their own
+	-- tree and rock); containers and PvP stay contested. Nothing regrows within a lobby.
+	runs = { personalNodes = true, nodesRegrow = false },
+	-- ECONOMY §6.4: Hollow health and damage by fog tier (Light, Dense, Black), multiplied
+	-- on top of the Fog-meter bands. A Black lobby at band 3 tops out at HP x2.03.
+	hollowTierScale = { health = { 1, 1.2, 1.4 }, damage = { 1, 1.15, 1.3 } },
 
 	-- Fog Runs (M1 slice 2) -------------------------------------------------------------
 	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the

@@ -172,7 +172,7 @@ local function spawn(world: World, enemyId: string, amount: number)
 	if enemy == nil or #points == 0 or not drawable(enemyId) then
 		return -- no map yet, every spot too close to a player, or no rig to draw it
 	end
-	local hp, damage = HollowAI.scaled(enemy, world.strength)
+	local hp, damage = HollowAI.scaled(enemy, world.strength, tuning.hollowTierScale, world.hosted.location.fogTier)
 	for _ = 1, amount do
 		if count(world) >= config.maxActive then
 			return
@@ -212,7 +212,8 @@ local function rescale(world: World, strength: number)
 	world.strength = strength
 	for _, record in world.hollows do
 		if record.diedAt == nil then
-			local hp, damage = HollowAI.scaled(record.enemy, strength)
+			local hp, damage =
+				HollowAI.scaled(record.enemy, strength, tuning.hollowTierScale, world.hosted.location.fogTier)
 			record.hp = record.hp / record.maxHp * hp
 			record.maxHp = hp
 			record.damage = damage

@@ -178,15 +178,81 @@ end
 
 -- The Ember Trail tracker (#50) ---------------------------------------------------------------------------
 
+local LOCATION_TEAL = Color3.fromHex("6FD6C4")
+
+-- The run's location quests (LDOE_PARITY #45), pinned in teal above the trail: name, then
+-- the next objective with its count, or "Done today" once it has paid this UTC day.
+local function locationRows(run: any): { { name: string, step: string } }
+	local rows = {}
+	if type(run) ~= "table" or type(run.locationQuests) ~= "table" then
+		return rows
+	end
+	local location = Content.Locations[run.locationId or ""]
+	local defs: { any } = if location and location.run then location.run.quests else {}
+	for _, row in run.locationQuests do
+		local def
+		for _, quest in defs do
+			if quest.id == row.id then
+				def = quest
+			end
+		end
+		local step = "Done today"
+		if not (row.done or row.paidToday) and def then
+			for index, objective in def.objectives do
+				local count = row.objectives[index]
+				if count and count.have < count.need then
+					step = `{questText.objective(objective)}  {count.have}/{count.need}`
+					break
+				end
+			end
+		end
+		table.insert(rows, { name = row.name, step = step })
+	end
+	return rows
+end
+
 local function Tracker()
 	local ui = hooks.useUi()
 	local state = hooks.useSection("quests")
-	local rows = questText.rows(state, 3)
-	if #rows == 0 then
+	local run = hooks.useSection("run")
+	local pinned = locationRows(run)
+	local rows = questText.rows(state, math.max(1, 3 - #pinned))
+	if #rows == 0 and #pinned == 0 then
 		return nil
 	end
 	local collapsed = ui.questCollapsed == true
 	local entries: { [string]: any } = {}
+	for index, row in pinned do
+		entries[`L{index}`] = e(Layout.Stack, {
+			gap = 0,
+			size = UDim2.new(1, 0, 0, if collapsed then 24 else 46),
+			layoutOrder = index,
+			children = {
+				Name = e("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 22),
+					BackgroundTransparency = 1,
+					FontFace = Theme.fonts.header,
+					Text = row.name,
+					TextSize = Theme.textSize.body,
+					TextColor3 = LOCATION_TEAL,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					LayoutOrder = 1,
+				}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1, Transparency = 0.4 }) }),
+				Step = not collapsed and e("TextLabel", {
+					Size = UDim2.new(1, -12, 0, 20),
+					BackgroundTransparency = 1,
+					FontFace = Theme.fonts.body,
+					Text = row.step,
+					TextSize = Theme.textSize.caption + 2,
+					TextColor3 = Theme.colors.text,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					LayoutOrder = 2,
+				}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1, Transparency = 0.5 }) }),
+			},
+		})
+	end
 	for index, row in rows do
 		local upcoming = if row.nextIndex then row.objectives[1] else nil
 		for _, entry in row.objectives do
@@ -197,7 +263,7 @@ local function Tracker()
 		entries[`Q{index}`] = e(Layout.Stack, {
 			gap = 0,
 			size = UDim2.new(1, 0, 0, if collapsed then 24 else 46),
-			layoutOrder = index,
+			layoutOrder = #pinned + index,
 			children = {
 				Name = e("TextLabel", {
 					Size = UDim2.new(1, 0, 0, 22),
@@ -227,7 +293,7 @@ local function Tracker()
 	return e(Layout.Stack, {
 		direction = "row",
 		gap = Theme.spacing.xs,
-		size = UDim2.fromOffset(H.tracker, (if collapsed then 26 else 50) * #rows),
+		size = UDim2.fromOffset(H.tracker, (if collapsed then 26 else 50) * (#rows + #pinned)),
 		layoutOrder = 2,
 		children = {
 			Rule = e("Frame", {
