@@ -383,6 +383,11 @@ The developer asked for this: a run should feel like a Tarkov lobby. Strangers m
 
 ## Combat and the arsenal
 
+> **The v0.1 roster, names and stats are in [ARSENAL.md](ARSENAL.md) (2026-11-08), which overrides the ladder names here.**
+> - 14 guns: 3 improvised, 5 standard, 5 advanced from Black-fog schematics, and the loot-only Anti-Materiel jackpot.
+> - 7 Zona melee weapons, 4 armor sets.
+> - No ammo. PvP stays M2.
+
 LDoE is the standard here: a long weapon ladder, from improvised melee to modded firearms, is the backbone of progression and of the shop. We match its breadth and add three things it lacks:
 - **Noise.** Every gunshot has a noise radius that pulls the Hollow toward you. Guns are a push-your-luck choice, not a straight upgrade.
 - **Light.** Flares and fire are weapons, because the Hollow fear light.

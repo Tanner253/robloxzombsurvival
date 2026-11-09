@@ -268,6 +268,8 @@ Tools don't take a weapon slot; gathering auto-equips the right one (GAME_DESIGN
 
 ### 4.2 Weapons
 
+> **Superseded for guns by [ARSENAL.md](ARSENAL.md) (2026-11-08).** The standard guns, the SMGs and the Carbine are pulled into v0.1 on v0.1 materials, with no ammo. M2's Ember Steel recipes become the guns' M2 re-tune. Plated armor consumes Riveted (ARSENAL §5), not Padded.
+
 Damage is the current item data (CONTENT_MVP, CONTENT_S2). **Durability is rescaled** per §8.1, and recipes marked "+" gain the rare-part costs in §8.2. Every weapon is crafted by hand (LDOE_PARITY #20). The Workbench level is a "known recipe" gate, not a station line.
 
 | Weapon (ID) | Class, tier | Recipe | Durability (new; was) | Unlock | LDoE counterpart |
@@ -957,6 +959,8 @@ GAME_DESIGN's target is hours per tier for a paying player (days 2–3 for Reinf
 - **If a model still misses:** iron and copper ingots fall back to the **Campfire** (fuelled, slot 20), and stone blocks to the Workbench. The pacing test runs both layouts.
 
 ### 10.2 Deferred
+
+> The standard and advanced firearms listed under M2 below are now **v0.1** per [ARSENAL.md](ARSENAL.md). The Combat Shotgun stays M2 (ARSENAL §0).
 
 **M2 (with raids and the standard firearms):**
 - Gloamwood (node, log, plank, the Saw Bench L3 line).

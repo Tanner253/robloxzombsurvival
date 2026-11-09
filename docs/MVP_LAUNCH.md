@@ -27,7 +27,7 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
 **Fog Runs: lootable areas, PvE, multiplayer lobbies of up to 12** (session S2B)
 - The Fog map with **3 locations**: Light, Dense and Black. Run/Walk with Energy (#38). Location panels and the loading screen.
 - Each location is a **handcrafted, dense map built from code** (world-as-code), with **lootable containers** (search bar, loot panel).
-- **The Hollow:** shambler, runner and bloater, rigged and animated, dissolving to ash. Combat with melee, bow, Pipe Pistol, Scrap Shotgun and Flare Pistol, plus the Ammo Press, noise and the dodge roll.
+- **The Hollow:** shambler, runner and bloater, rigged and animated, dissolving to ash. Combat with melee, the bow and the full [ARSENAL.md](ARSENAL.md) roster: 14 realistic guns in 3 tiers, with no ammo (durability is shots), plus noise and the dodge roll.
 - Death: the backpack drops, re-entry while the lobby is open, extraction, the lobby-wide Fog meter.
 - **Architecture: one place, two server roles** (decided 2026-11-08). Lobbies are reserved servers of the **same** place. On start, a server reads its teleport data or private-server ID and builds either the Neighbourhood or a location map. No extra places to create, and one `rojo build` publishes everything.
 
@@ -53,6 +53,7 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
     | Pack Expansion | 199 | Game pass |
     | VIP Lounge | 399 | Game pass (Haven Square) |
 
+  - **The full catalog (32 SKUs in six tabs) is [SHOP_CATALOG.md](SHOP_CATALOG.md) (2026-11-08), which replaces the tables below.** Changes: Gun Parts Pack (renamed), Heavy Loadout (renamed), Raider Arms at 1,199, and the Reinforced Room Kit as a whole room at 4,499 with the Plans included.
   - **Equipment tab (added 2026-11-08 from rec8_sheet4,** LDoE's Equipment tab: Weapons $0.99, Genesis Weapon Pack $2.99 Hot, Special Forces $2.99, Rad Protection $1.99, Pack of Weapon Parts $1.99, Scout's Equipment $0.99, Heavy Equipment $24.99). Fixed contents, P2W accepted:
 
     | SKU | Robux | Notes |
