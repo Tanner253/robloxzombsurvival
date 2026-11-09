@@ -467,6 +467,8 @@ export type TuningDef = {
 		hardCap: number, -- tonics and purchases may go past cap up to this
 		levelUpRestore: number,
 		foodDailyCap: number, -- energy from food and drink per UTC day
+		-- Trail Rations all location quests together pay per player per UTC day (Domain/Quests).
+		locationQuestRations: { itemId: ItemId, perDay: number },
 	},
 	inventory: {
 		pocketSlots: number,
