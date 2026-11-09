@@ -590,21 +590,43 @@ Art.glyphs = {
 	fill_up = "rbxassetid://113536503595888", -- FILL UP
 } :: { [string]: string }
 
--- The Fog map (checklist 11.2): the painted region (art/higgsfield/m1-slice2/ui/fog_map_v1.png,
--- uploaded as 3 x 2 tiles so it stays sharp full-screen), where each location's pin sits on
--- it (fractions of the map), your outpost, and each location's panel art.
+-- The Fog map (checklist 11.2): its pictures. The map itself is composed from data
+-- (Data/FogRegions): a painterly forest floor, meadow, rock and water patches, tree
+-- clusters, landmark pictures and fog, cut from the painted map or painted procedurally
+-- (art/ui/fogmap), plus each location's panel art.
 Art.fogMap = {
-	tiles = {
-		{ "rbxassetid://100697167837572", "rbxassetid://109243108154135", "rbxassetid://128468143265460" },
-		{ "rbxassetid://93101795837085", "rbxassetid://107435254637858", "rbxassetid://94283961070765" },
-	},
-	aspect = 2688 / 1520,
-	home = Vector2.new(0.485, 0.735),
-	pins = {
-		["loc.pine_hollow"] = Vector2.new(0.17, 0.27),
-		["loc.sunken_quarry"] = Vector2.new(0.5, 0.21),
-		["loc.ashfall_depot"] = Vector2.new(0.85, 0.33),
-	} :: { [string]: Vector2 },
+	sprites = {
+		baseForest = "rbxassetid://97414314023366",
+		baseMeadow = "rbxassetid://79751982921449",
+		meadow = "rbxassetid://79899317439248",
+		rock = "rbxassetid://89764791083228",
+		water = "rbxassetid://105894592901020",
+		fog = "rbxassetid://73677404641188",
+		cliff = "rbxassetid://70405563344897",
+		farm = "rbxassetid://133327073008346",
+		outpost = "rbxassetid://133217511030439",
+		quarry = "rbxassetid://92598748095092",
+		railcars = "rbxassetid://77219659895404",
+		town = "rbxassetid://114224405252566",
+		trees1 = "rbxassetid://123655961716432",
+		trees2 = "rbxassetid://132728099422417",
+		trees3 = "rbxassetid://123407507301838",
+		trees4 = "rbxassetid://93611634724367",
+	} :: { [string]: string },
+	-- Each picture's height over its width (the files' shapes), so it keeps its aspect.
+	aspects = {
+		farm = 397 / 512,
+		outpost = 289 / 512,
+		quarry = 569 / 768,
+		railcars = 222 / 512,
+		town = 395 / 768,
+		cliff = 174 / 256,
+		trees1 = 213 / 256,
+		trees2 = 204 / 256,
+		trees3 = 279 / 256,
+		trees4 = 279 / 256,
+		fog = 1,
+	} :: { [string]: number },
 	-- Each location's panel and loading-screen art: its corner of the painted map
 	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin).
 	art = {

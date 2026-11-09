@@ -4,8 +4,12 @@
 	and the way out into the Fog (checklist 11.1-11.4, 11.7; LDOE_PARITY #38, #39, #42;
 	rec1_06, rec1_07, rec3_02).
 
-	- The illustrated map fills the screen; each location is a pin coloured by its fog
-	  tier, your outpost is marked, and the route to the chosen one is drawn.
+	- The illustrated map fills the screen, composed from data (Data/FogRegions): the
+	  forest floor, meadow, rock and water patches, rivers, roads, trails and rails as
+	  paths, tree clusters, landmark pictures and fog. Adding a location is data.
+	- Each location is a pin coloured by its fog tier (an event location's pin counts
+	  down to its next opening or closing), your outpost is marked, and the route to the
+	  chosen one is drawn.
 	- Energy sits top-left with its regen countdown, and Rations below it.
 	- Choosing a pin opens its panel on the right: art, name, the fog tier, the rule
 	  line, the Hollow found there, the recommended gear score, Main loot and Possible
@@ -22,6 +26,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local FogRegions = require(ReplicatedStorage.Shared.Data.FogRegions)
+local TravelMath = require(ReplicatedStorage.Shared.Domain.Travel)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
 local State = require("../../State")
@@ -54,10 +60,18 @@ local RULES = {
 	"Black fog: anyone can take everything you carry. Exits close; a flare can get you out.",
 }
 
+-- Where a location's pin sits on the map (a share of the canvas), or nil.
+local function pinAt(locationId: string): Vector2?
+	local _, pin = FogRegions.pinOf(locationId)
+	return if pin then pin.at else nil
+end
+
+-- The locations with pins in the region shown, easiest fog first.
 local function locations(): { Types_Location }
 	local list = {}
-	for id, location in Content.Locations do
-		if Art.fogMap.pins[id] then
+	for _, pin in FogRegions.current().pins do
+		local location = Content.Locations[pin.locationId]
+		if location then
 			table.insert(list, location)
 		end
 	end
@@ -232,34 +246,266 @@ local function EnergyCard(props: { energy: any, rations: number })
 	})
 end
 
--- The painted map, as its 3 x 2 tiles.
-local function MapTiles()
-	local children: { [string]: any } = {}
-	for row, tiles in Art.fogMap.tiles do
-		for column, image in tiles do
-			children[`T{row}{column}`] = e("ImageLabel", {
-				Size = UDim2.fromScale(1 / 3, 1 / 2),
-				Position = UDim2.fromScale((column - 1) / 3, (row - 1) / 2),
-				BackgroundTransparency = 1,
-				Image = image,
-				ScaleType = Enum.ScaleType.Stretch,
-				ZIndex = 2,
-				ref = mark.backdrop, -- the map runs under Roblox's top bar on purpose
-			})
-		end
+-- The map canvas, composed from the region's data. Everything here is the backdrop the
+-- pins and panels sit on (it may run under Roblox's top bar), so each piece is marked so.
+-- The canvas is one painted backdrop: its pieces run past its edge on purpose (it clips
+-- them), so the UI gate checks it as a single element.
+local CANVAS = mark.attributes({ Decor = true, Backdrop = true, Composite = true })
+
+-- Path looks, as shares of the canvas width so they hold at any screen size: an outer
+-- edge and a paler core (rails get cross ties instead of a core).
+local PATH_STYLES: { [string]: { outer: Color3, inner: Color3, width: number, core: number, ties: number? } } = {
+	river = { outer = Color3.fromRGB(58, 74, 72), inner = Color3.fromRGB(104, 134, 138), width = 0.011, core = 0.55 },
+	road = { outer = Color3.fromRGB(104, 86, 62), inner = Color3.fromRGB(196, 172, 128), width = 0.0068, core = 0.7 },
+	trail = { outer = Color3.fromRGB(112, 94, 68), inner = Color3.fromRGB(184, 160, 118), width = 0.0042, core = 0.6 },
+	rail = {
+		outer = Color3.fromRGB(52, 48, 44),
+		inner = Color3.fromRGB(120, 108, 92),
+		width = 0.0034,
+		core = 0.5,
+		ties = 0.0045,
+	},
+}
+
+-- How far a path wanders off its straight line between points (a share of the width).
+local WANDER: { [string]: number } = { river = 0.006, trail = 0.004, road = 0.0015, rail = 0 }
+
+local function sprite(name: string, size: UDim2, position: UDim2, extra: { [string]: any }?): any
+	local props: { [string]: any } = {
+		Size = size,
+		Position = position,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Image = Art.fogMap.sprites[name] or "",
+		ScaleType = Enum.ScaleType.Stretch,
+		ref = mark.backdrop,
+	}
+	local more: { [string]: any } = extra or {}
+	for key, value in more do
+		props[key] = value
 	end
-	-- The painted map is the backplate everything else sits on.
-	return e(
-		"Frame",
-		{ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2, ref = mark.backdrop },
-		children
-	)
+	return e("ImageLabel", props)
 end
 
-local function Pin(props: { location: any, selected: boolean, onSelect: () -> () })
+local function layer(order: number, children: { [string]: any }): any
+	return e("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = order,
+		ref = mark.backdrop,
+	}, children)
+end
+
+-- A path's points in pixels, smoothed into a curve (Catmull-Rom) with a small fixed
+-- meander, so rivers and trails read as drawn rather than ruled.
+local function curve(path: FogRegions.Path, size: Vector2, seed: number): { Vector2 }
+	local raw: { Vector2 } = {}
+	for _, point in path.points do
+		table.insert(raw, Vector2.new(point.X * size.X, point.Y * size.Y))
+	end
+	if #raw < 2 then
+		return raw
+	end
+	local wander = (WANDER[path.kind] or 0) * size.X
+	local rng = Random.new(seed)
+	local out: { Vector2 } = { raw[1] }
+	for index = 1, #raw - 1 do
+		local p0 = raw[math.max(1, index - 1)]
+		local p1 = raw[index]
+		local p2 = raw[index + 1]
+		local p3 = raw[math.min(#raw, index + 2)]
+		local span = p2 - p1
+		if span.Magnitude < 0.5 then
+			continue
+		end
+		local normal = Vector2.new(-span.Unit.Y, span.Unit.X)
+		local phase = rng:NextNumber() * math.pi * 2
+		local steps = math.clamp(math.ceil(span.Magnitude / 22), 2, 12)
+		for step = 1, steps do
+			local t = step / steps
+			local point = (
+				p1 * 2
+				+ (p2 - p0) * t
+				+ (p0 * 2 - p1 * 5 + p2 * 4 - p3) * (t * t)
+				+ (p1 * 3 - p0 - p2 * 3 + p3) * (t * t * t)
+			) * 0.5
+			if step < steps then
+				point += normal * (math.sin(t * math.pi) * math.sin(phase + t * math.pi * 3) * wander)
+			end
+			table.insert(out, point)
+		end
+	end
+	return out
+end
+
+-- One path as rotated bars with round ends (the outer edge, or the paler core above it),
+-- or, for a rail's core, cross ties every few pixels.
+local function pathBars(
+	points: { Vector2 },
+	kind: string,
+	size: Vector2,
+	out: { [string]: any },
+	key: string,
+	inner: boolean
+)
+	local style = PATH_STYLES[kind]
+	local outer = math.max(3, style.width * size.X)
+	local width = if inner then math.max(1.5, outer * style.core) else outer
+	local color = if inner then style.inner else style.outer
+	local tieGap = if inner and style.ties then math.max(5, style.ties * size.X) else nil
+	local nextTie = 0
+	local travelled = 0
+	for index = 1, #points - 1 do
+		local a = points[index]
+		local b = points[index + 1]
+		local length = (b - a).Magnitude
+		if length < 0.5 then
+			continue
+		end
+		local angle = math.deg(math.atan2(b.Y - a.Y, b.X - a.X))
+		local dir = (b - a).Unit
+		if tieGap then
+			while nextTie < travelled + length do
+				local at = a + dir * (nextTie - travelled)
+				out[`{key}_{index}_{math.floor(nextTie)}`] = e("Frame", {
+					Size = UDim2.fromOffset(2, outer * 2.2),
+					Position = UDim2.fromOffset(at.X, at.Y),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Rotation = angle,
+					BackgroundColor3 = color,
+					BorderSizePixel = 0,
+					ZIndex = 2,
+					ref = mark.backdrop,
+				})
+				nextTie += tieGap
+			end
+		else
+			local mid = (a + b) / 2
+			out[`{key}_{index}`] = e("Frame", {
+				Size = UDim2.fromOffset(length + width, width),
+				Position = UDim2.fromOffset(mid.X, mid.Y),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Rotation = angle,
+				BackgroundColor3 = color,
+				BorderSizePixel = 0,
+				ZIndex = if inner then 2 else 1,
+				ref = mark.backdrop,
+			}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		end
+		travelled += length
+	end
+end
+
+local function MapCanvas(props: { size: Vector2 })
+	local region = FogRegions.current()
+	local size = props.size
+	local zones: { [string]: any } = {}
+	for index, zone in region.zones do
+		zones[`Z{index}`] = sprite(
+			zone.kind,
+			UDim2.fromOffset(zone.size.X * size.X, zone.size.Y * size.X),
+			UDim2.fromScale(zone.at.X, zone.at.Y),
+			{ Rotation = zone.rotation or 0, ImageTransparency = if zone.kind == "meadow" then 0.15 else 0.05 }
+		)
+	end
+	local rivers: { [string]: any } = {}
+	local roads: { [string]: any } = {}
+	for index, path in region.paths do
+		local into = if path.kind == "river" then rivers else roads
+		local points = curve(path, size, index * 4513 + 7)
+		pathBars(points, path.kind, size, into, `P{index}o`, false)
+		pathBars(points, path.kind, size, into, `P{index}i`, true)
+	end
+	-- Woods: tree clusters scattered in each patch, the same every time, kept off the pins.
+	local woods: { [string]: any } = {}
+	local keepClear: { Vector2 } = { region.home }
+	for _, pin in region.pins do
+		table.insert(keepClear, pin.at)
+	end
+	for index, patch in region.woods do
+		local rng = Random.new(index * 7919 + 17)
+		for n = 1, patch.count do
+			local at = patch.at
+				+ Vector2.new((rng:NextNumber() - 0.5) * patch.size.X, (rng:NextNumber() - 0.5) * patch.size.Y)
+			local clear = true
+			for _, spot in keepClear do
+				if (at - spot).Magnitude < 0.07 then
+					clear = false
+				end
+			end
+			if clear then
+				local name = `trees{rng:NextInteger(1, 4)}`
+				local width = (0.055 + rng:NextNumber() * 0.035) * size.X
+				woods[`W{index}_{n}`] = sprite(
+					name,
+					UDim2.fromOffset(width, width * (Art.fogMap.aspects[name] or 1)),
+					UDim2.fromScale(at.X, at.Y)
+				)
+			end
+		end
+	end
+	local landmarks: { [string]: any } = {}
+	for index, landmark in region.landmarks do
+		local width = landmark.width * size.X
+		landmarks[`L{index}`] = sprite(
+			landmark.sprite,
+			UDim2.fromOffset(width, width * (Art.fogMap.aspects[landmark.sprite] or 1)),
+			UDim2.fromScale(landmark.at.X, landmark.at.Y),
+			{ Rotation = landmark.rotation or 0 }
+		)
+	end
+	local fog: { [string]: any } = {}
+	for index, at in region.fog do
+		fog[`F{index}`] = sprite(
+			"fog",
+			UDim2.fromOffset(0.24 * size.X, 0.24 * size.X),
+			UDim2.fromScale(at.X, at.Y),
+			{ ImageTransparency = 0.25 }
+		)
+	end
+	return e("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(44, 56, 38),
+		ClipsDescendants = true,
+		ZIndex = 2,
+		ref = CANVAS,
+	}, {
+		Base = e("ImageLabel", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Image = Art.fogMap.sprites.baseForest,
+			ScaleType = Enum.ScaleType.Tile,
+			TileSize = UDim2.fromOffset(320, 320),
+			ZIndex = 1,
+			ref = mark.backdrop,
+		}),
+		Zones = layer(2, zones),
+		Rivers = layer(3, rivers),
+		Woods = layer(4, woods),
+		Roads = layer(5, roads),
+		Landmarks = layer(6, landmarks),
+		Fog = layer(7, fog),
+	})
+end
+
+-- "Opens in 2:10:00" / "Closes in 1:22:05" for a rotating event location (else nil),
+-- and whether it is open now.
+local function eventClock(location: any, now: number): (string?, boolean)
+	local availability = location.availability
+	if availability == nil or availability.kind ~= "rotating" then
+		return nil, true
+	end
+	local open = TravelMath.isAvailable(availability, now)
+	local left = math.max(0, math.floor(TravelMath.secondsUntilChange(availability, now)))
+	local text = string.format("%d:%02d:%02d", left // 3600, (left % 3600) // 60, left % 60)
+	return if open then "Closes in " .. text else "Opens in " .. text, open
+end
+
+local function Pin(props: { location: any, selected: boolean, onSelect: () -> (), now: number })
 	local location = props.location
-	local at = Art.fogMap.pins[location.id] :: Vector2
-	local color = TIER_COLORS[location.fogTier] or Theme.colors.text
+	local at = pinAt(location.id) :: Vector2
+	local countdown, open = eventClock(location, props.now)
+	local color = if open then TIER_COLORS[location.fogTier] or Theme.colors.text else Theme.colors.disabledStroke
 	return e("TextButton", {
 		Size = UDim2.fromOffset(PIN, PIN),
 		Position = UDim2.fromScale(at.X, at.Y),
@@ -298,6 +544,16 @@ local function Pin(props: { location: any, selected: boolean, onSelect: () -> ()
 			position = UDim2.new(0.5, 0, 1, 6),
 			anchorPoint = Vector2.new(0.5, 0),
 			size = UDim2.fromOffset(PIN_LABEL, 22),
+			alignX = Enum.TextXAlignment.Center,
+			stroke = true,
+		}),
+		Countdown = countdown and e(Label, {
+			text = countdown,
+			style = "caption",
+			tone = if open then "accent" else "muted",
+			position = UDim2.new(0.5, 0, 1, 30),
+			anchorPoint = Vector2.new(0.5, 0),
+			size = UDim2.fromOffset(PIN_LABEL, 18),
 			alignX = Enum.TextXAlignment.Center,
 			stroke = true,
 		}),
@@ -619,7 +875,7 @@ local function FogMap()
 		end
 	end
 	local size, setSize = React.useState(Vector2.new(1366, 768))
-	hooks.useClock(1) -- re-check the Trailhead distance
+	local now = hooks.useClock(1) -- re-check the Trailhead distance; event countdowns
 	local open = ui.panel == "fogmap"
 	if not open then
 		return nil
@@ -627,8 +883,8 @@ local function FogMap()
 	local location = if selected then Content.Locations[selected] else nil
 	local ready = atDeparture()
 	local pins: { [string]: any } = {}
-	local home = Art.fogMap.home
-	local at = if location then Art.fogMap.pins[location.id] else nil
+	local home = FogRegions.current().home
+	local at = if location then pinAt(location.id) else nil
 	-- With a panel open the map slides left only as far as it must for the chosen pin and
 	-- its Run and Walk buttons to clear the panel.
 	local shift = 0
@@ -639,7 +895,7 @@ local function FogMap()
 	for _, each in locations() do
 		-- Pins the panel covers or the slide pushes off the left edge are left off (the
 		-- chosen one is always in view); a pin's name is PIN_LABEL wide.
-		local spot = Art.fogMap.pins[each.id]
+		local spot = pinAt(each.id)
 		local x = if spot then spot.X * size.X + shift else 0
 		if at and spot and (x > size.X - PANEL_WIDTH - PIN or x < PIN_LABEL / 2 + Theme.spacing.sm) then
 			continue
@@ -650,6 +906,7 @@ local function FogMap()
 			onSelect = function()
 				setSelected(each.id)
 			end,
+			now = now,
 		})
 	end
 	local energyValue = energyNow(energy, State.now())
@@ -674,7 +931,7 @@ local function FogMap()
 			BackgroundTransparency = 1,
 			ZIndex = 2,
 		}, {
-			Tiles = e(MapTiles),
+			Tiles = e(MapCanvas, { size = size }),
 			Route = at and e(Route, {
 				from = home,
 				to = at,
