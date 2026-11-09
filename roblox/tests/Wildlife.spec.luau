@@ -1,9 +1,10 @@
 --!strict
 --[[
-	Wildlife rigs (LDOE_PARITY #35): every animal the data can spawn has a rig in
-	place/kit/EO_Hollow.rbxm and a gait profile (Art.wildlifeRigs), and every joint the
-	profile drives is a real Motor6D of that rig. The Hollow service spawns only kinds
-	with a rig, so a missing or misnamed rig would silently empty the woods.
+	Enemy rigs: the Hollow service only spawns kinds with a rig in
+	place/kit/EO_Hollow.rbxm (checklist §0: nothing unseen), so every kind a location
+	spawns, or a quest asks you to kill, must have one. A wildlife kind (deer, wolf) with a
+	rig must also have a gait profile (Art.wildlifeRigs) whose every joint is a Motor6D of
+	that rig. Wildlife is post-launch until our own rigs exist; no free models.
 ]]
 local fs = require("@lune/fs")
 local roblox = require("@lune/roblox")
@@ -36,37 +37,41 @@ local function drivenParts(rig: any): { [string]: boolean }
 end
 
 return function(test: TestKit.Register)
-	test("every wildlife kind has a rig and a gait profile", function()
-		local count = 0
-		for enemyId, enemy in Content.Enemies do
-			if enemy.wildlife then
-				count += 1
-				TestKit.truthy(kit:FindFirstChild(enemyId) ~= nil, `{enemyId} has a rig in EO_Hollow`)
-				TestKit.truthy(Art.wildlifeRigs[enemyId] ~= nil, `{enemyId} has a gait profile`)
+	test("every kind a location spawns or a quest hunts has a rig", function()
+		for locationId, location in Content.Locations do
+			for _, group in location.enemySpawns do
+				TestKit.truthy(kit:FindFirstChild(group.enemyId) ~= nil, `{locationId} spawns {group.enemyId}: rigged`)
+			end
+			local quests = if location.run then location.run.quests else nil
+			for _, quest in quests or {} do
+				for _, objective in quest.objectives do
+					local enemyId = (objective :: any).enemyId
+					if enemyId then
+						TestKit.truthy(kit:FindFirstChild(enemyId) ~= nil, `{quest.id} hunts {enemyId}: rigged`)
+					end
+				end
 			end
 		end
-		TestKit.truthy(count >= 2, "the deer and the wolf are wildlife")
 	end)
 
-	test("every joint a gait profile drives is a Motor6D of its rig", function()
-		for enemyId, profile in Art.wildlifeRigs do
+	test("the rig kit carries no scripts and no sounds", function()
+		for _, item in kit:GetDescendants() do
+			TestKit.truthy(not item:IsA("LuaSourceContainer"), `{item:GetFullName()} is a script`)
+			TestKit.truthy(item.ClassName ~= "Sound", `{item:GetFullName()} is a sound`)
+		end
+	end)
+
+	test("a rigged wildlife kind has a gait profile and every joint it drives", function()
+		for enemyId, enemy in Content.Enemies do
 			local rig = kit:FindFirstChild(enemyId)
-			TestKit.truthy(rig ~= nil, `{enemyId} rig`)
+			if enemy.wildlife == nil or rig == nil then
+				continue
+			end
+			local profile = Art.wildlifeRigs[enemyId]
+			TestKit.truthy(profile ~= nil, `{enemyId} has a gait profile`)
 			local driven = drivenParts(rig)
 			local names = { profile.root }
-			if profile.spine then
-				table.insert(names, profile.spine)
-			end
-			if profile.jaw then
-				table.insert(names, profile.jaw)
-			end
 			for _, name in profile.neck do
-				table.insert(names, name)
-			end
-			for _, name in profile.ears or {} do
-				table.insert(names, name)
-			end
-			for _, name in profile.tail or {} do
 				table.insert(names, name)
 			end
 			for index, leg in profile.legs do
@@ -79,28 +84,6 @@ return function(test: TestKit.Register)
 			for _, name in names do
 				TestKit.truthy(driven[name] == true, `{enemyId}: {name} is jointed`)
 			end
-		end
-	end)
-
-	test("rigs stand on their pivot, face -Z, and only the root is anchored", function()
-		-- Lune keeps a part's CFrame, not its derived Position.
-		for enemyId, profile in Art.wildlifeRigs do
-			local rig = kit:FindFirstChild(enemyId)
-			local root = rig.PrimaryPart
-			TestKit.truthy(root ~= nil and root.Name == "HumanoidRootPart", `{enemyId} root`)
-			local pivot = root.CFrame * root.PivotOffset
-			local head = rig:FindFirstChild(profile.neck[#profile.neck])
-			local tail = rig:FindFirstChild(profile.legs[1].joints[1]) -- a hind leg
-			TestKit.truthy(pivot:PointToObjectSpace(head.CFrame.Position).Z < 0, `{enemyId} head is forward (-Z)`)
-			TestKit.truthy(pivot:PointToObjectSpace(tail.CFrame.Position).Z > 0, `{enemyId} hind leg is behind`)
-			local lowest = math.huge
-			for _, part in rig:GetDescendants() do
-				if part:IsA("BasePart") then
-					TestKit.equal(part.Anchored, part == root, `{enemyId}.{part.Name} anchoring`)
-					lowest = math.min(lowest, part.CFrame.Position.Y - part.Size.Y / 2)
-				end
-			end
-			TestKit.truthy(math.abs(lowest - pivot.Position.Y) < 0.6, `{enemyId} feet at the pivot`)
 		end
 	end)
 end

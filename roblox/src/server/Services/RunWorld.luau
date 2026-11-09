@@ -6,8 +6,8 @@
 	  one Fog Run lobby. It learns its location from the lobby directory, or from
 	  the first arrival's ticket, and builds that map (FogRuns/Maps). The
 	  Neighbourhood's own services (Plots, Scenery) stay off there.
-	- A world server simulating lobbies (Studio) builds every location's map beside
-	  the Neighbourhood, in the background after boot.
+	- A world server simulating lobbies (Studio) builds a location's map beside the
+	  Neighbourhood when its first lobby opens.
 	- A live world server builds no maps: lobbies are reserved servers.
 
 	Lobby waits on `RunWorld.map` before it hosts a lobby, so nothing spawns into a
@@ -112,15 +112,9 @@ function RunWorld.start()
 		task.spawn(startRunServer)
 		return
 	end
-	if not Teleport.canGoLive() then
-		-- Studio: every lobby is simulated here, so every map stands beside the Neighbourhood.
-		task.spawn(function()
-			task.wait(2) -- let the Neighbourhood finish building first
-			for locationId in Maps.layouts do
-				Maps.build(locationId, false)
-			end
-		end)
-	end
+	-- Studio simulates every lobby beside the Neighbourhood; each map is built when its
+	-- first lobby opens (RunWorld.map), not all on boot (the boot-time builds pushed the
+	-- server ping past 3 s).
 end
 
 return RunWorld

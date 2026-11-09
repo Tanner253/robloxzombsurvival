@@ -86,6 +86,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.boiled_water", weight = 6, min = 1, max = 1 },
 			{ itemId = "item.broken_lantern", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.field_dressing", weight = 8, min = 1, max = 1 },
+			{ itemId = "item.hide", weight = 6, min = 1, max = 1 }, -- the hunters' camp (no wildlife until post-launch)
 			{ itemId = "item.snarled_wire", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.coil_spring", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.spiked_club", weight = 2, min = 1, max = 1 },
@@ -385,6 +386,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.cloth", weight = 14, min = 1, max = 2 },
 			{ itemId = "item.rope", weight = 12, min = 1, max = 2 },
 			{ itemId = "item.field_dressing", weight = 8, min = 1, max = 1 },
+			{ itemId = "item.hide", weight = 4, min = 1, max = 1 }, -- leather stays craftable without wildlife
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
 			{ itemId = "item.scrap", weight = 5, min = 2, max = 4 },
 			{ itemId = "item.snarled_wire", weight = 3, min = 1, max = 1 },
@@ -398,6 +400,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.sealed_tin", weight = 10, min = 1, max = 2 },
 			{ itemId = "item.boiled_water", weight = 8, min = 1, max = 2 },
 			{ itemId = "item.field_dressing", weight = 12, min = 1, max = 2 },
+			{ itemId = "item.hide", weight = 4, min = 1, max = 2 },
 			{ itemId = "item.cloth", weight = 12, min = 2, max = 3 },
 			{ itemId = "item.rope", weight = 10, min = 2, max = 3 },
 			{ itemId = "item.pitch_glue", weight = 8, min = 1, max = 2 },

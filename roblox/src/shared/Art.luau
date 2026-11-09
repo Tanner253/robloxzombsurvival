@@ -724,8 +724,8 @@ Art.hollowAnimations = {
 -- down, how far each one swings with the stride (`swing`) and folds while the foot is in
 -- the air (`fold`), in radians per unit of stride, and where the leg sits in the walk and
 -- the run (a share of the cycle). Rest axes: X across the body, Y up, -Z forward.
--- Models: the Creator Store's "Rocky Mountain Elk" (deer) and "Adult Dire wolf 2" (wolf),
--- re-jointed and scaled for the outpost (CREDITS.md).
+-- Rigs: our own (post-launch: a family sheet, a generated mesh, segmented and jointed with
+-- these joint names). No free models; until then the deer and wolf don't spawn.
 export type WildlifeLeg = {
 	joints: { string },
 	swing: { number },

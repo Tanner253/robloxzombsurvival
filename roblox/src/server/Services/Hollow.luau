@@ -160,7 +160,7 @@ local function count(world: World): number
 end
 
 -- Only kinds with a rig the clients can draw (ReplicatedStorage.EO_Hollow) ever spawn: an
--- unseen enemy would be worse than none (checklist §0). The deer and wolf rigs live there too (tests/Wildlife.spec).
+-- unseen enemy would be worse than none (checklist §0). tests/Wildlife.spec checks every spawned or hunted kind has one.
 local function drawable(enemyId: string): boolean
 	local rigs = ReplicatedStorage:FindFirstChild("EO_Hollow")
 	return rigs ~= nil and rigs:FindFirstChild(enemyId) ~= nil

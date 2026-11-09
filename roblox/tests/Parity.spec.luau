@@ -178,14 +178,15 @@ return function(test: TestKit.Register)
 			local guaranteed = (Content.LootTables[id].guaranteed :: any)[1]
 			TestKit.equal(guaranteed.itemId, "item.raw_meat", id)
 		end
-		local pine = Content.Locations["loc.pine_hollow"]
-		local animals = 0
-		for _, spawn in pine.enemySpawns do
-			if Content.Enemies[spawn.enemyId].wildlife then
-				animals += 1
+		-- Post-launch until our own rigs exist: nothing spawns them, and the defs say why.
+		for _, id in { "enemy.deer", "enemy.wolf" } do
+			TestKit.truthy(Content.Enemies[id].deferred ~= nil, `{id} is deferred`)
+			for locationId, location in Content.Locations do
+				for _, spawn in location.enemySpawns do
+					TestKit.truthy(spawn.enemyId ~= id, `{locationId} doesn't spawn {id}`)
+				end
 			end
 		end
-		TestKit.equal(animals, 2, "deer and wolves live in Light fog")
 	end)
 
 	-- #37 fog exposure ---------------------------------------------------------------------------

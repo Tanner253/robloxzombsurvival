@@ -37,9 +37,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 6, max = 9 } },
 			{ enemyId = "enemy.runner", count = { min = 0, max = 2 }, minBand = 2 },
-			-- Wildlife (LDOE_PARITY #35): deer to hunt, a wolf pack to watch for.
-			{ enemyId = "enemy.deer", count = { min = 2, max = 3 } },
-			{ enemyId = "enemy.wolf", count = { min = 1, max = 2 } },
+			-- Wildlife (deer, wolf) returns post-launch with our own rigs (S2B; ECONOMY §6.2 counts).
 		},
 		mainLoot = { "item.timber", "item.stone", "item.fiber", "item.emberberry", "item.ashroot", "item.murky_water" },
 		possibleLoot = {
@@ -54,7 +52,6 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.spiked_club",
 			"item.light_rounds",
 			"item.steel_pipe",
-			"item.raw_meat",
 			"item.hide",
 		},
 		run = {
@@ -70,8 +67,9 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 				{
 					id = "quest.pine_hunters_trail",
 					name = "The Hunter's Trail",
-					description = "Bring down two Fog Deer in Pine Hollow.",
-					objectives = { { kind = "kill", count = 2, enemyId = "enemy.deer" } },
+					-- Two Fog Deer until wildlife returns post-launch: any three Hollow for now.
+					description = "Put down three Hollow on the trail through Pine Hollow.",
+					objectives = { { kind = "kill", count = 3 } },
 					rewards = { xp = 150, items = { { itemId = "item.rations", count = 1 } } },
 				},
 			},
@@ -263,8 +261,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 5, max = 7 } },
 			{ enemyId = "enemy.runner", count = { min = 0, max = 1 } },
-			{ enemyId = "enemy.deer", count = { min = 2, max = 3 } },
-			{ enemyId = "enemy.wolf", count = { min = 1, max = 2 } },
+			-- Wildlife (deer, wolf) returns post-launch with our own rigs (S2B; ECONOMY §6.2 counts).
 		},
 		mainLoot = { "item.timber", "item.sticks", "item.fiber", "item.emberberry", "item.fatwood", "item.stone" },
 		possibleLoot = {
@@ -278,7 +275,6 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.stone_hatchet",
 			"item.coil_spring",
 			"item.snarled_wire",
-			"item.raw_meat",
 			"item.hide",
 		},
 		run = {
@@ -331,7 +327,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			{ enemyId = "enemy.runner", count = { min = 3, max = 4 } },
 			{ enemyId = "enemy.bloater", count = { min = 1, max = 2 }, minBand = 2 },
 			{ enemyId = "enemy.runner", count = { min = 1, max = 2 }, minBand = 2 },
-			{ enemyId = "enemy.wolf", count = { min = 2, max = 3 } },
+			-- Wildlife (deer, wolf) returns post-launch with our own rigs (S2B; ECONOMY §6.2 counts).
 		},
 		mainLoot = { "item.timber", "item.ironbark_log", "item.fatwood", "item.fiber", "item.sticks" },
 		possibleLoot = {
@@ -404,7 +400,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			{ enemyId = "enemy.runner", count = { min = 5, max = 7 } },
 			{ enemyId = "enemy.bloater", count = { min = 2, max = 3 } },
 			{ enemyId = "enemy.runner", count = { min = 2, max = 3 }, minBand = 3 },
-			{ enemyId = "enemy.wolf", count = { min = 2, max = 3 } },
+			-- Wildlife (deer, wolf) returns post-launch with our own rigs (S2B; ECONOMY §6.2 counts).
 		},
 		mainLoot = { "item.ironbark_log", "item.timber", "item.fatwood", "item.fiber", "item.pitch_glue" },
 		possibleLoot = {
@@ -478,8 +474,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 5, max = 7 } },
 			{ enemyId = "enemy.runner", count = { min = 1, max = 2 } },
-			{ enemyId = "enemy.deer", count = { min = 1, max = 2 } },
-			{ enemyId = "enemy.wolf", count = { min = 1, max = 2 } },
+			-- Wildlife (deer, wolf) returns post-launch with our own rigs (S2B; ECONOMY §6.2 counts).
 		},
 		mainLoot = { "item.stone", "item.ironstone", "item.scrap", "item.timber", "item.fiber" },
 		possibleLoot = {

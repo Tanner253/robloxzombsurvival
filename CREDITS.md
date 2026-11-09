@@ -12,11 +12,6 @@ CC0 assets are listed too, as a courtesy.
 | Worn Pistol | "Service Pistol" | Mateusz Sadek | CC0 | [Poly Haven](https://polyhaven.com/a/service_pistol) |
 | Machete | "Machete" | Ulan Cabanilla | CC0 | [Poly Haven](https://polyhaven.com/a/machete) |
 | Combat animations (gun, hit, fall) | "Universal Animation Library" | Quaternius | CC0 | [quaternius.com](https://quaternius.com) |
-| Fog Deer (wildlife) | "Rocky Mountain Elk" | PlayerGamer234324 | Roblox Creator Store (free) | [create.roblox.com/store/asset/13918121829](https://create.roblox.com/store/asset/13918121829) |
-| Ash Wolf (wildlife) | "Adult Dire wolf 2" | CenozoicAnimals | Roblox Creator Store (free) | [create.roblox.com/store/asset/5041448622](https://create.roblox.com/store/asset/5041448622) |
-
-The two animals were re-jointed (new Motor6D skeletons), scaled and stripped of scripts for
-`place/kit/EO_Hollow.rbxm`; they move by procedural gait (`Controllers/Gait.luau`), not clips.
 
 This work is based on "sawnoffs Animated"
 (https://sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb) by DJMaesen

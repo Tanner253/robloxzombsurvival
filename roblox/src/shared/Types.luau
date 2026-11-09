@@ -250,6 +250,7 @@ export type EnemyDef = {
 	lightFear: number, -- light exposure (0..1) at or above which it flees; above 1 never flees
 	burst: BurstDef?, -- bursts into a toxic cloud near its target and on death (the bloater)
 	wildlife: WildlifeDef?, -- an animal, not a Hollow (LDOE_PARITY #35): deer flee, wolves hunt
+	deferred: string?, -- why no location spawns it yet (e.g. post-launch, awaiting its rig)
 }
 
 -- World map ---------------------------------------------------------------------

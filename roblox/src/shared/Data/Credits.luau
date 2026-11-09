@@ -41,20 +41,6 @@ local Credits: { Credit } = {
 		licence = "CC0",
 		source = "quaternius.com",
 	},
-	{
-		usedAs = "Fog Deer",
-		title = "Rocky Mountain Elk",
-		author = "PlayerGamer234324",
-		licence = "Creator Store",
-		source = "create.roblox.com",
-	},
-	{
-		usedAs = "Ash Wolf",
-		title = "Adult Dire wolf 2",
-		author = "CenozoicAnimals",
-		licence = "Creator Store",
-		source = "create.roblox.com",
-	},
 }
 
 return Credits

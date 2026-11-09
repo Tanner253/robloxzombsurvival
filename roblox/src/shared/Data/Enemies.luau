@@ -73,6 +73,7 @@ local Enemies: { [Types.EnemyId]: Types.EnemyDef } = {
 		hearing = 1.5,
 		lightFear = 0.9,
 		wildlife = { temperament = "skittish", spookRadius = 18 },
+		deferred = "post-launch: no spawns until our own rig exists (no free models)",
 	},
 	["enemy.wolf"] = {
 		id = "enemy.wolf",
@@ -88,6 +89,7 @@ local Enemies: { [Types.EnemyId]: Types.EnemyDef } = {
 		hearing = 1.2,
 		lightFear = 0.6, -- wolves keep their distance from fire
 		wildlife = { temperament = "predator", spookRadius = 0 },
+		deferred = "post-launch: no spawns until our own rig exists (no free models)",
 	},
 }
 
