@@ -63,6 +63,7 @@ local FULL_SCREEN: { [string]: boolean } = {
 	shop = true,
 	haven = true,
 	fogmap = true,
+	areamap = true,
 }
 
 -- Top left: name, HP and the food and water warnings --------------------------------------------------

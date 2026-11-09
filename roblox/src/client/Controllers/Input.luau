@@ -60,6 +60,8 @@ local function onKey(key: Enum.KeyCode)
 		CombatControl.reload()
 	elseif key == Enum.KeyCode.M and Content.Tuning.features.fogRuns then
 		Actions.toggleFogMap()
+	elseif key == Enum.KeyCode.M and (playing or ui.panel == "areamap") and not FogRun.active() then
+		Actions.toggleAreaMap() -- the Neighbourhood map while the Fog map is off (8.11)
 	elseif
 		ui.auto and (key == Enum.KeyCode.W or key == Enum.KeyCode.A or key == Enum.KeyCode.S or key == Enum.KeyCode.D)
 	then

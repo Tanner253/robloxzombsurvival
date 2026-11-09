@@ -3,9 +3,10 @@
 	RunHud: everything a Fog Run adds to the screen (checklist 11.5, 11.6, 12.3-12.7,
 	13.3, 13.9; LDOE_PARITY #42, #43, #46; rec6, rec7_02, rec7_04).
 
-	- RunMinimap (drawn in place of the home minimap by HUD): buildings, the green
-	  exit arcs, your bag (red X), party members, alerted Hollow and noise rings; the
-	  lobby's Fog meter and time left sit right under it.
+	- RunMinimap (drawn in place of the home minimap by HUD): the shared radar
+	  (components/Minimap: the location's map, the exits pinned to its rim, your bag as a
+	  red X, party members, alerted Hollow, noise rings); the lobby's Fog meter and time
+	  left sit right under it.
 	- The target bar at the top centre: the locked Hollow's name and HP.
 	- Search and extraction progress, a red hurt vignette on the side you were hit.
 	- The arrival title card; the "found on the way" panel.
@@ -14,7 +15,6 @@
 	  food and water, a rotating tip).
 ]]
 
-local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -32,13 +32,13 @@ local Glyph = require("../components/Glyph")
 local ItemSlot = require("../components/ItemSlot")
 local Label = require("../components/Label")
 local ProgressBar = require("../components/ProgressBar")
+local Minimap = require("../components/Minimap")
 
 local e = React.createElement
 
 local RunHud = {}
 
 local MAP_SIZE = 168
-local MAP_RADIUS = 90
 local TIER_NAMES = Content.Tuning.travel.fogTierNames
 local TIER_COLORS = { Color3.fromHex("8FC26A"), Color3.fromHex("E0A24A"), Color3.fromHex("C8473A") }
 local EXIT_GREEN = Color3.fromHex("5CC86E")
@@ -91,24 +91,7 @@ local function clock(seconds: number): string
 	return string.format("%d:%02d", seconds // 60, seconds % 60)
 end
 
-local function rootPosition(): Vector3?
-	local character = Players.LocalPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	return if root then root.Position else nil
-end
-
 -- Run minimap ------------------------------------------------------------------------------------------------
-
-local function dot(position: UDim2, size: number, color: Color3, zIndex: number): any
-	return e("Frame", {
-		Size = UDim2.fromOffset(size, size),
-		Position = position,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = color,
-		BorderSizePixel = 0,
-		ZIndex = zIndex,
-	}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-end
 
 -- The Fog meter's height under the minimap (the HUD makes room for it).
 RunHud.METER_HEIGHT = 46
@@ -117,144 +100,24 @@ RunHud.METER_HEIGHT = 46
 -- top bar (as UI/components/FullScreen does).
 local REACH = 120
 
+-- The run's minimap (checklist 8.11): the shared radar (components/Minimap) over the
+-- location's map, its rim in the fog tier's colour, with the lobby's Fog meter under it.
 function RunHud.RunMinimap(props: { position: UDim2?, anchorPoint: Vector2? }?)
 	local run = hooks.useSection("run")
-	local noise = hooks.useSection("noise")
-	hooks.useClock(0.25)
-	local you = rootPosition()
-	if type(run) ~= "table" or you == nil then
+	if type(run) ~= "table" then
 		return nil
 	end
-	local here = you :: Vector3
-	local scale = (MAP_SIZE / 2) / MAP_RADIUS
-	local function at(world: Vector3): UDim2
-		return UDim2.fromOffset(MAP_SIZE / 2 + (world.X - here.X) * scale, MAP_SIZE / 2 + (world.Z - here.Z) * scale)
-	end
-	local function near(world: Vector3, extra: number?): boolean
-		return Vector2.new(world.X - here.X, world.Z - here.Z).Magnitude <= MAP_RADIUS + (extra or 0)
-	end
-	local children: { [string]: any } = { Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }) }
-	-- Buildings as their footprints.
-	for index, roof in CollectionService:GetTagged("EO_Roof") do
-		local building = roof.Parent
-		local box = building and building:GetAttribute("Interior")
-		local frame = building and building:GetAttribute("InteriorCFrame")
-		if typeof(box) == "Vector3" and typeof(frame) == "CFrame" and near(frame.Position, 20) then
-			local _, yaw = frame:ToEulerAnglesYXZ()
-			children[`B{index}`] = e("Frame", {
-				Size = UDim2.fromOffset(box.X * scale + 2, box.Z * scale + 2),
-				Position = at(frame.Position),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Rotation = -math.deg(yaw),
-				BackgroundColor3 = Color3.fromRGB(128, 118, 100),
-				BorderSizePixel = 0,
-				ZIndex = 2,
-			})
-		end
-	end
-	-- Exits: green arcs (#42), closed ones greyed.
-	-- The server sends the open point ids (run.extraction.open); every other point is shut.
-	local open: { [string]: boolean }? = nil
-	local exits = run.extraction
-	if type(exits) == "table" and exits.kind == "points" and type(exits.open) == "table" then
-		local set: { [string]: boolean } = {}
-		for _, id in exits.open do
-			set[id] = true
-		end
-		open = set
-	end
-	for index, exit in CollectionService:GetTagged("EO_RunExit") do
-		if exit:IsA("Model") and near(exit:GetPivot().Position, 30) then
-			local id = exit:GetAttribute("PointId") :: string
-			local closed = open ~= nil and not open[id]
-			children[`X{index}`] = e("Frame", {
-				Size = UDim2.fromOffset(18, 18),
-				Position = at(exit:GetPivot().Position),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundTransparency = 1,
-				ZIndex = 5,
-			}, {
-				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
-				Arc = e("UIStroke", {
-					Color = if closed then Theme.colors.disabledStroke else EXIT_GREEN,
-					Thickness = 3,
-				}),
-			})
-		end
-	end
-	-- Bags: yours as a red X, others' as dots.
-	for index, drop in run.drops or {} do
-		if drop.at then
-			local world = Vector3.new(drop.at[1], here.Y, drop.at[2])
-			if near(world) then
-				children[`D{index}`] = e("TextLabel", {
-					Size = UDim2.fromOffset(16, 16),
-					Position = at(world),
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundTransparency = 1,
-					FontFace = Theme.fonts.header,
-					Text = "X",
-					TextSize = 16,
-					TextColor3 = if drop.mine then Color3.fromHex("E0503C") else Theme.colors.textMuted,
-					TextStrokeColor3 = Theme.colors.shadow,
-					TextStrokeTransparency = 0.2,
-					ZIndex = 6,
-				})
-			end
-		end
-	end
-	-- Other survivors, and the Hollow that are after someone.
-	for index, other in Players:GetPlayers() do
-		local character = other.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if other ~= Players.LocalPlayer and root and near(root.Position) then
-			children[`P{index}`] = dot(at(root.Position), 7, Theme.colors.highlight, 6)
-		end
-	end
-	local hollow = workspace:FindFirstChild("EO_HollowView")
-	for index, model in (if hollow then hollow:GetChildren() else {}) do
-		if model:IsA("Model") and near(model:GetPivot().Position) then
-			children[`H{index}`] = dot(at(model:GetPivot().Position), 5, Color3.fromHex("C8473A"), 5)
-		end
-	end
-	if type(noise) == "table" and os.clock() - noise.at < 1.5 then
-		local radius = noise.radius * scale
-		children.Noise = e("Frame", {
-			Size = UDim2.fromOffset(radius * 2, radius * 2),
-			Position = at(Vector3.new(noise.x, here.Y, noise.z)),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundTransparency = 1,
-			ZIndex = 4,
-		}, {
-			Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
-			Ring = e("UIStroke", {
-				Color = Theme.colors.threat,
-				Thickness = 2,
-				Transparency = math.clamp((os.clock() - noise.at) / 1.5, 0, 1),
-			}),
-		})
-	end
-	children.You = dot(UDim2.fromOffset(MAP_SIZE / 2, MAP_SIZE / 2), 9, Theme.colors.accent, 7)
 	local tier = run.fogTier or 1
-	local ground = ({ Color3.fromRGB(58, 70, 50), Color3.fromRGB(64, 62, 56), Color3.fromRGB(46, 46, 50) })[tier]
 	return e("Frame", {
 		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE + RunHud.METER_HEIGHT),
 		Position = if props and props.position then props.position else UDim2.new(1, -16, 0, 80),
 		AnchorPoint = if props and props.anchorPoint then props.anchorPoint else Vector2.new(1, 0),
 		BackgroundTransparency = 1,
-		ref = mark.composite, -- one graphic: the map, its dots and ring, the Fog meter
 	}, {
-		Map = e("CanvasGroup", {
-			Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
-			BackgroundColor3 = ground,
-			BorderSizePixel = 0,
-		}, children),
-		Ring = e("Frame", { Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE), BackgroundTransparency = 1, ZIndex = 8 }, {
-			Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
-			Stroke = e(
-				"UIStroke",
-				{ Color = TIER_COLORS[tier] or Theme.colors.strokeWarm, Thickness = Theme.strokeThickness }
-			),
+		Map = e(Minimap, {
+			position = UDim2.fromScale(0, 0),
+			anchorPoint = Vector2.zero,
+			ring = TIER_COLORS[tier],
 		}),
 		Meter = e(RunHud.FogMeter, { run = run }),
 	})

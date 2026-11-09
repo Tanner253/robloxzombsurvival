@@ -579,6 +579,18 @@ function HollowView.targets(): { Target }
 	return list
 end
 
+-- Living Hollow with their drawn model and AI state, for the minimap (Controllers/Radar
+-- shows alerted ones and ones in sight).
+function HollowView.blips(): { { id: string, model: Model, state: string } }
+	local list = {}
+	for id, view in views do
+		if view.alive and view.model then
+			table.insert(list, { id = id, model = view.model :: Model, state = view.state })
+		end
+	end
+	return list
+end
+
 function HollowView.start()
 	if not Content.Tuning.features.fogRuns then
 		return

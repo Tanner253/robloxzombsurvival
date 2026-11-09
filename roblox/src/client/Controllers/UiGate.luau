@@ -398,6 +398,8 @@ end
 local function scenes(): { Scene }
 	local list: { Scene } = {
 		{ name = "hud", ui = { panel = "none" } },
+		-- The minimap's Expand: the full-screen Neighbourhood map (8.11).
+		{ name = "areamap", ui = { panel = "areamap" } },
 		{ name = "hud.auto+sprint", ui = { panel = "none", auto = true, sprinting = true } },
 		{
 			name = "hud.lowMeters+toasts",
