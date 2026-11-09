@@ -175,6 +175,7 @@ local function baseSections(): { [string]: any }
 		travelBonus = false,
 		hands = false,
 		homecoming = false,
+		neighbours = false,
 	}
 end
 
@@ -230,6 +231,45 @@ local function fogRunScenes(): { Scene }
 			name = "fogmap.location",
 			sections = { energy = energy },
 			ui = { panel = "fogmap", fogLocation = "loc.sunken_quarry" },
+		},
+		-- Neighbours' outposts (M2's raid layer, fed by a fixture until then).
+		{
+			name = "fogmap.neighbours",
+			sections = {
+				energy = energy,
+				neighbours = {
+					{
+						userId = 11,
+						name = "Marrow",
+						hearthLevel = 6,
+						defense = 420,
+						stockValue = 1800,
+						online = true,
+						createdAt = 0,
+						guildTag = "ASH",
+					},
+					{
+						userId = 12,
+						name = "Wrenfield",
+						hearthLevel = 5,
+						defense = 260,
+						stockValue = 500,
+						online = false,
+						createdAt = 0,
+						shieldUntil = now + 7 * 3600,
+					},
+					{
+						userId = 13,
+						name = "Tallowmere",
+						hearthLevel = 7,
+						defense = 610,
+						stockValue = 90,
+						online = false,
+						createdAt = 0,
+					},
+				} :: { any },
+			},
+			ui = { panel = "fogmap" },
 		},
 		-- The event location: its pin's countdown, and Run and Walk below it (locked by level).
 		{

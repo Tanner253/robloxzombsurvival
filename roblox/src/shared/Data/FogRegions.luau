@@ -55,6 +55,9 @@ export type Region = {
 	woods: { Woods },
 	fog: { Vector2 }, -- drifting fog banks (decoration)
 	pins: { Pin },
+	-- Where neighbours' outposts sit (M2 raids, Domain/Neighbours): each shown neighbour
+	-- takes the same slot every time.
+	neighbourSlots: { Vector2 },
 }
 
 FogRegions.list = {
@@ -136,6 +139,16 @@ FogRegions.list = {
 			{ locationId = "loc.sunken_quarry", at = V2(0.5, 0.21) },
 			{ locationId = "loc.ashfall_depot", at = V2(0.85, 0.33) },
 			{ locationId = "loc.stranded_caravan", at = V2(0.29, 0.62), event = true },
+		},
+		neighbourSlots = {
+			V2(0.2, 0.84),
+			V2(0.34, 0.92),
+			V2(0.63, 0.9),
+			V2(0.76, 0.8),
+			V2(0.9, 0.9),
+			V2(0.1, 0.74),
+			V2(0.64, 0.66),
+			V2(0.06, 0.92),
 		},
 	},
 } :: { Region }

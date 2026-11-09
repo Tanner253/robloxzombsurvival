@@ -78,6 +78,24 @@ return function(test: TestKit.Register)
 		end
 	end)
 
+	test("neighbour slots sit on the canvas, apart, and clear of the pins and the outpost", function()
+		for _, region in FogRegions.list do
+			TestKit.truthy(#region.neighbourSlots >= 6, "room for a handful of neighbours")
+			for index, slot in region.neighbourSlots do
+				TestKit.truthy(onCanvas(slot, -0.04), `slot {index} inside the canvas`)
+				TestKit.truthy((slot - region.home).Magnitude >= 0.1, `slot {index} clear of the outpost`)
+				for _, pin in region.pins do
+					local gap = (slot - pin.at).Magnitude
+					TestKit.truthy(gap >= 0.1, `slot {index} and {pin.locationId} are {gap} apart`)
+				end
+				for other = index + 1, #region.neighbourSlots do
+					local gap = (slot - region.neighbourSlots[other]).Magnitude
+					TestKit.truthy(gap >= 0.1, `slots {index} and {other} are {gap} apart`)
+				end
+			end
+		end
+	end)
+
 	test("every picture names an uploaded sprite and every shape is on the canvas", function()
 		for _, sprite in { "baseForest", "fog", "trees1", "trees2", "trees3", "trees4" } do
 			TestKit.truthy(hasSprite(sprite), `{sprite} is uploaded`)

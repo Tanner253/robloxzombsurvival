@@ -27,6 +27,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local FogRegions = require(ReplicatedStorage.Shared.Data.FogRegions)
+local NeighboursMath = require(ReplicatedStorage.Shared.Domain.Neighbours)
 local TravelMath = require(ReplicatedStorage.Shared.Domain.Travel)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
@@ -501,6 +502,64 @@ local function eventClock(location: any, now: number): (string?, boolean)
 	return if open then "Closes in " .. text else "Opens in " .. text, open
 end
 
+local STATUS_COLORS: { [string]: Color3 } = {
+	online = Color3.fromHex("6FCF7A"),
+	offline = Theme.colors.disabledStroke,
+	shielded = Color3.fromHex("6FA8DC"),
+}
+local LOOT_NAMES: { [string]: string } = { low = "Low loot", medium = "Some loot", high = "Rich loot" }
+
+-- A neighbour's outpost (M2 raids): its Hearth level in a ring coloured online, offline or
+-- shielded; name and guild tag; then the shield's timer, or the loot estimate and defense.
+local function NeighbourMarker(props: { neighbour: NeighboursMath.Neighbour, at: Vector2, now: number })
+	local neighbour = props.neighbour
+	local status, left = NeighboursMath.status(neighbour, props.now)
+	local tier = NeighboursMath.lootTier(neighbour.stockValue, NeighboursMath.RULES)
+	local detail = if status == "shielded" and left
+		then `Shielded {clock(left)}`
+		else `{LOOT_NAMES[tier]}, defense {neighbour.defense}`
+	local tag = if neighbour.guildTag then `[{neighbour.guildTag}] ` else ""
+	return e("Frame", {
+		Size = UDim2.fromOffset(34, 34),
+		Position = UDim2.fromScale(props.at.X, props.at.Y),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Theme.colors.panel,
+		BackgroundTransparency = 0.05,
+		ZIndex = 4,
+	}, {
+		Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		Ring = e("UIStroke", { Color = STATUS_COLORS[status], Thickness = 3 }),
+		Level = e(Label, {
+			text = tostring(neighbour.hearthLevel),
+			style = "section",
+			size = UDim2.fromOffset(30, 20),
+			position = UDim2.fromScale(0.5, 0.5),
+			anchorPoint = Vector2.new(0.5, 0.5),
+			alignX = Enum.TextXAlignment.Center,
+		}),
+		Name = e(Label, {
+			text = tag .. neighbour.name,
+			style = "caption",
+			tone = "text",
+			position = UDim2.new(0.5, 0, 1, 4),
+			anchorPoint = Vector2.new(0.5, 0),
+			size = UDim2.fromOffset(150, 18),
+			alignX = Enum.TextXAlignment.Center,
+			stroke = true,
+		}),
+		Detail = e(Label, {
+			text = detail,
+			style = "caption",
+			tone = "muted",
+			position = UDim2.new(0.5, 0, 1, 21),
+			anchorPoint = Vector2.new(0.5, 0),
+			size = UDim2.fromOffset(150, 16),
+			alignX = Enum.TextXAlignment.Center,
+			stroke = true,
+		}),
+	})
+end
+
 local function Pin(props: { location: any, selected: boolean, onSelect: () -> (), now: number })
 	local location = props.location
 	local at = pinAt(location.id) :: Vector2
@@ -867,6 +926,7 @@ local function FogMap()
 	local inventory = hooks.useSection("inventory")
 	local travel = hooks.useSection("travel")
 	local progression = hooks.useSection("progression")
+	local neighbours = hooks.useSection("neighbours") -- M2 fills it (Domain/Neighbours)
 	-- The chosen location lives in the UI state, so the guide and the UI gate can open it.
 	local selected: string? = ui.fogLocation
 	local function setSelected(id: string?)
@@ -910,6 +970,20 @@ local function FogMap()
 			end,
 			now = now,
 		})
+	end
+	-- Neighbours' outposts in their slots, while no location panel is open.
+	local markers: { [string]: any } = {}
+	local region = FogRegions.current()
+	if type(neighbours) == "table" and location == nil then
+		local list = neighbours :: { NeighboursMath.Neighbour }
+		for index, slot in NeighboursMath.slots(list, #region.neighbourSlots) do
+			local neighbour = list[index]
+			markers[`N{neighbour.userId}`] = e(NeighbourMarker, {
+				neighbour = neighbour,
+				at = region.neighbourSlots[slot],
+				now = now,
+			})
+		end
 	end
 	local energyValue = energyNow(energy, State.now())
 	local walking = type(travel) == "table" and travel.mode == "walk"
@@ -988,6 +1062,7 @@ local function FogMap()
 					stroke = true,
 				}),
 			}),
+			Neighbours = e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 4 }, markers),
 			Pins = e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 4 }, pins),
 			Travel = location and at and not walking and e("Frame", {
 				Size = UDim2.fromOffset(2 * (ROUND + 20) + 12, ROUND + 40),
