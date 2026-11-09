@@ -231,4 +231,29 @@ return function(test: TestKit.Register)
 		TestKit.equal(old.purchases.counts["product.backpack_upgrade"], nil)
 		TestKit.equal(old.embers, 0)
 	end)
+
+	test("F-08: the death screen and Fog map hooks exist and prompt their products", function()
+		local fs = require("@lune/fs")
+		local hooks = fs.readFile("src/client/UI/offers.luau")
+		for _, name in { "gear", "gearChip", "buyEnergy", "energyChip" } do
+			TestKit.truthy(string.find(hooks, `\n\t{name} = nil :: `, 1, true), `offers.{name} is declared`)
+		end
+		local shop = fs.readFile("src/client/Controllers/Shop.luau")
+		TestKit.truthy(string.find(shop, 'local GEAR = "product.scavenger_kit"', 1, true), "the kit")
+		TestKit.truthy(string.find(shop, 'local REFILL = "product.energy_refill"', 1, true), "the refill")
+		for _, name in { "gear", "gearChip", "buyEnergy", "energyChip" } do
+			TestKit.truthy(string.find(shop, `offers.{name} = function`, 1, true), `Controllers/Shop sets {name}`)
+		end
+		TestKit.truthy(string.find(shop, "Actions.buyProduct(GEAR)", 1, true), "gear prompts the kit")
+		TestKit.truthy(string.find(shop, "Actions.buyProduct(REFILL)", 1, true), "buyEnergy prompts the refill")
+		-- The toast the offer rides on is the server's own text.
+		local travel = fs.readFile("src/server/Services/Travel.luau")
+		TestKit.truthy(string.find(travel, 'energy = "Not enough Energy for a Run"', 1, true), "the toast")
+		TestKit.truthy(string.find(shop, '"not enough energy"', 1, true), "matched")
+		local refill = 0
+		for _, grant in Products["product.energy_refill"].grants do
+			refill += if grant.kind == "energy" then grant.amount else 0
+		end
+		TestKit.truthy(refill > 0, "the Refill gives Energy")
+	end)
 end

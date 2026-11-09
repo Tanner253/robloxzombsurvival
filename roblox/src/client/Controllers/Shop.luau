@@ -8,8 +8,12 @@
 	- Toasts: "View offer" on "bag full" (the Pack Expansion, until owned) and on a broken
 	  weapon (the Scavenger's Kit), each trigger at most once a day (playbook §3: contextual
 	  offers, neutral calls to action).
-	- gear(): the Scavenger's Kit (the death screen's chip).
-	- buyEnergy(): the Energy Refill. openShop(productId?): the shop on that product.
+	- gear() and gearChip(): the Scavenger's Kit, prompted at once (the death screen's chip).
+	- buyEnergy(shortfall?) and energyChip(shortfall): the Energy Refill (the Fog map's slot
+	  beside a greyed Run, and "Go back in" when Energy is short); a chip is nil while the
+	  product isn't on offer. "Not enough Energy for a Run" toasts carry the same offer, and
+	  the server's "energyShort" effect keeps the shortfall in ui.energyShort.
+	- openShop(productId?): the shop on that product.
 	- When the server says Embers are short ("needEmbers"), the shop opens on EMBERS.
 ]]
 
@@ -38,10 +42,45 @@ local function once(trigger: string, offer: offers.Offer): offers.Offer?
 	return offer
 end
 
-local function owned(productId: string): boolean
+local GEAR = "product.scavenger_kit"
+local REFILL = "product.energy_refill"
+
+-- The "shop" section's row for a product (price, available, reason), or nil before it syncs.
+local function row(productId: string): any
 	local state = State.get("shop")
-	local entry = if type(state) == "table" then state[productId] else nil
+	return if type(state) == "table" then state[productId] else nil
+end
+
+local function owned(productId: string): boolean
+	local entry = row(productId)
 	return entry ~= nil and entry.reason == "limit"
+end
+
+-- A product slot for a screen (UI/offers.ProductChip), or nil while it isn't on offer.
+local function chip(productId: string, line: string): offers.ProductChip?
+	local product = Content.Products[productId]
+	local entry = row(productId)
+	if product == nil or entry == nil or entry.available ~= true then
+		return nil
+	end
+	return {
+		productId = productId,
+		name = product.name,
+		price = if type(entry.price) == "number" then entry.price else product.defaultPriceRobux,
+		line = line,
+		available = true,
+	}
+end
+
+-- The Energy the Refill gives (its grant in Data/Products).
+local function refillAmount(): number
+	local product = Content.Products[REFILL]
+	for _, grant in (if product then product.grants else {}) :: { any } do
+		if grant.kind == "energy" then
+			return grant.amount
+		end
+	end
+	return 0
 end
 
 function Shop.init()
@@ -66,18 +105,34 @@ function Shop.init()
 			},
 		})
 	end
-	offers.buyEnergy = function()
-		Actions.buyProduct("product.energy_refill")
+	offers.buyEnergy = function(_shortfall: number?)
+		Actions.buyProduct(REFILL)
+	end
+	offers.energyChip = function(shortfall: number): offers.ProductChip?
+		local amount = refillAmount()
+		local short = math.max(0, math.ceil(shortfall))
+		return chip(REFILL, if short > 0 then `+{amount} Energy, you need {short} more` else `+{amount} Energy`)
 	end
 	offers.openShop = function(productId: string?)
 		Actions.openShop(productId)
 	end
 	offers.gear = function()
-		Actions.openShop("product.scavenger_kit")
+		Actions.buyProduct(GEAR)
+	end
+	offers.gearChip = function(): offers.ProductChip?
+		return chip(GEAR, "A blade, a padded vest, dressings and food")
 	end
 	offers.forNotice = function(text: string): offers.Offer?
 		local lower = string.lower(text)
-		if string.find(lower, "bag is full", 1, true) and not owned("product.pack_expansion") then
+		if string.find(lower, "not enough energy", 1, true) and chip(REFILL, "") then
+			-- The Run you can't pay for (Services/Travel): the Refill, every time.
+			return {
+				label = "Get Energy",
+				onActivated = function()
+					Actions.buyProduct(REFILL)
+				end,
+			}
+		elseif string.find(lower, "bag is full", 1, true) and not owned("product.pack_expansion") then
 			return once("bagFull", {
 				label = "View offer",
 				onActivated = function()
@@ -97,9 +152,11 @@ function Shop.init()
 end
 
 function Shop.start()
-	State.fx:Connect(function(kind: any)
+	State.fx:Connect(function(kind: any, payload: any)
 		if kind == "needEmbers" then
 			Actions.openShop(nil, "embers")
+		elseif kind == "energyShort" and type(payload) == "table" and type(payload.need) == "number" then
+			State.patch({ energyShort = { need = payload.need, at = os.clock() } })
 		end
 	end)
 end
