@@ -360,6 +360,18 @@ local Tuning: Types.TuningDef = {
 		spawnSpreadStuds = 40,
 		hitRadiusStuds = 1.6,
 	},
+	-- Robux prices: PLACEHOLDERS until the monetization playbook sets them. Data/Products
+	-- and Data/Haven read these; the live price on Roblox (Open Cloud) is what the shop shows
+	-- once loaded, so changing a price here also means updating the product or pass there.
+	prices = {
+		products = {
+			["product.resource_pack"] = 199,
+			["product.energy_refill"] = 49,
+			["product.backpack_upgrade"] = 149,
+			["product.starter_offer"] = 149,
+		},
+		vipLounge = 399,
+	},
 }
 
 return Tuning

@@ -569,6 +569,9 @@ export type TuningDef = {
 	fogExposure: FogExposureTuning,
 	deathRecovery: DeathRecoveryTuning,
 	hollow: HollowTuning,
+	-- Robux prices (placeholders until the monetization playbook): each developer product by
+	-- ID, and the VIP Lounge game pass.
+	prices: { products: { [ProductId]: number }, vipLounge: number },
 }
 
 -- Fog Runs (slice 2) -------------------------------------------------------------------

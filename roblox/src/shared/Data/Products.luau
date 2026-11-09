@@ -6,11 +6,15 @@
 	to the inbox (never raidable) and every receipt is logged in the profile
 	(Domain/Receipts, Services/Shop). robloxId is the developer product on universe
 	10775267789 (made through Open Cloud); defaultPriceRobux is the price it was made with
-	and the display fallback: the live price comes from MarketplaceService.
+	and the display fallback (a Tuning.prices placeholder): the live price comes from
+	MarketplaceService.
 	Guardrails: no shields or raid immunity, no random boxes, no invented "was" prices.
 ]]
 
 local Types = require("../Types")
+local Tuning = require("./Tuning")
+
+local price = Tuning.prices.products
 
 local Products: { [Types.ProductId]: Types.ProductDef } = {
 	["product.resource_pack"] = {
@@ -20,7 +24,7 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		kind = "devProduct",
 		robloxId = 3729832298,
 		icon = "rbxassetid://88547464179013", -- the product icon (art/ui/products)
-		defaultPriceRobux = 199,
+		defaultPriceRobux = price["product.resource_pack"],
 		grants = {
 			{ kind = "item", itemId = "item.timber", count = 60 },
 			{ kind = "item", itemId = "item.stone", count = 60 },
@@ -36,7 +40,7 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		kind = "devProduct",
 		robloxId = 3729832267,
 		icon = "rbxassetid://124493550943493", -- the product icon (art/ui/products)
-		defaultPriceRobux = 49,
+		defaultPriceRobux = price["product.energy_refill"],
 		grants = { { kind = "energy", amount = 100 } },
 	},
 	["product.backpack_upgrade"] = {
@@ -46,7 +50,7 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		kind = "devProduct",
 		robloxId = 3729832309,
 		icon = "rbxassetid://109080673192504", -- the product icon (art/ui/products)
-		defaultPriceRobux = 149,
+		defaultPriceRobux = price["product.backpack_upgrade"],
 		limit = 1,
 		grants = { { kind = "backpackSlots", amount = 5 } },
 	},
@@ -57,7 +61,7 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		kind = "devProduct",
 		robloxId = 3729832319,
 		icon = "rbxassetid://112249752517773", -- the product icon (art/ui/products)
-		defaultPriceRobux = 149,
+		defaultPriceRobux = price["product.starter_offer"],
 		limit = 1,
 		offerMaxLevel = 10,
 		grants = {

@@ -13,6 +13,7 @@
 ]]
 
 local Types = require("../Types")
+local Tuning = require("./Tuning")
 
 local Haven = {}
 
@@ -113,7 +114,7 @@ Haven.chapterRewards = {
 Haven.vip = {
 	-- The VIP game pass on universe 10775267789 (made through Open Cloud).
 	passId = 2075836390,
-	priceRobux = 399,
+	priceRobux = Tuning.prices.vipLounge, -- placeholder until the monetization playbook
 	icon = "rbxassetid://91515713612492",
 	energyCapBonus = 0.2, -- +20% Energy cap while you hold the pass
 	-- The daily crate, to the inbox, once a UTC day.
