@@ -47,7 +47,7 @@ local spec: ResourceZone.Spec = {
 	entry = V2(4, 104),
 	containers = {
 		{ kind = "pack", at = V2(CAMP.X + 9, CAMP.Y - 6), yaw = 20 },
-		{ kind = "pack", at = V2(CUT.X + 8, CUT.Y + 26), yaw = 160 },
+		{ kind = "pack", at = V2(CUT.X + 8, CUT.Y + 23), yaw = 160 },
 		{ kind = "pack", at = V2(POND.X + 18, POND.Y + 6), yaw = 260 },
 		{ kind = "crate", at = V2(CAMP.X - 10, CAMP.Y + 8), yaw = 70 },
 		{ kind = "crate", at = V2(CUT.X - 10, CUT.Y + 22), yaw = 10 },
@@ -58,7 +58,7 @@ local spec: ResourceZone.Spec = {
 		V2(-30, 70),
 		V2(70, 70),
 		V2(-90, -50),
-		V2(30, -70),
+		V2(26, -74),
 		V2(-100, 90),
 		V2(100, -10),
 		V2(-10, 20),

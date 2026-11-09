@@ -418,6 +418,9 @@ end
 local COLLIDER_FRACTION: { [string]: number } = {
 	["node.pine_tree"] = 0.14,
 	["node.boulder"] = 0.75,
+	["node.ironstone_rock"] = 0.75, -- the rock cluster, retinted
+	["node.malachite_vein"] = 0.75,
+	["node.ironbark_tree"] = 0.12, -- the trunk only: walk under the crown
 	["node.fatwood_stump"] = 0.6,
 	["node.scrap_heap"] = 0.7,
 	["node.spring_pool"] = 0.8, -- the stone well
@@ -510,6 +513,9 @@ function Models.node(def: Types.ResourceNodeDef, _rng: Random): Model?
 	local height = model:GetExtentsSize().Y
 	if height > 0.01 then
 		model:ScaleTo(model:GetScale() * art.height / height)
+	end
+	if art.sink then
+		model.WorldPivot = model.WorldPivot * CFrame.new(0, art.sink, 0)
 	end
 	if art.tint then
 		local tint = art.tint

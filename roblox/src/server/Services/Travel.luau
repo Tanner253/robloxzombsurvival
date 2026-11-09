@@ -29,6 +29,7 @@ local Domain = ReplicatedStorage.Shared.Domain
 local AutoClear = require(Domain.AutoClear)
 local EnergyMath = require(Domain.Energy)
 local FogMap = require(Domain.FogMap)
+local GatheringMath = require(Domain.Gathering)
 local Rng = require(Domain.Rng)
 local TravelBonus = require(Domain.TravelBonus)
 local TravelMath = require(Domain.Travel)
@@ -403,6 +404,7 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 		autoDaily[player] = AutoClear.useAd(daily, ctx.now)
 	end
 	spendEnergy(player, ctx.energy, energy, trip.energySpent, "AutoClear")
+	local carried = Inventory.view(player)
 	local haul = AutoClear.roll(location, {
 		tables = Content.LootTables :: any,
 		nodes = Content.Nodes :: any,
@@ -410,6 +412,9 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 		items = Items,
 		rng = rng,
 		config = config,
+		canHarvest = function(def: Types.ResourceNodeDef): boolean
+			return carried ~= nil and GatheringMath.pickTool(def, carried :: any, Items) ~= nil
+		end,
 	})
 	local slots: { Types.Slot } = {}
 	for _, stack in haul.items do

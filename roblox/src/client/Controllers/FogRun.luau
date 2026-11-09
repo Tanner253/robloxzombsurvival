@@ -448,6 +448,8 @@ local function onFx(kind: string, payload: any)
 			State.set("arrival", { locationId = payload.locationId, at = os.clock() })
 		end
 		Sfx.play("questComplete", nil, 0.5)
+	elseif kind == "locationQuestDone" then
+		Sfx.play("questComplete", nil, 0.5) -- the notice and the XP pop come with it
 	elseif kind == "travelBonus" then
 		State.set("travelBonus", payload or false)
 	elseif kind == "container" then

@@ -42,6 +42,10 @@ export type Context = {
 	items: Loot.RarityLookup?,
 	rng: Rng.Source,
 	config: Config,
+	-- Whether the survivor could harvest this node with what they carry (ECONOMY §1 tool
+	-- gate): AUTO skips the nodes their tools can't cut (QA: it paid malachite and ironbark
+	-- with no Forged Pick or Hatchet). Nil: no gate (the pacing sim, the tests).
+	canHarvest: ((Types.ResourceNodeDef) -> boolean)?,
 }
 
 local DAY = 24 * 60 * 60
@@ -139,7 +143,7 @@ function AutoClear.roll(location: Types.LocationDef, ctx: Context): Haul
 
 	for _, entry in location.nodes do
 		local node = ctx.nodes[entry.nodeId]
-		if node then
+		if node and (ctx.canHarvest == nil or ctx.canHarvest(node)) then
 			for _ = 1, portion(entry.count, ctx.config.nodeShare, ctx.rng) do
 				for hit = 1, node.hits do
 					haul.xp += node.xpPerHit

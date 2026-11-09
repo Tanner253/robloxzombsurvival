@@ -18,7 +18,8 @@
 	  Fog Runs: ("fogrun", locationId) queues a run there at once (no Trailhead walk),
 	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
 	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("energy", n) sets Energy,
-	  ("meter", seconds) ages your lobby by that long.
+	  ("meter", seconds) ages your lobby by that long, ("looted", n) counts n container
+	  searches toward the location quests.
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -122,6 +123,16 @@ local function devCommand(command: string, ...: any): any
 		}
 	elseif command == "extract" then
 		Lobby.extract(player)
+		return "ok"
+	elseif command == "looted" then
+		-- As if the survivor finished searching a container here (location quest checks).
+		local run = Lobby.runOf(player)
+		if run == nil then
+			return "no run"
+		end
+		for _ = 1, args[1] or 1 do
+			require("./Containers").looted:Fire(player, run.hosted)
+		end
 		return "ok"
 	elseif command == "die" then
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")

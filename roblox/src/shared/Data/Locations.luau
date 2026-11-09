@@ -441,8 +441,10 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 				{
 					id = "quest.gloaming_into_the_gloam",
 					name = "Into the Gloam",
-					description = "Search five containers in Gloaming Deep.",
-					objectives = { { kind = "loot", count = 5, locationId = "loc.gloaming_deep" } },
+					-- ECONOMY §6.2 says five, but the Deep holds only 4-5 contested containers and
+					-- quest progress is per run: three keeps it doable (QA; flagged to the orchestrator).
+					description = "Search three containers in Gloaming Deep.",
+					objectives = { { kind = "loot", count = 3, locationId = "loc.gloaming_deep" } },
 					rewards = { xp = 500, items = { { itemId = "item.coil_spring", count = 1 } } },
 				},
 			},

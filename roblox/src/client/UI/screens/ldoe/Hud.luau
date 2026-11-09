@@ -747,7 +747,11 @@ local function LevelBar(props: { touch: boolean, touchRight: number })
 	local popped, setPopped = React.useState(nil :: { amount: number, at: number }?)
 	React.useEffect(function()
 		local connection = State.fx:Connect(function(kind: any, payload: any)
-			if (kind == "gather" or kind == "questDone") and type(payload) == "table" and (payload.xp or 0) > 0 then
+			if
+				(kind == "gather" or kind == "questDone" or kind == "locationQuestDone")
+				and type(payload) == "table"
+				and (payload.xp or 0) > 0
+			then
 				setPopped(function(current: { amount: number, at: number }?): { amount: number, at: number }?
 					local now = os.clock()
 					if current and now - current.at < 1.5 then

@@ -249,11 +249,36 @@ local function regrow(model: Model, info: NodeFx)
 	end)
 end
 
+-- Personal lobby nodes (Tuning.runs.personalNodes): this player's own copy of each node,
+-- key -> hits left (0 = felled), from the run state. The server never writes these
+-- attributes for a personal node, so they are set here; a felled copy stops blocking and
+-- stops being targeted, for this player alone.
+local personalNodes: { [string]: number } = {}
+
+local function applyPersonal(model: Model, hitsLeft: number)
+	model:SetAttribute("HitsLeft", hitsLeft)
+	if hitsLeft <= 0 then
+		model:SetAttribute("Standing", false)
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+				part.CanQuery = false
+			end
+		end
+	end
+end
+
 local function watchNode(instance: Instance)
 	if not instance:IsA("Model") then
 		return
 	end
 	local model = instance
+	-- A node streaming back in (or a rejoined lobby) gets this player's cuts back first.
+	local key = model:GetAttribute("NodeKey")
+	local saved = if type(key) == "string" then personalNodes[key] else nil
+	if saved then
+		applyPersonal(model, saved)
+	end
 	local info: NodeFx = {
 		pivot = model:GetPivot(),
 		scale = model:GetScale(),
@@ -318,12 +343,11 @@ local function onGather(payload: any)
 		return
 	end
 	if payload.personal then
-		-- A personal lobby node: only this player's copy changed, so the attributes the
-		-- server leaves untouched are set here, locally (a felled copy goes for us alone).
-		model:SetAttribute("HitsLeft", payload.hitsLeft or 0)
-		if payload.depleted then
-			model:SetAttribute("Standing", false)
-		end
+		-- A personal lobby node: only this player's copy changed (a felled copy goes for us
+		-- alone, collider and all).
+		local hitsLeft = if payload.depleted then 0 else payload.hitsLeft or 0
+		personalNodes[payload.key] = hitsLeft
+		applyPersonal(model, hitsLeft)
 	end
 	local def = Content.Nodes[payload.nodeId]
 	local tool = if def and def.tool then def.tool.kind else "hand"
@@ -952,6 +976,28 @@ local function eachTagged(tag: string, fn: (Instance) -> ())
 end
 
 function WorldFx.start()
+	State.changed:Connect(function(key: string)
+		if key ~= "run" then
+			return
+		end
+		local run = State.get("run")
+		local list = if type(run) == "table" then (run :: any).personalNodes else nil
+		if type(list) ~= "table" then
+			if run == false then
+				table.clear(personalNodes) -- the run is over: next lobby, fresh nodes
+			end
+			return
+		end
+		for nodeKey, hitsLeft in list do
+			if personalNodes[nodeKey] ~= hitsLeft then
+				personalNodes[nodeKey] = hitsLeft
+				local model = nodeByKey(nodeKey)
+				if model then
+					applyPersonal(model, hitsLeft)
+				end
+			end
+		end
+	end)
 	eachTagged("EO_Node", watchNode)
 	eachTagged("EO_Piece", snapIn)
 	eachTagged("EO_Station", function(instance)

@@ -59,7 +59,7 @@ local spec: ResourceZone.Spec = {
 		V2(90, 70),
 		V2(-40, 0),
 		V2(30, -100),
-		V2(-100, 20),
+		V2(-109, 20),
 		V2(60, 100),
 	},
 	fog = Color3.fromRGB(196, 202, 198),

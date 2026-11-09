@@ -53,8 +53,18 @@ local ref = Check.oneOf(Remotes.CONTAINER_REFS)
 local slot = Check.integer(1, Remotes.MAX_SLOT)
 -- Placed piece UIDs come from Domain/Grid: decimal strings.
 local uid = Check.pattern("^%d+$", 10)
--- World node keys from the Gathering service, e.g. "12345:node.pine_tree#3".
-local nodeKey = Check.pattern("^%d+:node%.[%w_]+#%d+$", 64) -- "<ownerUserId>:<nodeId>#<n>" (Services/Gathering)
+-- World node keys from the Gathering service: a home plot's "<ownerUserId>:<nodeId>#<n>"
+-- (e.g. "12345:node.pine_tree#3") or a Fog Run lobby's "r<lobbyId>:<n>" (e.g. "rsim2:36";
+-- a run server's lobby id is its private-server id, hex and hyphens). QA (S2B): the plot
+-- form alone rejected every swing at a lobby node.
+local plotNodeKey = Check.pattern("^%d+:node%.[%w_]+#%d+$", 64)
+local lobbyNodeKey = Check.pattern("^r[%w%-]+:%d+$", 64)
+local function nodeKey(value: any): (boolean, string?)
+	if plotNodeKey(value) or lobbyNodeKey(value) then
+		return true, nil
+	end
+	return false, "expected a node key (<owner>:node.<id>#<n> or r<lobby>:<n>)"
+end
 -- Ground drops from the Drops service, e.g. "d42".
 local dropId = Check.pattern("^d%d+$", 12)
 -- Item inbox rows from Domain/Inbox, e.g. "i17".

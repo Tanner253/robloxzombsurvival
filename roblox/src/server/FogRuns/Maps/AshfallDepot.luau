@@ -375,6 +375,12 @@ local function gatherables(ctx: Builder.Ctx)
 		Builder.node(ctx, "node.niter_seam", n.X, n.Y)
 	end
 	Builder.node(ctx, "node.spring_pool", -120, 150)
+	-- Ironstone on the quarry's benches (ECONOMY §6.3), above the flooded floor.
+	for index = 1, 8 do
+		local angle = (index / 8 + rng:NextNumber() * 0.08) * math.pi * 2
+		local p = PIT + V2(math.cos(angle), math.sin(angle)) * PIT_RADIUS * (0.42 + rng:NextNumber() * 0.22)
+		Builder.node(ctx, "node.ironstone_rock", p.X, p.Y)
+	end
 end
 
 local function markers(ctx: Builder.Ctx)

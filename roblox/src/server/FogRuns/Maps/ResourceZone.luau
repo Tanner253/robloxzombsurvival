@@ -147,6 +147,15 @@ local function nearExit(spec: Spec, x: number, z: number, margin: number): boole
 	return (here - spec.entry).Magnitude < 12 + margin
 end
 
+local function nearContainer(spec: Spec, at: Vector2, margin: number): boolean
+	for _, spot in spec.containers do
+		if (spot.at - at).Magnitude < margin then
+			return true
+		end
+	end
+	return false
+end
+
 -- Terrain -------------------------------------------------------------------------------------------------
 
 local function heightFor(spec: Spec): (number, number) -> number
@@ -281,9 +290,11 @@ local function rulesFor(spec: Spec): { [string]: Rule }
 			return false
 		end
 		local _, inside = ridgeLift(spec, x, z)
-		local pit = pitDepth(spec, x, z)
+		local pit, onFace = pitDepth(spec, x, z)
 		if mine then
-			return (inside > 0.02 and inside < 0.6) or (pit < -2)
+			-- The foot of a bluff or a bench's tread, never the steep face itself (QA: about
+			-- two thirds of the old area was steeper than 50 degrees; ore hung off cliffs).
+			return (inside > 0.02 and inside < 0.3) or (pit < -2 and not onFace)
 		end
 		return inside < 0.1
 	end
@@ -291,6 +302,7 @@ local function rulesFor(spec: Spec): { [string]: Rule }
 		local t = trailDistance(spec, x, z)
 		return (t > 3 and t < 14 or inClearing(spec, x, z, 6) and not inClearing(spec, x, z, -4))
 			and creekDistance(spec, x, z) > 7
+			and not nearPond(spec, x, z, 2) -- QA: branches and stones floated on ponds
 			and not nearExit(spec, x, z, 0)
 	end
 	local function water(x: number, z: number): boolean
@@ -379,6 +391,7 @@ local function placeNodes(ctx: Builder.Ctx, spec: Spec): { Vector2 }
 			local ok = (relax >= 2 or accept(at.X, at.Y))
 				and free(at, spacing / (1 + relax))
 				and not nearExit(spec, at.X, at.Y, 0)
+				and not nearContainer(spec, at, 4.5)
 			if ok then
 				Builder.node(ctx, entry.nodeId, at.X, at.Y)
 				table.insert(placed, at)
@@ -486,9 +499,13 @@ local function edges(ctx: Builder.Ctx, spec: Spec)
 		local at = exit.at
 		-- An exit near the edge leaves its trail open through the wall.
 		if math.max(math.abs(at.X), math.abs(at.Y)) > half - 25 then
-			local x = math.clamp(at.X * 1.15, -half, half)
-			local z = math.clamp(at.Y * 1.15, -half, half)
-			table.insert(gaps, V2(x, z))
+			-- Straight out to the nearest edge, keeping the other coordinate (QA: scaling both
+			-- slid a corner exit's gap along the edge, away from its trail).
+			if math.abs(at.X) >= math.abs(at.Y) then
+				table.insert(gaps, V2(math.sign(at.X) * half, at.Y))
+			else
+				table.insert(gaps, V2(at.X, math.sign(at.Y) * half))
+			end
 		end
 	end
 	Builder.treeWall(ctx, {

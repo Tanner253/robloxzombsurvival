@@ -477,6 +477,27 @@ function Gathering.start()
 		end
 	end)
 	Lobby.closed:Connect(clearLobbyNodes)
+	-- A player's own cut and felled lobby nodes (personal nodes), key -> hits left (0 =
+	-- felled). Their client re-applies these when a node streams back in or they come back
+	-- to the lobby (QA: the server kept the state, the client forgot it and showed a full
+	-- node it could not hit).
+	Lobby.addRunState("personalNodes", function(player: Player, run: Lobby.Run): any
+		if not tuning.runs.personalNodes then
+			return nil
+		end
+		local stamp = os.time()
+		local mine: { [string]: number } = {}
+		local touched = false
+		for key, node in nodes do
+			local personal = node.personal
+			local state = if personal and node.lobbyId == run.hosted.id then personal[player.UserId] else nil
+			if state then
+				mine[key] = if GatheringMath.isStanding(state, stamp) then state.hitsLeft else 0
+				touched = true
+			end
+		end
+		return if touched then mine else nil
+	end)
 	Plots.claimed:Connect(spawnNodes)
 	Plots.releasing:Connect(function(player: Player, plot: Plots.Plot)
 		flushAnalytics(player)

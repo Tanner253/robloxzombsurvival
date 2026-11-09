@@ -107,6 +107,34 @@ return function(test: TestKit.Register)
 		TestKit.deepEqual(AutoClear.roll(QUARRY, replay), haul, "the same seed, the same haul")
 	end)
 
+	test("#31 AUTO harvests only the nodes the survivor's tools can cut", function()
+		-- Ironbark Stand's nodes alone: its crates can hold logs too.
+		local stand =
+			{ containers = {}, nodes = Content.Locations["loc.ironbark_stand"].nodes, enemySpawns = {} } :: any
+		local function logs(canHarvest: ((any) -> boolean)?): number
+			local haul = AutoClear.roll(stand, {
+				tables = Content.LootTables :: any,
+				nodes = Content.Nodes :: any,
+				enemies = Content.Enemies :: any,
+				rng = Rng.new(4),
+				config = TUNING.autoClear,
+				canHarvest = canHarvest,
+			})
+			local count = 0
+			for _, stack in haul.items do
+				if stack.itemId == Content.Nodes["node.ironbark_tree"].yields[1].itemId then
+					count += stack.count
+				end
+			end
+			return count
+		end
+		TestKit.truthy(logs(nil) > 0, "ungated, ironbark falls")
+		local noForgedHatchet = function(def: any): boolean
+			return def.tool == nil or def.tool.tier < 2
+		end
+		TestKit.equal(logs(noForgedHatchet), 0, "without a Forged Hatchet, no ironbark logs")
+	end)
+
 	test("#31 in-world AUTO targets the nearest Hollow in its radius", function()
 		local radius = TUNING.autoAttack.radiusStuds
 		local candidates =

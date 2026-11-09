@@ -48,7 +48,7 @@ local spec: ResourceZone.Spec = {
 	},
 	exits = {
 		{ id = "logging_road", name = "Logging Road", at = V2(-HALF + 8, -3), yaw = 90 },
-		{ id = "creek_ford", name = "Creek Ford", at = V2(FORD.X + 4, FORD.Y - 12), yaw = 0 },
+		{ id = "creek_ford", name = "Creek Ford", at = V2(FORD.X + 4, FORD.Y - 18), yaw = 0 },
 		{ id = "ranger_hut", name = "Ranger Hut", at = V2(HUT.X - 4, HUT.Y + 26), yaw = 0 },
 	},
 	entry = V2(102, 40),
@@ -71,7 +71,7 @@ local spec: ResourceZone.Spec = {
 		V2(-100, 90),
 		V2(10, -100),
 		V2(100, 60),
-		V2(-90, -100),
+		V2(-90, -106),
 		V2(30, 80),
 	},
 	fog = Color3.fromRGB(150, 158, 164),
