@@ -28,9 +28,11 @@
 	a spare set, banded storage, the Stranded Caravan, full stores) and the fog line (15, 17,
 	19, 21, 23, 25: the Reinforcement Plans, copper, reinforced walls, the Padded set, the
 	Depot, then level 25). In the pacing model (tests/Pacing.spec, 2.5 h a day) they land
-	from day 8 to day 18, so the trail no longer ends in the first week. Build and craft objectives
-	count from the moment a quest opens, so the reinforced ones open while the base is still
-	going up and ask for pieces it keeps needing (walls, not its one door).
+	from day 8 to day 18, so the trail no longer ends in the first week. Build objectives, and
+	craft objectives for gear, count what the player already has when the quest opens
+	(Domain/Quests.holdings, the flow review's F-06): the pieces they placed (never the
+	starter shelter's) and the tools, weapons and bags they carry or wear. The reinforced
+	ones ask for pieces a base keeps needing (walls, not its one door).
 ]]
 
 local Types = require("../Types")

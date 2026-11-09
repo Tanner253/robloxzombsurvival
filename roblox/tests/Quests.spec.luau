@@ -196,6 +196,119 @@ return function(test: TestKit.Register)
 		TestKit.equal(kinds.lootBody, "quest.into_the_fog")
 	end)
 
+	-- F-06: craft and build objectives count what the player already has -------------------
+	local HOLDINGS: Quests.HoldingsContent = {
+		recipes = Content.Recipes :: any,
+		items = Content.Items :: any,
+		pieces = Content.BuildPieces :: any,
+	}
+
+	test("F-06: gear carried or worn counts for its craft objective; materials and armor don't", function()
+		local made = Quests.holdings({
+			{ itemId = "item.stone_hatchet", count = 1, durability = 30 },
+			{ itemId = "item.satchel", count = 1 },
+			{ itemId = "item.plank", count = 12 },
+			{ itemId = "item.reedweave_cap", count = 1 },
+			{ itemId = "", count = 0 },
+		}, {}, HOLDINGS)
+		TestKit.equal(made["recipe.stone_hatchet"], 1, "a tool")
+		TestKit.equal(made["recipe.satchel"], 1, "a bag")
+		TestKit.equal(made["recipe.plank"], nil, "a material is made at its station")
+		TestKit.equal(made["recipe.reedweave_cap"], nil, "a spare set means weaving another")
+	end)
+
+	test("F-06: placed pieces count, through every tier they were built as; the starter shelter's don't", function()
+		local Grid = require("../src/shared/Domain/Grid")
+		local Shelter = require("../src/shared/Domain/Shelter")
+		local plot =
+			{ ownerUserId = 1, width = Content.Tuning.building.plotCells, depth = Content.Tuning.building.plotCells }
+		local shelter = Shelter.build(Content.StarterShelter, Content.BuildPieces :: any, plot, 1, T0)
+		local pieces: { any } = {}
+		for _, piece in shelter.pieces do
+			TestKit.truthy(Grid.isStarter(piece), `{piece.pieceId} is the shelter's`)
+			table.insert(pieces, piece)
+		end
+		local _, starterOnly = Quests.holdings({}, pieces, HOLDINGS)
+		TestKit.equal(next(starterOnly), nil, "the shelter counts for nothing")
+		local wallUp = Content.BuildPieces["build.wall_wood"].upgradesTo :: string
+		table.insert(pieces, { pieceId = "build.crate_wood", placedAt = T0 })
+		table.insert(pieces, { pieceId = wallUp, placedAt = T0 })
+		local _, placed = Quests.holdings({}, pieces, HOLDINGS)
+		TestKit.equal(placed["build.crate_wood"], 1, "a crate placed on day 1")
+		TestKit.equal(placed["build.wall_wood"], 1, "an upgraded wall was a timber wall")
+		TestKit.equal(placed[wallUp], 1)
+	end)
+
+	test("F-06: a hatchet made during quest 1 and a crate placed early count when their quests open", function()
+		local flags = { fogRuns = false }
+		local state = Quests.open(Quests.newState(), Content.Quests)
+		local made, placed = Quests.holdings({
+			{ itemId = "item.stone_hatchet", count = 1, durability = 40 },
+			{ itemId = "item.sharpened_stake", count = 1, durability = 30 },
+		}, { { pieceId = "build.crate_wood", placedAt = T0 } }, HOLDINGS)
+		local facts: Quests.Facts =
+			{ level = 1, equipped = { ["item.sharpened_stake"] = true }, made = made, placed = placed }
+		for _, objective in Content.Quests["quest.first_light"].objectives do
+			if objective.kind == "gather" then
+				state = Quests.record(state, Content.Quests, flags, table.clone(objective :: any))
+			end
+		end
+		local settled, done = Quests.settle(state, Content.Quests, flags, facts, T0)
+		TestKit.deepEqual(done, { "quest.first_light" }, "the stake was made and is held")
+		local tools = settled.active["quest.tools_of_survival"]
+		TestKit.equal(tools.progress["1"], 1, "the hatchet made before the quest opened")
+		TestKit.equal(tools.progress["2"], nil, "the pick is still to make")
+		-- Hold the Door: the crate already placed counts the moment it opens.
+		local later = Quests.newState()
+		for _, id in
+			{ "quest.first_light", "quest.tools_of_survival", "quest.claim_the_ground", "quest.a_place_to_work" }
+		do
+			later.completed[id] = T0
+		end
+		local opened = Quests.settle(Quests.open(later, Content.Quests), Content.Quests, flags, facts, T0)
+		TestKit.equal(opened.active["quest.hold_the_door"].progress["3"], 1, "the crate")
+	end)
+
+	test("F-06: existing outposts get their starter pieces stamped (OutpostSchema v4)", function()
+		local Grid = require("../src/shared/Domain/Grid")
+		local OutpostSchema = require("../src/shared/Domain/OutpostSchema")
+		local Shelter = require("../src/shared/Domain/Shelter")
+		local plot =
+			{ ownerUserId = 1, width = Content.Tuning.building.plotCells, depth = Content.Tuning.building.plotCells }
+		local shelter = Shelter.build(Content.StarterShelter, Content.BuildPieces :: any, plot, -1, T0)
+		-- Before v4 the shelter was stamped with the second it was laid.
+		for uid, piece in shelter.pieces do
+			local old = table.clone(piece)
+			old.placedAt, old.upgradedAt = T0, T0
+			shelter.pieces[uid] = old
+		end
+		local ctx = {
+			plot = plot,
+			actorUserId = 1,
+			pieces = Content.BuildPieces :: any,
+			now = T0 + 600,
+		}
+		local built = Grid.place(shelter, "build.foundation_wood", { x = 1, z = 1 }, ctx :: any)
+		assert(built, "a player foundation")
+		local saved = Grid.serialize(built)
+		local data = { version = 3, seeded = true, layout = saved, nodes = {}, projects = {} }
+		local Migrations = require("../src/shared/Domain/Migrations")
+		assert(Migrations.run(data, OutpostSchema.migrations, OutpostSchema.VERSION))
+		local layout = Grid.deserialize(data.layout, Content.BuildPieces :: any)
+		assert(layout, "loads")
+		local starters, players = 0, 0
+		for _, piece in layout.pieces do
+			if Grid.isStarter(piece) then
+				starters += 1
+			else
+				players += 1
+				TestKit.equal(piece.placedAt, T0 + 600, "the player's own piece keeps its time")
+			end
+		end
+		TestKit.equal(starters, #Content.StarterShelter)
+		TestKit.equal(players, 1)
+	end)
+
 	test("with Fog Runs on, the whole trail (quests 1-25) plays through in order", function()
 		local flags = { fogRuns = true }
 		local state = Quests.open(Quests.newState(), Content.Quests)

@@ -14,7 +14,9 @@
 	`prepare` marks them as version 1 so the migrations can run.
 ]]
 
+local BuildPieces = require("../Data/BuildPieces")
 local Nodes = require("../Data/Nodes")
+local StarterShelter = require("../Data/StarterShelter")
 local Grid = require("./Grid")
 local Gathering = require("./Gathering")
 local Migrations = require("./Migrations")
@@ -22,7 +24,62 @@ local Project = require("./Project")
 
 local OutpostSchema = {}
 
-OutpostSchema.VERSION = 3
+OutpostSchema.VERSION = 4
+
+-- The base piece an upgraded piece was first placed as.
+local function rootOf(pieceId: string): string
+	local current = pieceId
+	for _ = 1, 32 do
+		local below: string? = nil
+		for id, def in BuildPieces do
+			if def.upgradesTo == current then
+				below = id
+				break
+			end
+		end
+		if below == nil then
+			return current
+		end
+		current = below
+	end
+	return current
+end
+
+--[[
+	Stamps the starter shelter's pieces in a saved layout (Grid.serialize's fields) with
+	Grid.STARTER_AT. The shelter went down first into an empty layout, all in one second, so
+	its pieces are uids 1..#StarterShelter, each placed as that entry's piece, at one time.
+	A piece the player moved or upgraded still matches; anything that doesn't is left alone.
+]]
+function OutpostSchema.markStarter(layout: any)
+	if type(layout) ~= "table" or type(layout.d) ~= "table" or type(layout.p) ~= "table" then
+		return
+	end
+	if type(layout.t) ~= "number" then
+		return
+	end
+	local fields = 8
+	local data: { number } = layout.d
+	local batch: number? = nil
+	for offset = 0, #data - fields, fields do
+		local uid, palette = data[offset + 1], data[offset + 2]
+		local entry = StarterShelter[uid]
+		local pieceId = layout.p[palette]
+		if entry == nil or type(pieceId) ~= "string" or BuildPieces[pieceId] == nil then
+			continue
+		end
+		local placedAt = layout.t + data[offset + 7]
+		if placedAt == Grid.STARTER_AT or rootOf(pieceId) ~= entry.pieceId then
+			continue
+		end
+		batch = batch or placedAt
+		if placedAt == batch then
+			local upgradedAt = placedAt + data[offset + 8]
+			data[offset + 7] = Grid.STARTER_AT - layout.t
+			data[offset + 8] = if upgradedAt > placedAt then upgradedAt - Grid.STARTER_AT else 0
+		end
+	end
+end
 
 export type Data = {
 	version: number,
@@ -76,6 +133,14 @@ OutpostSchema.migrations = {
 			end
 		end
 		data.nodes = nodes
+	end,
+	-- v4: the starter shelter's pieces are stamped Grid.STARTER_AT (the flow review's F-06
+	-- and F-30): they count toward no build objective and refund nothing. Only a seeded
+	-- outpost has them.
+	[3] = function(data)
+		if data.seeded == true then
+			OutpostSchema.markStarter(data.layout)
+		end
 	end,
 } :: Migrations.Steps
 

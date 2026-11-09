@@ -56,6 +56,10 @@ Grid.SUB_STUDS = Grid.CELL_STUDS / Grid.SUB
 --    load (nothing was live; their cell coordinates no longer mean the same place).
 Grid.LAYOUT_VERSION = 3
 
+-- The placedAt that marks a piece of the starter shelter (Domain/Shelter): the player never
+-- built it, so it counts toward no build objective (Domain/Quests, the flow review's F-06).
+Grid.STARTER_AT = 0
+
 export type Axis = "h" | "v"
 export type Layer = "floor" | "frame" | "fill" | "roof" | "object"
 
@@ -662,6 +666,14 @@ local function upgradeChain(pieceId: Types.BuildPieceId, defs: Defs): { Types.Bu
 		current = previous.id
 	end
 	error(`upgrade chain for '{pieceId}' is longer than {MAX_CHAIN} (a cycle?)`)
+end
+
+-- The upgrade chain ending at `pieceId`, base tier first (a placed piece was built as each).
+Grid.upgradeChain = upgradeChain
+
+-- Whether a piece came with the starter shelter.
+function Grid.isStarter(piece: Piece): boolean
+	return piece.placedAt == Grid.STARTER_AT
 end
 
 local function merge(into: { Types.ItemStack }, itemId: string, count: number)

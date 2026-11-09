@@ -6,7 +6,8 @@
 	The data is authored for a plot whose road is on +Z (front = 1). For the facing row
 	(front = -1) every piece is mirrored across the plot's middle on Z, so the shelter
 	always opens to the road. Pieces go down through Grid.place (so the result is a layout
-	the game could have built itself), then lose HP down to their `hp` fraction.
+	the game could have built itself), then lose HP down to their `hp` fraction. Each is
+	stamped placedAt = Grid.STARTER_AT: the player didn't build it.
 ]]
 
 local Types = require("../Types")
@@ -61,6 +62,12 @@ function Shelter.build(
 		if placed == nil or piece == nil then
 			return Grid.new(), `piece {index} ({entry.pieceId}): {reason}`
 		end
+		-- Stamped as the shelter's, not the player's (Grid.STARTER_AT): it counts toward no
+		-- build objective (F-06) and refunds nothing (F-30).
+		local stamped = table.clone(piece)
+		stamped.placedAt = Grid.STARTER_AT
+		stamped.upgradedAt = Grid.STARTER_AT
+		placed.pieces[piece.uid] = stamped
 		layout = placed
 		local fraction = math.clamp(entry.hp, 0.05, 1)
 		if fraction < 1 then
