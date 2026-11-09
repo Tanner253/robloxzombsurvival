@@ -9,18 +9,48 @@ local Credits: { Section } = {
 	{
 		title = "Open-source code",
 		rows = {
-			{ work = "React Luau (react, react-roblox and their packages)", by = "Roblox Corporation", license = "MIT", source = "github.com/jsdotlua/react-lua" },
+			{
+				work = "React Luau (react, react-roblox and their packages)",
+				by = "Roblox Corporation",
+				license = "MIT",
+				source = "github.com/jsdotlua/react-lua",
+			},
 			{ work = "Promise", by = "Eryn L. K.", license = "MIT", source = "github.com/jsdotlua/promise" },
-			{ work = "GoodSignal", by = "Mark Langen (stravant)", license = "MIT", source = "github.com/stravant/goodsignal" },
-			{ work = "ProfileStore", by = "MAD STUDIO (loleris)", license = "Apache 2.0", source = "github.com/MadStudioRoblox/ProfileStore" },
+			{
+				work = "GoodSignal",
+				by = "Mark Langen (stravant)",
+				license = "MIT",
+				source = "github.com/stravant/goodsignal",
+			},
+			{
+				work = "ProfileStore",
+				by = "MAD STUDIO (loleris)",
+				license = "Apache 2.0",
+				source = "github.com/MadStudioRoblox/ProfileStore",
+			},
 		},
 	},
 	{
 		title = "Models",
 		rows = {
-			{ work = "\"sawnoffs Animated\" (the Scrap Shotgun)", by = "DJMaesen", license = "CC-BY-4.0", source = "sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb" },
-			{ work = "\"Service Pistol\" (the Worn Pistol)", by = "Mateusz Sadek", license = "CC0", source = "polyhaven.com/a/service_pistol" },
-			{ work = "\"Machete\" (the Machete)", by = "Ulan Cabanilla", license = "CC0", source = "polyhaven.com/a/machete" },
+			{
+				work = '"sawnoffs Animated" (the Scrap Shotgun)',
+				by = "DJMaesen",
+				license = "CC-BY-4.0",
+				source = "sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb",
+			},
+			{
+				work = '"Service Pistol" (the Worn Pistol)',
+				by = "Mateusz Sadek",
+				license = "CC0",
+				source = "polyhaven.com/a/service_pistol",
+			},
+			{
+				work = '"Machete" (the Machete)',
+				by = "Ulan Cabanilla",
+				license = "CC0",
+				source = "polyhaven.com/a/machete",
+			},
 		},
 	},
 }
