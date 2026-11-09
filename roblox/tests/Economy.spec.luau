@@ -58,7 +58,7 @@ return function(test: TestKit.Register)
 	end)
 
 	test("home starts with enough for the hook: tools, the first stations, a patched shelter", function()
-		-- ECONOMY §5.4's hook: the hatchet and pick, the satchel, a Campfire, 2 Timber
+		-- ECONOMY §5.4's hook: the stone tools, the satchel, a Campfire, 2 Timber
 		-- foundations and 2 walls, the Saw Bench, Stonecutter and Workbench. Planks, blocks
 		-- and cord are expanded through their recipes. The trail's rewards on the way count
 		-- (Claim the Ground's 10 timber and 4 cord, Tools of Survival's 6 fiber).
@@ -68,8 +68,18 @@ return function(test: TestKit.Register)
 				need[stack.itemId] = (need[stack.itemId] or 0) + stack.count * times
 			end
 		end
-		add(Content.Recipes["recipe.stone_hatchet"].inputs, 1)
-		add(Content.Recipes["recipe.stone_pick"].inputs, 1)
+		-- As many stone tools as the home nodes wear through (41 rock and heap hits: 2 picks).
+		local hits: { [string]: number } = {}
+		for _, entry in Content.Tuning.home.nodes do
+			local tool = Content.Nodes[entry.nodeId].tool
+			if tool then
+				hits[tool.kind] = (hits[tool.kind] or 0) + Content.Nodes[entry.nodeId].hits * entry.count
+			end
+		end
+		for kind, recipeId in { hatchet = "recipe.stone_hatchet", pick = "recipe.stone_pick" } do
+			local tool = Content.Items[Content.Recipes[recipeId].outputs[1].itemId]
+			add(Content.Recipes[recipeId].inputs, math.ceil((hits[kind] or 0) / (tool.durability :: number)))
+		end
 		add(Content.Recipes["recipe.satchel"].inputs, 1)
 		for id, count in
 			{

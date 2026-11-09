@@ -29,6 +29,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "DevSpeed", spec = require("./DevSpeed.spec") },
 	{ name = "Economy", spec = require("./Economy.spec") },
 	{ name = "Pacing", spec = require("./Pacing.spec") },
+	{ name = "EconomyRules", spec = require("./EconomyRules.spec") },
 	{ name = "Converter", spec = require("./Converter.spec") },
 	{ name = "Quests", spec = require("./Quests.spec") },
 	{ name = "Onboarding", spec = require("./Onboarding.spec") },
