@@ -6,7 +6,7 @@
 	The Smelter and Stonecutter are launch stations, but a station without an approved
 	model can't be placed (Art.pieceReady), and without it nobody could make an ingot or a
 	block. Tuning.stationFallback names a stand-in for each such station: the Smelter's
-	lines move to the fuelled Campfire and the Stonecutter's to the Workbench, keeping
+	lines move to the fuelled Campfire and the Stonecutter's to the Saw Bench, keeping
 	their ratios, timers and station levels. An empty map leaves every line where
 	Data/Recipes puts it.
 

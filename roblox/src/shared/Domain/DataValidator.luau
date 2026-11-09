@@ -490,6 +490,20 @@ local function checkStations(errors: Errors, content: Types.Content)
 		end
 	end
 
+	-- A station's own build cost can't need what only that station makes (the first one
+	-- could never be built).
+	for _, pieceId in TableUtil.sortedKeys(content.BuildPieces) do
+		local piece = content.BuildPieces[pieceId]
+		local stationId = piece.stationId
+		if stationId and content.Stations[stationId] then
+			for _, stack in piece.cost do
+				if content.Items[stack.itemId] and not craftableBelow(content, stack.itemId, stationId, 1, {}) then
+					push(errors, `BuildPieces['{pieceId}'].cost: '{stack.itemId}' is only made at '{stationId}' itself`)
+				end
+			end
+		end
+	end
+
 	for _, id in TableUtil.sortedKeys(content.Stations) do
 		local station = content.Stations[id]
 		local where = `Stations['{id}']`

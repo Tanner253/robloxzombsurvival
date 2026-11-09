@@ -25,7 +25,7 @@ end
 
 -- Every line sits on its own station (ECONOMY §10.1: the Smelter and Stonecutter are launch
 -- requirements). While one of their models still waits for its A grade, Tuning.stationFallback
--- moves its lines (Shared/StationFallback): ingots to the Campfire, blocks to the Workbench.
+-- moves its lines (Shared/StationFallback): ingots to the Campfire, blocks to the Saw Bench.
 
 local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	-- Hand-crafted: the starter set ----------------------------------------------------
