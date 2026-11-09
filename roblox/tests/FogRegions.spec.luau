@@ -38,6 +38,15 @@ return function(test: TestKit.Register)
 		end
 	end)
 
+	test("every pinned location has panel and loading art", function()
+		for _, region in FogRegions.list do
+			for _, pin in region.pins do
+				local found = string.find(ART, `["{pin.locationId}"] = "rbxassetid://`, 1, true)
+				TestKit.truthy(found ~= nil, `{pin.locationId} has art`)
+			end
+		end
+	end)
+
 	test("every fixed or rotating location has a pin (airdrops are placed live)", function()
 		for id, location in Content.Locations do
 			local kind = (location :: any).availability.kind

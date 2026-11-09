@@ -1000,6 +1000,8 @@ local function FogMap()
 		end
 	end
 	local short = location ~= nil and energyValue < location.energyCost
+	-- An event location closing before a Walk would get there (the server refuses it too).
+	local walkLate = location ~= nil and TravelMath.walkTooLate(location, Content.Tuning.travel :: any, now)
 	-- An event pin's countdown sits under its name: the Run and Walk buttons go below it.
 	local countdownGap = if location and eventClock(location, now) ~= nil then 20 else 0
 	-- The map reaches REACH design pixels above the safe area, under Roblox's top bar
@@ -1092,8 +1094,8 @@ local function FogMap()
 					label = "WALK",
 					glyph = "map",
 					detail = "free",
-					note = blocked or clock(location.walkSeconds),
-					enabled = ready and blocked == nil,
+					note = blocked or if walkLate then "Closes first" else clock(location.walkSeconds),
+					enabled = ready and blocked == nil and not walkLate,
 					order = 2,
 					onActivated = function()
 						Actions.travel(location.id, "walk")

@@ -628,11 +628,13 @@ Art.fogMap = {
 		fog = 1,
 	} :: { [string]: number },
 	-- Each location's panel and loading-screen art: its corner of the painted map
-	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin).
+	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin). The Stranded
+	-- Caravan, not on the painting, uses a render of its built map at dusk.
 	art = {
 		["loc.pine_hollow"] = "rbxassetid://80424846897012",
 		["loc.sunken_quarry"] = "rbxassetid://78393149598495",
 		["loc.ashfall_depot"] = "rbxassetid://114701602305172",
+		["loc.stranded_caravan"] = "rbxassetid://107008535507654",
 	} :: { [string]: string },
 }
 

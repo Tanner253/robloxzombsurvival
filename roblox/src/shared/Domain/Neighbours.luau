@@ -140,8 +140,11 @@ function Neighbours.slots(shown: { Neighbour }, count: number): { number }
 		if index > count then
 			break
 		end
-		-- Reduced first so the product stays an exact integer in a double.
-		local slot = ((math.abs(neighbour.userId) % 1000003) * 2654435761) % 4294967296 % count + 1
+		-- Multiplicative hashing: the product's high bits pick the slot (the low bits
+		-- would just follow the id's own low bits). The id is reduced first so the
+		-- product stays an exact integer in a double.
+		local mixed = ((math.abs(neighbour.userId) % 1000003) * 2654435761) % 4294967296
+		local slot = math.floor(mixed / 4294967296 * count) + 1
 		while taken[slot] do
 			slot = slot % count + 1
 		end

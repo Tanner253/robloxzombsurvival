@@ -392,14 +392,16 @@ local function openExits(): { [string]: boolean }?
 	return open
 end
 
--- A closed exit looks shut: its ring and flare pole go grey and unlit instead of green.
+-- A closed exit looks shut: its ring and flare pole go grey, and its green light goes out.
 local function paintExits()
 	local open = openExits()
 	for _, exit in CollectionService:GetTagged(EXIT_TAG) do
 		local id = exit:GetAttribute("PointId")
 		local closed = open ~= nil and type(id) == "string" and not open[id]
 		for _, part in exit:GetDescendants() do
-			if part:IsA("BasePart") then
+			if part:IsA("Light") then
+				part.Enabled = not closed
+			elseif part:IsA("BasePart") then
 				if part:GetAttribute("LitColor") == nil then
 					part:SetAttribute("LitColor", part.Color)
 					part:SetAttribute("LitMaterial", part.Material.Name)

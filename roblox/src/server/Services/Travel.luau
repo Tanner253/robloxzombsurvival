@@ -75,6 +75,7 @@ local REASONS: { [string]: string } = {
 	energy = "Not enough Energy for a Run",
 	unavailable = "That location isn't open right now",
 	tooLate = "The Fog closes too soon to get back in",
+	walkTooLate = "It closes before you'd walk there: take a Run",
 	gate = "Repair the signal tower to open this fog",
 }
 
@@ -486,6 +487,10 @@ function Travel.init()
 	if Features.on(tuning, "regionGates") then
 		Net.onEvent("GateFill", gateFill)
 		Net.onEvent("GateFinalize", gateFinalize)
+	else
+		-- Declared but idle until M4: handled (and rate limited) so nothing queues up.
+		Net.onEvent("GateFill", function() end)
+		Net.onEvent("GateFinalize", function() end)
 	end
 end
 

@@ -139,17 +139,17 @@ end
 local function wagonCircle(ctx: Builder.Ctx)
 	-- Five vehicles nose to tail round the camp; gaps left for the road and the trails.
 	local ring = {
-		{ angle = 208, name = "EO_VanWreck", tall = 8 },
-		{ angle = 290, name = "EO_PickupWreck", tall = 6.8 },
-		{ angle = 20, name = "EO_SedanWreck", tall = 5.6 },
-		{ angle = 95, name = "EO_TractorWreck", tall = 7.5 },
-		{ angle = 135, name = "EO_PickupWreck", tall = 6.8 },
+		{ angle = 208, name = "EO_VanWreck", tall = 8, flip = false },
+		{ angle = 290, name = "EO_PickupWreck", tall = 6.8, flip = false },
+		{ angle = 20, name = "EO_SedanWreck", tall = 5.6, flip = false },
+		{ angle = 95, name = "EO_TractorWreck", tall = 7.5, flip = true }, -- tail to the trail gap
+		{ angle = 135, name = "EO_PickupWreck", tall = 6.8, flip = false },
 	}
 	for _, slot in ring do
 		local a = math.rad(slot.angle)
 		local x, z = CIRCLE.X + math.cos(a) * RING, CIRCLE.Y + math.sin(a) * RING
 		-- Side-on to the circle: each vehicle's length along the ring's tangent.
-		local yaw = -slot.angle - 90 + (ctx.rng:NextNumber() - 0.5) * 10
+		local yaw = -slot.angle - 90 + (if slot.flip then 180 else 0) + (ctx.rng:NextNumber() - 0.5) * 10
 		Builder.vehicle(ctx, slot.name, x, z, yaw, { height = slot.tall }, true)
 	end
 	-- The hay the tractor was pulling, spilled behind it.
@@ -164,7 +164,7 @@ local function wagonCircle(ctx: Builder.Ctx)
 	Builder.kit(ctx, { "EO_SupplySacksMesh" }, CIRCLE.X + 13, CIRCLE.Y - 4, 200)
 	Builder.kit(ctx, { "EO_StorageCrate" }, CIRCLE.X + 9, CIRCLE.Y - 9, 15)
 	Builder.kit(ctx, { "EO_StorageCrate" }, CIRCLE.X + 12.5, CIRCLE.Y - 7, 70)
-	Builder.kit(ctx, { "EO_SupplySacksMesh" }, CIRCLE.X - 13, CIRCLE.Y + 15, 110)
+	Builder.kit(ctx, { "EO_SupplySacksMesh" }, CIRCLE.X - 9, CIRCLE.Y + 11, 110)
 	Builder.kit(ctx, { "EO_ScrapHeapClean" }, CIRCLE.X + 30, CIRCLE.Y + 18, 30)
 	-- A trestle table with a lantern on it.
 	local folder = Builder.model(Builder.folder(ctx, "Dressing"), "CampTable")
@@ -276,8 +276,8 @@ local function oldBridge(ctx: Builder.Ctx)
 		)
 	end
 	-- Their last stand on the approach: barrels, sacks and a scrap pile by the abutment.
-	Builder.kit(ctx, { "EO_BarrelCluster" }, BRIDGE_X - 22, BRIDGE_Z - 8, 30)
-	Builder.kit(ctx, { "EO_SupplySacksMesh" }, BRIDGE_X - 24, BRIDGE_Z + 8, 160)
+	Builder.kit(ctx, { "EO_BarrelCluster" }, BRIDGE_X - 20, BRIDGE_Z - 12, 30)
+	Builder.kit(ctx, { "EO_SupplySacksMesh" }, BRIDGE_X - 20, BRIDGE_Z + 12, 160)
 	Builder.kit(ctx, { "EO_ScrapHeapClean" }, BRIDGE_X - 34, BRIDGE_Z - 10, 80)
 end
 
@@ -343,6 +343,22 @@ end
 
 -- Fill: woods and undergrowth in every gap --------------------------------------------------------
 
+-- The exits' rings (radius 9) stay clear of trees and props.
+local EXITS = {
+	V2(-41, -StrandedCaravan.half + 8),
+	V2(40, StrandedCaravan.half - 8),
+	V2(BRIDGE_X - 27, BRIDGE_Z + 1),
+}
+
+local function exitNear(x: number, z: number): boolean
+	for _, at in EXITS do
+		if (V2(x, z) - at).Magnitude < 13 then
+			return true
+		end
+	end
+	return false
+end
+
 local function clearOf(x: number, z: number): boolean
 	local here = V2(x, z)
 	return pathDistance(x, z) < 6.5
@@ -352,6 +368,7 @@ local function clearOf(x: number, z: number): boolean
 		or (here - LEAD_WRECK).Magnitude < 16
 		or (here - RIVERCAMP).Magnitude < 17
 		or (here - CUTTING).Magnitude < 20
+		or exitNear(x, z)
 end
 
 local function woods(ctx: Builder.Ctx)
@@ -384,7 +401,8 @@ local function woods(ctx: Builder.Ctx)
 	}
 	for count = 1, 230 do
 		local x, z = (rng:NextNumber() * 2 - 1) * (half - 4), (rng:NextNumber() * 2 - 1) * (half - 4)
-		if roadDistance(x, z) > 4 and riverDistance(x, z) > 10 and (V2(x, z) - CIRCLE).Magnitude > RING - 2 then
+		local open = roadDistance(x, z) > 4 and riverDistance(x, z) > 10 and not exitNear(x, z)
+		if open and (V2(x, z) - CIRCLE).Magnitude > RING - 2 then
 			Builder.kit(ctx, under[rng:NextInteger(1, #under)], x, z, rng:NextNumber() * 360, { solid = false })
 		end
 		if count % 60 == 0 then
@@ -481,10 +499,9 @@ local function markers(ctx: Builder.Ctx)
 	for _, at in hollows do
 		Builder.marker(ctx, "hollow", at.X, at.Y)
 	end
-	local half = StrandedCaravan.half
-	Builder.exit(ctx, "lead_trail", "Lead Wagon Trail", -41, -half + 8, 9, 0)
-	Builder.exit(ctx, "riverbank", "Riverbank", 40, half - 8, 9, 0)
-	Builder.exit(ctx, "old_bridge", "Old Bridge", BRIDGE_X - 27, BRIDGE_Z + 1, 9, 90)
+	Builder.exit(ctx, "lead_trail", "Lead Wagon Trail", EXITS[1].X, EXITS[1].Y, 9, 0)
+	Builder.exit(ctx, "riverbank", "Riverbank", EXITS[2].X, EXITS[2].Y, 9, 0)
+	Builder.exit(ctx, "old_bridge", "Old Bridge", EXITS[3].X, EXITS[3].Y, 9, 90)
 end
 
 function StrandedCaravan.build(ctx: Builder.Ctx)
