@@ -158,7 +158,7 @@ Nothing player-facing is done until it has all ten:
 | 8.8 | Targeted enemy name and HP bar at top centre, damage numbers | rec6 | S2 |
 | 8.9 | A collapsible quest tracker (the « button), and a level bar with the level number along the bottom edge | rec8 | S1 |
 | 8.10 | A bottom or side menu bar (Inventory, Crafting, Build, Quests, Shop, Social) with count and NEW badges on each icon | rec8 | S1 (Shop and Social in S3) |
-| 8.11 | Minimap showing your outpost layout and nearby points of interest | rec8 | S1 (home) / S2 (locations) |
+| 8.11 | **A smooth, live minimap** (the developer, 2026-11-08: "not smooth, doesn't update live... not acceptable"). It's a circular radar like LDoE's (rec1, rec6, rec8).<br>• **Background:** a pre-built image of each map, generated from that map's data (terrain zones, roads and paths, water, building footprints, fences), in the illustrated Fog-map style, drawn once at load via EditableImage or composed UI.<br>• **Smooth:** it pans every frame (RenderStepped) under a centred player arrow that rotates smoothly with facing. No stepping or jitter, at 60 fps.<br>• **Live icons, every frame:** Hollow dots (only when alerted or in sight), containers (searched ones dimmed), stations with ready badges, bags (red X), party members, and extraction or exit markers at the rim when off-radar.<br>• **Zoom:** mouse wheel over the minimap, or pinch.<br>• **Expand:** tap or click to open the full-screen map view.<br>• Home and the Neighbourhood (plots, Haven, Trailhead) and every Fog Run map. One shared component. | rec1, rec6, rec8 | S1b (component, home) / S2 (location data) |
 
 ## 9. World and atmosphere
 

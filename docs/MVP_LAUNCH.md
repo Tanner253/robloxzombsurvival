@@ -53,6 +53,19 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
     | Pack Expansion | 199 | Game pass |
     | VIP Lounge | 399 | Game pass (Haven Square) |
 
+  - **Equipment tab (added 2026-11-08 from rec8_sheet4,** LDoE's Equipment tab: Weapons $0.99, Genesis Weapon Pack $2.99 Hot, Special Forces $2.99, Rad Protection $1.99, Pack of Weapon Parts $1.99, Scout's Equipment $0.99, Heavy Equipment $24.99). Fixed contents, P2W accepted:
+
+    | SKU | Robux | Notes |
+    |---|---|---|
+    | Scout's Kit | 79 | Meds, dressings and a light melee weapon |
+    | Gunrunner Pack | 249 | Hot: Worn Pistol and Scrap Shotgun at full durability, plus a Trigger Group |
+    | Pack of Weapon Parts | 149 | The rare parts that gun and tool re-crafts need |
+    | Padded Armor Pack | 199 | The full Padded set |
+    | Raider Arms | 499 | The best v0.1 guns, Rail Mallet, Hidebound helmet and vest |
+    | Heavy Equipment | 2,499 | Big ticket: full Hidebound set, every v0.1 gun, top melee, meds stack |
+
+  - **Building tab capacity packs:** "+1 Smelter can be placed" 399 and "+1 Recycler" 399, following LDoE's "+1 max furnace can be placed".
+  - **No ammo (decided 2026-11-08, the developer: "we don't need ammo for guns, everything runs on durability").** As in LDoE, every gun's and bow's durability is its shot count. That removes ammo items, ammo recipes and the Ammo Press from v0.1. Gun durability and re-crafts are the sink, which also drives the gun packs.
   - **The price ladder for later SKUs:** 79 / 99 / 149 / 199 / 249 / 399 / 799 / 1,199 / 1,699 / 2,499 / 4,499 / 9,999 / 17,999.
   - **Shop UX:** Last Day on Earth card style (rec8). Purchases go to the inbox.
   - **Moment-of-need buttons:**
