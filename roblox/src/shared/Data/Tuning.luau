@@ -42,7 +42,8 @@ local Tuning: Types.TuningDef = {
 	survival = {
 		-- LDoE's numbers (LDOE_PARITY #33): both meters drain 1 point every 10 s while in
 		-- the world (about 17 min from full), an empty meter deals 2 HP/s, and the HUD
-		-- warns at 20. Death resets every meter to full.
+		-- warns at 20. A death (anywhere, Reset Character included) wakes you at exactly the
+		-- respawn values below, never full (the flow review's F-05): dying is not a meal.
 		hunger = {
 			max = 100,
 			decayPerSecond = 1 / 10,
@@ -60,9 +61,9 @@ local Tuning: Types.TuningDef = {
 		warnAt = 20,
 		regenThreshold = 60,
 		regenPerSecond = 0.1,
-		respawnHealth = 100,
-		respawnHunger = 100,
-		respawnThirst = 100,
+		respawnHealth = 50,
+		respawnHunger = 40,
+		respawnThirst = 40,
 		tickSeconds = 1,
 	},
 	combat = {

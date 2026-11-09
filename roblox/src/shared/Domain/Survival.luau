@@ -77,6 +77,19 @@ function Survival.resume(state: State, now: number): State
 	return { hunger = state.hunger, thirst = state.thirst, updatedAt = now }
 end
 
+-- What a respawn sets (Tuning.survival's respawn values).
+export type RespawnConfig = { respawnHealth: number, respawnHunger: number, respawnThirst: number }
+
+--[[
+	The meters and health after a death (the flow review's F-05): exactly the respawn
+	values, whatever they were before. Dying never refills a meter past them, so resetting
+	is not a meal, and a death at an empty meter still wakes with enough to eat or drink
+	before it bites again.
+]]
+function Survival.respawn(config: RespawnConfig, now: number): (State, number)
+	return { hunger = config.respawnHunger, thirst = config.respawnThirst, updatedAt = now }, config.respawnHealth
+end
+
 -- Seconds within `elapsed` that a meter starting at `value` and draining at
 -- `rate` spends at or below `level`.
 local function secondsAtOrBelow(value: number, rate: number, elapsed: number, level: number): number
