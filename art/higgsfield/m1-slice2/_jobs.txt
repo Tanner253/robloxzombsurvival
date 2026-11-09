@@ -32,3 +32,4 @@ image fog_map_v1 c157368b-5b3d-4c4e-b072-1441b4ee41f5 (2.75)
 # Flare pistol, photoreal (authorised: one generation). gpt_image_2_6 high 2k 3:2, then tripo image-to-3D.
 image flare_pistol_photo_v2 c197d301-3608-4b4d-8465-c46338a5026f (2.75)
 3d flare_pistol_photo_v2 f9564805-e3a9-4b85-9439-ccd47493a050 (12) from image job c197d301
+image caravan_painted_v1 540607c8-03c9-4c0a-9e81-a49dd62df004 (2.75) style ref fog_map_v1; used for the Caravan landmark sprite and panel art

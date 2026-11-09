@@ -117,6 +117,7 @@ FogRegions.list = {
 			{ sprite = "quarry", at = V2(0.85, 0.25), width = 0.28 },
 			{ sprite = "railcars", at = V2(0.86, 0.47), width = 0.15, rotation = -12 },
 			{ sprite = "outpost", at = V2(0.485, 0.77), width = 0.16 },
+			{ sprite = "caravan", at = V2(0.29, 0.585), width = 0.15 },
 			{ sprite = "cliff", at = V2(0.94, 0.66), width = 0.1 },
 			{ sprite = "cliff", at = V2(0.72, 0.66), width = 0.08 },
 		},

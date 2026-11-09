@@ -620,6 +620,7 @@ Art.fogMap = {
 		quarry = "rbxassetid://92598748095092",
 		railcars = "rbxassetid://77219659895404",
 		town = "rbxassetid://114224405252566",
+		caravan = "rbxassetid://107928089189056",
 		trees1 = "rbxassetid://123655961716432",
 		trees2 = "rbxassetid://132728099422417",
 		trees3 = "rbxassetid://123407507301838",
@@ -632,6 +633,7 @@ Art.fogMap = {
 		quarry = 569 / 768,
 		railcars = 222 / 512,
 		town = 395 / 768,
+		caravan = 362 / 512,
 		cliff = 174 / 256,
 		trees1 = 213 / 256,
 		trees2 = 204 / 256,
@@ -641,12 +643,12 @@ Art.fogMap = {
 	} :: { [string]: number },
 	-- Each location's panel and loading-screen art: its corner of the painted map
 	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin). The Stranded
-	-- Caravan, not on the painting, uses a render of its built map at dusk.
+	-- Caravan, not on the painting, has its own painted piece in the same style.
 	art = {
 		["loc.pine_hollow"] = "rbxassetid://80424846897012",
 		["loc.sunken_quarry"] = "rbxassetid://78393149598495",
 		["loc.ashfall_depot"] = "rbxassetid://114701602305172",
-		["loc.stranded_caravan"] = "rbxassetid://107008535507654",
+		["loc.stranded_caravan"] = "rbxassetid://137407895553916",
 	} :: { [string]: string },
 }
 
