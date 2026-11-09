@@ -78,13 +78,14 @@ function Map.plane(position: Vector3): { x: number, z: number }
 end
 
 -- Snaps a ground-plane point to the terrain or floor below it (for server-side Hollow).
-function Map.ground(x: number, z: number, fallbackY: number, exclude: { Instance }): Vector3
+function Map.ground(x: number, z: number, fallbackY: number, exclude: { Instance }, stepUp: number?): Vector3
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = exclude
 	params.RespectCanCollide = true
-	-- From just above its feet (a step up at most), so a roof overhead never counts as ground.
-	local hit = workspace:Raycast(Vector3.new(x, fallbackY + 4, z), Vector3.new(0, -60, 0), params)
+	-- From just above its feet (a step up at most, 4 studs unless told), so a roof overhead
+	-- never counts as ground, nor (for the Hollow, 2.2) the bed of a parked truck.
+	local hit = workspace:Raycast(Vector3.new(x, fallbackY + (stepUp or 4), z), Vector3.new(0, -60, 0), params)
 	return if hit then hit.Position else Vector3.new(x, fallbackY, z)
 end
 

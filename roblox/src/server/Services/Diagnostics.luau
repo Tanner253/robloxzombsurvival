@@ -20,6 +20,8 @@
 	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("energy", n) sets Energy,
 	  ("meter", seconds) ages your lobby by that long, ("looted", n) counts n container
 	  searches toward the location quests.
+	  ("navprobe", locationId, enemyId?, trips?) walks virtual Hollow over a built map
+	  (checklist 12.9); run it with no lobby open.
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -124,6 +126,13 @@ local function devCommand(command: string, ...: any): any
 	elseif command == "extract" then
 		Lobby.extract(player)
 		return "ok"
+	elseif command == "navprobe" then
+		-- Checklist 12.9's nav probe on one built map: ("navprobe", locationId, enemyId?, trips?).
+		local map = require("./RunWorld").map(args[1])
+		if map == nil then
+			return "no map"
+		end
+		return require("./Hollow").navProbe(map, args[2] or "enemy.shambler", args[3] or 40)
 	elseif command == "looted" then
 		-- As if the survivor finished searching a container here (location quest checks).
 		local run = Lobby.runOf(player)

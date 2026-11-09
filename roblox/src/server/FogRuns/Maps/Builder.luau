@@ -598,7 +598,9 @@ function Builder.kit(ctx: Ctx, names: { string }, x: number, z: number, yaw: num
 		frame *= CFrame.Angles(0, 0, math.rad(opts.pitch))
 	end
 	placed:PivotTo(frame)
-	local solid = opts.solid ~= false
+	-- A tree (canopy) collides only at its trunk (checklist 12.9: its mesh's box spanned the
+	-- whole crown, an invisible wall that also swallowed Hollow spawn points).
+	local solid = opts.solid ~= false and not opts.canopy
 	for _, descendant in placed:GetDescendants() do
 		if descendant:IsA("BasePart") then
 			descendant.CanCollide = solid
@@ -607,6 +609,20 @@ function Builder.kit(ctx: Ctx, names: { string }, x: number, z: number, yaw: num
 	end
 	if opts.canopy then
 		CollectionService:AddTag(placed, Builder.CANOPY_TAG)
+		local size = placed:GetExtentsSize()
+		local trunk = Instance.new("Part")
+		trunk.Name = "Collider"
+		trunk.Shape = Enum.PartType.Cylinder
+		local width = math.clamp(math.min(size.X, size.Z) * 0.1, 1, 2.4)
+		local height = math.min(size.Y, 8)
+		trunk.Size = Vector3.new(height, width, width)
+		trunk.CFrame = frame * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+		trunk.Anchored = true
+		trunk.CanCollide = opts.solid ~= false
+		trunk.CanTouch = false
+		trunk.Transparency = 1
+		trunk.CastShadow = false
+		trunk.Parent = placed
 	end
 	placed.Parent = opts.parent or Builder.folder(ctx, "Dressing")
 	Builder.breathe(ctx, 4)
@@ -822,7 +838,8 @@ local function exitFlare(ctx: Ctx, holder: Model, x: number, z: number)
 			base * CFrame.new(math.cos(angle) * 0.75, 0.15, math.sin(angle) * 0.75) * CFrame.Angles(0, angle, 0.2),
 			"rubble",
 			"Stone"
-		)
+		).CanCollide =
+			false
 	end
 end
 
@@ -1286,6 +1303,35 @@ function Builder.building(ctx: Ctx, spec: BuildingSpec): Building
 	for _, side in { "N", "S", "E", "W" } do
 		wallSide(ctx, building, base, spec, side :: any, height)
 	end
+	-- A ramp up to each doorway whose sill stands proud of the ground outside (checklist
+	-- 12.9: the nav probe found Hollow shut in by a 1.2-stud step; survivors hopped it).
+	for _, opening in spec.openings do
+		if opening.kind ~= "window" then
+			local info = SIDES[opening.side]
+			local offset = if info.axis == "X" then spec.depth / 2 else spec.width / 2
+			local along = (if info.axis == "X" then Vector3.xAxis else Vector3.zAxis) * opening.at
+			local w = opening.width or DOOR_W
+			local floorTop = base.Position.Y + 0.2
+			local run = 3
+			local far = base * (info.normal * (offset + 0.5 + run) + along)
+			local farGround = ctx.origin.Y + ctx.groundHeight(far.X - ctx.origin.X, far.Z - ctx.origin.Z)
+			local rise = floorTop - farGround
+			if rise > 0.5 then
+				run = math.max(3, rise * 2.4)
+				local outward: Vector3 = base:VectorToWorldSpace(info.normal)
+				local foot = base * (info.normal * (offset + 0.5) + along)
+				local centre = Vector3.new(foot.X, farGround + rise / 2, foot.Z) + outward * (run / 2)
+				local ramp = Instance.new("WedgePart")
+				ramp.Name = "DoorRamp"
+				ramp.Size = Vector3.new(w + 0.6, rise, run)
+				ramp.CFrame = CFrame.lookAt(centre, centre + outward)
+				ramp.Anchored = true
+				ramp.CanTouch = false
+				Builder.paint(ramp, "concreteDark")
+				ramp.Parent = building
+			end
+		end
+	end
 	-- Corner posts in trim.
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
@@ -1519,7 +1565,7 @@ function Builder.rubble(ctx: Ctx, x: number, z: number, radius: number, paint: s
 			if ctx.rng:NextNumber() < 0.2 then "trim" else (paint or "rubble"),
 			"Chunk"
 		)
-		chunk.CanCollide = s > 1.2
+		chunk.CanCollide = s > 1.7 -- only the big pieces: a survivor walks over the chips (12.9)
 	end
 	Builder.breathe(ctx, radius * 2.5)
 end
@@ -1858,14 +1904,17 @@ function Builder.leanTo(
 			"Rope"
 		)
 		rope.CanCollide = false
-		Builder.part(folder, Vector3.new(0.3, 0.6, 0.3), base * CFrame.new(sign * 9, 0.3, -3.5), "trim", "Peg")
+		-- Tent pegs are scatter: nothing snags on them (12.9).
+		Builder.part(folder, Vector3.new(0.3, 0.6, 0.3), base * CFrame.new(sign * 9, 0.3, -3.5), "trim", "Peg").CanCollide =
+			false
 		Builder.part(
 			folder,
 			Vector3.new(0.3, 0.6, 0.3),
 			base * CFrame.new(sign * 5.4, 0.3, -3.5 + reach),
 			"trim",
 			"Peg"
-		)
+		).CanCollide =
+			false
 	end
 	return base
 end

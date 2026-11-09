@@ -16,6 +16,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Builder = require("@self/Builder")
+local Map = require("./Map")
+
+local PathfindingService = game:GetService("PathfindingService")
 
 local Maps = {}
 
@@ -124,6 +127,7 @@ function Maps.build(locationId: string, runServer: boolean): Instance?
 	end
 	Builder.bounds(ctx)
 	Maps.checkNodes(root, locationId)
+	Maps.checkSpawns(root, locationId)
 	root:SetAttribute("Ready", true)
 	print(`[Maps] built {locationId} in {math.floor((os.clock() - started) * 10) / 10} s`)
 	return root
@@ -170,6 +174,36 @@ function Maps.checkNodes(root: Instance, locationId: string): boolean
 		return false
 	end
 	return true
+end
+
+--[[
+	Checklist 12.9: every Hollow spawn marker must have a way out. Each one is pathed to the
+	survivors' arrival point with the Hollow's agent; one with no path (shut in a building
+	with no way out) is marked Unreachable, never spawns, and is reported.
+]]
+function Maps.checkSpawns(root: Instance, locationId: string): number
+	local arrivals = Map.markers(root, "spawn")
+	local arrival: BasePart? = arrivals[1]
+	if arrival == nil then
+		return 0
+	end
+	local shut = 0
+	local agent = { AgentRadius = 1.0, AgentHeight = 5.5, AgentCanJump = true, WaypointSpacing = 5 }
+	for _, marker in Map.markers(root, "hollow") do
+		local path = PathfindingService:CreatePath(agent)
+		local ok = pcall(function()
+			path:ComputeAsync(marker.Position + Vector3.new(0, 1, 0), arrival.Position + Vector3.new(0, 1, 0))
+		end)
+		if not ok or path.Status ~= Enum.PathStatus.Success then
+			marker:SetAttribute("Unreachable", true)
+			shut += 1
+		end
+	end
+	if shut > 0 then
+		root:SetAttribute("ShutInSpawns", shut)
+		warn(`[Maps] {locationId}: {shut} Hollow spawn(s) have no way out and are skipped`)
+	end
+	return shut
 end
 
 -- Waits for a map another thread is building. nil after `timeout` seconds.

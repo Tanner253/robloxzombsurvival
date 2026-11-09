@@ -199,7 +199,7 @@ local Tuning: Types.TuningDef = {
 	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the
 	-- recipes, station and remotes tagged with it are left out of the game entirely.
 	features = {
-		fogRuns = false,
+		fogRuns = true,
 		aiRaiders = false, -- M2
 		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
 		-- M4 (docs/MVP_LAUNCH.md): built and tested on the server, no client UI yet. Off, Dense
