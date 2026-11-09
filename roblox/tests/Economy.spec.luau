@@ -59,9 +59,10 @@ return function(test: TestKit.Register)
 
 	test("home starts with enough for the hook: tools, the first stations, a patched shelter", function()
 		-- ECONOMY §5.4's hook: the stone tools, the satchel, a Campfire, 2 Timber
-		-- foundations and 2 walls, the Saw Bench, Stonecutter and Workbench. Planks, blocks
-		-- and cord are expanded through their recipes. The trail's rewards on the way count
-		-- (Claim the Ground's 10 timber and 4 cord, Tools of Survival's 6 fiber).
+		-- foundations and 2 walls, the Saw Bench, Stonecutter and Workbench, plus First
+		-- Light's Sharpened Stake. Planks, blocks and cord are expanded through their recipes.
+		-- The trail's rewards on the way count (Claim the Ground's 10 timber and 4 cord, Tools
+		-- of Survival's 6 fiber).
 		local need: { [string]: number } = {}
 		local function add(stacks: { { itemId: string, count: number } }, times: number)
 			for _, stack in stacks do
@@ -81,6 +82,7 @@ return function(test: TestKit.Register)
 			add(Content.Recipes[recipeId].inputs, math.ceil((hits[kind] or 0) / (tool.durability :: number)))
 		end
 		add(Content.Recipes["recipe.satchel"].inputs, 1)
+		add(Content.Recipes["recipe.sharpened_stake"].inputs, 1)
 		for id, count in
 			{
 				["build.campfire"] = 1,

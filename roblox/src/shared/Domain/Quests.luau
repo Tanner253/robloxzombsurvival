@@ -21,6 +21,14 @@
 	(ECONOMY §6.2: once per UTC day), never once per lobby: a Rations reward that repeated
 	every lobby would refund the Run's Energy. PlayerData.locationQuests remembers the period
 	each one last paid (`locationQuestOpen`, `markLocationQuest`).
+
+	On top of that, all location quests together pay at most Tuning.energy.locationQuestRations
+	Trail Rations a UTC day per player, whatever their data says (the content parity audit's
+	BR-9: four dailies paid up to 5, more Energy than a day's regen). `payLocationQuest` is
+	the one call a payer makes: it marks the quest paid and returns its rewards with the
+	Rations cut to what the day has left; the rest of the reward is paid in full. The day's
+	tally needs no profile field: each quest the log marks for today paid its data Rations
+	cut to the cap's remainder, so in any order the total is min(cap, their sum).
 ]]
 
 local Types = require("../Types")
@@ -263,6 +271,95 @@ function Quests.markLocationQuest(
 	local result = table.clone(log)
 	result[questId] = Quests.periodOf(now, config)
 	return result
+end
+
+-- The daily Ration cap on location quests (Tuning.energy.locationQuestRations).
+export type RationCap = { itemId: Types.ItemId, perDay: number }
+
+-- What a finished location quest pays (`payLocationQuest`).
+export type LocationPayout = {
+	log: LocationQuestLog, -- the log with this quest marked paid for the period
+	rewards: Types.QuestRewards, -- the quest's rewards with its Rations cut to the cap
+	withheld: number, -- Rations the cap kept back
+}
+
+-- Every location quest by ID (each location keeps its own on `run.quests`).
+function Quests.locationQuestDefs(locations: { [string]: Types.LocationDef }): { [string]: Types.LocationQuest }
+	local defs: { [string]: Types.LocationQuest } = {}
+	for _, location in locations do
+		local run = location.run
+		for _, quest in (if run then run.quests else {}) :: { Types.LocationQuest } do
+			defs[quest.id] = quest
+		end
+	end
+	return defs
+end
+
+local function countOf(items: { Types.ItemStack }?, itemId: string): number
+	local total = 0
+	for _, stack in (items or {}) :: { Types.ItemStack } do
+		if stack.itemId == itemId then
+			total += stack.count
+		end
+	end
+	return total
+end
+
+-- The capped Rations the location quests in `log` paid in `now`'s period: min(cap, the sum
+-- of the data Rations of every quest the log marks for that period). `defs` is
+-- `locationQuestDefs` of the content; a quest no longer in it counts as none.
+function Quests.locationRationsPaid(
+	log: LocationQuestLog,
+	defs: { [string]: Types.LocationQuest },
+	now: number,
+	config: { period: "daily" },
+	cap: RationCap
+): number
+	local period = Quests.periodOf(now, config)
+	local total = 0
+	for questId, paid in log do
+		local def = defs[questId]
+		if paid == period and def then
+			total += countOf(def.rewards.items, cap.itemId)
+		end
+	end
+	return math.min(cap.perDay, total)
+end
+
+--[[
+	Pays a finished location quest at `now`: nil if it already paid this period, else the
+	log with it marked and the rewards to grant (XP and other items as the data has them;
+	its Rations cut to what the day's cap has left, and dropped once the cap is spent).
+]]
+function Quests.payLocationQuest(
+	log: LocationQuestLog,
+	quest: Types.LocationQuest,
+	defs: { [string]: Types.LocationQuest },
+	now: number,
+	config: { period: "daily" },
+	cap: RationCap
+): LocationPayout?
+	if not Quests.locationQuestOpen(log, quest.id, now, config) then
+		return nil
+	end
+	local left = math.max(0, cap.perDay - Quests.locationRationsPaid(log, defs, now, config, cap))
+	local wanted = countOf(quest.rewards.items, cap.itemId)
+	local items: { Types.ItemStack } = {}
+	for _, stack in (quest.rewards.items or {}) :: { Types.ItemStack } do
+		if stack.itemId ~= cap.itemId then
+			table.insert(items, { itemId = stack.itemId, count = stack.count })
+		elseif left > 0 then
+			local count = math.min(stack.count, left)
+			left -= count
+			table.insert(items, { itemId = stack.itemId, count = count })
+		end
+	end
+	local paid = countOf(items, cap.itemId)
+	return {
+		log = Quests.markLocationQuest(log, quest.id, now, config),
+		rewards = { xp = quest.rewards.xp, items = items, energy = quest.rewards.energy },
+		withheld = wanted - paid,
+	}
 end
 
 -- The tracker (#50): up to `limit` active quests that can progress, in trail order, each

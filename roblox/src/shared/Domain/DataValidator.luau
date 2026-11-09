@@ -1005,7 +1005,16 @@ local function checkLevels(errors: Errors, content: Types.Content)
 	end
 end
 
+-- Whether an objective waits on a Tuning.features flag that is off. Domain/Quests leaves it
+-- out of play, and Shared/Features may have stripped the recipe or piece it names with it
+-- (Features.spec validates the bundle with every flag on, so a typo there still fails).
+local function dormantObjective(content: Types.Content, objective: Types.QuestObjective): boolean
+	local flag = objective.flag
+	return flag ~= nil and (content.Tuning.features :: any)[flag] == false
+end
+
 local function checkObjective(errors: Errors, content: Types.Content, where: string, objective: Types.QuestObjective)
+	local dormant = dormantObjective(content, objective)
 	if objective.kind == "gather" or objective.kind == "consume" then
 		checkItemRef(errors, content, where, objective.itemId)
 	elseif objective.kind == "equip" then
@@ -1016,11 +1025,11 @@ local function checkObjective(errors: Errors, content: Types.Content, where: str
 			push(errors, `{where}: '{objective.itemId}' can't be equipped`)
 		end
 	elseif objective.kind == "craft" then
-		if content.Recipes[objective.recipeId] == nil then
+		if content.Recipes[objective.recipeId] == nil and not dormant then
 			push(errors, `{where}: unknown recipe '{objective.recipeId}'`)
 		end
 	elseif objective.kind == "build" then
-		if content.BuildPieces[objective.pieceId] == nil then
+		if content.BuildPieces[objective.pieceId] == nil and not dormant then
 			push(errors, `{where}: unknown build piece '{objective.pieceId}'`)
 		end
 	elseif objective.kind == "travel" then
@@ -1099,8 +1108,16 @@ local function checkQuests(errors: Errors, content: Types.Content)
 		if prerequisite and prerequisite.order >= quest.order then
 			push(errors, `{where}: comes before its prerequisite on the trail`)
 		end
-		-- Playable in order: what it asks you to craft or build is unlocked before it opens.
+		-- Playable in order: what it asks you to craft or build is unlocked by a quest on its
+		-- own chain, or by one earlier on the trail (a side line, such as Hold the Door's Post
+		-- Lantern for chapter 3, that the player has finished long before; the order check
+		-- above keeps an earlier quest from waiting on this one).
 		local done = ancestors(content, quest)
+		for otherId, other in content.Quests do
+			if other.order < quest.order then
+				done[otherId] = true
+			end
+		end
 		for index, objective in quest.objectives do
 			local objectiveWhere = `{where}.objectives[{index}]`
 			if objective.kind == "craft" then
@@ -1443,6 +1460,11 @@ local function checkTuning(errors: Errors, content: Types.Content)
 	end
 	if energy.levelUpRestore < 0 or energy.foodDailyCap < 0 then
 		push(errors, "Tuning.energy: levelUpRestore and foodDailyCap must not be negative")
+	end
+	local rations = energy.locationQuestRations
+	checkItemRef(errors, content, "Tuning.energy.locationQuestRations", rations.itemId)
+	if not (isPositiveInteger(rations.perDay) or rations.perDay == 0) then
+		push(errors, "Tuning.energy.locationQuestRations: perDay must be a whole number, 0 or more")
 	end
 	if not isPositiveInteger(inventory.pocketSlots) or inventory.backpackSlots > inventory.maxBackpackSlots then
 		push(errors, "Tuning.inventory: need pocketSlots >= 1 and backpackSlots <= maxBackpackSlots")

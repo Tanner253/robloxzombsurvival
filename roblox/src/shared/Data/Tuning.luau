@@ -19,6 +19,10 @@ local Tuning: Types.TuningDef = {
 		hardCap = 400,
 		levelUpRestore = 20,
 		foodDailyCap = 40,
+		-- The content parity audit's BR-9: all location quests together pay at most this many
+		-- Trail Rations (60 Energy each) a UTC day per player, whatever their data says, so
+		-- the dailies can't out-earn the day's regen (Domain/Quests.payLocationQuest).
+		locationQuestRations = { itemId = "item.rations", perDay = 2 },
 	},
 	inventory = {
 		pocketSlots = 10, -- LDoE's 10 pockets
