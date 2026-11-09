@@ -511,8 +511,17 @@ function Models.node(def: Types.ResourceNodeDef, _rng: Random): Model?
 	if height > 0.01 then
 		model:ScaleTo(model:GetScale() * art.height / height)
 	end
-	if art.sink then
-		model.WorldPivot = model.WorldPivot * CFrame.new(0, art.sink, 0)
+	if art.tint then
+		local tint = art.tint
+		for _, part in model:GetDescendants() do
+			if part:IsA("SurfaceAppearance") then
+				pcall(function()
+					(part :: any).Color = tint
+				end)
+			elseif part:IsA("BasePart") and part:FindFirstChildOfClass("SurfaceAppearance") == nil then
+				part.Color = Color3.new(part.Color.R * tint.R, part.Color.G * tint.G, part.Color.B * tint.B)
+			end
+		end
 	end
 	addCollider(model, def.id)
 	return model

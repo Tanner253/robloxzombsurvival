@@ -98,7 +98,13 @@ Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_S
 
 -- `sink` (studs) settles a model into the ground; `clump` stems of a thin plant grow as
 -- one bush, each turned and offset (CLUMP below), the way LDoE's bushes read round.
-export type NodeArt = { names: { string }, height: number, sink: number?, clump: number? }
+export type NodeArt = {
+	names: { string },
+	height: number,
+	sink: number?,
+	clump: number?,
+	tint: Color3?, -- a retint of the base model (its SurfaceAppearance colour)
+}
 Art.nodes = {
 	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
 	["node.boulder"] = { names = { "EO_RockCluster" }, height = 3.1, sink = 0.3 },
@@ -111,6 +117,22 @@ Art.nodes = {
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 3 },
 	["node.scrap_heap"] = { names = { "EO_ScrapHeapClean" }, height = 3.8 },
 	["node.ashroot_mound"] = { names = { "AshrootMound" }, height = 1.6 },
+	-- ECONOMY §1 ores: free retints of the A-grade rock cluster, rust-red and copper-green.
+	["node.ironstone_rock"] = {
+		names = { "EO_RockCluster" },
+		height = 3.3,
+		sink = 0.3,
+		tint = Color3.fromRGB(214, 138, 108),
+	},
+	["node.malachite_vein"] = {
+		names = { "EO_RockCluster" },
+		height = 3.0,
+		sink = 0.3,
+		tint = Color3.fromRGB(132, 194, 158),
+	},
+	-- Ironbark (ECONOMY §1.1): the broadleaf hardwood. Interim: the orchard's A-grade
+	-- broadleaf, darkened, until the oak-like model is approved.
+	["node.ironbark_tree"] = { names = { "EO_AppleTree" }, height = 18, tint = Color3.fromRGB(150, 142, 124) },
 } :: { [string]: NodeArt }
 
 -- Clump stems: { x, z offset as a share of the stem's width, turn in degrees, scale }.
