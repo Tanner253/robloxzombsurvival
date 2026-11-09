@@ -15,6 +15,10 @@
 	  ("quests", order?) completes every Ember Trail quest up to that order (default all),
 	  unlocking their blueprints, as a playtest shortcut (no rewards are paid).
 	  ("clock", hours).
+	  Fog Runs: ("fogrun", locationId) queues a run there at once (no Trailhead walk),
+	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
+	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("energy", n) sets Energy,
+	  ("meter", seconds) ages your lobby by that long.
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -32,6 +36,8 @@ local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
+local Lobby = require("./Lobby")
+local Energy = require("./Energy")
 local Materials = require("./Materials")
 local Progression = require("./Progression")
 local Scenery = require("./Scenery")
@@ -95,7 +101,71 @@ local function devCommand(command: string, ...: any): any
 		return "no player"
 	end
 	local args = { ... }
-	if command == "place" or command == "upgrade" then
+	if command == "fogrun" then
+		Lobby.enqueue({ player }, args[1], args[2] or "run")
+		return "queued"
+	elseif command == "runstate" then
+		local run = Lobby.runOf(player)
+		if run == nil then
+			return "no run"
+		end
+		local band, def = Lobby.band(run.hosted)
+		return {
+			location = run.hosted.location.id,
+			lobby = run.hosted.id,
+			band = band,
+			bandName = def.name,
+			players = #Lobby.playersIn(run.hosted),
+			kills = run.stats.kills,
+			containers = run.stats.containers,
+			map = if run.hosted.map then run.hosted.map:GetFullName() else "none",
+		}
+	elseif command == "extract" then
+		Lobby.extract(player)
+		return "ok"
+	elseif command == "die" then
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Health = 0
+		end
+		return "ok"
+	elseif command == "equip" then
+		local data = PlayerData.get(player)
+		local item = Content.Items[args[1]]
+		if data == nil or item == nil then
+			return "no such item"
+		end
+		local key = if args[2] == 2 then "weapon2" else "weapon"
+		local equipment = data.inventory.equipment :: any
+		equipment[key] = { itemId = item.id, count = 1, durability = item.durability }
+		Sync.mark(player, "inventory")
+		return "ok"
+	elseif command == "energy" then
+		local state, config = Energy.state(player)
+		if state == nil then
+			return "no energy"
+		end
+		local now = workspace:GetServerTimeNow()
+		Energy.set(
+			player,
+			{ value = math.clamp(args[1], 0, config.hardCap or config.cap), updatedAt = now } :: any,
+			0,
+			"Dev"
+		)
+		return "ok"
+	elseif command == "meter" then
+		local run = Lobby.runOf(player)
+		if run == nil then
+			return "no run"
+		end
+		local state: any = run.hosted.state
+		for key, value in state do
+			if type(value) == "number" and (string.find(key, "At$") or key == "now") then
+				state[key] = value - args[1]
+			end
+		end
+		return "aged"
+	elseif command == "place" or command == "upgrade" then
 		Building.lastDenied[player] = nil
 		if command == "place" then
 			Building.place(player, args[1], args[2], args[3], args[4], args[5])

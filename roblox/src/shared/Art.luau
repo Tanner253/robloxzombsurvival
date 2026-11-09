@@ -37,6 +37,7 @@ Art.pieces = {
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
+	["build.ammo_press"] = { "EO_AmmoPress" }, -- press on a scrap bench (Studio mesh generator)
 } :: { [string]: { string } }
 
 -- Foundation decks per tier (1 wood, 2 scrap, 3 reinforced): a MaterialVariant on its
@@ -185,6 +186,25 @@ Art.approved = {
 	EO_WorkbenchP2 = true,
 	-- Loose fieldstones (floaters removed by the gate): the home stone source (capture 121).
 	EO_LooseStonesClean = true,
+	-- Ammo Press (13.12): cast-iron press, lever and powder can on a plank bench (slice 2B).
+	EO_AmmoPress = true,
+	-- Fog Run props from the slice 2 family sheets (lineup 2026-11-08: weathered, rusted,
+	-- floater gate clean).
+	EO_SedanWreck = true,
+	EO_PickupWreck = true,
+	EO_VanWreck = true,
+	EO_TractorWreck = true,
+	EO_AppleTree = true,
+	EO_HayBales = true,
+	EO_Boxcar = true,
+	EO_FuelPump = true,
+	-- Weapons (realistic per the developer, 2026-11-08): Zona's service pistol (CC0) and
+	-- sawn-off (CC-BY), its machete (CC0); our fire axe and shortbow.
+	EO_WornPistol = true,
+	EO_ScrapShotgun = true,
+	EO_Machete = true,
+	EO_FireAxe = true,
+	EO_Shortbow = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -218,6 +238,22 @@ Art.uploaded = {
 	EO_ReedsClean = { id = 106633992505764, yaw = 0, axis = "Y", size = 4.2 },
 	EO_EmberBushClean = { id = 106896648014033, yaw = 0, axis = "Y", size = 4 },
 	EO_ScrapHeapClean = { id = 89747869389109, yaw = 0, axis = "Y", size = 3.8 },
+	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
+	-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
+	EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
+	EO_PickupWreck = { id = 112415392425301, yaw = 90, axis = "X", size = 16 },
+	EO_VanWreck = { id = 75377164376070, yaw = 0, axis = "X", size = 16 },
+	EO_TractorWreck = { id = 138754378882219, yaw = 0, axis = "X", size = 11 },
+	EO_AppleTree = { id = 119281991299964, yaw = 0, axis = "Y", size = 15 },
+	EO_HayBales = { id = 98372468469042, yaw = 90, axis = "X", size = 7 },
+	EO_Boxcar = { id = 133928155401070, yaw = 90, axis = "Y", size = 14 },
+	EO_FuelPump = { id = 130764128762105, yaw = 0, axis = "Y", size = 6 },
+	-- Held weapons (scaled again to Art.held lengths in the hand).
+	EO_WornPistol = { id = 137577727330156, yaw = 0, axis = "Y", size = 1 },
+	EO_ScrapShotgun = { id = 72894953650046, yaw = 0, axis = "Y", size = 1 },
+	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
+	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
+	EO_Shortbow = { id = 104799057457758, yaw = 0, axis = "Z", size = 3 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean
@@ -268,6 +304,13 @@ Art.items = {
 	["item.timber"] = { "Gen_firewood" },
 	["item.satchel"] = { "Gen_backpack" },
 	["item.pack_frame"] = { "Raw_Backpack", "Gen_backpack" },
+	-- Fog Run weapons (slice 2B): realistic guns and the machete from the Zona sources
+	-- (CREDITS.md), the fire axe and shortbow from the slice 2 family sheets.
+	["item.pipe_pistol"] = { "EO_WornPistol" },
+	["item.scrap_shotgun"] = { "EO_ScrapShotgun" },
+	["item.machete"] = { "EO_Machete" },
+	["item.fire_axe"] = { "EO_FireAxe" },
+	["item.shortbow"] = { "EO_Shortbow" },
 } :: { [string]: { string } }
 
 -- How each held item sits in the fist and on the body (checklist 1.5, 1.5b).
@@ -281,6 +324,9 @@ export type HeldArt = {
 	grip: number,
 	length: number,
 	holster: "back" | "belt",
+	-- Guns: how far the fist sits off the barrel line toward `edge` (down), as a share of
+	-- the gun's size along it (a pistol's grip hangs below the slide).
+	drop: number?,
 }
 
 Art.held = {
@@ -310,6 +356,47 @@ Art.held = {
 		edge = Vector3.new(0, -1, 1),
 		grip = 0.12,
 		length = 2,
+		holster = "back",
+	},
+	-- Guns: `axis` is the muzzle direction (the fist points it forward) and `edge` the
+	-- gun's underside; `length` is the gun's length (realistic, about 1.3x life size
+	-- against the 5.6-stud survivor) and `grip` how far from the butt the fist holds.
+	["item.pipe_pistol"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.22,
+		length = 1.1,
+		holster = "belt",
+		drop = 0.28,
+	},
+	["item.scrap_shotgun"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.2,
+		length = 2.4,
+		holster = "back",
+		drop = 0.22,
+	},
+	["item.machete"] = {
+		axis = Vector3.new(0, 1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.12,
+		length = 2.3,
+		holster = "belt",
+	},
+	["item.fire_axe"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, 1, 0),
+		grip = 0.12,
+		length = 2.9,
+		holster = "back",
+	},
+	-- The bow faces the way the arrow flies, limbs upright (its depth is `length`).
+	["item.shortbow"] = {
+		axis = Vector3.new(0, -1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.5,
+		length = 0.95,
 		holster = "back",
 	},
 } :: { [string]: HeldArt }
@@ -390,6 +477,35 @@ Art.sounds = {
 	eerieBed = snd(9112795463, 0.35, { group = "ambience" }), -- PSE "Hollow Rumble 1"
 	musicDay = snd(9040514823, 0.3, { group = "music" }), -- APM "Campfire Embers 60"
 	musicNight = snd(1843721367, 0.35, { group = "music" }), -- APM "Low Drone 19"
+	-- Fog Runs (S2): Pro Sound Effects and APM library sounds, trimmed to one event.
+	pistolShot = snd(
+		9117396996,
+		1.1,
+		{ region = { 0, 0.9 }, variants = { snd(9117398114, 1.1, { region = { 0, 0.9 } }) } }
+	), -- PSE "Pistol Single Shots 1/11"
+	shotgunShot = snd(9112912106, 1.2, { region = { 0, 1.1 } }), -- PSE "12 Gauge Shotgun 1", the first blast only
+	flareLaunch = snd(9118591402, 1, { region = { 0, 1.4 } }), -- PSE "Rocket Flare Out 1"
+	reload = snd(9113104516, 1, { region = { 0, 1.4 } }), -- PSE "Ammo Magazine 4"
+	dryClick = snd(9117396530, 1, { region = { 0, 0.3 } }), -- PSE "Pistol Handling 1", one click
+	meleeSwing = snd(9120972321, 0.9, { variants = { snd(9120728815, 0.8, { region = { 0, 0.6 } }) } }), -- PSE whooshes
+	hitThud = snd(
+		9117969687,
+		0.9,
+		{ region = { 0, 0.6 }, variants = { snd(9117969717, 0.9, { region = { 0, 0.6 } }) } }
+	), -- PSE "Punch Kit Beefy Hit 2/3"
+	hollowAlert = snd(9125467848, 0.8, { variants = { snd(9113973128, 0.8) } }), -- PSE creature growls
+	hollowAttack = snd(9125475729, 0.8, { variants = { snd(9113985445, 0.7, { region = { 0, 1.2 } }) } }), -- PSE snarls
+	hollowDeath = snd(9113989919, 0.9, { variants = { snd(9113970887, 0.7, { region = { 0, 1.6 } }) } }), -- PSE hiss and dying breath
+	bloaterBurst = snd(9120628323, 1, { variants = { snd(9125640290, 0.9) } }), -- PSE wet splat, wheezy burst
+	bowDraw = snd(9125407496, 0.9), -- PSE "Bow Stretches Wood Creaking"
+	bowRelease = snd(9113166206, 0.9, { region = { 0, 1 } }), -- PSE "Arrow Out Whooshing Pass By 1"
+	arrowHit = snd(9113160887, 0.9, { region = { 0, 0.8 } }), -- PSE "Arrow In And Hit 14"
+	crateOpen = snd(9120881979, 1), -- PSE "Wood Groan Creak Opening Wood Chest"
+	lockerOpen = snd(9116646197, 0.9, { region = { 0, 1.2 } }), -- PSE "Metal Hinge Open Locker"
+	searchRummage = snd(9120189795, 0.8), -- PSE "Tool Box Rummage Searching Through 8"
+	extractStart = snd(9118027586, 0.8), -- PSE "Radio Static 9"
+	fogWarning = snd(9119077419, 0.6, { region = { 0, 3.5 } }), -- PSE "Ship Horn" (the Fog closing)
+	combatTension = snd(1835935180, 0.3, { group = "music" }), -- APM "Pulse Of Fear"
 } :: { [string]: SoundSpec }
 
 -- Empty equipment slots show a silhouette of what goes there (checklist 4.1): one
@@ -473,6 +589,92 @@ Art.glyphs = {
 	gift = "rbxassetid://118846511433792",
 	fill_up = "rbxassetid://113536503595888", -- FILL UP
 } :: { [string]: string }
+
+-- The Fog map (checklist 11.2): its pictures. The map itself is composed from data
+-- (Data/FogRegions): a painterly forest floor, meadow, rock and water patches, tree
+-- clusters, landmark pictures and fog, cut from the painted map or painted procedurally
+-- (art/ui/fogmap), plus each location's panel art.
+Art.fogMap = {
+	sprites = {
+		baseForest = "rbxassetid://97414314023366",
+		baseMeadow = "rbxassetid://79751982921449",
+		meadow = "rbxassetid://79899317439248",
+		rock = "rbxassetid://89764791083228",
+		water = "rbxassetid://105894592901020",
+		fog = "rbxassetid://73677404641188",
+		cliff = "rbxassetid://70405563344897",
+		farm = "rbxassetid://133327073008346",
+		outpost = "rbxassetid://133217511030439",
+		quarry = "rbxassetid://92598748095092",
+		railcars = "rbxassetid://77219659895404",
+		town = "rbxassetid://114224405252566",
+		trees1 = "rbxassetid://123655961716432",
+		trees2 = "rbxassetid://132728099422417",
+		trees3 = "rbxassetid://123407507301838",
+		trees4 = "rbxassetid://93611634724367",
+	} :: { [string]: string },
+	-- Each picture's height over its width (the files' shapes), so it keeps its aspect.
+	aspects = {
+		farm = 397 / 512,
+		outpost = 289 / 512,
+		quarry = 569 / 768,
+		railcars = 222 / 512,
+		town = 395 / 768,
+		cliff = 174 / 256,
+		trees1 = 213 / 256,
+		trees2 = 204 / 256,
+		trees3 = 279 / 256,
+		trees4 = 279 / 256,
+		fog = 1,
+	} :: { [string]: number },
+	-- Each location's panel and loading-screen art: its corner of the painted map
+	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin). The Stranded
+	-- Caravan, not on the painting, uses a render of its built map at dusk.
+	art = {
+		["loc.pine_hollow"] = "rbxassetid://80424846897012",
+		["loc.sunken_quarry"] = "rbxassetid://78393149598495",
+		["loc.ashfall_depot"] = "rbxassetid://114701602305172",
+		["loc.stranded_caravan"] = "rbxassetid://107008535507654",
+	} :: { [string]: string },
+}
+
+-- The Hollow's animations (checklist 13.1): R15 clips made with Studio's animation
+-- generator and published as the creator's own assets, played on each kind's rig
+-- (ReplicatedStorage.EO_Hollow.<enemyId>) by Controllers/HollowView.
+local SHAMBLE_IDLE = "rbxassetid://134064488942538" -- swaying, head lolling
+local SHAMBLE_WALK = "rbxassetid://95035190574951" -- hunched, dragging its feet
+local LUNGE = "rbxassetid://128684712386159" -- a two-armed downward claw
+local HIT = "rbxassetid://92048533093046" -- staggers back from a blow
+local COLLAPSE = "rbxassetid://78846833571776" -- knees buckle, face down
+local SPRINT = "rbxassetid://125564840299614" -- low, frantic
+local WADDLE = "rbxassetid://116620273303279" -- the bloater's heavy sway
+
+Art.hollowAnimations = {
+	["enemy.shambler"] = {
+		idle = SHAMBLE_IDLE,
+		walk = SHAMBLE_WALK,
+		run = SHAMBLE_WALK,
+		attack = LUNGE,
+		hit = HIT,
+		death = COLLAPSE,
+	},
+	["enemy.runner"] = {
+		idle = SHAMBLE_IDLE,
+		walk = SHAMBLE_WALK,
+		run = SPRINT,
+		attack = LUNGE,
+		hit = HIT,
+		death = COLLAPSE,
+	},
+	["enemy.bloater"] = {
+		idle = SHAMBLE_IDLE,
+		walk = WADDLE,
+		run = WADDLE,
+		attack = LUNGE,
+		hit = HIT,
+		death = COLLAPSE,
+	},
+} :: { [string]: { [string]: string } }
 
 -- The HUD meters' glyph names.
 Art.meterGlyphs = {

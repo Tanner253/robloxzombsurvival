@@ -18,6 +18,8 @@ Units: seconds, studs, chances 0–1. Pacing assumes a free player at about 2–
 | Black fog | about day 5–6 | level gate 15, plus the Depot tower (brass gears, springs, steel pipe from Dense runs) |
 | Reinforced tier | days 10–14 | unchanged; Black fog strongboxes still carry the plans |
 
+The signal towers and airdrops are M4 (docs/MVP_LAUNCH.md). They sit behind `Tuning.features.regionGates` and `.airdrops`, both off in v0.1: Dense and Black fog open on the level gate alone, and no airdrops land. The server logic and tests stay in place for M4.
+
 A paying player can compress the parts grind to day 1 with part packs (S3). Energy (LDOE_PARITY #38): cap 200, 1 point per 5 min, so a full bar plus a play session of regen is about 10 Dense Runs (22 each), or free Walks.
 
 ## Items
@@ -82,7 +84,7 @@ A full three-job Ammo Press queue of Light Rounds (18 rounds) is about one Dense
 
 | Node | Tool | Hits | Yield | Respawn | Placed at |
 |---|---|---|---|---|---|
-| node.niter_seam | pick 1 | 3 | 1 niter a hit | 10 m | Sunken Quarry (4), Ashfall Depot (6) |
+| node.niter_seam | pick 1 | 3 | 1 niter a hit | 10 m | Rustwater (4), Ashfall Depot (6) |
 
 ## The Hollow and wildlife
 
@@ -103,7 +105,7 @@ A sneaking player is seen from half as far and spooks deer from half as far (#44
 | Location | Tier | Gate | Run | Walk | Gear score | Exits | Spawns (band) | Location quest |
 |---|---|---|---|---|---|---|---|---|
 | Pine Hollow | Light | level 1 | 15 | 12 m | 40 | any edge (1.5 s) | shamblers 6–9; runners 0–2 (band 2); deer 2–3; wolves 1–2 | The Hunter's Trail: 2 deer → 150 XP, 1 Rations |
-| Sunken Quarry | Dense | level 8 + Quarry tower | 22 | 19 m | 90 | 2 of North Ramp, Conveyor Gate, Flooded Cut (8 s) | shamblers 8–10; runners 3–5; bloaters 1–2 (band 2) | Salt of the Stone: 6 niter → 300 XP, 1 Rations |
+| Rustwater (`loc.sunken_quarry`) | Dense | level 8 + Quarry tower | 22 | 19 m | 90 | 2 of North Road, Highway West, Creek Bridge (8 s) | shamblers 8–10; runners 3–5; bloaters 1–2 (band 2) | Cellar Salt: 6 niter → 300 XP, 1 Rations |
 | Ashfall Depot | Black | level 15 + Depot tower | 33 | 29 m | 140 | 2 of Rail Yard, Loading Dock, Signal Tower (8 s), plus the flare extract (30 s) | shamblers 8–12; runners 5–7; bloaters 2–3; runners 2–3 more (band 3) | Signal in the Ash: 5 containers → 500 XP, 2 Rations |
 | Stranded Caravan (rotating, 3 h in every 9 h) | Dense | level 8 + Quarry tower | 22 | 19 m | 110 | 2 of Lead Wagon Trail, Riverbank, Old Bridge | shamblers 6–8; runners 4–5; bloaters 1–2 (band 2) | What the Wagons Carried: 4 wagons → 400 XP, 1 Rations |
 | Supply Drop (airdrop pin) | Light | level 1 | 10 | 8 m | 60 | any edge | shamblers 4–6, runners 1–2, a bloater | — |
@@ -121,7 +123,7 @@ Container kinds and search times: packs 3 s, crates, cabinets, lockers and trunk
 | animal_wolf | 1 + 1 meat | hide 70, meat 30 | wolf |
 | airdrop_crate | 3–4 + 1 Rations | tins, dressings, light rounds, powder, plate, tonic, pipe, trigger group 5 | Supply Drop |
 | pine_band2 / pine_band3 | 0–1 / 1 | cloth, cord, arrows, a few light rounds / scrap, rivets, rounds, steel pipe 10 | Pine Hollow bands 2 and 3 |
-| quarry_band2 / quarry_band3 | 1 / 1–2 | niter, powder, rounds, pipe, **trigger group 8 / 14**, machete / fire axe | Sunken Quarry |
+| quarry_band2 / quarry_band3 | 1 / 1–2 | niter, powder, rounds, pipe, **trigger group 8 / 14**, machete / fire axe | Rustwater |
 | depot_band2 / depot_band3 | 1–2 / 1–2 | **trigger group 14 / 20**, powder, shells, flares / whole guns 3–6 each, pity: an epic gun every 10 opens | Ashfall Depot |
 | caravan_band2 / caravan_band3 | 1 / 1–2 | powder, flares, pipe, trigger group 15 / 25, flare pistol | Stranded Caravan |
 | road_light / road_dense / road_black | 1–2 | "found on the way": sticks, fiber, berries / scrap, fatwood, niter, junk / plate, niter, rivets, powder | each location's travel bonus |
@@ -182,3 +184,15 @@ Band loot is cumulative: a container searched in band 3 also rolls the band-2 ta
 - **Maps** following `server/FogRuns/Map.luau` (spawn, hollow, container, extract and bounds markers); all art, VFX and SFX; the Fog map, panels and loading screen.
 - **Slice 1/1b notes:** #33 survival rates and "food never restores Energy" live in slice 1 files (the MVP food items still restore a little Energy); the Doormat respawn and the meds and swap HUD buttons are UI work.
 - **Real teleports** verified on a private test place.
+
+## Phase B (slice 2B): what was built
+
+- **Rustwater** replaces the Sunken Quarry's look: the Dense map is an abandoned roadside town (the quarry moved to Ashfall Depot). The location ID stays `loc.sunken_quarry`. Its cabinets, lockers and car **trunks** (`loot.quarry_toolbox`) search in 5 s.
+- **Maps from code** (`server/FogRuns/Maps`): Pine Hollow (farmstead, barn, silo, orchard, hunter camp, woods), Rustwater (main street with a dozen enterable shops and houses, a garage, a chapel ruin, the gas station, the creek bridge), Ashfall Depot (five-bench quarry pit, rail yard, depot warehouse, signal tower, crusher). Three-layer terrain, MaterialVariants from `place/materials`, roofs that lift and canopies that fade, the marker contract, gatherable nodes that never regrow.
+- **The Hollow:** shambler, runner and bloater rigs (`place/kit/EO_Hollow.rbxm`, R15 with Motor6Ds) and generated clips (`Art.hollowAnimations`: idle, walk, sprint, waddle, attack, hit, death). Pathfinding steering with a straight-line fallback; client views with cyan eye light, fog wisps and the ash-and-ember dissolve.
+- **Combat client:** soft lock, light/heavy swings, shots with tracers and pellets, reload, dodge roll, hit numbers, the hurt edge; real Roblox SFX for every weapon, hit, Hollow cue, container and extraction (`Art.sounds`).
+- **Screens:** the painted Fog map with tier pins, the route, Run/Walk with Energy and Rations, location panels with art, the walk bar; the run minimap with the Fog meter, the target bar, search and extract bars, the arrival card, found-on-the-way, the loot pane in the two-pane inventory, the death screen with re-entry, the results card and the loading screen.
+- **Wiring:** one place, two server roles (`Teleport.role`); in Studio every lobby is simulated on the home server. Death drops a bag model; re-entry, extraction and the results all travel in the teleport's HomeData.
+
+**Still open:** the vehicle, farm and rail props and the held weapon models are generated and converted (`art/higgsfield/m1-slice2/glb`) but wait on an Open Cloud upload; real teleports are unverified on a published test place.
+

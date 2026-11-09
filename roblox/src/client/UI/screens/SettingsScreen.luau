@@ -2,14 +2,18 @@
 --[[
 	SettingsScreen (the gear button, or O): audio volumes, camera shake, UI size and
 	the key list (PLAYER_EXPERIENCE_CHECKLIST 8.6). Changes apply at once
-	(Controllers/Preferences) and are saved to the player's profile.
+	(Controllers/Preferences) and are saved to the player's profile. The right column
+	switches between the keys and the Credits (third-party assets, Data/Credits; a launch
+	requirement for CC-BY), by ui.settingsTab.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local PlayerSchema = require(ReplicatedStorage.Shared.Domain.PlayerSchema)
+local Credits = require(ReplicatedStorage.Shared.Data.Credits)
 local Actions = require("../../Actions")
+local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
 local Button = require("../components/Button")
@@ -168,11 +172,40 @@ local function SettingsScreen()
 	end
 	left.Scale = e(Row, { label = "Interface size", layoutOrder = 12 }, scaleButtons)
 
+	local showCredits = ui.settingsTab == "credits"
+	local function tab(text: string, which: string?, order: number): any
+		local active = (which == "credits") == showCredits
+		return e(Button, {
+			text = text,
+			variant = if active then "primary" else "secondary",
+			size = UDim2.fromOffset(120, 36),
+			layoutOrder = order,
+			onActivated = function()
+				if which then
+					State.patch({ settingsTab = which })
+				else
+					State.clear("settingsTab")
+				end
+			end,
+		})
+	end
+	-- The tab row keeps clear room under its buttons (their stroke and press scale).
+	local tabs = e("Frame", { Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1, LayoutOrder = 0 }, {
+		Layout = e("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		Keys = tab("Keys", nil, 1),
+		Credits = tab("Credits", "credits", 2),
+	})
+
 	local keys: { [string]: any } = {
 		Layout = e("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
-		Title = e(Label, { text = "KEYS", style = "section", tone = "accent", size = UDim2.new(1, 0, 0, 22) }),
+		Tabs = tabs,
 	}
-	for index, pair in KEYS do
+	local keyRows: { { string } } = if showCredits then {} else KEYS
+	for index, pair in keyRows do
 		keys[`K{index}`] = e("Frame", {
 			Size = UDim2.new(1, 0, 0, 24),
 			BackgroundTransparency = 1,
@@ -186,6 +219,36 @@ local function SettingsScreen()
 				size = UDim2.new(1, -124, 1, 0),
 				position = UDim2.fromOffset(124, 0),
 			}),
+		})
+	end
+	if showCredits then
+		for index, credit in Credits do
+			keys[`C{index}`] = e("Frame", {
+				Size = UDim2.new(1, 0, 0, 52),
+				BackgroundTransparency = 1,
+				LayoutOrder = index,
+			}, {
+				Title = e(Label, {
+					text = `{credit.usedAs}: "{credit.title}"`,
+					style = "body",
+					tone = "highlight",
+					size = UDim2.new(1, 0, 0, 24),
+				}),
+				By = e(Label, {
+					text = `by {credit.author}, {credit.licence} ({credit.source})`,
+					style = "caption",
+					tone = "muted",
+					size = UDim2.new(1, 0, 0, 22),
+					position = UDim2.fromOffset(0, 26),
+				}),
+			})
+		end
+		keys.Note = e(Label, {
+			text = "Everything else is original to Ember Outpost.",
+			style = "caption",
+			tone = "muted",
+			size = UDim2.new(1, 0, 0, 22),
+			layoutOrder = #Credits + 1,
 		})
 	end
 

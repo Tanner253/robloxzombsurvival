@@ -1,0 +1,31 @@
+# M1 slice 2B (Fog Runs) art jobs. Style anchors: slice-1 approved crops (media ids in ../m1-slice1/crops/_media_ids.json).
+# Sheets: gpt_image_2_6 quality=high resolution=2k (2.75 credits each).
+image hollow_sheet_v1 6430b226-5479-4d4d-b238-682631f4fd69 (2.75)
+image weapons_sheet_v1 315d7578-3602-4c6b-b66f-23db3d71a04a (2.75)
+image vehicles_sheet_v1 92f8860e-c942-4580-9290-69f88cc2188a (2.75)
+image farm_rail_sheet_v1 03c3eaf8-4ac5-4986-ba15-6b168b6a5624 (2.75)
+image icons_s2_a 460fac3d-ee95-4921-990e-7d6437436494 (2.75)
+image icons_s2_b 3e5e3238-f078-4734-8768-43ee5ccd9166 (2.75)
+# weapons_sheet_v1 job 315d7578 was refused by the image filter (no charge expected); re-prompted below.
+# Conversions: tripo_h3_1_image_to_3d face_limit=18000 texture=true pbr=true texture_quality=detailed
+# geometry_quality=standard texture_alignment=original_image (12 credits each), from crops/ (media ids)
+3d shambler e3e4f8fd-f46c-4625-a4f1-dc40b18ec705 (12) media b7c39b10-9420-40b3-a8a5-a44389f98ece
+3d runner 6605dbed-c346-45f0-84e2-6ef8a71f962d (12) media 492fbee2-16cf-4b94-b071-3ff801611436
+3d bloater 49cbb134-9610-4dae-a092-eb8fbb27580a (12) media 07beb3f9-1b0b-4e54-a0a6-408cdddc611e
+3d sedan_wreck 2a19da5b-4b83-4d64-9661-6b3624dab9b0 (12) media 49ff9d26-00ab-4dee-a1cc-863faef5db15
+3d pickup_wreck 90868361-a9bc-4790-a764-813ad3bc8c71 (12) media b6e0ba14-fab6-4f5f-ac8e-0f1000b2189a
+3d tractor_wreck 95a00ac1-508e-4b36-bcc4-651a15ebe1bf (12) media 1a8572e6-7ddd-452a-8bad-dcd34da12487
+3d van_wreck c4a5b414-0292-4ee8-967d-68f6ed4616ad (12) media baff8b24-82bd-4a09-a843-d8373c40db0a
+3d apple_tree 36136be3-6c68-40d3-ab38-cb3b94737a37 (12) media 439070af-5bc9-421f-94b9-e533bc15c7f2
+3d hay_bales 56c2127b-49cb-48cb-bd42-86b288971ad5 (12) media 65d3a4a8-8833-4f31-828b-4b7902f18c6a
+3d boxcar 0cc12d20-b0a6-4f6a-9d5b-294590ec6c4b (12) media b6f8d4d0-00cd-41d6-af12-af98d5c2352c
+3d fuel_pump 4dac4593-4070-404f-a521-9fb0142913bb (12) media ac0ca23e-c3f4-4a42-a2ca-05181a248486
+image weapons_tools_sheet_v1 912009e3-daa8-44c7-a7c6-9603c09c5ead (2.75)
+image weapons_guns_sheet_v1 6557efe3-a05d-407f-bb5c-8f83add53df4 (2.75)
+3d flare_pistol f21a80c4-9fe8-4b39-b55e-ff2dc1a37a3d (12) media ad6882c5-e843-4bea-b695-618c5b6e6f0a
+3d machete b1673a03-ce5a-4d9d-a193-b1efe8de7af0 (12) media fdb12e26-1273-4d61-8694-0eadbea9674d
+3d fire_axe 6215bba8-013e-49ea-a6c7-305293a4047a (12) media d34710a5-519f-43b4-9465-a4c2955b0f25
+3d shortbow 6016ccd6-0e04-42e3-ba29-c028fb74ac96 (12) media 77089127-3b31-46a3-8275-a6270dd1f25f
+3d pipe_pistol 3db0707a-3269-4c3e-b664-25c9e8807c2d (12) media b86f1608-ac33-479d-9509-d002c9ed6269
+3d scrap_shotgun 6f3ce37c-4bfe-4245-83b8-45776cb14189 (12) media a7b095c9-cd61-4dae-8746-e8aa00789810
+image fog_map_v1 c157368b-5b3d-4c4e-b072-1441b4ee41f5 (2.75)

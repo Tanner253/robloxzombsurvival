@@ -77,8 +77,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		},
 	},
 	["loc.sunken_quarry"] = {
-		id = "loc.sunken_quarry",
-		name = "Sunken Quarry",
+		id = "loc.sunken_quarry", -- the ID predates the map: it is the roadside town of Rustwater
+		name = "Rustwater",
 		fogTier = 2,
 		levelGate = 8,
 		energyCost = 22,
@@ -86,7 +86,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		reset = { kind = "onExit" },
 		availability = { kind = "always" },
 		containers = {
-			{ lootTableId = "loot.quarry_toolbox", count = { min = 2, max = 3 }, kind = "cabinet" },
+			{ lootTableId = "loot.quarry_toolbox", count = { min = 1, max = 2 }, kind = "cabinet" },
+			{ lootTableId = "loot.quarry_toolbox", count = { min = 1, max = 1 }, kind = "trunk" }, -- a car boot
 			{ lootTableId = "loot.quarry_locker", count = { min = 1, max = 2 }, kind = "locker" },
 		},
 		nodes = {
@@ -127,9 +128,9 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			extraction = {
 				kind = "points",
 				points = {
-					{ id = "north_ramp", name = "North Ramp" },
-					{ id = "conveyor_gate", name = "Conveyor Gate" },
-					{ id = "flooded_cut", name = "Flooded Cut" },
+					{ id = "north_ramp", name = "North Road" },
+					{ id = "conveyor_gate", name = "Highway West" },
+					{ id = "flooded_cut", name = "Creek Bridge" },
 				},
 				closeCount = 1,
 			},
@@ -141,8 +142,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			quests = {
 				{
 					id = "quest.quarry_salt_of_stone",
-					name = "Salt of the Stone",
-					description = "Scrape six Niter Crust from the Sunken Quarry's seams.",
+					name = "Cellar Salt",
+					description = "Scrape six Niter Crust from the damp cellars of Rustwater.",
 					objectives = { { kind = "gather", itemId = "item.niter", count = 6 } },
 					rewards = { xp = 300, items = { { itemId = "item.rations", count = 1 } } },
 				},
@@ -258,6 +259,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 		nodes = {
 			{ nodeId = "node.scrap_heap", count = 6 },
 			{ nodeId = "node.fatwood_stump", count = 4 },
+			{ nodeId = "node.pine_tree", count = 6 },
+			{ nodeId = "node.reed_patch", count = 4 },
 		},
 		enemySpawns = {
 			{ enemyId = "enemy.shambler", count = { min = 6, max = 8 } },

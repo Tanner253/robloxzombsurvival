@@ -650,8 +650,15 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 	end
 	weldable(model)
 	model:PivotTo(CFrame.identity)
-	local centre = model:GetBoundingBox().Position
+	local centreFrame, box = model:GetBoundingBox()
+	local centre = centreFrame.Position
 	local gripPoint = centre - axis * (length / 2) + axis * (grip * length)
+	-- A gun's grip hangs below its barrel line (Art.held `drop`).
+	local drop = if art then art.drop else nil
+	if drop then
+		local along = math.abs(edge.X) * box.X + math.abs(edge.Y) * box.Y + math.abs(edge.Z) * box.Z
+		gripPoint += edge * (drop * along)
+	end
 	local rotation = MOUNT_FRAMES[mount] * frame(axis, -edge):Inverse()
 	model.Name = itemId
 	return { model = model, rotation = rotation, gripPoint = gripPoint }

@@ -1,0 +1,12 @@
+{
+	"className": "MaterialVariant",
+	"properties": {
+		"BaseMaterial": "Plaster",
+		"ColorMap": "rbxassetid://83006589423528",
+		"NormalMap": "rbxassetid://105646844222331",
+		"RoughnessMap": "rbxassetid://130918739403108",
+		"MetalnessMap": "rbxassetid://116160835175794",
+		"MaterialPattern": "Organic",
+		"StudsPerTile": 8
+	}
+}

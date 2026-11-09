@@ -17,6 +17,9 @@
 	  and Map are reserved and switch on with their screens), the level bar "Lv N" with
 	  "+N xp" popping beside it, and a gap at the left for the docked chat bar.
 	- Top centre is reserved for the target bar (S2); toasts sit below it (Feed).
+	- On a Fog Run (S2) the minimap shows the location (exits, bags, Hollow) with the Fog
+	  meter under it in Craft and Build's place, the active weapon circle attacks (held,
+	  a gun keeps firing) and a gun shows its rounds loaded/carried.
 	- Pickups float as "+N [icon]" over the survivor, merging repeats (#9).
 
 	Each corner is one group laid out by UIListLayout; the groups are anchored to their own
@@ -45,6 +48,7 @@ local IconButton = require("../../components/IconButton")
 local ItemIcon = require("../../components/ItemIcon")
 local Layout = require("../../components/Layout")
 local Minimap = require("../../components/Minimap")
+local RunHud = require("../RunHud")
 
 local e = React.createElement
 local H = Theme.hud
@@ -56,6 +60,7 @@ local FULL_SCREEN: { [string]: boolean } = {
 	project = true,
 	crafting = true,
 	settings = true,
+	fogmap = true,
 }
 
 -- Top left: name, HP and the food and water warnings --------------------------------------------------
@@ -303,6 +308,9 @@ local function SunMoon()
 end
 
 local function TopRight()
+	local run = hooks.useSection("run")
+	local onRun = type(run) == "table"
+	local mapHeight = if onRun then H.minimap + RunHud.METER_HEIGHT else H.minimap
 	return e(Layout.Stack, {
 		gap = Theme.spacing.sm,
 		alignX = Enum.HorizontalAlignment.Right,
@@ -332,17 +340,22 @@ local function TopRight()
 				direction = "row",
 				gap = Theme.spacing.sm,
 				alignX = Enum.HorizontalAlignment.Right,
-				size = UDim2.new(1, 0, 0, H.minimap),
+				size = UDim2.new(1, 0, 0, mapHeight),
 				layoutOrder = 2,
 				children = {
 					Minimap = e("Frame", {
-						Size = UDim2.fromOffset(H.minimap, H.minimap),
+						Size = UDim2.fromOffset(H.minimap, mapHeight),
 						BackgroundTransparency = 1,
 						LayoutOrder = 1,
-					}, { Map = e(Minimap, { position = UDim2.fromScale(0, 0), anchorPoint = Vector2.zero }) }),
+					}, {
+						Map = if onRun
+							then e(RunHud.RunMinimap, { position = UDim2.fromScale(0, 0), anchorPoint = Vector2.zero })
+							else e(Minimap, { position = UDim2.fromScale(0, 0), anchorPoint = Vector2.zero }),
+					}),
 				},
 			}),
-			Buttons = e(Layout.Stack, {
+			-- Crafting and building wait at home; a run shows the Fog meter there instead.
+			Buttons = not onRun and e(Layout.Stack, {
 				gap = Theme.spacing.sm,
 				alignX = Enum.HorizontalAlignment.Right,
 				size = UDim2.new(1, 0, 0, Theme.tapTarget * 2 + 24),
@@ -370,8 +383,45 @@ end
 
 -- Bottom right: the action cluster (#1) -------------------------------------------------------------------
 
-local function weaponIcon(slot: any, durability: number?): { [string]: any }
+-- "loaded/carried" for a gun in hand on a run (the "hands" section from Combat), else nil.
+local function gunAmmo(hands: any, slot: any, inventory: any): string?
+	if type(hands) ~= "table" or slot == nil or slot.count <= 0 then
+		return nil
+	end
+	local def = Content.Items[slot.itemId]
+	local weapon = def and def.weapon
+	if weapon == nil or weapon.firearm == nil then
+		return nil
+	end
+	local hand = hands.slots and hands.slots[hands.active]
+	local loaded = if hand and hand.itemId == slot.itemId then hand.loaded or 0 else 0
+	local carried = 0
+	for _, container in { inventory.pockets, inventory.backpack } do
+		for _, each in container or {} do
+			if each.itemId == weapon.ammoItemId then
+				carried += each.count
+			end
+		end
+	end
+	return `{loaded}/{carried}`
+end
+
+local function weaponIcon(slot: any, durability: number?, ammo: string?): { [string]: any }
 	local children: { [string]: any } = {}
+	if ammo then
+		children.Ammo = e("TextLabel", {
+			Size = UDim2.new(1, -8, 0, 18),
+			Position = UDim2.new(0.5, 0, 1, -24),
+			AnchorPoint = Vector2.new(0.5, 0),
+			BackgroundTransparency = 1,
+			FontFace = Theme.fonts.header,
+			Text = ammo,
+			TextSize = Theme.textSize.caption,
+			TextColor3 = Theme.colors.highlight,
+			TextStrokeTransparency = 0.4,
+			ZIndex = 3,
+		})
+	end
 	if slot and slot.count > 0 then
 		children.Item = e("Frame", {
 			Size = UDim2.fromScale(0.7, 0.7),
@@ -458,6 +508,9 @@ end
 local function Cluster(props: { touchRight: number })
 	local ui = hooks.useUi()
 	local inventory = hooks.useSection("inventory")
+	local hands = hooks.useSection("hands")
+	local run = hooks.useSection("run")
+	local onRun = type(run) == "table"
 	if type(inventory) ~= "table" then
 		return nil
 	end
@@ -521,13 +574,21 @@ local function Cluster(props: { touchRight: number })
 				layoutOrder = 2,
 				-- Held: attacks, or gathers the target at home (LMB does the same).
 				onDown = function()
+					if onRun then
+						Actions.attackDown()
+						return
+					end
 					Actions.interact()
 					Actions.setGathering(true)
 				end,
 				onRelease = function()
+					if onRun then
+						Actions.attackUp()
+						return
+					end
 					Actions.setGathering(false)
 				end,
-				children = weaponIcon(activeSlot, durabilityOf(activeSlot)),
+				children = weaponIcon(activeSlot, durabilityOf(activeSlot), gunAmmo(hands, activeSlot, inventory)),
 			}),
 			Bottom = e(Layout.Stack, {
 				direction = "row",

@@ -164,7 +164,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 10,
 		chapter = FOG,
 		name = "The Dense Fog",
-		description = "Grow strong enough to face the Dense fog, then reach the Sunken Quarry.",
+		description = "Grow strong enough to face the Dense fog, then reach Rustwater.",
 		prerequisite = "quest.scavenger",
 		objectives = {
 			{ kind = "reachLevel", level = 8 }, -- the Dense fog's level gate (GAME_DESIGN, slice 2)

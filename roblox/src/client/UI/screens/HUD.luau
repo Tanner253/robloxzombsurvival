@@ -23,6 +23,7 @@ local Actions = require("../../Actions")
 local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
+local mark = require("../mark")
 local format = require("../format")
 local ItemSlot = require("../components/ItemSlot")
 local Glyph = require("../components/Glyph")
@@ -31,6 +32,7 @@ local Label = require("../components/Label")
 local StatBar = require("../components/StatBar")
 local Minimap = require("../components/Minimap")
 local questText = require("../questText")
+local RunHud = require("./RunHud")
 
 local e = React.createElement
 
@@ -405,8 +407,33 @@ local function weaponSlot(inventory: any, n: number): any
 	return if n == 1 then inventory.equipment.weapon else inventory.equipment.weapon2
 end
 
+-- "loaded/carried" for the active gun on a run (State "hands" from Combat), else nil.
+local function gunAmmo(hands: any, activeSlot: any, inventory: any): string?
+	if type(hands) ~= "table" or activeSlot == nil or activeSlot.count <= 0 then
+		return nil
+	end
+	local def = Content.Items[activeSlot.itemId]
+	local weapon = def and def.weapon
+	if weapon == nil or weapon.firearm == nil then
+		return nil
+	end
+	local hand = hands.slots and hands.slots[hands.active]
+	local loaded = if hand and hand.itemId == activeSlot.itemId then hand.loaded or 0 else 0
+	local carried = 0
+	for _, container in { inventory.pockets, inventory.backpack } do
+		for _, slot in container or {} do
+			if slot.itemId == weapon.ammoItemId then
+				carried += slot.count
+			end
+		end
+	end
+	return `{loaded}/{carried}`
+end
+
 local function WeaponBar()
 	local inventory = hooks.useSection("inventory")
+	local hands = hooks.useSection("hands")
+	local run = hooks.useSection("run")
 	if not inventory then
 		return nil
 	end
@@ -418,6 +445,8 @@ local function WeaponBar()
 	end
 	local activeSlot, otherSlot = weaponSlot(inventory, active), weaponSlot(inventory, other)
 	local meds, medId = medsCount(inventory)
+	local ammoText = gunAmmo(hands, activeSlot, inventory)
+	local onRun = type(run) == "table"
 	return e("Frame", {
 		Size = UDim2.fromOffset(WEAPON_BIG + WEAPON_SMALL * 2 + 30, WEAPON_BIG + 26),
 		Position = UDim2.new(1, -16, 1, -140),
@@ -490,8 +519,13 @@ local function WeaponBar()
 					selected = true,
 					size = WEAPON_BIG,
 					placeholder = "weapon",
+					-- On a run the big circle is the attack button (LDOE_PARITY #1).
 					onActivated = function()
-						Actions.selectWeapon(active)
+						if onRun then
+							Actions.attack()
+						else
+							Actions.selectWeapon(active)
+						end
 					end,
 				}),
 				Key = e(
@@ -499,6 +533,26 @@ local function WeaponBar()
 					{ text = tostring(active), position = UDim2.new(1, 2, 0, -2), anchorPoint = Vector2.new(1, 0) }
 				),
 				Swap = e(KeyChip, { text = "F", position = UDim2.fromOffset(-2, -2), anchorPoint = Vector2.new(0, 0) }),
+				-- Rounds loaded / carried on a gun (13.6).
+				-- An overlay on the weapon circle, like a badge (the UI gate's Overlay).
+				Ammo = ammoText and e("Frame", {
+					Size = UDim2.fromOffset(WEAPON_BIG - 8, 18),
+					Position = UDim2.new(0.5, 0, 0, WEAPON_BIG - 22),
+					AnchorPoint = Vector2.new(0.5, 0),
+					BackgroundTransparency = 1,
+					ZIndex = 6,
+					ref = mark.overlay,
+				}, {
+					Text = e(Label, {
+						text = ammoText,
+						style = "caption",
+						tone = "highlight",
+						size = UDim2.fromScale(1, 1),
+						alignX = Enum.TextXAlignment.Center,
+						stroke = true,
+						zIndex = 6,
+					}),
+				}),
 				Name = e(Label, {
 					text = if activeSlot and activeSlot.count > 0 then format.itemName(activeSlot.itemId) else "Fists",
 					style = "caption",
@@ -738,6 +792,7 @@ end
 
 local function HUD()
 	local ui = hooks.useUi()
+	local run = hooks.useSection("run")
 	local playing = ui.panel == "none"
 	return e(React.Fragment, nil, {
 		Gear = playing and e("TextButton", {
@@ -770,7 +825,8 @@ local function HUD()
 		}),
 		Status = e(Status),
 		Quest = playing and e(QuestTracker),
-		Minimap = playing and e(Minimap),
+		-- On a Fog Run the location's own minimap (exits, bags, Hollow) with the Fog meter.
+		Minimap = playing and e(if type(run) == "table" then RunHud.RunMinimap else Minimap),
 		LevelBar = e(LevelBar),
 		-- Studio playtests run sped up (Tuning.devSpeed): say so, never on live servers.
 		Dev = DevSpeed.factor(Content) > 1 and e("TextLabel", {

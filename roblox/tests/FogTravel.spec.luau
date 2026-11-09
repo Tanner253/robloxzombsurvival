@@ -95,6 +95,21 @@ return function(test: TestKit.Register)
 		TestKit.equal(Travel.walkArrivesBefore(QUARRY, TRAVEL, T0, T0 + walk), false)
 	end)
 
+	test("a Walk that would reach an event location after it closes is refused; a Run is not", function()
+		local availability = CARAVAN.availability :: any
+		local walk = Travel.plan(CARAVAN, "walk", TRAVEL).seconds
+		local closes = availability.offsetSeconds + availability.activeSeconds
+		local late = closes - walk + 5 -- open now, but the Walk lands 5 s after it closes
+		TestKit.equal(Travel.walkTooLate(CARAVAN, TRAVEL, late), true)
+		local _, _, reason = Travel.start(CARAVAN, "walk", ctx(50, late))
+		TestKit.equal(reason, "walkTooLate")
+		TestKit.truthy(Travel.start(CARAVAN, "run", ctx(50, late)), "a Run still makes it")
+		local early = closes - walk - 60
+		TestKit.equal(Travel.walkTooLate(CARAVAN, TRAVEL, early), false)
+		TestKit.truthy(Travel.start(CARAVAN, "walk", ctx(50, early)), "a Walk with time to spare goes")
+		TestKit.equal(Travel.walkTooLate(QUARRY, TRAVEL, T0), false, "always-open locations never")
+	end)
+
 	test("turning back refunds a loading Run; walks and finished trips refund nothing", function()
 		local run = Travel.start(QUARRY, "run", ctx(50)) :: Travel.Trip
 		TestKit.equal(Travel.cancelRefund(run, T0 + 1), run.energySpent)

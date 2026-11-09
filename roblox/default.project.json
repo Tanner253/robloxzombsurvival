@@ -8,6 +8,9 @@
 			},
 			"Packages": {
 				"$path": "Packages"
+			},
+			"EO_Hollow": {
+				"$path": "place/kit/EO_Hollow.rbxm"
 			}
 		},
 		"ServerStorage": {

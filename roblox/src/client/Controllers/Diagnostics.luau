@@ -4,7 +4,9 @@
 	to end, and exposes PlayerScripts.EO_DevClient, a BindableFunction that tools
 	can invoke to read and drive the real client state: ("ui") returns a summary
 	of State.ui(), ("state", section) returns a synced section, ("panel", name,
-	stationUid?) opens a panel, ("action", name, ...) calls an Actions function.
+	stationUid?) opens a panel, ("action", name, ...) calls an Actions function,
+	("section", name) reads any section (Fog Run ones too) and ("fixture", name, value)
+	sets one locally.
 ]]
 
 local Players = game:GetService("Players")
@@ -26,10 +28,27 @@ local function devCommand(command: string, ...: any): any
 			notices = #ui.notices,
 			rewards = #ui.rewards,
 		}
-	elseif command == "state" then
-		-- A synced section as the client holds it, e.g. ("state", "inventory").
+	elseif command == "notices" then
+		local list = {}
+		for _, notice in State.ui().notices do
+			table.insert(list, notice.text)
+		end
+		return list
+	elseif command == "section" or command == "state" then
+		-- A section as the client holds it, synced or Fog Run, e.g. ("state", "inventory").
 		local args = { ... }
 		return State.get(args[1])
+	elseif command == "fixture" then
+		-- Sets a section locally (no server round trip) to put a screen in a state for
+		-- captures and the UI gate, e.g. ("fixture", "death", { cause = ..., lost = {...} }).
+		local args = { ... }
+		State.set(args[1], args[2])
+		return "ok"
+	elseif command == "patch" then
+		-- Patches the UI state, e.g. ("patch", { gate = {...} }) to lay out for a profile.
+		local args = { ... }
+		State.patch(args[1])
+		return "ok"
 	elseif command == "panel" then
 		local args = { ... }
 		State.toggle(args[1], args[2])

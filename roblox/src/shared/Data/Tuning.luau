@@ -175,6 +175,10 @@ local Tuning: Types.TuningDef = {
 		fogRuns = false,
 		aiRaiders = false, -- M2
 		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
+		-- M4 (docs/MVP_LAUNCH.md): built and tested on the server, no client UI yet. Off, Dense
+		-- and Black fog open on the level gate alone, and no airdrops land.
+		regionGates = false,
+		airdrops = false,
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby
@@ -299,7 +303,7 @@ local Tuning: Types.TuningDef = {
 		-- needs brass and springs from Dense runs (about day 5, with level 15).
 		{
 			id = "tower_dense",
-			name = "Quarry Signal Tower",
+			name = "Crossing Signal Tower",
 			fogTier = 2,
 			parts = {
 				{ itemId = "item.plank", count = 20 },
