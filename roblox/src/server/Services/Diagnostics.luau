@@ -17,7 +17,8 @@
 	  ("clock", hours).
 	  Fog Runs: ("fogrun", locationId) queues a run there at once (no Trailhead walk),
 	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
-	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("energy", n) sets Energy,
+	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("wear", itemId) puts armor in its
+	  slot, ("energy", n) sets Energy,
 	  ("meter", seconds) ages your lobby by that long.
 ]]
 
@@ -139,6 +140,18 @@ local function devCommand(command: string, ...: any): any
 		local equipment = data.inventory.equipment :: any
 		equipment[key] = { itemId = item.id, count = 1, durability = item.durability }
 		Sync.mark(player, "inventory")
+		return "ok"
+	elseif command == "wear" then
+		local data = PlayerData.get(player)
+		local item = Content.Items[args[1]]
+		local slot = item and item.equipSlot
+		if data == nil or item == nil or slot == nil or slot == "weapon" then
+			return "not armor or a bag"
+		end
+		local equipment = data.inventory.equipment :: any
+		equipment[slot] = { itemId = item.id, count = 1, durability = item.durability }
+		Sync.mark(player, "inventory")
+		Inventory.refreshGear(player)
 		return "ok"
 	elseif command == "energy" then
 		local state, config = Energy.state(player)

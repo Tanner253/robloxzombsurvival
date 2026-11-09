@@ -104,7 +104,7 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 		else Unlocks.short(def.unlock, { items = Content.Items :: any, quests = Content.Quests :: any })
 	local limit = BuildRules.limitOf(def.id, Content.BuildPieces)
 	local installed = if props.layout then BuildRules.countChain(props.layout, def.id, Content.BuildPieces) else 0
-	local placeable = def.kind == "station" or def.kind == "storage"
+	local placeable = def.kind == "station" or def.kind == "storage" or def.kind == "furniture"
 	local model = pieceModel(def.id)
 	local costs: { [string]: any } = {}
 	for index, stack in def.cost do

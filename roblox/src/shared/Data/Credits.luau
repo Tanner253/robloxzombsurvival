@@ -51,6 +51,12 @@ local Credits: { Section } = {
 				license = "CC0",
 				source = "polyhaven.com/a/machete",
 			},
+			{
+				work = '"Crowbar 01" (the Tire Iron)',
+				by = "Alexander Otterbeck",
+				license = "CC0",
+				source = "polyhaven.com/a/crowbar_01",
+			},
 		},
 	},
 }

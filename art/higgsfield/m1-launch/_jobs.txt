@@ -29,3 +29,15 @@ sliced by connected components to icons/item.*.png (256 px), uploaded via Studio
 ironbark_log 119915856776923, ironbark_plank 71333371293679, ironstone 128948840936073, iron_ingot 132615750371222,
 malachite 93949528651215, copper_ingot 116107751360894, copper_wire 117484328235022, embercoal 91538870894309,
 forged_hatchet 84771320691583, forged_pick 130436492368559
+# Launch content icons (LB-1, LB-2, LB-5): ONE sheet, gpt_image_2_6 3:2 transparent, style ref icons_v2 (89559c4b...), 2 variants (0.5)
+image launch_icons_a ad73e3f5-77b0-4bd6-a5e4-bb26b69f4ea8 (picked) / launch_icons_b 18f90136-feb1-4d11-867e-e07ac9b99dde
+sliced by connected components to icons/item.*.png (256 px), uploaded via Studio upload_image:
+reedweave_cap 85395977492809, reedweave_shirt 119244440929357, reedweave_trousers 127733546511458, reedweave_wraps 120918817807542,
+padded_leggings 125659506659366, padded_boots 120103920099384, sharpened_stake 105895618669575, tire_iron 127489115199207,
+rail_mallet 139251292355585, smoked_meat 75926985668024
+# Loot-only melee from Zona (weapons only, per the developer): gltf packed to GLB (scratchpad gltf2glb.py), glb_shrink, floaters 0
+roblox EO_TireIron 74586365090292 (Poly Haven Crowbar 01, Alexander Otterbeck, CC0, via Zona)
+roblox EO_RailMallet 84097844053183 (Zona sledgehammer, made for ZONA with Higgsfield on the owner's account)
+# Studio mesh generator (no credits): Smoke Rack 86537850231670; Sharpened Stake attempt 1 89157852795619 rejected (metal spearhead)
+roblox EO_SmokeRack 132431669150006 (Studio mesh generator, second take; the first 86537850231670 was too red)
+3d sharpened_stake 29790a89-d271-46c4-8188-19e774dfbb13 (12, tripo_h3_1 face_limit 6000) from crops/sharpened_stake.png (icon sheet A); glb_drop_base removed a 536-tri disc; roblox EO_SharpenedStake 88147290024814 (first upload 130463873312290 still had the disc). Studio generator stakes rejected (metal spearheads): 89157852795619, 83660142010330, 91603283306345

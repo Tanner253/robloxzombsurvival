@@ -140,12 +140,39 @@ local function gearPlan(data: PlayerData, handRef: string): { [string]: string }
 end
 
 -- Rebuilds the visible gear (in hand and holstered) when what the player carries changes.
+-- The survivor rig's parts each worn slot recolours (one atlas texture, so a tint reads
+-- as different cloth at the gameplay camera). The head carries the face, so headwear shows
+-- on the paperdoll only.
+local WORN_PARTS: { [string]: { string } } = {
+	body = { "UpperTorso", "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm" },
+	legs = { "LowerTorso", "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg" },
+	feet = { "LeftFoot", "RightFoot" },
+}
+
+-- Worn armor recolours the survivor's clothes (Art.worn): each set reads at a glance
+-- without new models (docs/research/ldoe-mvp-parity-content.md LB-1).
+local function applyWorn(character: Model, data: PlayerData)
+	local equipment = data.inventory.equipment :: any
+	for slot, partNames in WORN_PARTS do
+		local worn = equipment[slot]
+		local tint = if worn and worn.count > 0 then Art.worn[worn.itemId] else nil
+		for _, name in partNames do
+			local part = character:FindFirstChild(name)
+			local look = part and part:FindFirstChildOfClass("SurfaceAppearance")
+			if look then
+				look.Color = tint or Color3.new(1, 1, 1)
+			end
+		end
+	end
+end
+
 local function refreshHeld(player: Player)
 	local data = PlayerData.get(player)
 	local character = player.Character
 	if data == nil or character == nil then
 		return
 	end
+	applyWorn(character, data)
 	local plan = gearPlan(data, held[player] or "")
 	local signature = `{plan.hand or ""}|{plan.belt or ""}|{plan.beltLeft or ""}|{plan.back or ""}`
 	local folder = heldModels[player]
@@ -171,6 +198,12 @@ local function refreshHeld(player: Player)
 	end
 	made.Parent = character
 	heldModels[player] = made
+end
+
+-- Rebuilds the visible gear and the worn look now (after equipment written directly, e.g.
+-- the Studio dev "wear" command).
+function Inventory.refreshGear(player: Player)
+	refreshHeld(player)
 end
 
 -- Writes new pockets and backpack and syncs them.

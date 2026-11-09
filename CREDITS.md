@@ -31,6 +31,7 @@ Columns: **Work** is what we use. **By** is the author or owner. **License** is 
 | "sawnoffs Animated" (the Scrap Shotgun) | DJMaesen | CC-BY-4.0 | sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb |
 | "Service Pistol" (the Worn Pistol) | Mateusz Sadek | CC0 | polyhaven.com/a/service_pistol |
 | "Machete" (the Machete) | Ulan Cabanilla | CC0 | polyhaven.com/a/machete |
+| "Crowbar 01" (the Tire Iron) | Alexander Otterbeck | CC0 | polyhaven.com/a/crowbar_01 |
 
 This work is based on "sawnoffs Animated"
 (https://sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb) by DJMaesen
