@@ -56,6 +56,27 @@ function Receipts.productByRobloxId(products: { [string]: Types.ProductDef }, ro
 	return nil
 end
 
+--[[
+	The inbox rows a purchase's items become. Gear (anything with durability) arrives one
+	piece per row at full durability, never merged into a stack, so a second Gunrunner Pack
+	is two more guns, each fresh (MVP_LAUNCH: every pack is repurchasable, nothing in one is
+	a permanent unlock, and there's no repair).
+]]
+function Receipts.inboxSlots(items: { Types.ItemStack }, defs: { [string]: Types.ItemDef }): { Types.Slot }
+	local slots: { Types.Slot } = {}
+	for _, stack in items do
+		local def = defs[stack.itemId]
+		if def and def.durability then
+			for _ = 1, stack.count do
+				table.insert(slots, { itemId = stack.itemId, count = 1, durability = def.durability } :: any)
+			end
+		else
+			table.insert(slots, { itemId = stack.itemId, count = stack.count } :: any)
+		end
+	end
+	return slots
+end
+
 function Receipts.delivery(product: Types.ProductDef): Delivery
 	local result: Delivery = { items = {}, energy = 0, backpackSlots = 0, embers = 0, vipLounge = false }
 	for _, grant in product.grants do

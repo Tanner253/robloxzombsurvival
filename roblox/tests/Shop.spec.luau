@@ -107,6 +107,38 @@ return function(test: TestKit.Register)
 		TestKit.equal(Receipts.productByRobloxId(Products, 0), nil)
 	end)
 
+	test("every pack is repurchasable and its gear arrives fresh, one piece a row", function()
+		local onceOnly = {
+			["product.starter_offer"] = true, -- the one-time Firestarter Kit
+			["product.pack_expansion"] = true, -- game passes
+			["product.vip_lounge"] = true,
+			["product.smelter_slot"] = true, -- capacity
+			["product.recycler_slot"] = true,
+		}
+		for id, product in Products do
+			if not onceOnly[id] then
+				TestKit.equal(product.limit, nil, `{id} can be bought again`)
+			end
+			-- Nothing in a repeatable pack is a permanent unlock (a blueprint or a bag).
+			if not onceOnly[id] then
+				for _, grant in product.grants do
+					local g: any = grant
+					if g.kind == "item" then
+						local def = Content.Items[g.itemId]
+						TestKit.truthy(def.category ~= "blueprint" and def.category ~= "bag", `{id}: {g.itemId}`)
+					end
+				end
+			end
+		end
+		local slots = Receipts.inboxSlots({
+			{ itemId = "item.pipe_pistol", count = 2 },
+			{ itemId = "item.field_dressing", count = 5 },
+		}, Content.Items :: any)
+		TestKit.equal(#slots, 3, "two pistols in their own rows, the dressings stacked")
+		TestKit.equal((slots[1] :: any).durability, Content.Items["item.pipe_pistol"].durability)
+		TestKit.equal((slots[3] :: any).count, 5)
+	end)
+
 	test("a +1 Smelter purchase raises the Smelter's plot limit by one per purchase", function()
 		local BuildRules = require("../src/shared/Domain/BuildRules")
 		local base = BuildRules.limitOf("build.smelter", Content.BuildPieces :: any)

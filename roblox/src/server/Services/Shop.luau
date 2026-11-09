@@ -111,7 +111,7 @@ end
 
 local function deliver(player: Player, data: any, product: Types.ProductDef, delivery: Receipts.Delivery)
 	if #delivery.items > 0 then
-		Inbox.grant(player, slotsOf(delivery.items), "Purchase")
+		Inbox.grant(player, Receipts.inboxSlots(delivery.items, Content.Items), "Purchase")
 	end
 	if delivery.embers > 0 then
 		Embers.grant(player, delivery.embers, "Purchase")
