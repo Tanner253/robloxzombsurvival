@@ -63,7 +63,11 @@ local Tuning: Types.TuningDef = {
 	},
 	combat = {
 		armorConstant = 50 / 3, -- LDoE's damage reduction formula
-		weaponDurabilityPerHit = 1,
+		-- Durability (docs/ECONOMY.md §8.1): everything wears out at LDoE's rate or faster.
+		weaponDurabilityPerHit = 1, -- a landed light hit; each arrow released
+		heavyDurabilityPerHit = 2, -- a landed heavy swing
+		gunDurabilityPerShot = 1, -- every round fired, hit or miss (a shotgun shell is a round)
+		durabilityWarn = { 0.25, 0.10 }, -- the weapon ring turns amber, then red with a toast
 		armorDurabilityPerHitTaken = 1,
 		critChance = 0.08, -- Fog Runs: one hit in 12; rolled once per shot, not per pellet
 		critMultiplier = 1.5,
@@ -102,6 +106,9 @@ local Tuning: Types.TuningDef = {
 		-- stations, floors and walls), and it never respawns. Node state is saved per
 		-- outpost, so a restart or rejoin never refills it; repeat farming happens on Fog
 		-- Runs. The spring is a well, not a stock: it refills like a Fog Run node.
+		-- ECONOMY §1.3: 20 pines, 7 boulders and 5 heaps are LDoE's 60 timber, 21 stone and
+		-- 40 scrap. Loose stones are 11 (was 10): the hook's stations, blocks and the 2 picks
+		-- that 41 rock and heap hits wear through need 42 stone (tests/Pacing.spec).
 		nodes = {
 			{ nodeId = "node.pine_tree", count = 20 },
 			{ nodeId = "node.boulder", count = 7 },
@@ -109,7 +116,7 @@ local Tuning: Types.TuningDef = {
 			{ nodeId = "node.ember_bush", count = 7 },
 			{ nodeId = "node.reed_patch", count = 20 },
 			{ nodeId = "node.fallen_branches", count = 12 },
-			{ nodeId = "node.loose_stones", count = 10 },
+			{ nodeId = "node.loose_stones", count = 11 },
 			{ nodeId = "node.spring_pool", count = 1 },
 		},
 		-- The exception: water sources refill on their node respawnSeconds, the way LDoE's
@@ -167,6 +174,18 @@ local Tuning: Types.TuningDef = {
 	shield = {
 		afterRaidSeconds = 8 * 60 * 60,
 	},
+	-- docs/ECONOMY.md §10.1: the Smelter and Stonecutter are launch stations, but their models
+	-- still wait for an A grade (Art.pieces lists none), so their lines run here until then:
+	-- ingots at the fuelled Campfire, blocks at the Saw Bench. (Not the Workbench, as §10.1
+	-- has it: the Workbench costs blocks, so the first one could never be built.) Delete each
+	-- entry the day its model is approved (tests/Economy.spec checks this against Art.pieces).
+	stationFallback = {
+		["station.smelter"] = "station.campfire",
+		["station.stonecutter"] = "station.woodworking_bench",
+	},
+	-- docs/ECONOMY.md §6.2: location quests pay once per UTC day per player, not per lobby,
+	-- so a Rations reward can never refund the Run that earned it.
+	locationQuests = { period = "daily" },
 
 	-- Fog Runs (M1 slice 2) -------------------------------------------------------------
 	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the

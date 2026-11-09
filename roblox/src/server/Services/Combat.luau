@@ -152,8 +152,9 @@ local function broadcast(run: Lobby.Run, kind: string, payload: any)
 	end
 end
 
--- Wears the active hand's weapon; a broken one leaves the slot empty.
-local function wear(player: Player, fighter: Fighter)
+-- Wears the active hand's weapon (ECONOMY §8.1: a light hit 1, a heavy one 2, every round
+-- fired 1); a broken one leaves the slot empty. Toasts at the last warning line.
+local function wear(player: Player, fighter: Fighter, action: CombatMath.WearAction)
 	local data = PlayerData.get(player)
 	local key = SLOT_KEYS[fighter.hands.active]
 	if data == nil or key == nil then
@@ -164,7 +165,15 @@ local function wear(player: Player, fighter: Fighter)
 	if slot == nil or slot.count <= 0 or slot.durability == nil then
 		return
 	end
-	slot.durability -= tuning.combat.weaponDurabilityPerHit
+	local before = slot.durability
+	slot.durability -= CombatMath.wear(action, tuning.combat)
+	local def = Items[slot.itemId]
+	local warning = if def and def.durability
+		then CombatMath.wearWarning(before, slot.durability, def.durability, tuning.combat)
+		else nil
+	if slot.durability > 0 and warning ~= nil and warning == #tuning.combat.durabilityWarn then
+		Sync.notice(player, `Your {def and def.name or "weapon"} is about to break`)
+	end
 	if slot.durability <= 0 then
 		local name = Items[slot.itemId] and Items[slot.itemId].name or "weapon"
 		equipment[key] = InventoryMath.emptySlot()
@@ -258,7 +267,7 @@ local function strike(
 			"hit",
 			{ id = target.id, damage = dealt, crit = hit.crit, hitStop = hit.hitStopSeconds, heavy = heavy }
 		)
-		wear(player, fighter)
+		wear(player, fighter, if heavy then "heavy" else "light")
 	end
 end
 
@@ -388,7 +397,7 @@ local function fireBow(
 	if CombatMath.arrowRecovered(bow, rng) then
 		Containers.spawnPile(run.hosted, impact, { { itemId = ammo, count = 1 } }, player.UserId)
 	end
-	wear(player, fighter)
+	wear(player, fighter, "arrow")
 end
 
 local function fire(player: Player, yaw: number, lockId: string?)
@@ -432,7 +441,7 @@ local function fire(player: Player, yaw: number, lockId: string?)
 	end
 	Hollow.noise(run.hosted, "gunshot", origin, firearm, `u{player.UserId}`)
 	broadcast(run, "shot", { userId = player.UserId, yaw = aim, itemId = hand.itemId })
-	wear(player, fighter)
+	wear(player, fighter, "shot")
 	sendHands(player, fighter)
 end
 

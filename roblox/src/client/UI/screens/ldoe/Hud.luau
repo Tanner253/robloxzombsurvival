@@ -440,7 +440,11 @@ local function weaponIcon(slot: any, durability: number?, ammo: string?): { [str
 		}, {
 			Corner = e("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 			Stroke = e("UIStroke", {
-				Color = if durability < 0.2 then Theme.colors.locked else Theme.colors.badge,
+				-- ECONOMY §8.1: amber at 25% left, red at 10% (Tuning.combat.durabilityWarn).
+				Color = if durability <= Content.Tuning.combat.durabilityWarn[2]
+					then Theme.colors.badgeNew
+					elseif durability <= Content.Tuning.combat.durabilityWarn[1] then Theme.colors.accentSoft
+					else Theme.colors.badge,
 				Thickness = 3,
 			}, {
 				Length = e("UIGradient", {

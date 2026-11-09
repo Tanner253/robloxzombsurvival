@@ -2,6 +2,9 @@
 -- Resource node definitions (trees, boulders, scrap heaps...), keyed by permanent ID.
 -- MVP content; see docs/CONTENT_MVP.md. Locations place them by count.
 -- XP is about 10 per resource unit, as in LDoE.
+-- Economy (docs/ECONOMY.md §1): hits and yields are LDoE's. Pine 3 hits for 3 timber and a
+-- boulder 3 hits for 3 stone, so the home plot gives LDoE's 60 timber, 21 stone and 40 scrap.
+-- Tier-2 nodes need a forged tool and yield only on every yieldEvery-th hit.
 
 local Types = require("../Types")
 
@@ -35,7 +38,7 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		id = "node.ember_bush",
 		name = "Emberberry Bush",
 		hits = 1,
-		yields = { { itemId = "item.emberberry", perHit = 2 } },
+		yields = { { itemId = "item.emberberry", perHit = 3 } }, -- LDoE: a bush gives 3 (ECONOMY §8.4)
 		xpPerHit = 20,
 		respawnSeconds = 5 * 60,
 	},
@@ -61,7 +64,7 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		id = "node.pine_tree",
 		name = "Pine",
 		tool = { kind = "hatchet", tier = 1 },
-		hits = 4,
+		hits = 3, -- LDoE's pine: 3 logs (ECONOMY §1.1)
 		yields = { { itemId = "item.timber", perHit = 1 } },
 		xpPerHit = 10,
 		respawnSeconds = 4 * 60,
@@ -82,7 +85,7 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		id = "node.boulder",
 		name = "Boulder",
 		tool = { kind = "pick", tier = 1 },
-		hits = 5,
+		hits = 3, -- LDoE's limestone rock: 3 limestone (ECONOMY §1.2)
 		yields = { { itemId = "item.stone", perHit = 1 } },
 		xpPerHit = 10,
 		respawnSeconds = 5 * 60,
@@ -99,6 +102,37 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		},
 		xpPerHit = 12,
 		respawnSeconds = 6 * 60,
+	},
+	-- The ore and tier-2 wood ladder (ECONOMY §1.1-1.2): Fog Run nodes, personal per player in
+	-- a lobby (§1). Respawn is unused in lobbies (a node never regrows within one lobby).
+	["node.ironbark_tree"] = {
+		id = "node.ironbark_tree",
+		name = "Ironbark",
+		tool = { kind = "hatchet", tier = 2 }, -- the Forged Hatchet (LDoE's oak: Iron Hatchet only)
+		hits = 4,
+		yields = { { itemId = "item.ironbark_log", perHit = 1 } },
+		yieldEvery = 2, -- LDoE's oak: 4 hits, 2 logs
+		xpPerHit = 5,
+		respawnSeconds = 6 * 60,
+	},
+	["node.ironstone_rock"] = {
+		id = "node.ironstone_rock",
+		name = "Ironstone Outcrop",
+		tool = { kind = "pick", tier = 1 },
+		hits = 3, -- LDoE's iron rock gives 3 ore
+		yields = { { itemId = "item.ironstone", perHit = 1 } },
+		xpPerHit = 10,
+		respawnSeconds = 5 * 60,
+	},
+	["node.malachite_vein"] = {
+		id = "node.malachite_vein",
+		name = "Malachite Vein",
+		tool = { kind = "pick", tier = 2 }, -- the Forged Pick (LDoE's copper: Iron Pickaxe only)
+		hits = 6,
+		yields = { { itemId = "item.malachite", perHit = 1 } },
+		yieldEvery = 3, -- 2 malachite a vein
+		xpPerHit = 4,
+		respawnSeconds = 8 * 60,
 	},
 	-- Fog Runs (slice 2): Dense and Black fog only, so Blackpowder is a bottleneck material.
 	["node.niter_seam"] = {
