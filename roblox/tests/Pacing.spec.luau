@@ -934,6 +934,9 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 		coal = { stock = 30, below = 60, stationLevel = 2 },
 		ids = {
 			cord = "item.rope",
+			cordRecipe = "recipe.rope",
+			fuelStation = "station.campfire",
+			ammoStation = "build.ammo_press",
 			fiber = "item.fiber",
 			plank = "item.plank",
 			timber = "item.timber",

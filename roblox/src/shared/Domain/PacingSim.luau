@@ -141,6 +141,9 @@ export type Model = {
 	coal: { stock: number, below: number, stationLevel: number },
 	ids: {
 		cord: string,
+		cordRecipe: string, -- the hand recipe cord comes from (expanded like a station line)
+		fuelStation: string, -- whose fuel list gives burn times
+		ammoStation: string, -- the build piece that makes rounds worth stocking
 		fiber: string,
 		plank: string,
 		timber: string,
@@ -242,8 +245,8 @@ function PacingSim.run(content: Content, model: Model): Result
 	local items = content.Items
 	local tuning = content.Tuning
 	local ids = model.ids
-	local fuelDef = content.Stations["station.campfire"]
-	assert(fuelDef and fuelDef.fuel, "the Campfire's fuel list sets burn times")
+	local fuelDef = content.Stations[ids.fuelStation]
+	assert(fuelDef and fuelDef.fuel, "ids.fuelStation's fuel list sets burn times")
 
 	-- Static tables from the content --------------------------------------------------------
 	local recipeIds = sortedKeys(content.Recipes)
@@ -280,7 +283,7 @@ function PacingSim.run(content: Content, model: Model): Result
 		end
 		return result
 	end
-	local cordRecipe = handInputs("recipe.rope")
+	local cordRecipe = handInputs(ids.cordRecipe)
 
 	local function burnMinutes(itemId: string): number
 		return Converter.burnSeconds(fuelDef, itemId) / 60
@@ -620,7 +623,7 @@ function PacingSim.run(content: Content, model: Model): Result
 			handInputs(model.dressingRecipe),
 			math.max(0, model.dressingReserve - have(ids.dressing)) / dressing.outputs[1].count
 		)
-		if (built["build.ammo_press"] or 0) > 0 and (built["craft:" .. model.gunRecipe] or 0) > 0 then
+		if (built[ids.ammoStation] or 0) > 0 and (built["craft:" .. model.gunRecipe] or 0) > 0 then
 			local rounds = content.Recipes[model.roundsRecipe]
 			local short = math.max(0, model.roundsReserve - have(ids.rounds))
 			addAll(handInputs(model.roundsRecipe), short / rounds.outputs[1].count)
@@ -650,7 +653,7 @@ function PacingSim.run(content: Content, model: Model): Result
 						add(out, "fuel_min", count / line.outputCount * line.minutes)
 					end
 				elseif itemId == ids.cord then
-					local made = content.Recipes["recipe.rope"].outputs[1].count
+					local made = content.Recipes[ids.cordRecipe].outputs[1].count
 					local inputs: { [string]: number } = {}
 					for input, perCraft in cordRecipe do
 						inputs[input] = count * perCraft / made
@@ -1127,7 +1130,7 @@ function PacingSim.run(content: Content, model: Model): Result
 
 	local function craftHand()
 		local need = needs()
-		local made = content.Recipes["recipe.rope"].outputs[1].count
+		local made = content.Recipes[ids.cordRecipe].outputs[1].count
 		local want = (need[ids.cord] or 0) + 2 - have(ids.cord)
 		while want > 0 and take(cordRecipe) do
 			add(store, ids.cord, made)
