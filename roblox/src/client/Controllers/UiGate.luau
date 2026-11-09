@@ -463,7 +463,7 @@ local function scenes(): { Scene }
 		},
 		{ name = "haven.keeper", ui = { panel = "haven", havenId = "npc.keeper" } },
 		{ name = "haven.board", ui = { panel = "haven", havenId = "board.contracts" } },
-		{ name = "haven.vip", ui = { panel = "haven", havenId = "npc.warden" } },
+		{ name = "haven.vip", ui = { panel = "haven", havenId = "npc.gatekeeper" } },
 		{
 			name = "haven.vip.member",
 			sections = {
@@ -474,7 +474,7 @@ local function scenes(): { Scene }
 					return haven
 				end)(),
 			},
-			ui = { panel = "haven", havenId = "npc.warden" },
+			ui = { panel = "haven", havenId = "npc.gatekeeper" },
 		},
 		{ name = "haven.notice", ui = { panel = "haven", havenId = "board.notice" } },
 		{ name = "shop.focus", ui = { panel = "shop", shopFocus = "product.resource_pack", shopTab = "supplies" } },

@@ -49,6 +49,7 @@ local ItemIcon = require("../../components/ItemIcon")
 local Layout = require("../../components/Layout")
 local Minimap = require("../../components/Minimap")
 local RunHud = require("../RunHud")
+local GateCard = require("./GateCard")
 
 local e = React.createElement
 local H = Theme.hud
@@ -888,6 +889,10 @@ local function Hud()
 		}),
 		Cluster = playing and e(Cluster, { touchRight = touchRight }),
 		Menu = playing and e(MenuBar, { right = H.edge + touchRight + clusterWidth + Theme.spacing.lg }),
+		-- The Lounge Gatekeeper's JOIN card, over the menu bar (screens/ldoe/GateCard).
+		Gate = playing
+			and ui.gatekeeper == true
+			and e(GateCard, { right = H.edge + touchRight + clusterWidth + Theme.spacing.lg }),
 		Level = playing and e(LevelBar, { touch = touch == true, touchRight = touchRight }),
 		Pickups = playing and Flags.on("ldoeHud") and e(Pickups),
 	})

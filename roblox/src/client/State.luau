@@ -80,6 +80,9 @@ export type Ui = {
 	emberAsk: { title: string, text: string, price: number, run: () -> () }?,
 	havenId: string?, -- who or what on Haven Square the "haven" panel is talking to
 	havenTab: string?, -- the Trader's tab: "buy" (default) or "sell"
+	-- A non-member is standing by the Lounge's Gatekeeper: his JOIN card shows on the HUD
+	-- (Controllers/Interaction).
+	gatekeeper: boolean?,
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
 	-- and safe-area insets instead of the real window.
 	gate: { width: number, height: number, top: number, left: number, right: number, bottom: number, touch: boolean }?,

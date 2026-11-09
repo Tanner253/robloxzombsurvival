@@ -4,10 +4,15 @@
 	(MVP_LAUNCH; LDoE's Settlement, rec4). World/Haven builds it, Services/Haven runs it.
 
 	- npcs: who stands where, what they say (LDoE's floating line over the head), their
-	  outfit tints on the survivor rig, and what talking to them opens.
-	- trader: the Trader's fixed stock in coins (v0.1; Daily Deals come in M2). `buy` is
-	  what you buy from her, `sell` what she buys from you.
+	  outfit tints on the survivor rig, and what talking to them opens. A members-only NPC
+	  stands inside the VIP Lounge; the Gatekeeper says memberGreeting to members.
+	- trader: Mara's fixed stock in coins. `buy` is what you buy from her, `sell` what she
+	  buys from you.
 	- contracts: the daily contract board, three a day per survivor, reset at 00:00 UTC.
+	- comforts: the public square's free comforts: the Well and the Soup Kitchen, one item
+	  per survivor per cooldown (Domain/Comforts).
+	- vipTraders: the Lounge's members-only traders (Quartermaster, Fence): a stock table
+	  each, rotated daily (Domain/Market.rotation), priced in coins plus Embers.
 	- chapterRewards: what the Trail Keeper hands over for a finished Ember Trail chapter.
 	- vip: the VIP Lounge game pass and its perks (playbook §6.1).
 ]]
@@ -46,18 +51,65 @@ Haven.npcs = {
 		pants = "8C8478",
 		keepsPack = true,
 	},
-	["npc.warden"] = {
-		id = "npc.warden",
+	-- The Lounge gate (the moment of need): a non-member walking up hears greeting and gets
+	-- the JOIN card; members hear memberGreeting.
+	["npc.gatekeeper"] = {
+		id = "npc.gatekeeper",
 		name = "Rook",
-		title = "Lounge Warden",
+		title = "Gatekeeper",
 		role = "vip",
-		greeting = "Members keep this fire lit",
+		greeting = "Members only, survivor",
+		memberGreeting = "Welcome back. The fire is lit for you",
 		lines = {
-			"The Lounge is for members. Warm fire, a crate every day, and more Energy for the road.",
+			"Members drink by the brazier, trade with the Quartermaster and carry more Energy.",
+			"Behind this rope: the best guns in Haven, a warm seat and a crate every morning.",
 		},
-		jacket = "C8786A",
-		pants = "7C7470",
+		jacket = "3A2C2A",
+		pants = "2E2826",
 		keepsPack = false,
+	},
+	-- The Soup Kitchen's cook: talking to her is taking a bowl (comfort.kitchen).
+	["npc.cook"] = {
+		id = "npc.cook",
+		name = "Bess",
+		title = "Cook",
+		role = "cook",
+		greeting = "Soup's on, grab a bowl",
+		lines = { "One bowl each, every half hour. Nobody starves on my square." },
+		jacket = "B88A64",
+		pants = "6E625A",
+		keepsPack = false,
+		uses = "comfort.kitchen",
+	},
+	["npc.quartermaster"] = {
+		id = "npc.quartermaster",
+		name = "Vance",
+		title = "Quartermaster",
+		role = "quartermaster",
+		greeting = "Guns, oiled and true",
+		lines = {
+			"Every piece on my table is checked and at full wear. New stock at dawn.",
+			"You want parts that fit first time? You came to the right man.",
+		},
+		jacket = "5E6450",
+		pants = "4A4840",
+		keepsPack = true,
+		membersOnly = true,
+	},
+	["npc.fence"] = {
+		id = "npc.fence",
+		name = "Juno",
+		title = "Fence",
+		role = "fence",
+		greeting = "Ask for what isn't on the board",
+		lines = {
+			"Rare parts, good armor, sealed rations. Don't ask where they came from.",
+			"What I have today, I may not have tomorrow.",
+		},
+		jacket = "7A2E34",
+		pants = "3C3436",
+		keepsPack = false,
+		membersOnly = true,
 	},
 } :: { [string]: Types.HavenNpc }
 
@@ -102,6 +154,108 @@ Haven.contracts = {
 	} :: { Types.HavenContract },
 	reachStuds = 14,
 }
+
+-- The public square's free comforts (no membership): one `itemId` per survivor every
+-- cooldownSeconds, a server cooldown saved in the profile (survives a rejoin).
+Haven.comforts = {
+	["comfort.well"] = {
+		id = "comfort.well",
+		name = "Well",
+		verb = "Draw water",
+		itemId = "item.boiled_water",
+		count = 1,
+		cooldownSeconds = 10 * 60,
+		reachStuds = 8,
+	},
+	["comfort.kitchen"] = {
+		id = "comfort.kitchen",
+		name = "Soup Kitchen",
+		verb = "Take a bowl",
+		-- Hearth Stew: 60 hunger (and some health and thirst), the square's one hot meal.
+		itemId = "item.hearth_stew",
+		count = 1,
+		cooldownSeconds = 30 * 60,
+		reachStuds = 8,
+	},
+} :: { [string]: Types.HavenComfort }
+
+--[[
+	The Lounge's members-only traders, by NPC. Each UTC day a seeded rotation (the same for
+	every survivor, Domain/Market.rotation) puts `slots` entries of `stock` on the table,
+	leading with a `featured` entry when the table has one. Each entry sells `count` of an
+	item at full durability for `coins` plus `embers`, at most perDay times per survivor a
+	UTC day.
+
+	Follow-up (data only): S2B's new guns (Duty Pistol, Service Auto, Hand Cannon, Hunting
+	Rifle, Suppressed Rifle, Carbine, Marksman Rifle) join the Quartermaster's stock as
+	featured rows when their item ids land on this branch; the Reedweave set
+	(item.reedweave_*) joins the Fence's when the launch home branch's items do.
+]]
+Haven.vipTraders = {
+	["npc.quartermaster"] = {
+		slots = { min = 4, max = 6 },
+		salt = 4111,
+		reachStuds = 10,
+		stock = {
+			-- Guns: one always leads the table.
+			{
+				id = "qm.pipe_pistol",
+				itemId = "item.pipe_pistol",
+				count = 1,
+				coins = 420,
+				embers = 35,
+				perDay = 1,
+				featured = true,
+			},
+			{
+				id = "qm.scrap_shotgun",
+				itemId = "item.scrap_shotgun",
+				count = 1,
+				coins = 600,
+				embers = 50,
+				perDay = 1,
+				featured = true,
+			},
+			{
+				id = "qm.flare_pistol",
+				itemId = "item.flare_pistol",
+				count = 1,
+				coins = 360,
+				embers = 30,
+				perDay = 1,
+				featured = true,
+			},
+			{ id = "qm.shortbow", itemId = "item.shortbow", count = 1, coins = 220, embers = 15, perDay = 1 },
+			-- Weapon parts.
+			{ id = "qm.trigger_group", itemId = "item.trigger_group", count = 1, coins = 160, embers = 14, perDay = 2 },
+			{ id = "qm.steel_pipe", itemId = "item.steel_pipe", count = 1, coins = 90, embers = 8, perDay = 3 },
+			{ id = "qm.coil_spring", itemId = "item.coil_spring", count = 2, coins = 110, embers = 9, perDay = 3 },
+			{ id = "qm.brass_gear", itemId = "item.brass_gear", count = 2, coins = 130, embers = 10, perDay = 3 },
+		},
+	},
+	["npc.fence"] = {
+		slots = { min = 4, max = 6 },
+		salt = 7349,
+		reachStuds = 10,
+		stock = {
+			{ id = "fence.trigger_group", itemId = "item.trigger_group", count = 1, coins = 180, embers = 12, perDay = 1 },
+			{ id = "fence.copper_wire", itemId = "item.copper_wire", count = 2, coins = 140, embers = 10, perDay = 2 },
+			{ id = "fence.brass_gear", itemId = "item.brass_gear", count = 1, coins = 60, embers = 4, perDay = 3 },
+			{ id = "fence.coil_spring", itemId = "item.coil_spring", count = 1, coins = 50, embers = 4, perDay = 3 },
+			{ id = "fence.padded_hood", itemId = "item.padded_hood", count = 1, coins = 140, embers = 8, perDay = 1 },
+			{
+				id = "fence.padded_vest",
+				itemId = "item.padded_vest",
+				count = 1,
+				coins = 260,
+				embers = 16,
+				perDay = 1,
+				featured = true,
+			},
+			{ id = "fence.rations", itemId = "item.rations", count = 1, coins = 90, embers = 10, perDay = 3 },
+		},
+	},
+} :: { [string]: Types.HavenVipTrader }
 
 -- A finished Ember Trail chapter, handed in at the Trail Keeper.
 Haven.chapterRewards = {

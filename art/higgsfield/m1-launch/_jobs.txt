@@ -29,3 +29,29 @@ sliced by connected components to icons/item.*.png (256 px), uploaded via Studio
 ironbark_log 119915856776923, ironbark_plank 71333371293679, ironstone 128948840936073, iron_ingot 132615750371222,
 malachite 93949528651215, copper_ingot 116107751360894, copper_wire 117484328235022, embercoal 91538870894309,
 forged_hatchet 84771320691583, forged_pick 130436492368559
+# Haven Square H1 (the VIP Lounge, the soup kitchen): ONE family sheet, 2 x 2, gpt_image_2_6 16:9
+# quality=medium resolution=2k, style refs = camp_sheet_v1 (dc8e4c33...) + recycler crop (1f7f1f75...)
+# + campfire crop (226ab2e0...), the family preamble. Raw: haven/lounge_sheet_v1.png.
+image lounge_sheet_v1 ec911349-bb0a-4728-acfe-8c6c0cdddf24 (1)
+# Crops (art/tools/crop_sheet.py 2 2): haven/crops/{lounge_seating,bar_counter,brazier,stew_pot}.png
+media lounge_seating 756486f2-fab2-443d-bd3d-3dcd0f7c6604
+media bar_counter 54493efa-8617-4e0c-88c6-3b89ac1f40fd
+media brazier 19d107ce-04c0-42cf-9a2d-6b76ea05107d
+media stew_pot 18231f83-fec2-418f-a310-6d01062f4ad0
+# Conversions, the fixed family settings (tripo_h3_1_image_to_3d face_limit=18000 pbr detailed
+# standard original_image, 12 each). The seating group (sofa, two armchairs, low table) is one
+# mesh, so the Lounge gets "armchairs and a sofa" for one conversion.
+3d lounge_seating dc52253c-ccb0-409a-b6a6-3644382ed44c (12)
+3d bar_counter e4895ffc-7d0c-4075-91ba-2bce9b71dfaf (12)
+3d brazier bfeeb88f-a4ab-4f87-bf15-a1f8c1840d59 (12)
+3d stew_pot 7bbef4ac-9191-4fd1-9d60-e47258df587a (12)
+# Gate: art/tools/glb_floaters.py. The seating group's sofa hovered 0.042 (14% of its height)
+# and its table 0.006: planted with the new --settle flag (every piece of the group stands
+# on the floor), then 0 flags on all four; glb_shrink.py to 1024 maps (about 2 MB each).
+# Uploaded as Model (Open Cloud, creator userId 11569755804); Art.uploaded, not yet approved
+# (Phase B lineup grades them). haven/_roblox_assets.json.
+roblox EO_LoungeSeating 140600195326956 (Art.uploaded yaw 90, X 10)
+roblox EO_BarCounter 75990979758620 (Art.uploaded yaw 0, Z 10)
+roblox EO_Brazier 77775780356260 (Art.uploaded yaw 0, X 4.4)
+roblox EO_StewPot 126627498965280 (Art.uploaded yaw 0, Y 4.8)
+# Spend: 1 (the sheet) + 48 (four conversions) = 49 credits of the 50 allowed.

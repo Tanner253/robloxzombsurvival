@@ -12,6 +12,13 @@
 	Holding the gather button (LMB, or holding the touch button) keeps swinging every
 	Tuning.gathering.swingSeconds; auto-gather stops at arm's reach before it swings.
 	The server checks the same reach and rejects anything out of range.
+
+	Haven Square: NPCs say their line over their heads while you are near (the Gatekeeper
+	welcomes members instead of turning them away); members-only NPCs inside the VIP Lounge
+	can't be targeted by non-members; using a comfort (the Well, the Soup Kitchen or its
+	cook) draws from it instead of opening a panel. A non-member walking up to the
+	Gatekeeper gets his JOIN card (State.ui().gatekeeper) until they walk away or close it,
+	and members see the Lounge's velvet rope unhooked.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -31,6 +38,7 @@ local State = require("../State")
 local Interaction = {}
 
 local tuning = Content.Tuning
+local ROPE_TAG = "EO_VelvetRope" -- World/Haven.ROPE_TAG
 local TAGS: { [string]: string } = {
 	node = "EO_Node",
 	station = "EO_Station",
@@ -88,6 +96,9 @@ local function describe(model: Model, kind: string): State.Target?
 		local havenId = model:GetAttribute("HavenId")
 		if type(havenId) ~= "string" then
 			return nil
+		end
+		if model:GetAttribute("MembersOnly") == true and player:GetAttribute("VIP") ~= true then
+			return nil -- behind the Lounge fence: members only
 		end
 		return {
 			kind = "haven",
@@ -235,8 +246,12 @@ end
 
 -- Haven Square's NPCs say their line over their heads while you are near (LDoE rec4_01).
 local GREET_STUDS = 30
+-- A non-member this near the Gatekeeper gets his JOIN card (the moment of need).
+local GATE_CARD_STUDS = 14
+local gateCardClosed = false -- closed by the player: stays shut until they walk away
 
 local function greetings(here: BasePart)
+	local member = player:GetAttribute("VIP") == true
 	for _, model in CollectionService:GetTagged(TAGS.haven) do
 		local head = model:FindFirstChild("Head")
 		local bubble = head and head:FindFirstChild("Greeting")
@@ -245,7 +260,63 @@ local function greetings(here: BasePart)
 			if bubble.Enabled ~= near then
 				bubble.Enabled = near
 			end
+			-- The Gatekeeper: "Members only" to visitors, a welcome to members.
+			local def = Content.Haven.npcs[model:GetAttribute("NpcId") :: any]
+			local line = bubble:FindFirstChildOfClass("TextLabel")
+			if def and def.memberGreeting and line then
+				local text = if member then def.memberGreeting else def.greeting
+				if line.Text ~= text then
+					line.Text = text
+				end
+			end
 		end
+	end
+end
+
+-- The Gatekeeper's JOIN card: shown to a non-member standing by him with no panel open.
+local function gateCard(here: BasePart)
+	local ui = State.ui()
+	local near = false
+	if player:GetAttribute("VIP") ~= true then
+		for _, model in CollectionService:GetTagged(TAGS.haven) do
+			if model:IsA("Model") and model:GetAttribute("HavenId") == "npc.gatekeeper" then
+				near = flat(model:GetPivot().Position, here.Position) <= GATE_CARD_STUDS
+				break
+			end
+		end
+	end
+	if not near then
+		gateCardClosed = false
+	end
+	local show = near and not gateCardClosed and ui.panel == "none"
+	if show ~= (ui.gatekeeper == true) then
+		if show then
+			State.patch({ gatekeeper = true })
+		else
+			State.clear("gatekeeper")
+		end
+	end
+end
+
+-- Closes the Gatekeeper's card until the player walks away from him.
+function Interaction.closeGateCard()
+	gateCardClosed = true
+	State.clear("gatekeeper")
+end
+
+-- Members see the velvet rope unhooked (the server keeps it for everyone else).
+local function ropeFor(rope: Instance)
+	local hidden = if player:GetAttribute("VIP") == true then 1 else 0
+	for _, part in rope:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = hidden
+		end
+	end
+end
+
+local function ropes()
+	for _, rope in CollectionService:GetTagged(ROPE_TAG) do
+		ropeFor(rope)
 	end
 end
 
@@ -267,6 +338,9 @@ local function scan()
 	local ui = State.ui()
 	if here then
 		greetings(here)
+		if ui.gate == nil then
+			gateCard(here)
+		end
 		if ui.panel == "haven" and ui.gate == nil then
 			walkedAway(here)
 		end
@@ -525,9 +599,26 @@ function Interaction.cancelApproach()
 	end
 end
 
--- Opens the Haven Square panel for an NPC or board (talking, LDoE rec4).
+-- Opens the Haven Square panel for an NPC or board (talking, LDoE rec4). A comfort (the
+-- Well, the Soup Kitchen) is used on the spot instead: the server checks the cooldown.
 local function talk(target: State.Target)
+	if string.sub(target.key, 1, 8) == "comfort." then
+		face(target.model:GetPivot().Position)
+		Animations.play(player.Character, Animations.forTool(nil))
+		Net.fire("HavenComfort", target.key)
+		return
+	end
+	State.clear("gatekeeper")
 	State.patch({ havenId = target.key })
+	if State.ui().panel ~= "haven" then
+		State.toggle("haven")
+	end
+end
+
+-- Opens the panel for a Haven NPC by id (the Gatekeeper card's PERKS).
+function Interaction.talkTo(havenId: string)
+	State.clear("gatekeeper")
+	State.patch({ havenId = havenId })
 	if State.ui().panel ~= "haven" then
 		State.toggle("haven")
 	end
@@ -719,6 +810,18 @@ function Interaction.aimAtMouse()
 end
 
 function Interaction.start()
+	-- The velvet rope reads unhooked for members, and follows membership as it changes.
+	local function watchRope(rope: Instance)
+		ropeFor(rope)
+		rope.DescendantAdded:Connect(function() -- streamed in later
+			ropeFor(rope)
+		end)
+	end
+	CollectionService:GetInstanceAddedSignal(ROPE_TAG):Connect(watchRope)
+	for _, rope in CollectionService:GetTagged(ROPE_TAG) do
+		watchRope(rope)
+	end
+	player:GetAttributeChangedSignal("VIP"):Connect(ropes)
 	RunService.Heartbeat:Connect(function(dt)
 		scanElapsed += dt
 		if scanElapsed >= SCAN_SECONDS then

@@ -253,6 +253,16 @@ Art.uploaded = {
 	EO_Smelter = { id = 134220739947756, yaw = 90, axis = "X", size = 5.8 },
 	EO_Stonecutter = { id = 96553555280227, yaw = 90, axis = "X", size = 5.6 },
 	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
+	-- Haven Square H1 (art/higgsfield/m1-launch/haven, one family sheet): the Lounge's leather
+	-- seating group (sofa, two armchairs, low table; turned so the group faces -Z and its
+	-- long side runs along X), its bar counter (long side along Z), the large brazier, and
+	-- the Soup Kitchen's stew pot on its tripod. Graded in the Phase B lineup before
+	-- Art.approved; until then World/Haven leaves them out (brazier and pot fall back to
+	-- the campfire ring).
+	EO_LoungeSeating = { id = 140600195326956, yaw = 90, axis = "X", size = 10 },
+	EO_BarCounter = { id = 75990979758620, yaw = 0, axis = "Z", size = 10 },
+	EO_Brazier = { id = 77775780356260, yaw = 0, axis = "X", size = 4.4 },
+	EO_StewPot = { id = 126627498965280, yaw = 0, axis = "Y", size = 4.8 },
 	-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
 	EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
 	EO_PickupWreck = { id = 112415392425301, yaw = 90, axis = "X", size = 16 },

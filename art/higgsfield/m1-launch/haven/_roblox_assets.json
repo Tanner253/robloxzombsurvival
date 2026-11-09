@@ -1,0 +1,18 @@
+{
+ "EO_LoungeSeating": {
+  "glb": "glb/lounge_seating.glb",
+  "assetId": 140600195326956
+ },
+ "EO_BarCounter": {
+  "glb": "glb/bar_counter.glb",
+  "assetId": 75990979758620
+ },
+ "EO_Brazier": {
+  "glb": "glb/brazier.glb",
+  "assetId": 77775780356260
+ },
+ "EO_StewPot": {
+  "glb": "glb/stew_pot.glb",
+  "assetId": 126627498965280
+ }
+}

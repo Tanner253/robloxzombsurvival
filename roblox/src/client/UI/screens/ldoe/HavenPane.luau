@@ -454,7 +454,7 @@ local function Lounge(props: Props)
 	return e(Parts.Pane, {
 		header = e(Parts.Header, { glyph = "talk", title = "VIP Lounge", chip = true }),
 		body = body({
-			Speech = Speech("npc.warden", props.now),
+			Speech = Speech("npc.gatekeeper", props.now),
 			List = List(rows, 2),
 		}),
 		bar = e(Parts.Bar, { alignX = Enum.HorizontalAlignment.Center, children = { Action = bar } }),
@@ -487,7 +487,7 @@ local function HavenPane(props: Props)
 		return e(Trader, props)
 	elseif props.havenId == "npc.keeper" or props.havenId == "board.contracts" then
 		return e(Contracts, props)
-	elseif props.havenId == "npc.warden" then
+	elseif props.havenId == "npc.gatekeeper" then
 		return e(Lounge, props)
 	end
 	return e(Notices, props)

@@ -889,21 +889,57 @@ export type HavenNpc = {
 	id: string,
 	name: string,
 	title: string, -- shown on the talk panel under the name
-	role: "trader" | "quests" | "vip",
+	role: "trader" | "quests" | "vip" | "cook" | "quartermaster" | "fence",
 	greeting: string, -- floats over the head when you are near (LDoE rec4_01)
+	memberGreeting: string?, -- what VIP members hear instead (the Gatekeeper)
 	lines: { string }, -- the talk panel picks one
 	jacket: string, -- hex tint on the survivor rig's torso and arms (Lune has no Color3)
 	pants: string, -- hex tint on the legs
 	keepsPack: boolean, -- whether the backpack accessory stays on
+	membersOnly: boolean?, -- stands inside the VIP Lounge: only members can talk to them
+	uses: string?, -- talking to them uses this comfort instead (the cook: comfort.kitchen)
 }
 
 export type HavenPrice = { itemId: ItemId, coins: number }
 export type HavenContract = { id: string, itemId: ItemId, count: number, coins: number, xp: number }
 
+-- A free comfort on the public square (Domain/Comforts): `count` of `itemId` per survivor
+-- every cooldownSeconds.
+export type HavenComfort = {
+	id: string,
+	name: string,
+	verb: string, -- the prompt's action ("Draw water")
+	itemId: ItemId,
+	count: number,
+	cooldownSeconds: number,
+	reachStuds: number,
+}
+
+-- One row of a members-only trader's stock table (Domain/Market.rotation).
+export type HavenStockEntry = {
+	id: string,
+	itemId: ItemId,
+	count: number, -- items per purchase, at full durability
+	coins: number,
+	embers: number,
+	perDay: number, -- purchases per survivor a UTC day
+	featured: boolean?, -- one featured row leads the day's table
+	weight: number?, -- rotation weight (default 1)
+}
+
+export type HavenVipTrader = {
+	slots: { min: number, max: number }, -- rows on the table each day
+	salt: number, -- seeds this trader's rotation apart from the others'
+	reachStuds: number,
+	stock: { HavenStockEntry },
+}
+
 export type HavenDef = {
 	npcs: { [string]: HavenNpc },
 	trader: { buy: { HavenPrice }, sell: { HavenPrice }, reachStuds: number },
 	contracts: { perDay: number, pool: { HavenContract }, reachStuds: number },
+	comforts: { [string]: HavenComfort },
+	vipTraders: { [string]: HavenVipTrader },
 	chapterRewards: { [string]: { coins: number, items: { ItemStack } } },
 	vip: {
 		passId: number,

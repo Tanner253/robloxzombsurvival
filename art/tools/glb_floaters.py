@@ -10,10 +10,13 @@ Splits each mesh into connected components (positions welded) and flags:
     only along an edge: a decal-like sheet hovering over the model (e.g. a leaf mat or a
     lichen patch modelled as a separate sheet).
 
-Usage:  python glb_floaters.py [--fix] file.glb [...]
+Usage:  python glb_floaters.py [--fix | --settle] file.glb [...]
   Exit code 1 when anything is flagged (0 flags is the gate).
   --fix settles small floaters onto the ground (a stick resting a hair above it, gap
   under 5% of the height) and deletes the rest, writing the file in place.
+  --settle plants every floating piece on the ground whatever its gap: for a group of
+  free-standing objects in one mesh (a sofa and armchairs) where each piece is whole and
+  only hovers. Cards are still deleted.
 EPS is 1% of the model's height; components under 0.2% of the triangles are ignored
 for CARD (scan noise) but never for FLOAT.
 """
@@ -97,7 +100,7 @@ def surface_contact(pts, tris, eps):
     return False
 
 
-def check(path, fix=False):
+def check(path, fix=False, settle_all=False):
     f, j, jl, bstart = load(path)
     prim = j['meshes'][0]['primitives'][0]
     pos, _, _ = accessor(f, j, bstart, prim['attributes']['POSITION'])
@@ -151,7 +154,7 @@ def check(path, fix=False):
     for c, kind, tris, above in flags:
         print(f'{name:24s} {kind:6s} piece {c}: {tris} triangles, {above:.3f} above ground')
     if fix:
-        settle = {c for c, kind, _, above in flags if kind == 'FLOAT' and above < 0.05 * height}
+        settle = {c for c, kind, _, above in flags if kind == 'FLOAT' and (settle_all or above < 0.05 * height)}
         bad = {c for c, _, _, _ in flags} - settle
         if settle:
             pa = j['accessors'][prim['attributes']['POSITION']]
@@ -178,7 +181,8 @@ def check(path, fix=False):
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    fix = '--fix' in args
-    files = [a for a in args if a != '--fix']
-    total = sum(check(p, fix) for p in files)
+    settle_all = '--settle' in args
+    fix = '--fix' in args or settle_all
+    files = [a for a in args if a not in ('--fix', '--settle')]
+    total = sum(check(p, fix, settle_all) for p in files)
     sys.exit(1 if total and not fix else 0)

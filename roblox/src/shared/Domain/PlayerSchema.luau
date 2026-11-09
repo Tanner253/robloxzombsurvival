@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 10
+PlayerSchema.VERSION = 11
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -112,26 +112,32 @@ export type PlayerData = {
 }
 
 -- Haven Square (Services/Haven): coins from the Trader and contracts, today's contract
--- deliveries (Domain/Contracts), chapters handed in to the Trail Keeper (chapter -> UTC
--- time), the UTC day of the last VIP crate and how many days in a row it came, and until
--- when a purchase opened the Lounge (UTC seconds, 0 = never).
+-- board and deliveries (Domain/Contracts; `ids` is the day's board once rolled, empty
+-- before), chapters handed in to the Trail Keeper (chapter -> UTC time), the UTC day of
+-- the last VIP crate and how many days in a row it came, until when a purchase opened the
+-- Lounge (UTC seconds, 0 = never), when each free comfort was last taken (Domain/Comforts:
+-- comfort id -> UTC seconds) and today's purchases per stock key (Domain/Market's ledger).
 export type HavenSave = {
 	coins: number,
-	contracts: { day: number, done: { [string]: boolean } },
+	contracts: { day: number, done: { [string]: boolean }, ids: { string } },
 	chapters: { [string]: number },
 	vipCrateDay: number,
 	vipStreak: number,
 	vipTrialUntil: number,
+	comforts: { [string]: number },
+	stock: { day: number, bought: { [string]: number } },
 }
 
 function PlayerSchema.freshHaven(): HavenSave
 	return {
 		coins = 0,
-		contracts = { day = 0, done = {} },
+		contracts = { day = 0, done = {}, ids = {} },
 		chapters = {},
 		vipCrateDay = 0,
 		vipStreak = 0,
 		vipTrialUntil = 0,
+		comforts = {},
+		stock = { day = 0, bought = {} },
 	}
 end
 
@@ -696,6 +702,26 @@ PlayerSchema.migrations = {
 				counts["product.pack_expansion"] = 1
 			end
 			counts["product.backpack_upgrade"] = nil
+		end
+	end,
+	-- v11: Haven Square H1: the free comforts' cooldowns (Well, Soup Kitchen), the daily
+	-- stock ledger (the Lounge traders' per-day limits) and the day's contract board.
+	[10] = function(data)
+		local haven: any = data.haven
+		if type(haven) ~= "table" then
+			data.haven = PlayerSchema.freshHaven()
+			return
+		end
+		if type(haven.comforts) ~= "table" then
+			haven.comforts = {}
+		end
+		if type(haven.stock) ~= "table" then
+			haven.stock = { day = 0, bought = {} }
+		end
+		if type(haven.contracts) ~= "table" then
+			haven.contracts = { day = 0, done = {}, ids = {} }
+		elseif type(haven.contracts.ids) ~= "table" then
+			haven.contracts.ids = {}
 		end
 	end,
 } :: Migrations.Steps

@@ -173,6 +173,25 @@ function Actions.buyProduct(productId: string)
 	Sfx.play("uiClick")
 end
 
+-- The VIP Lounge pass: the server prompts it (Services/Haven; the Gatekeeper's JOIN card
+-- and the Lounge pane's JOIN button).
+function Actions.joinLounge()
+	Net.fire("VipBuy")
+	Sfx.play("uiClick")
+end
+
+-- Closes the Gatekeeper's card until the player walks away from him.
+function Actions.closeGateCard()
+	Interaction.closeGateCard()
+	Sfx.play("uiClose")
+end
+
+-- Opens a Haven NPC's panel (the Gatekeeper card's PERKS: the Lounge pane).
+function Actions.talkTo(havenId: string)
+	Interaction.talkTo(havenId)
+	Sfx.play("uiOpen")
+end
+
 function Actions.closePanel()
 	seenInventory()
 	seenRecipes()

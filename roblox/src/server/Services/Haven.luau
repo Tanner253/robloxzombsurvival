@@ -12,13 +12,22 @@
 	  sets haven.vipTrialUntil): members wear the VIP attribute (Energy reads it for the +40
 	  cap), a flame aura and the gate's collision group, and get the fixed daily crate in the
 	  inbox on their first visit each UTC day, with a Trail Ration every 7th day in a row.
-	  VipBuy prompts the pass. Non-members found inside the fence are put back outside the
-	  gate.
+	  VipBuy prompts the pass (the Gatekeeper's JOIN card at the gate is the moment of need).
+	  Non-members found inside the fence are put back outside the gate.
+	- The Lounge traders (Quartermaster, Fence): HavenVipBuy(traderId, entryId) buys one row
+	  of the trader's table for today (Domain/Market.rotation, the same for everyone all UTC
+	  day) for coins plus Embers, at full durability, at most the row's perDay times a day
+	  (the profile's stock ledger). Membership, reach, the table, the limit, both balances
+	  and bag room are checked on every buy.
+	- Free comforts on the public square: HavenComfort(id) at the Well (clean water) or the
+	  Soup Kitchen (stew), one per survivor per cooldown (Domain/Comforts; the profile's
+	  haven.comforts, so it survives a rejoin). The prompt shows the countdown.
 	- Every trade checks the survivor stands by the NPC or board (reach plus lag).
 	- Safe zone: no Hollow spawns in a Neighbourhood and there is no PvP in M1; the
 	  square's folder carries the SafeZone attribute for M2's PvP rules.
 	- The "haven" section: coins, today's contracts and deliveries, chapters to hand in,
-	  VIP status and the next crate.
+	  VIP status and the next crate, when each comfort is ready, and the Lounge traders'
+	  tables with what is left today.
 	- Studio only: Workspace attribute HavenTestVip = true makes everyone a member (Studio
 	  can't buy a game pass); HavenTestCoins = n sets everyone's coins.
 ]]
@@ -30,12 +39,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local Comforts = require(ReplicatedStorage.Shared.Domain.Comforts)
 local Contracts = require(ReplicatedStorage.Shared.Domain.Contracts)
 local Market = require(ReplicatedStorage.Shared.Domain.Market)
 local Neighbourhood = require(ReplicatedStorage.Shared.Domain.Neighbourhood)
 local Types = require(ReplicatedStorage.Shared.Types)
 local HavenWorld = require("../World/Haven")
 local Analytics = require("./Analytics")
+local Embers = require("./Embers")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Net = require("../Net")
@@ -224,6 +235,128 @@ local function isMember(player: Player): boolean
 	return members[player] == true
 end
 
+-- Free comforts (the Well, the Soup Kitchen) -----------------------------------------------------
+
+local function comfort(player: Player, comfortId: string)
+	local data = PlayerData.get(player)
+	local def = havenData.comforts[comfortId]
+	if data == nil or def == nil then
+		return
+	end
+	if not near(player, { comfortId }, def.reachStuds) then
+		Sync.notice(player, `Come closer to the {def.name}`, "warn")
+		return
+	end
+	local now = os.time()
+	local left = Comforts.remaining(data.haven.comforts, def, now)
+	if left > 0 then
+		Sync.notice(player, `The {def.name} is ready again in {Comforts.countdown(left)}`, "warn")
+		return
+	end
+	local stack = { { itemId = def.itemId, count = def.count } }
+	if not Inventory.fits(player, stack) then
+		Sync.notice(player, "No room in your bag", "warn")
+		Sync.fx(player, "bagFull", {})
+		return
+	end
+	local ok, log = Comforts.take(data.haven.comforts, def, now)
+	if not ok then
+		return
+	end
+	data.haven.comforts = log
+	Inventory.give(player, stack, def.name)
+	Sync.fx(player, "items", { items = stack, source = "comfort" })
+	HavenWorld.burst(comfortId)
+	Sync.mark(player, "haven")
+end
+
+-- The Lounge traders -------------------------------------------------------------------------------
+
+local function npcTitle(npcId: string): string
+	local npc = havenData.npcs[npcId]
+	return if npc then npc.title else "trader"
+end
+
+local function vipBuy(player: Player, traderId: string, entryId: string)
+	local data = PlayerData.get(player)
+	local trader = havenData.vipTraders[traderId]
+	if data == nil or trader == nil then
+		return
+	end
+	if not isMember(player) then
+		Sync.notice(player, "The Lounge traders only deal with VIP members", "warn")
+		return
+	end
+	if not near(player, { traderId }, trader.reachStuds) then
+		Sync.notice(player, `Come closer to the {npcTitle(traderId)}`, "warn")
+		return
+	end
+	local day = Market.dayOf(os.time())
+	local entry = Market.onTable(trader.stock :: any, trader.slots, day, trader.salt, entryId)
+	if entry == nil then
+		Sync.notice(player, "That is not on the table today", "warn")
+		Sync.mark(player, "haven")
+		return
+	end
+	local key = Market.key(traderId, entry.id)
+	if Market.left(data.haven.stock, day, key, entry.perDay) < 1 then
+		Sync.notice(player, "Sold out for you today. New stock tomorrow", "warn")
+		return
+	end
+	if data.haven.coins < entry.coins then
+		Sync.notice(player, "Not enough coins", "warn")
+		return
+	end
+	if Embers.balance(player) < entry.embers then
+		Embers.short(player, entry.embers)
+		return
+	end
+	local stack = { { itemId = entry.itemId, count = entry.count } }
+	if not Inventory.fits(player, stack) then
+		Sync.notice(player, "No room in your bag", "warn")
+		return
+	end
+	if not Embers.spend(player, entry.embers, `Lounge {entry.id}`) then
+		Embers.short(player, entry.embers)
+		return
+	end
+	pay(player, data, -entry.coins, "Lounge")
+	data.haven.stock = Market.record(data.haven.stock, day, key, 1)
+	-- New items come at full durability (Domain/Inventory gives a fresh item its max).
+	Inventory.give(player, stack, "Lounge")
+	Sync.fx(player, "trade", { itemId = entry.itemId, count = entry.count, coins = -entry.coins })
+end
+
+-- Each Lounge trader's table today, with what this survivor has left of each row.
+local function vipTables(data: any, day: number): { [string]: { any } }
+	local result: { [string]: { any } } = {}
+	for traderId, trader in havenData.vipTraders do
+		local rows = {}
+		for _, entry in Market.rotation(trader.stock :: any, trader.slots, day, trader.salt) do
+			table.insert(rows, {
+				id = entry.id,
+				itemId = entry.itemId,
+				count = entry.count,
+				coins = entry.coins,
+				embers = entry.embers,
+				perDay = entry.perDay,
+				left = Market.left(data.haven.stock, day, Market.key(traderId, entry.id), entry.perDay),
+			})
+		end
+		result[traderId] = rows
+	end
+	return result
+end
+
+-- When each comfort is ready for this survivor (UTC seconds; 0 = now).
+local function comfortTimes(data: any): { [string]: number }
+	local result: { [string]: number } = {}
+	for id, def in havenData.comforts do
+		result[id] = Comforts.readyAt(data.haven.comforts, def)
+	end
+	return result
+end
+
 -- Members' characters pass the Lounge gate and wear the flame aura.
 local function dress(player: Player)
 	local character = player.Character
@@ -256,6 +389,8 @@ local function dress(player: Player)
 		embers.Speed = NumberRange.new(1, 2)
 		embers.SpreadAngle = Vector2.new(180, 30)
 		embers.Acceleration = Vector3.new(0, 4, 0)
+		-- Locked to the feet: walking never leaves a trail of embers behind.
+		embers.LockedToPart = true
 		embers.Parent = holder
 		local warmth = Instance.new("PointLight")
 		warmth.Range = 7
@@ -401,6 +536,8 @@ local function view(player: Player): any
 		vipUntil = data.haven.vipTrialUntil,
 		vipPrice = havenData.vip.priceRobux,
 		crateAt = if data.haven.vipCrateDay == today then (today + 1) * DAY else 0,
+		comforts = comfortTimes(data),
+		vipStock = vipTables(data, today),
 	}
 end
 
@@ -410,6 +547,8 @@ function Haven.init()
 	Net.onEvent("ContractDeliver", deliver)
 	Net.onEvent("ChapterClaim", claimChapter)
 	Net.onEvent("VipBuy", buyPass)
+	Net.onEvent("HavenComfort", comfort)
+	Net.onEvent("HavenVipBuy", vipBuy)
 end
 
 function Haven.start()

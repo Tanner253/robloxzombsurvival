@@ -10,7 +10,8 @@ local Rng = require("./Rng")
 local Contracts = {}
 
 export type Contract = { id: string, itemId: string, count: number, coins: number, xp: number }
-export type State = { day: number, done: { [string]: boolean } }
+-- `ids`: the day's board once rolled (empty until then).
+export type State = { day: number, done: { [string]: boolean }, ids: { string }? }
 
 local DAY = 24 * 60 * 60
 
@@ -37,7 +38,7 @@ end
 -- Today's state: yesterday's deliveries don't carry over.
 function Contracts.today(state: State?, day: number): State
 	if state == nil or state.day ~= day then
-		return { day = day, done = {} }
+		return { day = day, done = {}, ids = {} }
 	end
 	return state
 end

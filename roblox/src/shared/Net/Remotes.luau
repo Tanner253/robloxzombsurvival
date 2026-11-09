@@ -209,6 +209,20 @@ Remotes.list = {
 		validate = Check.args(),
 		description = "() prompts the VIP Lounge game pass",
 	},
+	HavenComfort = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("comfort")),
+		description = "(comfortId) draws water at the Well or takes stew at the Soup Kitchen, once per cooldown",
+	},
+	HavenVipBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("npc"), Check.pattern("^%l+%.[%l%d_]+$", 64)),
+		description = "(traderId, entryId) buys a row of a Lounge trader's daily table for coins and Embers",
+	},
 	WeaponSelect = {
 		kind = "event",
 		clientCanSend = true,
