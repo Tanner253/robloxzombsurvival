@@ -82,7 +82,7 @@ return function(test: TestKit.Register)
 		TestKit.truthy(vip ~= nil and vip.vipLounge, "the Lounge pass")
 	end)
 
-	test("Embers and energy deliver; the ten v0.1 products have their cards", function()
+	test("Embers and energy deliver; every product has its card and exists on Roblox", function()
 		local _, pouch = Receipts.apply(fresh(), Products["product.embers_50"], "r-1", 100, 15)
 		TestKit.equal((pouch :: any).embers, 50)
 		local _, chest = Receipts.apply(fresh(), Products["product.embers_300"], "r-2", 100, 15)
@@ -102,9 +102,24 @@ return function(test: TestKit.Register)
 				TestKit.equal(product.limit, 1)
 			end
 		end
-		TestKit.equal(count, 10, "ten SKUs")
+		TestKit.equal(count, 18, "v0.1's ten, the Equipment six, the Building two")
 		TestKit.equal(passes, 2, "Pack Expansion and the VIP Lounge")
 		TestKit.equal(Receipts.productByRobloxId(Products, 0), nil)
+	end)
+
+	test("a +1 Smelter purchase raises the Smelter's plot limit by one per purchase", function()
+		local BuildRules = require("../src/shared/Domain/BuildRules")
+		local base = BuildRules.limitOf("build.smelter", Content.BuildPieces :: any)
+		TestKit.truthy(base ~= nil, "the Smelter has a plot limit")
+		local none = BuildRules.pieceSlots(Products :: any, {})
+		TestKit.equal(BuildRules.limitOf("build.smelter", Content.BuildPieces :: any, none), base)
+		local two = BuildRules.pieceSlots(Products :: any, { ["product.smelter_slot"] = 2 })
+		TestKit.equal(BuildRules.limitOf("build.smelter", Content.BuildPieces :: any, two), (base :: number) + 2)
+		-- Other pieces keep their limits.
+		TestKit.equal(
+			BuildRules.limitOf("build.recycler", Content.BuildPieces :: any, two),
+			BuildRules.limitOf("build.recycler", Content.BuildPieces :: any)
+		)
 	end)
 
 	test("Kits.room: every material for a 3x3 room up the upgrade chain (the Firestarter's Scrap room)", function()

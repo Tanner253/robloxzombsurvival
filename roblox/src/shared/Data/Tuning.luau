@@ -398,6 +398,15 @@ local Tuning: Types.TuningDef = {
 			["product.embers_300"] = 799, -- Ember Chest
 			["product.pack_expansion"] = 199,
 			["product.vip_lounge"] = 399,
+			-- The Equipment tab (MVP_LAUNCH, LDoE rec8_sheet4) and the Building tab's capacity packs.
+			["product.scouts_kit"] = 79,
+			["product.weapon_parts"] = 149,
+			["product.padded_armor"] = 199,
+			["product.gunrunner_pack"] = 249,
+			["product.raider_arms"] = 499,
+			["product.heavy_equipment"] = 2499,
+			["product.smelter_slot"] = 399,
+			["product.recycler_slot"] = 399,
 		},
 	},
 	-- Embers, the premium currency (playbook §7.2, at LDoE coin parity). Sinks: Recover all,

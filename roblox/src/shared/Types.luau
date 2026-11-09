@@ -424,6 +424,9 @@ export type ProductGrant =
 	| { kind: "backpackSlots", amount: number }
 	| { kind: "embers", amount: number } -- the premium currency
 	| { kind: "vipLounge" } -- the VIP Lounge pass (Services/Haven)
+	-- One more of a capped piece may stand on your plot ("+1 Smelter can be placed"):
+	-- counted from the purchase count, so nothing is stored (Domain/BuildRules.pieceSlots).
+	| { kind: "pieceSlot", pieceId: BuildPieceId, amount: number }
 
 export type ProductDef = {
 	id: ProductId,
@@ -440,7 +443,7 @@ export type ProductDef = {
 	-- "firstPurchase": shown only to accounts that never paid, for Tuning.embers.
 	-- firstPurchaseHours after their first win, once (Domain/Offers).
 	offer: "firstPurchase"?,
-	tab: "best" | "supplies" | "embers" | "passes", -- the shop tab it sits on
+	tab: "best" | "supplies" | "equipment" | "building" | "embers" | "passes", -- the shop tab it sits on
 	grants: { ProductGrant }, -- item grants go into the locked stash (ARCHITECTURE.md §6)
 }
 

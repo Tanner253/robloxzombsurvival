@@ -123,6 +123,7 @@ local function deliver(player: Player, data: any, product: Types.ProductDef, del
 		Inventory.refreshBackpack(player)
 	end
 	openLounge(player, data)
+	Sync.mark(player, "plot") -- a "+1 can be placed" product raises the plot's limits
 	Sync.notice(
 		player,
 		if #delivery.items > 0 then `{product.name}: it's in your inbox` else `{product.name}: done`,

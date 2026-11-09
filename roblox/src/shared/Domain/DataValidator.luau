@@ -1218,6 +1218,16 @@ local function checkProducts(errors: Errors, content: Types.Content)
 				else
 					purchasableSlots += grant.amount * product.limit
 				end
+			elseif grant.kind == "pieceSlot" then
+				local piece = content.BuildPieces[grant.pieceId]
+				if piece == nil then
+					push(errors, `{where}.grants[{index}]: unknown piece '{grant.pieceId}'`)
+				elseif piece.maxPerPlot == nil then
+					push(errors, `{where}.grants[{index}]: '{grant.pieceId}' has no plot limit to raise`)
+				end
+				if product.limit == nil then
+					push(errors, `{where}: pieceSlot products need a limit`)
+				end
 			end
 		end
 	end

@@ -511,7 +511,9 @@ local function step(dt: number)
 	if moving then
 		ok, reason = BuildRules.canMove(currentLayout, moving, target, ctx)
 	else
-		ok, reason = BuildRules.canPlace(currentLayout, pieceId, target, ctx, progress(), inventory())
+		local plot = State.get("plot")
+		local slots = if type(plot) == "table" then plot.pieceSlots else nil
+		ok, reason = BuildRules.canPlace(currentLayout, pieceId, target, ctx, progress(), inventory(), slots)
 	end
 	current = { target = target, valid = ok, reason = reason }
 	local goal = PlotSpace.target(info.origin, currentLayout, Grid.layerOf(def), target, def)

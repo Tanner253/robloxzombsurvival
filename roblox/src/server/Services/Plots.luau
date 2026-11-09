@@ -30,6 +30,7 @@ local OutpostSchema = require(ReplicatedStorage.Shared.Domain.OutpostSchema)
 local Shelter = require(ReplicatedStorage.Shared.Domain.Shelter)
 local Stores = require("../Stores")
 local PlayerData = require("./PlayerData")
+local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Sync = require("./Sync")
 local Teleport = require("../FogRuns/Teleport")
 
@@ -498,7 +499,15 @@ function Plots.start()
 		if plot == nil then
 			return false
 		end
-		return { index = plot.index, origin = plot.origin, cells = building.plotCells, front = plot.front }
+		local data = PlayerData.get(player)
+		return {
+			index = plot.index,
+			origin = plot.origin,
+			cells = building.plotCells,
+			front = plot.front,
+			-- Bought "+1 can be placed" slots per base piece (Domain/BuildRules.pieceSlots).
+			pieceSlots = if data then BuildRules.pieceSlots(Content.Products, data.purchases.counts) else {},
+		}
 	end)
 	Sync.provide("layout", function(player: Player)
 		local plot = byPlayer[player]
