@@ -88,6 +88,10 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.field_dressing", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.snarled_wire", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.spiked_club", weight = 2, min = 1, max = 1 },
+			-- Launch content: the found melee weapon and loose Reedweave pieces.
+			{ itemId = "item.tire_iron", weight = 3, min = 1, max = 1 },
+			{ itemId = "item.reedweave_cap", weight = 3, min = 1, max = 1 },
+			{ itemId = "item.reedweave_wraps", weight = 3, min = 1, max = 1 },
 		},
 	},
 	["loot.pine_crate"] = {
@@ -101,6 +105,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.rope", weight = 15, min = 1, max = 2 },
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
 			{ itemId = "item.stone_hatchet", weight = 5, min = 1, max = 1 },
+			{ itemId = "item.tire_iron", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.broken_lantern", weight = 5, min = 1, max = 1 },
 		},
 	},
@@ -117,6 +122,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.arrow", weight = 10, min = 4, max = 8 },
 			{ itemId = "item.coil_spring", weight = 6, min = 1, max = 1 },
 			{ itemId = "item.stone_pick", weight = 5, min = 1, max = 1 },
+			{ itemId = "item.rail_mallet", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.pitch_glue", weight = 2, min = 1, max = 1 },
 		},
 	},
@@ -184,6 +190,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.field_dressing", weight = 8, min = 2, max = 2 },
 			{ itemId = "item.ember_tonic", weight = 4, min = 1, max = 1 },
 			{ tableId = "loot.junk", weight = 6, min = 1, max = 1 },
+			{ itemId = "item.rail_mallet", weight = 3, min = 1, max = 1 },
+			{ itemId = "item.padded_leggings", weight = 2, min = 1, max = 1 },
+			{ itemId = "item.padded_boots", weight = 2, min = 1, max = 1 },
 		},
 	},
 	["loot.caravan_strongbox"] = {

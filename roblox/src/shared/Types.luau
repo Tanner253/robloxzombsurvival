@@ -319,6 +319,7 @@ export type BuildPieceKind =
 	| "roof"
 	| "station"
 	| "storage"
+	| "furniture" -- lights, the doormat: objects on the furniture sub-grid
 
 export type BuildPieceDef = {
 	id: BuildPieceId,
@@ -340,6 +341,10 @@ export type BuildPieceDef = {
 	footprint: { w: number, d: number }?,
 	maxPerPlot: number?, -- nil means no limit
 	tab: string?, -- build menu tab when it isn't the kind's own, e.g. "defense" for fences
+	-- A warm light the placed piece throws (Pitch Torch, Post Lantern): studs and PointLight
+	-- brightness (checklist 9.9).
+	light: { range: number, brightness: number }?,
+	respawn: boolean?, -- the Reed Doormat: you respawn on it at home (Services/Plots)
 	unlock: UnlockGate?, -- nil means available from the start
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }

@@ -482,6 +482,104 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		unlock = quest("quest.scavenger"), -- was level 3: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
+	-- Launch content (docs/research/ldoe-mvp-parity-content.md LB-1, LB-2, LB-5) ----------
+	-- The Reedweave set opens with the fire line; the Padded legs and boots with leather.
+	["recipe.reedweave_cap"] = {
+		id = "recipe.reedweave_cap",
+		inputs = {
+			{ itemId = "item.fiber", count = 3 },
+			{ itemId = "item.cloth", count = 1 },
+		},
+		outputs = { { itemId = "item.reedweave_cap", count = 1 } },
+		craftSeconds = 8,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.reedweave_shirt"] = {
+		id = "recipe.reedweave_shirt",
+		inputs = {
+			{ itemId = "item.fiber", count = 4 },
+			{ itemId = "item.cloth", count = 3 },
+		},
+		outputs = { { itemId = "item.reedweave_shirt", count = 1 } },
+		craftSeconds = 8,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.reedweave_trousers"] = {
+		id = "recipe.reedweave_trousers",
+		inputs = {
+			{ itemId = "item.fiber", count = 4 },
+			{ itemId = "item.cloth", count = 3 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		outputs = { { itemId = "item.reedweave_trousers", count = 1 } },
+		craftSeconds = 8,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.reedweave_wraps"] = {
+		id = "recipe.reedweave_wraps",
+		inputs = {
+			{ itemId = "item.fiber", count = 3 },
+			{ itemId = "item.cloth", count = 2 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		outputs = { { itemId = "item.reedweave_wraps", count = 1 } },
+		craftSeconds = 8,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.padded_leggings"] = {
+		id = "recipe.padded_leggings",
+		inputs = {
+			{ itemId = "item.cloth", count = 4 },
+			{ itemId = "item.leather", count = 2 },
+			{ itemId = "item.rope", count = 2 },
+			{ itemId = "item.pitch_glue", count = 1 },
+		},
+		outputs = { { itemId = "item.padded_leggings", count = 1 } },
+		craftSeconds = 10,
+		unlock = quest("quest.scavenger"),
+		feature = "fogRuns",
+	},
+	["recipe.padded_boots"] = {
+		id = "recipe.padded_boots",
+		inputs = {
+			{ itemId = "item.cloth", count = 2 },
+			{ itemId = "item.leather", count = 2 },
+			{ itemId = "item.rope", count = 2 },
+		},
+		outputs = { { itemId = "item.padded_boots", count = 1 } },
+		craftSeconds = 10,
+		unlock = quest("quest.scavenger"),
+		feature = "fogRuns",
+	},
+	-- The starter weapon: unlocked from the start, made in the first quest.
+	["recipe.sharpened_stake"] = {
+		id = "recipe.sharpened_stake",
+		inputs = {
+			{ itemId = "item.sticks", count = 4 },
+			{ itemId = "item.rope", count = 1 },
+		},
+		outputs = { { itemId = "item.sharpened_stake", count = 1 } },
+		craftSeconds = 4,
+		unlock = { kind = "default" },
+	},
+	-- The no-fuel food and water stations (LB-5): water off the roof, meat in the smoke.
+	["recipe.rain_water"] = {
+		id = "recipe.rain_water",
+		inputs = { { itemId = "item.murky_water", count = 1 } },
+		outputs = { { itemId = "item.boiled_water", count = 1 } },
+		stationId = "station.rain_barrel",
+		craftSeconds = 10 * 60,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["recipe.smoked_meat"] = {
+		id = "recipe.smoked_meat",
+		inputs = { { itemId = "item.raw_meat", count = 1 } },
+		outputs = { { itemId = "item.smoked_meat", count = 1 } },
+		stationId = "station.smoke_rack",
+		craftSeconds = 10 * 60,
+		unlock = quest("quest.stand_your_ground"),
+		feature = "fogRuns",
+	},
 }
 
 return Recipes

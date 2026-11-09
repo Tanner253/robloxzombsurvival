@@ -180,7 +180,7 @@ return function(test: TestKit.Register)
 		TestKit.truthy(table.find(pieces, "build.workbench") ~= nil, "workbench")
 	end)
 
-	test("only the hatchet, pick, satchel, its cord and the small crate start unlocked", function()
+	test("only the hatchet, pick, stake, satchel, its cord and the small crate start unlocked", function()
 		local starters: { string } = {}
 		for id, recipe in Content.Recipes do
 			if recipe.unlock.kind == "default" then
@@ -197,6 +197,7 @@ return function(test: TestKit.Register)
 			"build.crate_wood",
 			"recipe.rope",
 			"recipe.satchel",
+			"recipe.sharpened_stake",
 			"recipe.stone_hatchet",
 			"recipe.stone_pick",
 		})
