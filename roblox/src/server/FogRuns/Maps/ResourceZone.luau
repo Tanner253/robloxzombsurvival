@@ -40,6 +40,7 @@ export type Spec = {
 	clearings: { Clearing }, -- points of interest and cuttings: kept free of woods
 	ridges: { Ridge }?,
 	pits: { Pit }?,
+	scorch: { Pond }?, -- burnt ground: ash and charred earth
 	exits: { Exit }, -- Dense and Black: marked points; Light: "edge" exits at trail ends
 	entry: Vector2, -- where survivors arrive
 	containers: { Spot }, -- fixed container spots (the lobby stocks some)
@@ -73,7 +74,9 @@ local function creekDistance(spec: Spec, x: number, z: number): number
 	if creek == nil then
 		return math.huge
 	end
-	local wobble = math.noise(x / 30, z / 30, 4.4) * 4
+	-- A slow meander plus a ragged bank (QA: one octave left the banks ruler-straight; the
+	-- bank's wobble must beat the 4-stud terrain voxel or the grid smooths it away).
+	local wobble = math.noise(x / 30, z / 30, 4.4) * 4 + math.noise(x / 15, z / 15, 5.1) * 4
 	return Builder.distanceToPath(x, z, creek) + wobble
 end
 
@@ -92,8 +95,9 @@ local function ridgeLift(spec: Spec, x: number, z: number): (number, number)
 	return lift, inside
 end
 
-local function pitDepth(spec: Spec, x: number, z: number): number
-	local deepest = 0
+local function pitDepth(spec: Spec, x: number, z: number): (number, boolean)
+	-- How far a cut drops the ground here, and whether this is a bench's face (not its tread).
+	local deepest, onFace = 0, false
 	local pits: { Pit } = spec.pits or {}
 	for _, pit in pits do
 		local d = (V2(x, z) - pit.at).Magnitude + math.noise(x / 16, z / 16, 6.4) * 5
@@ -104,10 +108,13 @@ local function pitDepth(spec: Spec, x: number, z: number): number
 			local bench = math.floor(scaled)
 			local face = math.clamp((scaled - bench - 0.7) / 0.3, 0, 1)
 			local level = math.min(bench + face, steps) / steps
-			deepest = math.min(deepest, -level * pit.depth)
+			if -level * pit.depth < deepest then
+				deepest = -level * pit.depth
+				onFace = bench < steps and scaled - bench > 0.62
+			end
 		end
 	end
-	return deepest
+	return deepest, onFace
 end
 
 local function inClearing(spec: Spec, x: number, z: number, margin: number): boolean
@@ -192,12 +199,26 @@ local function surfaceFor(spec: Spec): (number, number, number) -> Enum.Material
 			-- A bluff's faces: bare rock, scree at its foot. Its top stays grassed.
 			return if inside < 0.2 and grain > 0.1 then Enum.Material.Cobblestone else Enum.Material.Rock
 		end
-		if pitDepth(spec, x, z) < -0.5 then
-			-- The cut's benches: rock, packed spoil and scree.
-			return if grain > 0.35
+		local cut, onFace = pitDepth(spec, x, z)
+		if cut < -0.5 then
+			-- The cut: bare rock on the bench faces; the treads are packed spoil, scree and a
+			-- little rock (QA: all-rock floors read as one cold grey sheet under Black fog).
+			if onFace then
+				return if grain > 0.45 then Enum.Material.Cobblestone else Enum.Material.Rock
+			end
+			local spoil = math.noise(x / 14, z / 14, 4.1) + grain * 0.3
+			return if spoil > 0.3
 				then Enum.Material.Cobblestone
-				elseif grain > -0.25 then Enum.Material.Rock
+				elseif spoil < -0.35 then Enum.Material.Rock
 				else Enum.Material.Ground
+		end
+		local burnt: { Pond } = spec.scorch or {}
+		for _, scorch in burnt do
+			local d = (V2(x, z) - scorch.at).Magnitude + math.noise(x / 9, z / 9, 7.3) * 5
+			if d < scorch.radius then
+				-- Charred earth (QA: Basalt "ash" rendered pale blue, like frost, under Black fog).
+				return if d < scorch.radius * 0.7 and grain > -0.3 then Enum.Material.Mud else Enum.Material.Ground
+			end
 		end
 		if inClearing(spec, x, z, grain * 4) then
 			local worn = math.noise(x / 12, z / 12, 9.9)
@@ -418,7 +439,11 @@ local function woodsAndUndergrowth(ctx: Builder.Ctx, spec: Spec, nodes: { Vector
 	for index = 1, math.floor(half * 1.6) do
 		local x, z = (rng:NextNumber() * 2 - 1) * (half - 4), (rng:NextNumber() * 2 - 1) * (half - 4)
 		if trailDistance(spec, x, z) > 3.5 and creekDistance(spec, x, z) > 7 and not nearExit(spec, x, z, 0) then
-			Builder.kit(ctx, under[rng:NextInteger(1, #under)], x, z, rng:NextNumber() * 360, { solid = false })
+			-- Only scree down in a cut: no brush on the worked rock.
+			local kind = if pitDepth(spec, x, z) < -1
+				then { "EO_LooseStonesClean" }
+				else under[rng:NextInteger(1, #under)]
+			Builder.kit(ctx, kind, x, z, rng:NextNumber() * 360, { solid = false })
 		end
 		if index % 60 == 0 then
 			task.wait()

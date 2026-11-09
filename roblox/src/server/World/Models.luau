@@ -513,13 +513,13 @@ function Models.node(def: Types.ResourceNodeDef, _rng: Random): Model?
 	end
 	if art.tint then
 		local tint = art.tint
-		for _, part in model:GetDescendants() do
-			if part:IsA("SurfaceAppearance") then
+		for _, piece in model:GetDescendants() do
+			if piece:IsA("SurfaceAppearance") then
 				pcall(function()
-					(part :: any).Color = tint
+					(piece :: any).Color = tint
 				end)
-			elseif part:IsA("BasePart") and part:FindFirstChildOfClass("SurfaceAppearance") == nil then
-				part.Color = Color3.new(part.Color.R * tint.R, part.Color.G * tint.G, part.Color.B * tint.B)
+			elseif piece:IsA("BasePart") and piece:FindFirstChildOfClass("SurfaceAppearance") == nil then
+				piece.Color = Color3.new(piece.Color.R * tint.R, piece.Color.G * tint.G, piece.Color.B * tint.B)
 			end
 		end
 	end

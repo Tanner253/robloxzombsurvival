@@ -94,6 +94,24 @@ Builder.paints = {
 		variant = "EO_WornWood",
 		tint = rgb(222, 206, 186),
 	},
+	bark = {
+		-- Log bark: plain wood grain along the log (QA: the plank variant wrapped round a
+		-- cylinder read as banded grey pipe).
+		material = Enum.Material.Wood,
+		color = rgb(86, 68, 52),
+	},
+	endGrain = {
+		-- A sawn log end: pale, so a stack reads as logs from the gameplay camera.
+		material = Enum.Material.Wood,
+		color = rgb(178, 150, 112),
+	},
+	charred = {
+		-- Fire-blackened boards (Gloaming Deep's burnt cabin and bridge).
+		material = Enum.Material.Wood,
+		color = rgb(52, 46, 42),
+		variant = "EO_WornWood",
+		tint = rgb(92, 80, 72),
+	},
 	brick = {
 		material = Enum.Material.Brick,
 		color = rgb(134, 88, 70),

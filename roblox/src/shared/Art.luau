@@ -122,7 +122,7 @@ Art.nodes = {
 		names = { "EO_RockCluster" },
 		height = 3.3,
 		sink = 0.3,
-		tint = Color3.fromRGB(214, 138, 108),
+		tint = Color3.fromRGB(190, 136, 114), -- QA: 214,138,108 read as terracotta in daylight
 	},
 	["node.malachite_vein"] = {
 		names = { "EO_RockCluster" },

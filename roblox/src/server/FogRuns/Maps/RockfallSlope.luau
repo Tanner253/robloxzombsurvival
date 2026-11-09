@@ -71,7 +71,7 @@ local spec: ResourceZone.Spec = {
 		ZoneDress.camp(ctx, "QuarrymenCamp", CAMP.X, CAMP.Y, 220)
 		Builder.vehicle(ctx, "EO_PickupWreck", CAMP.X + 14, CAMP.Y + 12, 60, { height = 6.8, tilt = 2 })
 		Builder.kit(ctx, { "EO_StorageCrate" }, CAMP.X - 14, CAMP.Y - 2, 30)
-		Builder.kit(ctx, { "EO_ScrapHeapClean" }, CUT.X + 16, CUT.Y + 24, 80)
+		Builder.kit(ctx, { "EO_SupplySacksMesh" }, CUT.X + 16, CUT.Y + 24, 80)
 		Builder.kit(ctx, { "EO_BarrelCluster" }, CUT.X - 4, CUT.Y + 30, 10)
 		Builder.kit(ctx, { "EO_LanternPost" }, CUT.X + 6, CUT.Y + 18, 200)
 		Builder.lamp(ctx, CUT.X + 6, CUT.Y + 18, 6.5, true, 20)

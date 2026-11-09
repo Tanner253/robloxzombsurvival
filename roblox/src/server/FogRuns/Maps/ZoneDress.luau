@@ -39,7 +39,13 @@ function ZoneDress.logStack(ctx: Builder.Ctx, x: number, z: number, yaw: number,
 			local log = base
 				* CFrame.new(0, d / 2 + (row - 1) * d * 0.86, offset)
 				* CFrame.Angles(0, math.rad((index * 7 + row * 3) % 9 - 4), math.rad(90))
-			Builder.cylinder(holder, long, d, log, "trim")
+			-- Logs differ a little in length and girth; each shows its sawn ends.
+			local girth = d * (0.9 + ((index * 5 + row * 11) % 7) / 60)
+			local span = long - ((index + row) % 3) * 0.6
+			Builder.cylinder(holder, span, girth, log, "bark")
+			for _, tip in { -1, 1 } do
+				Builder.cylinder(holder, 0.12, girth - 0.18, log * CFrame.new(0, tip * span / 2, 0), "endGrain")
+			end
 		end
 	end
 	for _, side in { -1, 1 } do
@@ -62,7 +68,8 @@ function ZoneDress.cabin(
 	x: number,
 	z: number,
 	yaw: number,
-	ruin: number?
+	ruin: number?,
+	wall: string?
 ): Builder.Building
 	local broken = ruin or 0
 	return Builder.building(ctx, {
@@ -73,7 +80,7 @@ function ZoneDress.cabin(
 		width = 16,
 		depth = 12,
 		height = 9.5,
-		wall = if broken > 0 then "boards" else "siding",
+		wall = wall or if broken > 0 then "boards" else "siding",
 		trim = "trim",
 		floor = "boards",
 		roof = if broken > 0.4 then "none" else "gable",
@@ -215,12 +222,39 @@ function ZoneDress.conveyor(ctx: Builder.Ctx, from: Vector2, to: Vector2, high: 
 			end
 		end
 	end
+	-- The head: a rusted drum housing on its own legs, a sloped lid over the drum (QA: a
+	-- corrugated cube here read as a striped crate).
+	local level = CFrame.new(b) * CFrame.Angles(0, math.atan2(-frame.LookVector.X, -frame.LookVector.Z), 0)
+	local headGround = Builder.at(ctx, b.X - ctx.origin.X, b.Z - ctx.origin.Z, 0)
+	local legs = math.max(b.Y - headGround.Y - 1.4, 0.5)
+	for _, corner in { { -2, -1.6 }, { 2, -1.6 }, { -2, 1.6 }, { 2, 1.6 } } do
+		Builder.part(
+			holder,
+			Vector3.new(0.6, legs, 0.6),
+			level * CFrame.new(corner[1], -1.4 - legs / 2, corner[2]),
+			"rust",
+			"HeadLeg"
+		)
+	end
+	Builder.part(holder, Vector3.new(4.8, 0.4, 4), level * CFrame.new(0, -1.2, 0), "rust", "HeadDeck")
+	for _, side in { -2.3, 2.3 } do
+		Builder.part(holder, Vector3.new(0.3, 2.4, 3.6), level * CFrame.new(side, 0, 0), "rust", "HeadCheek")
+	end
+	Builder.cylinder(holder, 4.2, 2.2, level * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)), "darkMetal")
 	Builder.part(
 		holder,
-		Vector3.new(6, 5, 6),
-		CFrame.new(b + Vector3.new(0, -1, 0)) * frame.Rotation,
-		"corrugated",
-		"Head"
+		Vector3.new(5.4, 0.25, 4.6),
+		level * CFrame.new(0, 1.55, 0.3) * CFrame.Angles(math.rad(-12), 0, 0),
+		"darkMetal",
+		"HeadLid"
+	)
+	-- The chute it tips into, down to the spoil.
+	Builder.part(
+		holder,
+		Vector3.new(2.6, 0.3, 3.4),
+		level * CFrame.new(0, -0.8, -3) * CFrame.Angles(math.rad(34), 0, 0),
+		"rust",
+		"HeadChute"
 	)
 end
 

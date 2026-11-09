@@ -40,6 +40,7 @@ local spec: ResourceZone.Spec = {
 		{ at = CUT, radius = 22 },
 		{ at = V2(BRIDGE.X - 24, BRIDGE.Y), radius = 12 },
 	},
+	scorch = { { at = CABIN, radius = 17 }, { at = V2(BRIDGE.X - 6, BRIDGE.Y), radius = 9 } },
 	exits = {
 		{ id = "old_trail", name = "Old Trail", at = V2(-HALF + 8, 21), yaw = 90 },
 		{ id = "fire_lookout", name = "Fire Lookout", at = V2(LOOKOUT.X - 18, LOOKOUT.Y + 6), yaw = 0 },
@@ -76,7 +77,7 @@ local spec: ResourceZone.Spec = {
 	woods = 0.86,
 	dress = function(ctx: Builder.Ctx)
 		-- The burnt-out cabin: a charred shell with its roof fallen in.
-		local cabin = ZoneDress.cabin(ctx, "BurntCabin", CABIN.X, CABIN.Y, 90, 0.6)
+		local cabin = ZoneDress.cabin(ctx, "BurntCabin", CABIN.X, CABIN.Y, 90, 0.6, "charred")
 		Builder.rubble(ctx, CABIN.X + 10, CABIN.Y + 8, 3.5, "brickDark")
 		for _, beam in { { -3, -2, 30, 11 }, { 3, 2, -40, 9 } } do
 			Builder.part(
@@ -85,14 +86,14 @@ local spec: ResourceZone.Spec = {
 				cabin.frame
 					* CFrame.new(beam[1], 1.1, beam[2])
 					* CFrame.Angles(math.rad(6), math.rad(beam[3]), math.rad(4)),
-				"darkMetal",
+				"charred",
 				"CharredBeam"
 			)
 		end
 		-- The fire lookout on its rise.
 		ZoneDress.tower(ctx, "FireLookout", LOOKOUT.X, LOOKOUT.Y, 15, 14)
 		Builder.kit(ctx, { "EO_SupplySacksMesh" }, LOOKOUT.X + 8, LOOKOUT.Y - 4, 40)
-		Builder.kit(ctx, { "EO_BarrelCluster" }, LOOKOUT.X - 6, LOOKOUT.Y + 10, 120)
+		Builder.kit(ctx, { "EO_BarrelCluster" }, LOOKOUT.X + 14, LOOKOUT.Y + 2, 120)
 		-- The logging cut: stacked ironbark and a crew's camp.
 		ZoneDress.logStack(ctx, CUT.X + 6, CUT.Y + 12, 20, 14)
 		ZoneDress.logStack(ctx, CUT.X - 14, CUT.Y - 8, 110, 12)
@@ -106,13 +107,13 @@ local spec: ResourceZone.Spec = {
 				holder,
 				Vector3.new(0.9, 0.9, 26),
 				base * CFrame.new(side, 0, 0) * CFrame.Angles(math.rad(side * 2), 0, 0),
-				"darkMetal",
+				"charred",
 				"Stringer"
 			)
 		end
 		for z = -10, 10, 1.4 do
 			if math.noise(z, 1.7) > -0.15 then
-				Builder.part(holder, Vector3.new(6, 0.3, 1.1), base * CFrame.new(0, 0.55, z), "darkMetal", "Plank")
+				Builder.part(holder, Vector3.new(6, 0.3, 1.1), base * CFrame.new(0, 0.55, z), "charred", "Plank")
 			end
 		end
 		Builder.vehicle(ctx, "EO_SedanWreck", BRIDGE.X - 30, BRIDGE.Y - 12, 20, { height = 5.6, tilt = 5 })

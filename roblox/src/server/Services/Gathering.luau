@@ -438,12 +438,13 @@ local function gather(player: Player, key: string)
 		end
 	end
 
-	if personal then
-		-- Only this player's copy changed: their client hides it (the "gather" effect).
-	elseif depleted then
-		setStanding(node, false)
-	else
-		node.model:SetAttribute("HitsLeft", node.state.hitsLeft)
+	-- A personal node changes only this player's copy: their client hides it (the "gather" effect).
+	if not personal then
+		if depleted then
+			setStanding(node, false)
+		else
+			node.model:SetAttribute("HitsLeft", node.state.hitsLeft)
+		end
 	end
 	Progression.grantXp(player, node.def.xpPerHit, "Gathering")
 	for _, stack in given do
