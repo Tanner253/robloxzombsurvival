@@ -313,7 +313,8 @@ end
 
 local function pondCamp(ctx: Builder.Ctx)
 	-- A tarp lean-to over a cold fire by the reeds: someone camped here and left fast.
-	Builder.leanTo(ctx, "HunterCamp", CAMP.X, CAMP.Y, 214, "tarp")
+	-- Open to the north, towards the fire, so its slope faces the camera and reads as a tarp.
+	Builder.leanTo(ctx, "HunterCamp", CAMP.X + 2, CAMP.Y + 13, 0, "tarp")
 	Builder.kit(ctx, { "EO_CampfireRing" }, CAMP.X + 4, CAMP.Y + 6, 0)
 	Builder.kit(ctx, { "EO_BarrelCluster" }, CAMP.X - 9, CAMP.Y + 2, 70)
 	Builder.kit(ctx, { "EO_SupplySacksMesh" }, CAMP.X + 9, CAMP.Y - 2, 20)
@@ -353,7 +354,7 @@ local function ruinedCottage(ctx: Builder.Ctx)
 		height = 10,
 		wall = "brickDark",
 		trim = "trim",
-		floor = "floorPlanks",
+		floor = "boards",
 		roof = "none",
 		ruin = 0.55,
 		openings = {
@@ -370,6 +371,27 @@ local function ruinedCottage(ctx: Builder.Ctx)
 	Builder.container(ctx, "crate", x, z, 20, nil, lift)
 	local sx, sz, slift = Builder.inside(ctx, cottage, -5, 3)
 	Builder.container(ctx, "strongbox", sx, sz, 200, nil, slift)
+	-- The roof came down inside: charred beams across the floor, fallen stone and weeds.
+	for _, beam in { { -4, -2, 25, 12 }, { 3, 2, -35, 10 }, { 6, -4, 80, 8 }, { -6, 4, 100, 7 } } do
+		Builder.part(
+			cottage.model,
+			Vector3.new(0.8, 0.8, beam[4]),
+			cottage.frame
+				* CFrame.new(beam[1], 1.1, beam[2])
+				* CFrame.Angles(math.rad(7), math.rad(beam[3]), math.rad(5)),
+			"trim",
+			"FallenBeam"
+		)
+	end
+	local inside = {
+		{ x = -3, z = -4, name = "EO_LooseStonesClean" },
+		{ x = 7, z = 4, name = "EO_EmberBushClean" },
+		{ x = -7, z = -5, name = "EO_BareBranches" },
+	}
+	for _, spot in inside do
+		local ix, iz, ilift = Builder.inside(ctx, cottage, spot.x, spot.z)
+		Builder.kit(ctx, { spot.name }, ix, iz, ctx.rng:NextNumber() * 360, { lift = ilift, solid = false })
+	end
 	Builder.kit(ctx, DEAD, RUIN.X - 16, RUIN.Y + 12, 40, { height = 17 })
 	Builder.kit(ctx, DEAD, RUIN.X + 18, RUIN.Y + 16, 200, { height = 15 })
 	Builder.kit(ctx, { "EO_ScrapHeapClean" }, RUIN.X + 4, RUIN.Y + 14, 100)

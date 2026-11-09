@@ -156,7 +156,8 @@ Builder.paints = {
 	},
 	floorPlanks = {
 		material = Enum.Material.WoodPlanks,
-		color = rgb(132, 104, 78),
+		-- Tinted down from the deck texture's warm orange: old, unvarnished, dusty boards.
+		color = rgb(104, 92, 80),
 		variant = "EO_Deck_Planks",
 		tint = rgb(196, 170, 132),
 	},
@@ -1044,17 +1045,19 @@ local function gableRoof(ctx: Ctx, building: Model, base: CFrame, spec: Building
 			"ChimneyCap"
 		)
 	end
-	-- Gable ends: two wedges each, in the wall's material.
+	-- Gable ends: two wedges each, in the wall's material, kept just under the roof
+	-- panels (at full height their sloped faces showed through the shingles).
+	local gableRise = math.max(0.5, rise - 0.6)
 	for _, endSign in { -1, 1 } do
 		local x = endSign * (length - 1.6) / 2
 		local half = span / 2
 		for _, sideSign in { -1, 1 } do
 			local wedge = Builder.wedge(
 				holder,
-				Vector3.new(WALL, rise, half),
+				Vector3.new(WALL, gableRise, half),
 				base
 					* turn
-					* CFrame.new(x - endSign * WALL / 2, height + rise / 2, sideSign * half / 2)
+					* CFrame.new(x - endSign * WALL / 2, height + gableRise / 2, sideSign * half / 2)
 					* CFrame.Angles(0, if sideSign > 0 then math.rad(180) else 0, 0),
 				spec.wall
 			)
@@ -1214,7 +1217,7 @@ function Builder.building(ctx: Ctx, spec: BuildingSpec): Building
 			then base * CFrame.new(0, -0.1, spec.depth / 2 + reach / 2)
 			else base * CFrame.new(spec.width / 2 + reach / 2, -0.1, 0) * CFrame.Angles(0, math.rad(90), 0)
 		local porch = model(building, "Porch")
-		Builder.part(porch, Vector3.new(length, 0.4, reach), centre, "floorPlanks", "Deck")
+		Builder.part(porch, Vector3.new(length, 0.4, reach), centre, "boards", "Deck")
 		for _, sign in { -1, 1 } do
 			Builder.part(
 				porch,
