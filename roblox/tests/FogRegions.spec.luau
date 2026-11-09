@@ -7,9 +7,10 @@
 local fs = require("@lune/fs")
 local roblox = require("@lune/roblox")
 local TestKit = require("./TestKit")
+
 -- The region data uses Vector2; Lune has it in its roblox library, not as a global.
-;
-(getfenv() :: any).Vector2 = roblox.Vector2
+local env: any = getfenv()
+env.Vector2 = roblox.Vector2
 
 local Content = require("../src/shared/Data")
 local FogRegions = require("../src/shared/Data/FogRegions")
