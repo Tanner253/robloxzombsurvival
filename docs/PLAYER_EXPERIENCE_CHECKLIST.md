@@ -208,6 +208,9 @@ Nothing player-facing is done until it has all ten:
 | 12.7 | Minimap at locations: points of interest, extraction points, your bag, party members, and Hollow dots when alerted (§8.7). | rec6 | S2 |
 | 12.8 | Other players show name tags and party colour. Light fog has no friendly fire. | — | S2 |
 
+| 12.9 | **Collision and navigation that hold up** (the developer, 2026-11-08): every model has a fitted collision (CollisionFidelity Box/Hull/PreciseConvexDecomposition chosen per shape; no invisible walls, no walk-through solids, no snagging on scatter). Doorways and paths are wide enough for the Hollow's agent radius. The Hollow path with PathfindingService (agent radius, height and jump set per archetype; PathfindingModifiers for passable foliage and costs for water or mud), route around buildings and through open doors, recompute when blocked, and never get stuck on terrain or props. Verified per map by an automated nav probe (agents spawned at every zone, sent to the player's positions, success rate ≥ 98% and no stuck agents over 5 s), plus captures of the Hollow rounding buildings. | rec6 | S2 |
+| 12.10 | **Exits and extraction points are diegetic, not UI circles** (the developer: "the green circles are jarring and don't fit the art style"). A Light-fog exit is a worn path or road leading off the map, with a weathered signpost. A Dense or Black extraction point is a landmark: a lit flare stake, a lantern on a post, the Old Bridge or a parked truck. When the player is near, a soft muted ground decal (ember amber, not neon green) and the HUD prompt appear. A closed exit shows a cold, unlit marker and a "Closed" prompt. The minimap arc stays. No bright flat circles anywhere. | rec3_08 (subtle) | S2 |
+
 ## 13. Combat and the Hollow (S2)
 
 | # | Requirement | LDoE reference | Owner |
