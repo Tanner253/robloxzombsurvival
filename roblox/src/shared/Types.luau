@@ -418,17 +418,25 @@ export type ProductGrant =
 	{ kind: "item", itemId: ItemId, count: number }
 	| { kind: "energy", amount: number } -- may overfill up to Tuning.energy.hardCap
 	| { kind: "backpackSlots", amount: number }
+	| { kind: "embers", amount: number } -- the premium currency
+	| { kind: "vipLounge" } -- the VIP Lounge pass (Services/Haven)
 
 export type ProductDef = {
 	id: ProductId,
 	name: string,
+	description: string, -- the shop card's line
 	kind: ProductKind,
 	robloxId: number, -- 0 until the product exists on the Creator Dashboard
+	icon: string?, -- the product icon image, also the shop card's art
 	-- Fallback display price only. The live price is read from MarketplaceService
 	-- so Roblox price tests and regional pricing work (GAME_DESIGN.md guardrails).
 	defaultPriceRobux: number,
 	limit: number?, -- purchases per player; nil means unlimited (game passes are 1)
 	offerMaxLevel: number?, -- only offered at or below this player level
+	-- "firstPurchase": shown only to accounts that never paid, for Tuning.embers.
+	-- firstPurchaseHours after their first win, once (Domain/Offers).
+	offer: "firstPurchase"?,
+	tab: "best" | "supplies" | "embers" | "passes", -- the shop tab it sits on
 	grants: { ProductGrant }, -- item grants go into the locked stash (ARCHITECTURE.md §6)
 }
 
@@ -528,6 +536,8 @@ export type TuningDef = {
 		spacingStuds: number, -- between plot centres along a row
 		rowGapStuds: number, -- the road between the two rows
 		marginStuds: number, -- the gathering ring around the build grid
+		plazaHalfStuds: number, -- Haven Square: half its width (x)
+		plazaDepthStuds: number, -- Haven Square: half its depth (z)
 	},
 	interaction: {
 		reachStuds: number, -- arm's reach from an object's edge (nodes, pickups, crates, stations)
@@ -588,6 +598,19 @@ export type TuningDef = {
 	fogExposure: FogExposureTuning,
 	deathRecovery: DeathRecoveryTuning,
 	hollow: HollowTuning,
+	-- Robux prices by product or pass ID (display fallbacks; Data/Products).
+	prices: { robux: { [string]: number } },
+	embers: {
+		recoverAll: number,
+		ration: number,
+		rationsFive: number,
+		speedUpFactor: number,
+		speedUpMin: number,
+		speedUpMinSeconds: number,
+		fillUp: { [ItemId]: number },
+		vipTrialDays: number,
+		firstPurchaseHours: number,
+	},
 }
 
 -- Fog Runs (slice 2) -------------------------------------------------------------------
@@ -867,6 +890,39 @@ export type DeathRecoveryTuning = {
 }
 
 -- Everything in Data/, as one bundle (what the validator checks).
+-- Haven Square (Data/Haven) -----------------------------------------------------------------
+
+export type HavenNpc = {
+	id: string,
+	name: string,
+	title: string, -- shown on the talk panel under the name
+	role: "trader" | "quests" | "vip",
+	greeting: string, -- floats over the head when you are near (LDoE rec4_01)
+	lines: { string }, -- the talk panel picks one
+	jacket: string, -- hex tint on the survivor rig's torso and arms (Lune has no Color3)
+	pants: string, -- hex tint on the legs
+	keepsPack: boolean, -- whether the backpack accessory stays on
+}
+
+export type HavenPrice = { itemId: ItemId, coins: number }
+export type HavenContract = { id: string, itemId: ItemId, count: number, coins: number, xp: number }
+
+export type HavenDef = {
+	npcs: { [string]: HavenNpc },
+	trader: { buy: { HavenPrice }, sell: { HavenPrice }, reachStuds: number },
+	contracts: { perDay: number, pool: { HavenContract }, reachStuds: number },
+	chapterRewards: { [string]: { coins: number, items: { ItemStack } } },
+	vip: {
+		passId: number,
+		priceRobux: number,
+		icon: string,
+		energyCapBonus: number, -- added to the Energy cap
+		dailyCrate: { ItemStack },
+		streakDays: number, -- every this-many consecutive crates adds streakBonus
+		streakBonus: { ItemStack },
+	},
+}
+
 export type Content = {
 	Items: { [ItemId]: ItemDef },
 	Recipes: { [RecipeId]: RecipeDef },
@@ -879,6 +935,7 @@ export type Content = {
 	Levels: { PlayerLevelDef }, -- index = level
 	Quests: { [QuestId]: QuestDef },
 	Products: { [ProductId]: ProductDef },
+	Haven: HavenDef,
 	Projects: { [string]: ProjectDef },
 	StarterShelter: { StarterPiece },
 	Tuning: TuningDef,

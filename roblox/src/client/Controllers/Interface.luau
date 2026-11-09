@@ -47,7 +47,7 @@ end
 
 -- The full-screen panels (screens/ldoe/Hud's FULL_SCREEN): the world blurs behind them.
 local FULL_SCREEN: { [string]: boolean } =
-	{ inventory = true, station = true, project = true, crafting = true, settings = true }
+	{ inventory = true, station = true, project = true, crafting = true, settings = true, shop = true, haven = true }
 local BLUR_SIZE = 18
 
 local blur: BlurEffect? = nil

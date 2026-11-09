@@ -15,7 +15,8 @@
 
 	Screens shown: the station converter whenever a station opens (Flags.ldoeStations), and
 	the inventory, crates and inbox once Flags.ldoeInventory is on (until then the slice-1
-	InventoryScreen keeps those).
+	InventoryScreen keeps those), and Haven Square's NPCs and boards (HavenPane) with the
+	coin balance in the inventory header; at the Trader the main action SELLs a bag stack.
 ]]
 
 local GuiService = game:GetService("GuiService")
@@ -28,6 +29,7 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Flags = require(ReplicatedStorage.Shared.Flags)
 local Converter = require(ReplicatedStorage.Shared.Domain.Converter)
+local Market = require(ReplicatedStorage.Shared.Domain.Market)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Net = require("../../../Net")
@@ -45,6 +47,7 @@ local InventoryPane = require("./InventoryPane")
 local CharacterPane = require("./CharacterPane")
 local StationPane = require("./StationPane")
 local ContextPanes = require("./ContextPanes")
+local HavenPane = require("./HavenPane")
 
 local e = React.createElement
 
@@ -151,6 +154,8 @@ local function Panels()
 	local quests = hooks.useSection("quests")
 	local progression = hooks.useSection("progression")
 	local unlocks = hooks.useSection("unlocks")
+	local haven = hooks.useSection("haven")
+	local wallet = hooks.useSection("wallet")
 	local pooled = hooks.usePooled()
 	local now = hooks.useClock(1)
 	local modalState, setModal = React.useState(nil :: any)
@@ -164,10 +169,12 @@ local function Panels()
 	local station = if stationUid and type(stations) == "table" then stations[stationUid] else nil
 	local crate = if type(storage) == "table" then storage else nil
 	local projectId = if ui.panel == "project" then ui.projectId else nil
+	local havenId = if ui.panel == "haven" then ui.havenId else nil
 	local open = type(inventory) == "table"
 		and (
 			(station ~= nil and Flags.on("ldoeStations"))
 			or (projectId ~= nil)
+			or (havenId ~= nil)
 			or (ui.panel == "inventory" and useNew)
 		)
 
@@ -202,6 +209,18 @@ local function Panels()
 					end,
 				}
 			end
+		end
+		if havenId == "npc.trader" and (sel.ref == "pockets" or sel.ref == "backpack") then
+			local count = math.min(slot.count, Market.MAX_TRADE)
+			local value = Market.cost(Content.Haven.trader.sell, slot.itemId, count)
+			return {
+				text = "Sell",
+				enabled = value ~= nil,
+				run = function()
+					Net.fire("HavenSell", slot.itemId, count)
+					State.clear("selected")
+				end,
+			}
 		end
 		if sel.ref == "storage" then
 			return {
@@ -374,7 +393,15 @@ local function Panels()
 	}
 
 	local right: any
-	if station and stationUid then
+	if havenId then
+		right = e(HavenPane, {
+			havenId = havenId,
+			haven = if type(haven) == "table" then haven else nil,
+			inventory = inventory,
+			now = now,
+			tab = ui.havenTab,
+		})
+	elseif station and stationUid then
 		right = e(StationPane.Pane, {
 			uid = stationUid,
 			station = station,
@@ -423,8 +450,10 @@ local function Panels()
 		inventory = inventory,
 		selected = selected,
 		newItems = ui.newItems,
-		balance = 0, -- premium currency arrives with the shop (S3)
-		shopOpen = false,
+		balance = if type(wallet) == "table" then wallet.embers else 0, -- Embers, the premium currency
+		onShop = function()
+			Actions.openShop(nil, "embers")
+		end,
 		main = mainAction(),
 		onSelect = select,
 		onSecondary = secondary,

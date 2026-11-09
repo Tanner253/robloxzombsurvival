@@ -379,7 +379,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(data.inventory.pockets[2].count, 17, "stack untouched")
 		TestKit.equal(data.storage.c1[1].durability, 80, "crate")
 		TestKit.equal(data.inbox[1].durability, 100, "inbox")
-		TestKit.equal(data.version, 8)
+		TestKit.equal(data.version, PlayerSchema.VERSION, "migrated through every step after v8")
 	end)
 
 	test("outpost v2 -> v3: home nodes with more hits left than the node now has are whole again", function()

@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local Neighbourhood = require(ReplicatedStorage.Shared.Domain.Neighbourhood)
 local Migrations = require(ReplicatedStorage.Shared.Domain.Migrations)
 local OutpostSchema = require(ReplicatedStorage.Shared.Domain.OutpostSchema)
 local Shelter = require(ReplicatedStorage.Shared.Domain.Shelter)
@@ -94,14 +95,10 @@ local function child(parent: Instance, name: string, className: string): Instanc
 	return made
 end
 
--- Grid corner of plot `index` from Tuning: two rows of `columns`, a road between.
+-- Grid corner of plot `index`: around Haven Square, two rows facing the road through it
+-- (Domain/Neighbourhood).
 local function defaultOrigin(worldOrigin: Vector3, index: number): (Vector3, number)
-	local column = (index - 1) % tuning.columns
-	local row = (index - 1) // tuning.columns
-	local x = (column - (tuning.columns - 1) / 2) * tuning.spacingStuds
-	local offset = tuning.rowGapStuds / 2 + tuning.marginStuds + GRID_STUDS / 2
-	local z = if row == 0 then -offset else offset
-	local front = if row == 0 then 1 else -1
+	local x, z, front = Neighbourhood.plotCentre(tuning :: any, GRID_STUDS, index)
 	return worldOrigin + Vector3.new(x - GRID_STUDS / 2, 0, z - GRID_STUDS / 2), front
 end
 
@@ -157,7 +154,8 @@ local function roadSpawn(world: Instance, worldOrigin: Vector3): SpawnLocation
 	spawn.Size = Vector3.new(6, 0.2, 6)
 	spawn.Transparency = 1
 	spawn.CanCollide = false
-	spawn.CFrame = CFrame.new(worldOrigin + Vector3.new(0, 0.1, 0))
+	-- On Haven Square, on the road just south of the campfire circle.
+	spawn.CFrame = CFrame.new(worldOrigin + Vector3.new(0, 0.1, 22))
 	local decal = spawn:FindFirstChildOfClass("Decal")
 	if decal then
 		decal:Destroy()

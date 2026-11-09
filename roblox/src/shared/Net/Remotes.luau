@@ -152,6 +152,73 @@ Remotes.list = {
 		validate = Check.args(ref, slot),
 		description = "(ref, index) eats, drinks or reads the item in that slot",
 	},
+
+	-- Shop (MVP_LAUNCH v0.1) -------------------------------------------------------------
+	ShopBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("product")),
+		description = "(productId) asks the server to prompt that developer product, if it is on offer",
+	},
+	-- Embers (Services/Shop, Services/Stations; MVP_LAUNCH Monetization v0.1) ------------------
+	EmbersRations = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.integer(1, 5)),
+		description = "(count) buys 1 or 5 Trail Rations with Embers (to the inbox)",
+	},
+	FillUp = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.stacks(12, 999)),
+		description = "(stacks) buys missing materials with Embers at Fill Up rates",
+	},
+	StationSpeedUp = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.string(64)),
+		description = "(uid) finishes a station's work now for Embers, priced by the time left",
+	},
+	-- Haven Square (Services/Haven) -----------------------------------------------------------
+	HavenBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("item"), Check.integer(1, 99)),
+		description = "(itemId, count) buys from the Trader's stock for coins, standing by her",
+	},
+	HavenSell = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("item"), Check.integer(1, 99)),
+		description = "(itemId, count) sells items from the bag to the Trader for coins",
+	},
+	ContractDeliver = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.contentId("contract")),
+		description = "(contractId) delivers one of today's contracts at the Trail Keeper's board",
+	},
+	ChapterClaim = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.string(64)),
+		description = "(chapter) hands a finished Ember Trail chapter in to the Trail Keeper",
+	},
+	VipBuy = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(),
+		description = "() prompts the VIP Lounge game pass",
+	},
 	WeaponSelect = {
 		kind = "event",
 		clientCanSend = true,

@@ -119,6 +119,31 @@ function Check.never(): Validator
 	end
 end
 
+-- A short list of { itemId, count } stacks: content item IDs, whole counts in 1..maxCount.
+function Check.stacks(maxStacks: number, maxCount: number): Check
+	local item = Check.contentId("item")
+	local count = Check.integer(1, maxCount)
+	return function(value)
+		if type(value) ~= "table" or #value < 1 or #value > maxStacks then
+			return false, `expected 1 to {maxStacks} stacks`
+		end
+		for key, stack in value do
+			if type(key) ~= "number" or type(stack) ~= "table" then
+				return false, "expected a list of stacks"
+			end
+			local okItem, why = item(stack.itemId)
+			if not okItem then
+				return false, why
+			end
+			local okCount, whyCount = count(stack.count)
+			if not okCount then
+				return false, whyCount
+			end
+		end
+		return true, nil
+	end
+end
+
 -- Validates an exact argument list: one Check per argument, no extras.
 function Check.args(...: Check): Validator
 	local checks = { ... }

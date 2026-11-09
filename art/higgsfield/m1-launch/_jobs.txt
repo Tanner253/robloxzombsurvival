@@ -1,0 +1,31 @@
+# Launch stations (ECONOMY.md: Smelter and Stonecutter required at launch). ART_DIRECTION 10a.
+# Concept: gpt_image_2_6, 16:9, style refs = camp_sheet_v1 (dc8e4c33...) + recycler crop
+# (1f7f1f75...) + campfire crop (226ab2e0...), the family preamble (realistic painted game
+# asset, weathered, muted, top-left light, neutral grey, 3/4 view). Two variants (0.25 each).
+image stations_sheet_a bfde1f42-e0f5-4745-a725-5a0a0839c2b9 (0.25) smelter picked (open hatch reads as a furnace)
+image stations_sheet_b b7ac143b-b52d-4018-956f-1487d8e2b785 (0.25) stonecutter picked
+# Crops (scratchpad crop_stations.py, crop_family.py rules): crops/smelter.png, crops/stonecutter.png
+media smelter aa244d6d-c345-4d76-bcd5-201747b496f5
+media stonecutter ce57c4a5-9419-4478-b800-33b3356c941d
+# Conversion, fixed family settings: tripo_h3_1_image_to_3d face_limit=18000 texture pbr
+# texture_quality=detailed geometry_quality=standard texture_alignment=original_image (12 each)
+3d smelter b3796b19-ba05-4a06-9f16-27e39c679f14 (12)
+3d stonecutter 630d143c-b5f0-4daf-9914-a10d1b30efe7 (12)
+# Gate: art/tools/glb_floaters.py 0 flags, one piece each; glb_shrink.py to 1024 maps.
+roblox EO_Smelter 134220739947756 (Art.uploaded yaw 90, X 5.8; tint 190,168,144)
+roblox EO_Stonecutter 96553555280227 (Art.uploaded yaw 90, X 5.6; tint 255,232,204)
+# Spend: 0.5 (two concept variants) + 24 (two conversions) = 24.5 credits.
+# v0.1 shop (Open Cloud, universe 10775267789): icons art/ui/products/*.png (scratchpad shop_icons.py style)
+roblox product.scavenger_kit 3729872993 (79) icon 103183324723356
+roblox product.builders_crate 3729873035 (399) icon 121572315473616
+roblox product.room_kit_reinforced 3729873052 (1699) icon 111714823062229
+roblox product.embers_50 3729873068 (149) icon 94850842702164
+roblox product.embers_300 3729873080 (799) icon 76937309861540
+roblox pass.pack_expansion 2076082454 (199) icon 114676220253346
+updated product.energy_refill 3729832267 -> 99; product.starter_offer 3729832319 -> Firestarter Kit 99; product.resource_pack 3729832298 -> Supply Bundle 99; product.backpack_upgrade 3729832309 -> not for sale
+# Economy v0.1 item icons: ONE sheet, gpt_image_2_6 3:2 transparent, style ref icons_v2 (89559c4b...), 2 variants (0.5)
+image economy_icons_a b0104c76-85f3-4341-9df5-6d31a87e1355 (picked) / economy_icons_b c2ed9834-ab05-42e9-ae12-da8a4da7c648
+sliced by connected components to icons/item.*.png (256 px), uploaded via Studio upload_image:
+ironbark_log 119915856776923, ironbark_plank 71333371293679, ironstone 128948840936073, iron_ingot 132615750371222,
+malachite 93949528651215, copper_ingot 116107751360894, copper_wire 117484328235022, embercoal 91538870894309,
+forged_hatchet 84771320691583, forged_pick 130436492368559

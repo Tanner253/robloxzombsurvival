@@ -1,46 +1,64 @@
 --!strict
---[[
-	Credits: the third-party assets in the game, shown in Settings → Credits (a launch
-	requirement for CC-BY; CC0 listed as a courtesy). Mirrors CREDITS.md at the repo root.
-]]
+-- Generated from CREDITS.md by tools/credits.luau. Don't edit by hand: edit CREDITS.md
+-- and run `lune run tools/credits.luau` from roblox/. The Credits panel reads this.
 
-export type Credit = {
-	usedAs: string, -- our item or prop
-	title: string,
-	author: string,
-	licence: string,
-	source: string, -- where it came from (short, no URL scheme needed)
+export type Row = { work: string, by: string, license: string, source: string }
+export type Section = { title: string, rows: { Row } }
+
+local Credits: { Section } = {
+	{
+		title = "Open-source code",
+		rows = {
+			{
+				work = "React Luau (react, react-roblox and their packages)",
+				by = "Roblox Corporation",
+				license = "MIT",
+				source = "github.com/jsdotlua/react-lua",
+			},
+			{ work = "Promise", by = "Eryn L. K.", license = "MIT", source = "github.com/jsdotlua/promise" },
+			{
+				work = "GoodSignal",
+				by = "Mark Langen (stravant)",
+				license = "MIT",
+				source = "github.com/stravant/goodsignal",
+			},
+			{
+				work = "ProfileStore",
+				by = "MAD STUDIO (loleris)",
+				license = "Apache 2.0",
+				source = "github.com/MadStudioRoblox/ProfileStore",
+			},
+		},
+	},
+	{
+		title = "Models",
+		rows = {
+			{
+				work = '"sawnoffs Animated" (the Scrap Shotgun)',
+				by = "DJMaesen",
+				license = "CC-BY-4.0",
+				source = "sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb",
+			},
+			{
+				work = '"Service Pistol" (the Worn Pistol)',
+				by = "Mateusz Sadek",
+				license = "CC0",
+				source = "polyhaven.com/a/service_pistol",
+			},
+			{
+				work = '"Machete" (the Machete)',
+				by = "Ulan Cabanilla",
+				license = "CC0",
+				source = "polyhaven.com/a/machete",
+			},
+			{
+				work = '"Universal Animation Library" (combat animations: gun aim, shot, reload, hit, fall)',
+				by = "Quaternius",
+				license = "CC0",
+				source = "quaternius.com",
+			},
+		},
+	},
 }
 
-local Credits: { Credit } = {
-	{
-		usedAs = "Scrap Shotgun",
-		title = "sawnoffs Animated",
-		author = "DJMaesen",
-		licence = "CC-BY-4.0",
-		source = "sketchfab.com/bumstrum",
-	},
-	{
-		usedAs = "Worn Pistol",
-		title = "Service Pistol",
-		author = "Mateusz Sadek",
-		licence = "CC0",
-		source = "polyhaven.com",
-	},
-	{
-		usedAs = "Machete",
-		title = "Machete",
-		author = "Ulan Cabanilla",
-		licence = "CC0",
-		source = "polyhaven.com",
-	},
-	{
-		usedAs = "Combat animations",
-		title = "Animation Library",
-		author = "Quaternius",
-		licence = "CC0",
-		source = "quaternius.com",
-	},
-}
-
-return Credits
+return table.freeze(Credits)

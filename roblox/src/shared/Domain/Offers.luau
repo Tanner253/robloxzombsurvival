@@ -1,0 +1,95 @@
+--!strict
+--[[
+	Offers: the pure rules of the v0.1 shop and its Ember sinks (MVP_LAUNCH Monetization
+	v0.1, docs/research/ldoe-monetization-playbook.md).
+
+	- The Firestarter Kit: shown only to accounts that never paid, for an accurate 48 h from
+	  their first win (the first night survived or the first extraction), once; the window
+	  never restarts.
+	- Ember prices: a speed-up by time left (max(2, ceil(3.9 x sqrt(minutes)))), only for
+	  jobs with at least 2 minutes left; Fill Up per missing unit; Trail Rations in ones
+	  and fives.
+	- Sales: a discount is only a genuine window of at least 72 h, and a countdown never
+	  restarts for the same item (a sale that ended can't run again).
+]]
+
+local Offers = {}
+
+export type EmberTuning = {
+	recoverAll: number,
+	ration: number,
+	rationsFive: number,
+	speedUpFactor: number,
+	speedUpMin: number,
+	speedUpMinSeconds: number,
+	fillUp: { [string]: number }, -- Embers per missing unit, by item
+	vipTrialDays: number,
+	firstPurchaseHours: number,
+}
+
+export type Sale = { startsAt: number, endsAt: number, percentOff: number }
+
+local HOUR = 60 * 60
+
+-- Whether the player has ever paid: any developer product or game pass bought.
+function Offers.hasPaid(counts: { [string]: number }): boolean
+	for _, count in counts do
+		if count > 0 then
+			return true
+		end
+	end
+	return false
+end
+
+-- The Firestarter window: open, and when it ends (0 before the first win).
+function Offers.firstPurchase(
+	counts: { [string]: number },
+	firstWinAt: number,
+	now: number,
+	hours: number
+): (boolean, number)
+	if firstWinAt <= 0 then
+		return false, 0
+	end
+	local endsAt = firstWinAt + hours * HOUR
+	return not Offers.hasPaid(counts) and now < endsAt, endsAt
+end
+
+-- Embers to finish `seconds` of a station's work now; nil when under the minimum.
+function Offers.speedUpPrice(seconds: number, tuning: EmberTuning): number?
+	if seconds < tuning.speedUpMinSeconds then
+		return nil
+	end
+	return math.max(tuning.speedUpMin, math.ceil(tuning.speedUpFactor * math.sqrt(seconds / 60)))
+end
+
+-- Embers to Fill Up `stacks`; nil when any item can't be bought this way (rare parts and
+-- blueprints come only from play).
+function Offers.fillUpPrice(stacks: { { itemId: string, count: number } }, tuning: EmberTuning): number?
+	local total = 0
+	for _, stack in stacks do
+		local unit = tuning.fillUp[stack.itemId]
+		if unit == nil or stack.count < 1 or stack.count ~= math.floor(stack.count) then
+			return nil
+		end
+		total += unit * stack.count
+	end
+	return if total > 0 then total else nil
+end
+
+-- Embers for `count` Trail Rations: 5 for the five-price, the rest at the single price.
+function Offers.rationsPrice(count: number, tuning: EmberTuning): number
+	return (count // 5) * tuning.rationsFive + (count % 5) * tuning.ration
+end
+
+-- Whether a sale is a genuine window (at least 72 h, a real discount).
+function Offers.validSale(sale: Sale): boolean
+	return sale.endsAt - sale.startsAt >= 72 * HOUR and sale.percentOff > 0 and sale.percentOff < 100
+end
+
+-- Whether a sale is running now; a sale that has ended never runs again (no restarts).
+function Offers.saleActive(sale: Sale?, now: number): boolean
+	return sale ~= nil and Offers.validSale(sale) and now >= sale.startsAt and now < sale.endsAt
+end
+
+return Offers

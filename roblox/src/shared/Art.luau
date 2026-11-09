@@ -26,13 +26,14 @@ Art.WALL_HEIGHT = 8.6
 Art.pieces = {
 	["build.fence_wood"] = { "WallWood" }, -- the kit palisade
 	-- The LDoE station roster (LDOE_PARITY #19). The P2 carpentry bench (saw, chisels,
-	-- vise) is the Woodworking Bench; the slice-1 kit bench serves as the parts Workbench
-	-- until its own model passes the lineup (S1b Phase B checks it beside rec8). The
-	-- Stonecutter and Smelter have no approved model yet, so they stay hidden.
+	-- vise) is the Saw Bench; the slice-1 kit bench serves as the parts Workbench until its
+	-- own model passes the lineup (S1b Phase B checks it beside rec8). The Stonecutter and
+	-- Smelter are required at launch (ECONOMY.md): the camp family's grinding-wheel bench and
+	-- clay dome kiln (art/higgsfield/m1-launch, lineup L01-L03).
 	["build.woodworking_bench"] = { "EO_WorkbenchP2" },
 	["build.workbench"] = { "Workbench" },
-	["build.stonecutter"] = {},
-	["build.smelter"] = {},
+	["build.stonecutter"] = { "EO_Stonecutter" },
+	["build.smelter"] = { "EO_Smelter" },
 	["build.campfire"] = { "EO_CampfireRing" }, -- the camp family's stone ring and charred teepee (B18)
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
@@ -91,6 +92,10 @@ Art.tints = {
 	-- The fieldstones were the last bleached-white rock beside the warm boulders (B27): the
 	-- boulder's own palette, so the small pickup and the big node read as one stone.
 	EO_LooseStonesClean = Color3.fromRGB(168, 150, 128),
+	-- Launch stations: the kiln's clay toward the family's warm stone (it came out bleached
+	-- grey), the stonecutter's wood toward the Saw Bench's.
+	EO_Smelter = Color3.fromRGB(190, 168, 144),
+	EO_Stonecutter = Color3.fromRGB(255, 232, 204),
 } :: { [string]: Color3 }
 
 -- Resource nodes -> kit names and the height (studs) the model is scaled to.
@@ -208,6 +213,11 @@ Art.approved = {
 	EO_WorkbenchP2 = true,
 	-- Loose fieldstones (floaters removed by the gate): the home stone source (capture 121).
 	EO_LooseStonesClean = true,
+	-- Launch stations (ECONOMY.md: required at launch), graded A in the lineup beside the Saw
+	-- Bench, Recycler, Campfire and Crate by day and night (docs/milestones/m1-launch L01-L03);
+	-- one piece each, 0 floater flags.
+	EO_Smelter = true,
+	EO_Stonecutter = true,
 	-- Ammo Press (13.12): cast-iron press, lever and powder can on a plank bench (slice 2B).
 	EO_AmmoPress = true,
 	-- Fog Run props from the slice 2 family sheets (lineup 2026-11-08: weathered, rusted,
@@ -261,6 +271,10 @@ Art.uploaded = {
 	EO_ReedsClean = { id = 106633992505764, yaw = 0, axis = "Y", size = 4.2 },
 	EO_EmberBushClean = { id = 106896648014033, yaw = 0, axis = "Y", size = 4 },
 	EO_ScrapHeapClean = { id = 89747869389109, yaw = 0, axis = "Y", size = 3.8 },
+	-- Launch stations (art/higgsfield/m1-launch): turned so the kiln's hatch and the bench's
+	-- long side face the front, sized to their 6 x 6 and 6 x 4 footprints.
+	EO_Smelter = { id = 134220739947756, yaw = 90, axis = "X", size = 5.8 },
+	EO_Stonecutter = { id = 96553555280227, yaw = 90, axis = "X", size = 5.6 },
 	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
 	-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
 	EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
