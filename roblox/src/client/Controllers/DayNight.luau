@@ -6,10 +6,10 @@
 	and a night keyframe with the clock's smooth `daylight`, with a warm tint
 	around dawn and dusk. Nothing jumps.
 
-	- Night is dark but readable, like LDoE's (rec6_04, LDOE_PARITY #32): a cool blue
-	  moonlight wash, a desaturated grade so the ground reads blue-grey instead of murky
-	  olive, and a cool rim light on your own survivor. Warm light at night comes only from
-	  fires and torches, so their pools stand out (1.7).
+	- Night is dark but readable, like LDoE's (rec6_04, LDOE_PARITY #32): a deep blue
+	  moonlight wash in the ambient light, a mild grade, and a cool rim light on your own
+	  survivor. Warm light at night comes only from fires, lanterns and candles, and keeps
+	  its colour, so their pools stand out (1.7, rec4_01).
 	- "Night is coming" at 18:30 and "Dawn breaks" at 06:00 (8.5).
 ]]
 
@@ -53,14 +53,17 @@ local DAY: Key = {
 }
 local NIGHT: Key = {
 	brightness = 1.7,
-	exposure = 1.1,
-	-- Blue moonlight fill: trees, nodes and the base stay readable at night (rec6_04).
-	ambient = Color3.fromRGB(96, 106, 170),
-	outdoor = Color3.fromRGB(140, 154, 240),
-	tint = Color3.fromRGB(146, 164, 255),
-	saturation = -0.7,
-	contrast = 0.06,
-	shift = Color3.fromRGB(150, 172, 240),
+	exposure = 1.75,
+	-- Blue moonlight fill: trees, nodes and the base stay readable at night (rec6_04). The
+	-- blue lives in the light, not the grade: a heavy blue tint and desaturation turned
+	-- every fire, lantern and candle grey (Haven at night vs rec4_01), where LDoE's stay
+	-- orange against a deep, saturated blue.
+	ambient = Color3.fromRGB(56, 70, 182),
+	outdoor = Color3.fromRGB(66, 90, 255),
+	tint = Color3.fromRGB(192, 206, 255),
+	saturation = -0.36,
+	contrast = 0.1,
+	shift = Color3.fromRGB(104, 132, 255),
 	haze = Color3.fromRGB(46, 54, 72),
 	decay = Color3.fromRGB(34, 40, 58),
 }

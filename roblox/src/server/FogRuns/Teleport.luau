@@ -25,6 +25,7 @@ local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
+local DataSafety = require(ReplicatedStorage.Shared.Domain.DataSafety)
 local RunTicket = require(ReplicatedStorage.Shared.Domain.RunTicket)
 
 local Teleport = {}
@@ -87,8 +88,10 @@ function Teleport.canGoLive(): boolean
 	return not RunService:IsStudio() and game.PlaceId ~= 0
 end
 
+-- Studio never touches the live lobby lists: like the DataStores (Stores), its maps carry
+-- the _Studio suffix (Studio simulates lobbies anyway; this keeps a stray call harmless).
 local function mapName(locationId: string): string
-	return `FogLobbies_{locationId}`
+	return DataSafety.storeName(`FogLobbies_{locationId}`, RunService:IsStudio())
 end
 
 local function sorted(locationId: string): MemoryStoreSortedMap

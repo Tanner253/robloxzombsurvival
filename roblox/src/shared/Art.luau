@@ -39,6 +39,13 @@ Art.pieces = {
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
 	["build.ammo_press"] = { "EO_AmmoPress" }, -- press on a scrap bench (Studio mesh generator)
+	-- Launch content (docs/research/ldoe-mvp-parity-content.md LB-3, LB-5): the camp family's
+	-- wrapped torch and lantern post, its rain collector, and the smoke rack (Studio mesh
+	-- generator), graded in the lineup beside the Campfire and Crate.
+	["build.pitch_torch"] = { "EO_StandingTorch" },
+	["build.post_lantern"] = { "EO_LanternPost" },
+	["build.rain_barrel"] = { "EO_RainCollector" },
+	["build.smoke_rack"] = { "EO_SmokeRack" },
 } :: { [string]: { string } }
 
 -- Foundation decks per tier (1 wood, 2 scrap, 3 reinforced): a MaterialVariant on its
@@ -74,6 +81,8 @@ Art.ground = {
 Art.tints = {
 	Workbench = Color3.fromRGB(255, 226, 192),
 	WallWood = Color3.fromRGB(255, 226, 192), -- QA2: the palisade's blue-grey wood vs the deck
+	-- The found mallet's yellow handle, dirtied to the family's weathered palette (lineup L04).
+	EO_RailMallet = Color3.fromRGB(176, 156, 118),
 	EO_WallTimber = Color3.fromRGB(255, 226, 192),
 	EO_PalisadeDoorway = Color3.fromRGB(255, 226, 192),
 	EO_PalisadeWindow = Color3.fromRGB(255, 226, 192),
@@ -215,6 +224,18 @@ Art.approved = {
 	EO_Machete = true,
 	EO_FireAxe = true,
 	EO_Shortbow = true,
+	-- Launch content, graded in the lineup beside the Campfire, Crate and Spiked Club
+	-- (docs/milestones/m1-launch L04): the camp family's wrapped torch and rain collector,
+	-- the generated smoke rack (second take: muted meat, cold ash), Zona's crowbar and
+	-- sledgehammer as the found Tire Iron and Rail Mallet (weapons only, per the developer).
+	EO_StandingTorch = true,
+	EO_RainCollector = true,
+	EO_SmokeRack = true,
+	EO_TireIron = true,
+	EO_RailMallet = true,
+	-- The Sharpened Stake: the icon sheet's stake through the family conversion (Tripo,
+	-- its base disc dropped by art/tools/glb_drop_base.py).
+	EO_SharpenedStake = true,
 } :: { [string]: boolean }
 
 -- Converted family models uploaded from art/higgsfield/m1-slice1 (_roblox_assets.json).
@@ -268,6 +289,11 @@ Art.uploaded = {
 	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
 	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
 	EO_Shortbow = { id = 104799057457758, yaw = 0, axis = "Z", size = 3 },
+	-- Launch content: found melee from Zona (art/zona/melee), the generated smoke rack.
+	EO_TireIron = { id = 74586365090292, yaw = 0, axis = "Y", size = 2 },
+	EO_SharpenedStake = { id = 88147290024814, yaw = 0, axis = "Y", size = 2 },
+	EO_RailMallet = { id = 84097844053183, yaw = 0, axis = "Y", size = 3.4 },
+	EO_SmokeRack = { id = 132431669150006, yaw = 0, axis = "X", size = 5.6 },
 } :: { [string]: { id: number, yaw: number, axis: string, size: number } }
 
 local function anyApproved(names: { string }?): boolean
@@ -286,8 +312,13 @@ end
 -- (Models.structure), always ready. The Defense fence keeps its kit palisade.
 local EXACT_KINDS = { wall = true, doorway = true, window = true, door = true }
 local KIT_ONLY = { ["build.fence_wood"] = true }
+-- The Reed Doormat is a flat woven mat in exact geometry (Models.piece).
+local EXACT_PIECES = { ["build.doormat"] = true }
 
 function Art.exactPiece(pieceId: string, kind: string?): boolean
+	if EXACT_PIECES[pieceId] then
+		return true
+	end
 	return kind ~= nil and EXACT_KINDS[kind] == true and not KIT_ONLY[pieceId]
 end
 
@@ -310,6 +341,20 @@ function Art.dropReady(): boolean
 end
 
 -- Items -> kit names for the model held in hand and the rendered 3D icon.
+-- Worn armor: the tint each piece lays over the survivor's clothes (Services/Inventory
+-- applyWorn), multiplied into the rig's one atlas texture: a multiply can only shift and
+-- darken the dark field clothes, so each set takes a clear hue. Reedweave warms them to
+-- straw-tan, Padded cools them to slate with dark leather boots (lineup L04). Head pieces
+-- show on the paperdoll only.
+Art.worn = {
+	["item.reedweave_shirt"] = Color3.fromRGB(255, 226, 140),
+	["item.reedweave_trousers"] = Color3.fromRGB(246, 214, 132),
+	["item.reedweave_wraps"] = Color3.fromRGB(236, 204, 128),
+	["item.padded_vest"] = Color3.fromRGB(156, 172, 186),
+	["item.padded_leggings"] = Color3.fromRGB(146, 158, 172),
+	["item.padded_boots"] = Color3.fromRGB(128, 98, 74),
+} :: { [string]: Color3 }
+
 Art.items = {
 	["item.stone_hatchet"] = { "EO_StoneHatchet", "Gen_axe" },
 	["item.spiked_club"] = { "EO_SpikedClub" },
@@ -325,6 +370,10 @@ Art.items = {
 	["item.machete"] = { "EO_Machete" },
 	["item.fire_axe"] = { "EO_FireAxe" },
 	["item.shortbow"] = { "EO_Shortbow" },
+	-- Launch content: the starter stake, the found Tire Iron and Rail Mallet (Zona meshes).
+	["item.sharpened_stake"] = { "EO_SharpenedStake" },
+	["item.tire_iron"] = { "EO_TireIron" },
+	["item.rail_mallet"] = { "EO_RailMallet" },
 } :: { [string]: { string } }
 
 -- How each held item sits in the fist and on the body (checklist 1.5, 1.5b).
@@ -403,6 +452,30 @@ Art.held = {
 		edge = Vector3.new(0, 1, 0),
 		grip = 0.12,
 		length = 2.9,
+		holster = "back",
+	},
+	-- The stake lies on a diagonal in its model (converted as drawn); the point is its thin end.
+	["item.sharpened_stake"] = {
+		axis = Vector3.new(-0.617, 0.655, -0.436), -- butt (cord) to the charred point
+		edge = Vector3.new(0.728, 0.686, 0),
+		grip = 0.14,
+		length = 3.4,
+		holster = "back",
+	},
+	-- Found melee (Zona meshes, length along +Y, head at the top): the crowbar's hook bends
+	-- toward +Z, the mallet's faces point along X.
+	["item.tire_iron"] = {
+		axis = Vector3.new(0, 1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.14,
+		length = 2,
+		holster = "belt",
+	},
+	["item.rail_mallet"] = {
+		axis = Vector3.new(0, 1, 0),
+		edge = Vector3.new(1, 0, 0),
+		grip = 0.1,
+		length = 3.4,
 		holster = "back",
 	},
 	-- The bow faces the way the arrow flies, limbs upright (its depth is `length`).

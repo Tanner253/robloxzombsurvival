@@ -20,12 +20,23 @@
 
 	Quests 11-13 (docs/ECONOMY.md §11.2) open the tier-2 ladder after the Dense fog: the
 	Forged Hatchet and Ironbark Planks, the Forged Pick and copper, then the Black fog.
+
+	Chapter 3, "Hold the Line" (quests 14-25, docs/research/ldoe-mvp-parity-content.md SH-10
+	and BR-8), opens with the Black fog and runs two lines side by side, so the tracker keeps
+	two quests: the home line (14, 16, 18, 20, 22, 24: lights, rain and smoke, the doormat and
+	a spare set, banded storage, the Stranded Caravan, full stores) and the fog line (15, 17,
+	19, 21, 23, 25: the Reinforcement Plans, copper, reinforced walls, the Padded set, the
+	Depot, then level 25). In the pacing model (tests/Pacing.spec, 2.5 h a day) they land
+	from day 8 to day 18, so the trail no longer ends in the first week. Build and craft objectives
+	count from the moment a quest opens, so the reinforced ones open while the base is still
+	going up and ask for pieces it keeps needing (walls, not its one door).
 ]]
 
 local Types = require("../Types")
 
 local HOME = "Ashes and Embers"
 local FOG = "Into the Fog"
+local LINE = "Hold the Line"
 
 local Quests: { [Types.QuestId]: Types.QuestDef } = {
 	["quest.first_light"] = {
@@ -33,10 +44,13 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 1,
 		chapter = HOME,
 		name = "First Light",
-		description = "The fog thins at dawn. Gather fallen branches and loose stones, and put down the Hollow that wandered in.",
+		description = "The fog thins at dawn. Gather branches and stones, twist reeds into a cord, and sharpen a stake to keep in hand. Then put down the Hollow that wandered in.",
+		-- The stake takes 4 of the sticks; the other 6 and the stones make Tools of Survival.
 		objectives = {
-			{ kind = "gather", itemId = "item.sticks", count = 6 },
+			{ kind = "gather", itemId = "item.sticks", count = 10 },
 			{ kind = "gather", itemId = "item.stone", count = 6 },
+			{ kind = "craft", recipeId = "recipe.sharpened_stake", count = 1 },
+			{ kind = "equip", itemId = "item.sharpened_stake" },
 			{ kind = "kill", count = 1, flag = "fogRuns" },
 			{ kind = "lootBody", count = 1, flag = "fogRuns" },
 		},
@@ -215,7 +229,226 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			{ kind = "reachLevel", level = 15 }, -- the Black fog's level gate (GAME_DESIGN)
 			{ kind = "travel", fogTier = 3, flag = "fogRuns" },
 		},
-		rewards = { xp = 1000, items = { { itemId = "item.coil_spring", count = 2 } } },
+		-- Glue and cloth light the first torches and lanterns (Light the Edges).
+		rewards = {
+			xp = 1000,
+			items = {
+				{ itemId = "item.coil_spring", count = 2 },
+				{ itemId = "item.pitch_glue", count = 4 },
+				{ itemId = "item.cloth", count = 4 },
+			},
+		},
+	},
+
+	-- Chapter 3: Hold the Line ------------------------------------------------------------------
+	-- The home line.
+	["quest.light_the_edges"] = {
+		id = "quest.light_the_edges",
+		order = 14,
+		chapter = LINE,
+		name = "Light the Edges",
+		description = "Light is territory. Ring your walls with Pitch Torches and set Post Lanterns by the door, so nothing reaches you unseen.",
+		prerequisite = "quest.into_the_black",
+		objectives = {
+			{ kind = "build", pieceId = "build.pitch_torch", count = 4 },
+			{ kind = "build", pieceId = "build.post_lantern", count = 2 },
+		},
+		-- Cord lashes the Smoke Rack; cloth covers the Rain Barrel (Rain and Smoke).
+		rewards = {
+			xp = 1200,
+			items = { { itemId = "item.rope", count = 10 }, { itemId = "item.cloth", count = 3 } },
+		},
+	},
+	["quest.rain_and_smoke"] = {
+		id = "quest.rain_and_smoke",
+		order = 16,
+		chapter = LINE,
+		name = "Rain and Smoke",
+		description = "Stop boiling every drop. Set out a Rain Barrel to catch clean water, and build a Smoke Rack to cure venison that keeps.",
+		prerequisite = "quest.light_the_edges",
+		objectives = {
+			{ kind = "build", pieceId = "build.rain_barrel", count = 1 },
+			{ kind = "build", pieceId = "build.smoke_rack", count = 1, flag = "fogRuns" },
+			{ kind = "craft", recipeId = "recipe.smoked_meat", count = 4, flag = "fogRuns" },
+		},
+		-- Cloth and cord for the spare Reedweave set and the doormat (Come Home Again).
+		rewards = {
+			xp = 1300,
+			items = { { itemId = "item.cloth", count = 9 }, { itemId = "item.rope", count = 6 } },
+		},
+	},
+	["quest.come_home_again"] = {
+		id = "quest.come_home_again",
+		order = 18,
+		chapter = LINE,
+		name = "Come Home Again",
+		description = "When the fog takes you, you wake at home. Weave a Reed Doormat and lay it down, then weave a spare Reedweave set to walk back out in.",
+		prerequisite = "quest.rain_and_smoke",
+		objectives = {
+			{ kind = "craft", recipeId = "recipe.doormat", count = 1, flag = "fogRuns" },
+			{ kind = "build", pieceId = "build.doormat", count = 1, flag = "fogRuns" },
+			{ kind = "craft", recipeId = "recipe.reedweave_cap", count = 1 },
+			{ kind = "craft", recipeId = "recipe.reedweave_shirt", count = 1 },
+			{ kind = "craft", recipeId = "recipe.reedweave_trousers", count = 1 },
+			{ kind = "craft", recipeId = "recipe.reedweave_wraps", count = 1 },
+		},
+		-- Plates and rivets band the crates (Room for More).
+		rewards = {
+			xp = 1500,
+			items = { { itemId = "item.scrap_plate", count = 4 }, { itemId = "item.rivets", count = 4 } },
+		},
+	},
+	["quest.room_for_more"] = {
+		id = "quest.room_for_more",
+		order = 20,
+		chapter = LINE,
+		name = "Room for More",
+		description = "Your stock has outgrown timber crates. Band two of them with plate and rivets into Banded Crates, to hold what the Black fog gives up.",
+		prerequisite = "quest.come_home_again",
+		objectives = {
+			{ kind = "build", pieceId = "build.crate_banded", count = 2 },
+		},
+		-- Dressings and stew for the road to the Caravan.
+		rewards = {
+			xp = 1700,
+			items = { { itemId = "item.field_dressing", count = 3 }, { itemId = "item.hearth_stew", count = 2 } },
+		},
+	},
+	["quest.stranded_caravan"] = {
+		id = "quest.stranded_caravan",
+		order = 22,
+		chapter = LINE,
+		name = "The Stranded Caravan",
+		description = "A caravan lies stranded in the Dense fog, and it is only there for a few hours at a time. Catch it on the Fog map and search the wagons.",
+		prerequisite = "quest.room_for_more",
+		objectives = {
+			{ kind = "travel", locationId = "loc.stranded_caravan", flag = "fogRuns" },
+			{ kind = "loot", count = 4, locationId = "loc.stranded_caravan", flag = "fogRuns" },
+		},
+		-- Venison to start the rack on (Full Stores).
+		rewards = {
+			xp = 2000,
+			items = { { itemId = "item.raw_meat", count = 6 }, { itemId = "item.ember_tonic", count = 1 } },
+		},
+	},
+	["quest.full_stores"] = {
+		id = "quest.full_stores",
+		order = 24,
+		chapter = LINE,
+		name = "Full Stores",
+		description = "A base that holds needs food that keeps. Hunt deer, smoke twenty cuts of venison on the rack, and grow seasoned enough to live on it.",
+		prerequisite = "quest.stranded_caravan",
+		objectives = {
+			{ kind = "craft", recipeId = "recipe.smoked_meat", count = 20, flag = "fogRuns" },
+			{ kind = "reachLevel", level = 24 },
+		},
+		rewards = {
+			xp = 2600,
+			items = { { itemId = "item.brass_gear", count = 2 }, { itemId = "item.ember_tonic", count = 2 } },
+		},
+	},
+
+	-- The fog line.
+	["quest.the_plans"] = {
+		id = "quest.the_plans",
+		order = 15,
+		chapter = LINE,
+		name = "The Plans",
+		description = "The Reinforcement Plans are somewhere in the Ashfall Depot. Search its freight until you find them, read them, and reinforce a foundation.",
+		prerequisite = "quest.into_the_black",
+		objectives = {
+			{ kind = "loot", count = 6, locationId = "loc.ashfall_depot", flag = "fogRuns" },
+			{ kind = "build", pieceId = "build.foundation_reinforced", count = 1 },
+		},
+		-- Embercoal to fuel the copper smelt (Copper Lines).
+		rewards = {
+			xp = 1500,
+			items = { { itemId = "item.embercoal", count = 10 }, { itemId = "item.field_dressing", count = 2 } },
+		},
+	},
+	["quest.copper_lines"] = {
+		id = "quest.copper_lines",
+		order = 17,
+		chapter = LINE,
+		name = "Copper Lines",
+		description = "Raise the Smelter to level 2 and smelt copper from malachite. Drawn into wire at a level 2 Workbench, it binds reinforced walls.",
+		prerequisite = "quest.the_plans",
+		objectives = {
+			{ kind = "gather", itemId = "item.malachite", count = 20, flag = "fogRuns" },
+			{ kind = "craft", recipeId = "recipe.copper_ingot", count = 4 },
+		},
+		-- Rivets for the first reinforced walls (Walls That Hold).
+		rewards = { xp = 1600, items = { { itemId = "item.rivets", count = 8 } } },
+	},
+	["quest.walls_that_hold"] = {
+		id = "quest.walls_that_hold",
+		order = 19,
+		chapter = LINE,
+		name = "Walls That Hold",
+		description = "Saw Ironbark into planks at a level 2 Saw Bench, then reinforce your walls with stone, ironbark and copper wire.",
+		prerequisite = "quest.copper_lines",
+		objectives = {
+			{ kind = "build", pieceId = "build.wall_reinforced", count = 4 },
+		},
+		-- Leather and cloth for the Padded leggings and boots (Padded Through).
+		rewards = {
+			xp = 2000,
+			items = { { itemId = "item.leather", count = 4 }, { itemId = "item.cloth", count = 6 } },
+		},
+	},
+	["quest.padded_through"] = {
+		id = "quest.padded_through",
+		order = 21,
+		chapter = LINE,
+		name = "Padded Through",
+		description = "Finish the Padded set with leggings and boots of leather and reedcloth, and wear all four pieces into the Black fog.",
+		prerequisite = "quest.walls_that_hold",
+		objectives = {
+			{ kind = "craft", recipeId = "recipe.padded_leggings", count = 1, flag = "fogRuns" },
+			{ kind = "craft", recipeId = "recipe.padded_boots", count = 1, flag = "fogRuns" },
+			{ kind = "equip", itemId = "item.padded_hood" },
+			{ kind = "equip", itemId = "item.padded_vest" },
+			{ kind = "equip", itemId = "item.padded_leggings", flag = "fogRuns" },
+			{ kind = "equip", itemId = "item.padded_boots", flag = "fogRuns" },
+		},
+		-- Dressings and food for the Depot (Black Fog Regular). No ammo: guns run on durability.
+		rewards = {
+			xp = 2000,
+			items = { { itemId = "item.field_dressing", count = 5 }, { itemId = "item.sealed_tin", count = 3 } },
+		},
+	},
+	["quest.black_fog_regular"] = {
+		id = "quest.black_fog_regular",
+		order = 23,
+		chapter = LINE,
+		name = "Black Fog Regular",
+		description = "Make the Ashfall Depot yours. Search its crates again and again, and thin out the Hollow that guard it.",
+		prerequisite = "quest.padded_through",
+		objectives = {
+			{ kind = "loot", count = 30, locationId = "loc.ashfall_depot", flag = "fogRuns" },
+			{ kind = "kill", count = 100, flag = "fogRuns" },
+		},
+		-- Dressings and tonics for the long last stand (Hold the Line).
+		rewards = {
+			xp = 2800,
+			items = { { itemId = "item.field_dressing", count = 4 }, { itemId = "item.ember_tonic", count = 2 } },
+		},
+	},
+	["quest.hold_the_line"] = {
+		id = "quest.hold_the_line",
+		order = 25,
+		chapter = LINE,
+		name = "Hold the Line",
+		description = "Hold your ground against the Black fog. Put down five hundred Hollow, reach level 25, then tell Old Hale at Haven Square.",
+		prerequisite = "quest.black_fog_regular",
+		objectives = {
+			{ kind = "kill", count = 500, flag = "fogRuns" },
+			{ kind = "reachLevel", level = 25 },
+		},
+		rewards = {
+			xp = 4000,
+			items = { { itemId = "item.brass_gear", count = 3 }, { itemId = "item.trigger_group", count = 1 } },
+		},
 	},
 }
 

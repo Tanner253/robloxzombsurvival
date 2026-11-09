@@ -69,10 +69,13 @@ return function(test: TestKit.Register)
 		end
 		TestKit.equal(hollow, 3, "Hollow types (shambler, runner, bloater)")
 		TestKit.equal(wildlife, 2, "wildlife (deer, wolf; LDOE_PARITY #35)")
-		TestKit.equal(#Content.Levels, 20, "player levels")
-		-- The Ember Trail: 10 starter quests, then ECONOMY §11.2's three tier-2 quests.
-		TestKit.equal(count(Content.Quests), 13, "Ember Trail quests")
-		TestKit.equal(count(Content.Products), 10, "shop products (MVP_LAUNCH Monetization v0.1)")
+		-- The launch cap is 30 (the content parity audit's BR-8: 20 ran out on day 12).
+		TestKit.equal(#Content.Levels, 30, "player levels")
+		-- The Ember Trail: 10 starter quests, ECONOMY §11.2's three tier-2 quests, then
+		-- chapter 3's twelve ("Hold the Line", the audit's SH-10 and BR-8).
+		TestKit.equal(count(Content.Quests), 25, "Ember Trail quests")
+		-- v0.1's ten, then the Equipment tab's six and the Building tab's two (MVP_LAUNCH).
+		TestKit.equal(count(Content.Products), 18, "shop products (MVP_LAUNCH Monetization v0.1)")
 
 		local structural: { [string]: { [number]: boolean } } = {}
 		for _, piece in Content.BuildPieces do
@@ -297,7 +300,7 @@ return function(test: TestKit.Register)
 			c.Locations["loc.sunken_quarry"].levelGate = 99
 		end)
 		TestKit.anyContains(errors, "Levels[3]: xp must be higher than the previous level's")
-		TestKit.anyContains(errors, "level 99 must be an integer from 1 to 20")
+		TestKit.anyContains(errors, "level 99 must be an integer from 1 to 30")
 	end)
 
 	test("catches rotating availability and reset mismatches", function()
@@ -326,8 +329,11 @@ return function(test: TestKit.Register)
 			c.Recipes["recipe.spiked_club"].unlock = { kind = "level", level = 3 }
 			c.BuildPieces["build.stonecutter"].unlock = { kind = "quest", questId = "quest.nope" }
 			c.Stations["station.smelter"].levels[2].slotCap = 20
-			c.Quests["quest.claim_the_ground"].objectives[1] =
-				{ kind = "build", pieceId = "build.workbench", count = 1 }
+			-- The Recycler unlocks with Scavenger, later on the trail than Claim the Ground.
+			c.Quests["quest.claim_the_ground"].objectives[1] = { kind = "build", pieceId = "build.recycler", count = 1 }
+			-- A side line earlier on the trail is fine: Keep the Fire (5) unlocks the
+			-- Workbench before Hold the Door (7), though not on its chain.
+			c.Quests["quest.hold_the_door"].objectives[1] = { kind = "build", pieceId = "build.workbench", count = 1 }
 			c.Quests["quest.keep_the_fire"].order = 1
 			c.StarterShelter[2].x = 6
 		end)
@@ -338,7 +344,10 @@ return function(test: TestKit.Register)
 		)
 		TestKit.anyContains(errors, "unknown quest 'quest.nope'")
 		TestKit.anyContains(errors, "slotCap must grow with each level")
-		TestKit.anyContains(errors, "'build.workbench' is still locked when the quest opens")
+		TestKit.anyContains(errors, "'build.recycler' is still locked when the quest opens")
+		for _, message in errors do
+			TestKit.truthy(not string.find(message, "quest.hold_the_door", 1, true), `unexpected error: {message}`)
+		end
 		TestKit.anyContains(errors, "order 1 is also")
 		TestKit.anyContains(errors, "StarterShelter (front 1): piece 2 (build.foundation_wood): occupied")
 	end)

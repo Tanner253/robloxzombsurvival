@@ -14,7 +14,9 @@
 
 	The bands asserted are GAME_DESIGN's, at 2.5 h a day (2 x 75 min) with both other
 	layouts and play times checked at the edges: the hook in the first hour, Timber by the
-	end of day 1, Scrap on days 3-5, Reinforced on days 10-14.
+	end of day 1, Scrap on days 3-5, Reinforced on days 10-14. The Ember Trail is played as
+	it pays: the first quests on their first builds, chapter 3 (Hold the Line) on its own
+	objectives, so the spec also checks that the trail now runs to about day 20.
 
 	PACING_VERBOSE=1 lune run tests/run prints each case's milestones.
 ]]
@@ -697,6 +699,7 @@ local function goals(fallback: boolean): { PacingSim.Goal }
 		{
 			name = "hook",
 			pieces = keep({
+				count("craft:recipe.sharpened_stake", 1), -- First Light's starter weapon
 				count("craft:recipe.satchel", 1),
 				count("build.campfire", 1),
 				count("build.foundation_wood", 2),
@@ -748,7 +751,7 @@ end
 
 local function model(minutesPerSession: number, fallback: boolean): PacingSim.Model
 	return {
-		days = 18,
+		days = 21, -- was 18: three full weeks, so chapter 3's last quests land inside the run
 		sessions = { { start = 8 * 60, minutes = minutesPerSession }, { start = 19 * 60, minutes = minutesPerSession } },
 		homeMinutes = 3,
 		reservedSlots = 3,
@@ -899,7 +902,7 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			"build.recycler",
 		},
 		questTriggers = {
-			"craft:recipe.satchel",
+			"craft:recipe.sharpened_stake",
 			"build.campfire",
 			"build.foundation_wood",
 			"build.wall_wood",
@@ -914,6 +917,59 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			{ questId = "quest.heartwood", craft = "recipe.forged_hatchet" },
 			{ questId = "quest.green_vein", craft = "recipe.forged_pick" },
 			{ questId = "quest.into_the_black", blackRun = true },
+			-- Chapter 3, Hold the Line. `cost` is what the objectives use up that the model
+			-- doesn't build itself, from Data/BuildPieces and Data/Recipes: lights, the two
+			-- no-fuel stations, the doormat and spare set, the Padded legs and boots, banded
+			-- crates. The model has no Stranded Caravan, so a Dense run stands in for it.
+			{
+				questId = "quest.light_the_edges",
+				cost = {
+					["item.sticks"] = 12,
+					["item.pitch_glue"] = 6,
+					["item.cloth"] = 4,
+					["item.plank"] = 4,
+					["item.scrap_plate"] = 2,
+				},
+			},
+			{
+				questId = "quest.the_plans",
+				searched = { ["loc.ashfall_depot"] = 6 },
+				built = { ["build.foundation_reinforced"] = 1 },
+			},
+			{
+				questId = "quest.rain_and_smoke",
+				cost = {
+					["item.timber"] = 8,
+					["item.cloth"] = 3,
+					["item.scrap"] = 2,
+					["item.plank"] = 5,
+					["item.rope"] = 10,
+					["item.stone"] = 10,
+					["item.raw_meat"] = 4,
+				},
+			},
+			{ questId = "quest.copper_lines", crafts = { ["recipe.copper_ingot"] = 4 } },
+			{
+				questId = "quest.come_home_again",
+				cost = { ["item.fiber"] = 22, ["item.cloth"] = 9, ["item.rope"] = 6 },
+			},
+			{ questId = "quest.walls_that_hold", built = { ["build.wall_reinforced"] = 4 } },
+			{
+				questId = "quest.room_for_more",
+				cost = { ["item.plank"] = 12, ["item.scrap_plate"] = 8, ["item.rivets"] = 4 },
+			},
+			{
+				questId = "quest.padded_through",
+				cost = { ["item.cloth"] = 6, ["item.leather"] = 4, ["item.rope"] = 4, ["item.pitch_glue"] = 1 },
+			},
+			{ questId = "quest.stranded_caravan", runs = { tier2 = 1 } },
+			{
+				questId = "quest.black_fog_regular",
+				searched = { ["loc.ashfall_depot"] = 30 },
+				kills = 100,
+			},
+			{ questId = "quest.full_stores", cost = { ["item.raw_meat"] = 20 } },
+			{ questId = "quest.hold_the_line", kills = 500 },
 		},
 		-- §4.2: the Workbench level is a "known recipe" gate on firearms.
 		craftGates = { ["recipe.pipe_pistol"] = { stationId = "station.workbench", level = 2 } },
@@ -929,6 +985,7 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			["item.blackpowder"] = 20,
 		},
 		lineBoost = { ["item.cooked_meat"] = 5, ["item.boiled_water"] = 5 },
+		questBoost = 1e6, -- a quest's own craft (Copper Lines' ingots) goes in ahead of the grind
 		plankFloat = { below = 30, extra = 10, yieldsTo = { "item.stone_block" } },
 		glue = { early = 2, late = 8, fromGoal = 3 },
 		coal = { stock = 30, below = 60, stationLevel = 2 },
@@ -990,6 +1047,24 @@ local function content(fallback: boolean): PacingSim.Content
 	return result :: any
 end
 
+-- The day each quest of an Ember Trail chapter was paid (math.huge if never), in pay order.
+local function chapterDays(result: PacingSim.Result, chapter: string): { { id: string, day: number } }
+	local list: { { id: string, day: number } } = {}
+	for id, quest in Quests do
+		if quest.chapter == chapter then
+			local paid = result.questAt[id]
+			table.insert(list, { id = id, day = if paid then PacingSim.day(paid) else math.huge })
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.day ~= b.day then
+			return a.day < b.day
+		end
+		return Quests[a.id].order < Quests[b.id].order
+	end)
+	return list
+end
+
 local cache: { [string]: PacingSim.Result } = {}
 local function run(minutesPerSession: number, fallback: boolean?): PacingSim.Result
 	local key = `{minutesPerSession}{if fallback then "f" else ""}`
@@ -1012,6 +1087,19 @@ local function run(minutesPerSession: number, fallback: boolean?): PacingSim.Res
 			return if minute then string.format("%.2f", PacingSim.day(minute)) else "-"
 		end
 		local sessions = model(minutesPerSession, false).sessions
+		local trail: { string } = {}
+		for _, entry in chapterDays(result, "Hold the Line") do
+			table.insert(
+				trail,
+				`{Quests[entry.id].order} {if entry.day < math.huge then string.format("%.2f", entry.day) else "-"}`
+			)
+		end
+		print(
+			`  [{2 * minutesPerSession} min/day{if fallback then ", fallback" else ""}] Hold the Line: {table.concat(
+				trail,
+				", "
+			)}; L25 {stamp(result.levelAt[25])}`
+		)
 		print(
 			`  [{2 * minutesPerSession} min/day{if fallback then ", fallback" else ""}] hook {if result.milestones.hook
 				then PacingSim.playMinutes(result.milestones.hook, sessions)
@@ -1242,6 +1330,40 @@ return function(test: TestKit.Register)
 			day(result.milestones.reinforced) >= 10.0,
 			`Reinforced on day {day(result.milestones.reinforced)}`
 		)
+	end)
+
+	-- The content parity audit's BR-8: the trail used to end on day 7 and level 20 (the cap)
+	-- came on day 12, a cliff before the Reinforced tier was even done.
+	test("2.5 h a day: chapter 3 runs from the Black fog to about day 20, with no cliff", function()
+		local result = run(75)
+		local black = opens(result, 15, "tower_black")
+		local last = day(result.questAt["quest.into_the_black"])
+		TestKit.truthy(last <= black + 1, `Into the Black on day {last}, the Black fog opens {black}`)
+		local list = chapterDays(result, "Hold the Line")
+		TestKit.equal(#list, 12, "chapter 3 quests")
+		for _, entry in list do
+			TestKit.truthy(entry.day < math.huge, `{entry.id} is never finished`)
+			TestKit.truthy(entry.day - last <= 3, `{entry.id} on day {entry.day}: over 3 days after the one before`)
+			last = entry.day
+		end
+		within(list[1].day, black, black + 2, "chapter 3's first quest")
+		within(last, 17, 21, "chapter 3's last quest")
+		-- Level 25 is the trail's last ask; level 30, the cap, outlasts the three weeks.
+		within(day(result.levelAt[25]), 15, 21, "level 25")
+		TestKit.equal(result.levelAt[30], nil, "level 30 is reached inside three weeks")
+	end)
+
+	test("2 h and 3 h a day: chapter 3 never stalls, and still takes the low end two weeks", function()
+		for _, minutes in { 60, 90 } do
+			local list = chapterDays(run(minutes), "Hold the Line")
+			for _, entry in list do
+				-- At 2 h a day, level 25 (the last quest's ask) lands at the end of week three.
+				if entry.id ~= "quest.hold_the_line" or minutes > 60 then
+					TestKit.truthy(entry.day < math.huge, `{2 * minutes} min/day: {entry.id} is never finished`)
+				end
+			end
+			TestKit.truthy(list[#list].day >= 14, `{2 * minutes} min/day: chapter 3 done on day {list[#list].day}`)
+		end
 	end)
 
 	test("the station fallback layout (no Smelter or Stonecutter model) stays playable to Reinforced", function()

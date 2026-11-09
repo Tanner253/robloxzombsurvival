@@ -117,9 +117,36 @@ local function chainLimit(pieceId: Types.BuildPieceId, defs: Grid.Defs): number?
 	return limit
 end
 
--- The plot limit for `pieceId`'s upgrade chain, or nil (shown as "Placed 1/2", 5.11).
-function BuildRules.limitOf(pieceId: Types.BuildPieceId, defs: Grid.Defs): number?
-	return chainLimit(pieceId, defs)
+-- Extra plot slots the player bought, per base piece ("+1 Smelter can be placed"):
+-- each product's pieceSlot grants times how many of it they bought.
+function BuildRules.pieceSlots(
+	products: { [string]: Types.ProductDef },
+	counts: { [string]: number }
+): { [string]: number }
+	local slots: { [string]: number } = {}
+	for id, product in products do
+		local bought = counts[id] or 0
+		if bought > 0 then
+			for _, grant in product.grants do
+				local g: any = grant
+				if g.kind == "pieceSlot" then
+					slots[g.pieceId] = (slots[g.pieceId] or 0) + g.amount * bought
+				end
+			end
+		end
+	end
+	return slots
+end
+
+-- The plot limit for `pieceId`'s upgrade chain, or nil (shown as "Placed 1/2", 5.11),
+-- raised by the slots the player bought for the chain's base piece.
+function BuildRules.limitOf(pieceId: Types.BuildPieceId, defs: Grid.Defs, slots: { [string]: number }?): number?
+	local limit = chainLimit(pieceId, defs)
+	if limit and slots then
+		local root = BuildRules.rootOf(pieceId, defs)
+		limit += if root then slots[root] or 0 else 0
+	end
+	return limit
 end
 
 -- Whether every foundation under an object meets its minFoundationTier.
@@ -153,7 +180,8 @@ function BuildRules.canPlace(
 	target: Grid.Target,
 	ctx: Grid.Context,
 	progress: Progress,
-	inventory: Types.Inventory?
+	inventory: Types.Inventory?,
+	slots: { [string]: number }?
 ): (boolean, Reason?)
 	local def = ctx.pieces[pieceId]
 	if def == nil then
@@ -172,7 +200,7 @@ function BuildRules.canPlace(
 	if not foundationOk(layout, def, target, ctx.pieces) then
 		return false, "floorTier"
 	end
-	local limit = chainLimit(pieceId, ctx.pieces)
+	local limit = BuildRules.limitOf(pieceId, ctx.pieces, slots)
 	if limit and BuildRules.countChain(layout, pieceId, ctx.pieces) >= limit then
 		return false, "limit"
 	end

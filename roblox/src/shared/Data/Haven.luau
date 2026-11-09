@@ -109,6 +109,19 @@ Haven.chapterRewards = {
 		coins = 150,
 		items = { { itemId = "item.field_dressing", count = 3 }, { itemId = "item.hearth_stew", count = 2 } },
 	},
+	-- One-time hand-ins, so their Rations can't loop Energy the way a daily would (BR-9).
+	["Into the Fog"] = {
+		coins = 300,
+		items = { { itemId = "item.field_dressing", count = 4 }, { itemId = "item.rations", count = 2 } },
+	},
+	["Hold the Line"] = {
+		coins = 500,
+		items = {
+			{ itemId = "item.ember_tonic", count = 3 },
+			{ itemId = "item.brass_gear", count = 2 },
+			{ itemId = "item.rations", count = 3 },
+		},
+	},
 } :: { [string]: { coins: number, items: { Types.ItemStack } } }
 
 Haven.vip = {

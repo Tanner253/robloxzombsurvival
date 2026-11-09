@@ -52,7 +52,7 @@ end
 -- The VIP Lounge in the square's south-east corner: its fenced rectangle (x0..x1, z0..z1)
 -- and the gate in the middle of its north side, facing the road. World/Haven fences it,
 -- Services/Haven keeps non-members out.
-Neighbourhood.lounge = { x0 = 18, x1 = 50, z0 = 28, z1 = 68, gateWidth = 8 }
+Neighbourhood.lounge = { x0 = 14, x1 = 40, z0 = 24, z1 = 54, gateWidth = 8 }
 
 function Neighbourhood.inLounge(x: number, z: number): boolean
 	local lounge = Neighbourhood.lounge

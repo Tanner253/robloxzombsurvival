@@ -39,11 +39,13 @@ local KEY_ART = "rbxassetid://118390976045902" -- the loading key art: dusk at a
 local ROBUX = "rbxasset://textures/ui/common/robux.png"
 local CARDS = 4
 
-export type Tab = "best" | "supplies" | "embers" | "passes"
+export type Tab = "best" | "supplies" | "equipment" | "building" | "embers" | "passes"
 
 local TABS: { { id: Tab, label: string, glyph: string } } = {
 	{ id = "best", label = "BEST", glyph = "offer" },
 	{ id = "supplies", label = "SUPPLIES", glyph = "storage" },
+	{ id = "equipment", label = "EQUIPMENT", glyph = "attack" },
+	{ id = "building", label = "BUILDING", glyph = "build" },
 	{ id = "embers", label = "EMBERS", glyph = "coin" },
 	{ id = "passes", label = "PASSES", glyph = "pass" },
 }
@@ -57,6 +59,17 @@ local ORDER: { [Tab]: { string } } = {
 		"product.room_kit_reinforced",
 		"product.energy_refill",
 	},
+	-- LDoE's Equipment tab (rec8_sheet4): kits, guns, parts and armor, cheapest first.
+	equipment = {
+		"product.scouts_kit",
+		"product.weapon_parts",
+		"product.padded_armor",
+		"product.gunrunner_pack",
+		"product.raider_arms",
+		"product.heavy_equipment",
+	},
+	-- Capacity: one more of a capped station may stand on the plot.
+	building = { "product.smelter_slot", "product.recycler_slot" },
 	embers = { "product.embers_50", "product.embers_300" },
 	passes = { "product.pack_expansion", "product.vip_lounge" },
 }
@@ -66,6 +79,7 @@ local RIBBONS: { [string]: { text: string, color: Color3 } } = {
 	["product.starter_offer"] = { text = "Limited", color = Theme.colors.accent },
 	["product.resource_pack"] = { text = "Popular", color = Theme.rarity.epic },
 	["product.embers_300"] = { text = "Best value", color = Theme.rarity.legendary },
+	["product.gunrunner_pack"] = { text = "Hot", color = Theme.colors.accent },
 }
 
 -- Trail Rations for Embers (the EMBERS tab's own cards).
@@ -176,6 +190,7 @@ type CardProps = {
 	height: number,
 	layoutOrder: number,
 	button: any,
+	fraction: number?, -- the card's share of its row (1 / CARDS unless the row scrolls)
 }
 
 local function CardFrame(props: CardProps)
@@ -185,7 +200,7 @@ local function CardFrame(props: CardProps)
 		else Theme.colors.strokeWarm
 	local ribbon = props.ribbon
 	return e("Frame", {
-		Size = UDim2.new(1 / CARDS, -12, 0, props.height),
+		Size = UDim2.new(props.fraction or 1 / CARDS, -12, 0, props.height),
 		BackgroundColor3 = Theme.colors.panel,
 		BackgroundTransparency = 0.04,
 		LayoutOrder = props.layoutOrder,
@@ -284,6 +299,7 @@ local function ProductCard(props: {
 	focused: boolean,
 	height: number,
 	layoutOrder: number,
+	fraction: number?,
 })
 	local product: any = Content.Products[props.productId]
 	local state = props.state or {}
@@ -306,6 +322,8 @@ local function ProductCard(props: {
 			chips[`C{index}`] = e(Chip, { glyph = "coin", text = `+{grant.amount}`, layoutOrder = index })
 		elseif grant.kind == "vipLounge" then
 			chips[`C{index}`] = e(Chip, { glyph = "pass", text = "Lounge", layoutOrder = index })
+		elseif grant.kind == "pieceSlot" then
+			chips[`C{index}`] = e(Chip, { glyph = "build", text = `+{grant.amount} placed`, layoutOrder = index })
 		end
 	end
 	local extra = #product.grants - 4
@@ -324,7 +342,8 @@ local function ProductCard(props: {
 	local limitText = if endsAt > 0 and available
 		then `Once, ends in {format.duration(endsAt - props.now)}`
 		elseif product.kind == "gamePass" then "Yours for good"
-		elseif product.limit then "Once per survivor"
+		elseif product.limit == 1 then "Once per survivor"
+		elseif product.limit then `Up to {product.limit} per survivor`
 		else "Buy as often as you like"
 	return e(CardFrame, {
 		name = product.name,
@@ -336,6 +355,7 @@ local function ProductCard(props: {
 		focused = props.focused,
 		height = props.height,
 		layoutOrder = props.layoutOrder,
+		fraction = props.fraction,
 		button = e(PriceButton, {
 			currency = "robux",
 			price = if available then state.price or product.defaultPriceRobux else nil,
@@ -413,7 +433,11 @@ local function Shop()
 	local cardHeight = math.max(300, math.min(520, frame.Y - bannerHeight - barHeight - 110))
 	local cards: { [string]: any } = {}
 	local order = 0
-	for _, productId in listFor(tab, state) do
+	local listed = listFor(tab, state)
+	-- More cards than a row holds: the row scrolls sideways, each card keeping its width.
+	local scrolls = #listed > CARDS
+	local fraction = if scrolls then 1 / #listed else nil
+	for _, productId in listed do
 		order += 1
 		cards[`P{order}`] = e(ProductCard, {
 			productId = productId,
@@ -422,6 +446,7 @@ local function Shop()
 			focused = ui.shopFocus == productId,
 			height = cardHeight,
 			layoutOrder = order,
+			fraction = fraction,
 		})
 	end
 	if tab == "embers" then
@@ -556,13 +581,31 @@ local function Shop()
 										TextXAlignment = Enum.TextXAlignment.Left,
 										LayoutOrder = 1,
 									}),
-									Cards = e(Layout.Stack, {
-										direction = "row",
-										gap = 16,
-										size = UDim2.new(1, 0, 0, cardHeight),
-										layoutOrder = 2,
-										children = cards,
-									}),
+									Cards = if scrolls
+										then e("ScrollingFrame", {
+											Size = UDim2.new(1, 0, 0, cardHeight + 12),
+											CanvasSize = UDim2.fromScale(#listed / CARDS, 0),
+											ScrollingDirection = Enum.ScrollingDirection.X,
+											ScrollBarThickness = 6,
+											ScrollBarImageColor3 = Theme.colors.textMuted,
+											BackgroundTransparency = 1,
+											BorderSizePixel = 0,
+											LayoutOrder = 2,
+										}, {
+											Row = e(Layout.Stack, {
+												direction = "row",
+												gap = 16,
+												size = UDim2.new(1, 0, 0, cardHeight),
+												children = cards,
+											}),
+										})
+										else e(Layout.Stack, {
+											direction = "row",
+											gap = 16,
+											size = UDim2.new(1, 0, 0, cardHeight),
+											layoutOrder = 2,
+											children = cards,
+										}),
 								},
 							}),
 						},

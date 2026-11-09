@@ -30,6 +30,7 @@ local OutpostSchema = require(ReplicatedStorage.Shared.Domain.OutpostSchema)
 local Shelter = require(ReplicatedStorage.Shared.Domain.Shelter)
 local Stores = require("../Stores")
 local PlayerData = require("./PlayerData")
+local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Sync = require("./Sync")
 local Teleport = require("../FogRuns/Teleport")
 
@@ -216,7 +217,22 @@ end
 -- Spawning --------------------------------------------------------------------------------------
 
 -- Where the owner appears: the middle of the road edge, facing the plot.
+-- Where you appear at home: on your Reed Doormat when one is laid (LDoE's respawn mat,
+-- docs/research/ldoe-mvp-parity-content.md LB-4), else at the plot's road edge.
 function Plots.spawnCFrame(plot: Plot): CFrame
+	for uid, piece in plot.layout.pieces do
+		local def = Content.BuildPieces[piece.pieceId]
+		local model = plot.pieceModels[uid]
+		if def and def.respawn and model and model.Parent then
+			local mat = model:GetPivot()
+			local centre = plot.origin + Vector3.new(GRID_STUDS / 2, mat.Position.Y - plot.origin.Y + 3, GRID_STUDS / 2)
+			local at = mat.Position + Vector3.new(0, 3, 0)
+			if (centre - at).Magnitude < 0.5 then
+				return CFrame.new(at)
+			end
+			return CFrame.lookAt(at, Vector3.new(centre.X, at.Y, centre.Z))
+		end
+	end
 	local edge = if plot.front > 0 then GRID_STUDS + tuning.marginStuds * 0.5 else -tuning.marginStuds * 0.5
 	local at = plot.origin + Vector3.new(GRID_STUDS / 2, 3, edge)
 	local centre = plot.origin + Vector3.new(GRID_STUDS / 2, 3, GRID_STUDS / 2)
@@ -483,7 +499,15 @@ function Plots.start()
 		if plot == nil then
 			return false
 		end
-		return { index = plot.index, origin = plot.origin, cells = building.plotCells, front = plot.front }
+		local data = PlayerData.get(player)
+		return {
+			index = plot.index,
+			origin = plot.origin,
+			cells = building.plotCells,
+			front = plot.front,
+			-- Bought "+1 can be placed" slots per base piece (Domain/BuildRules.pieceSlots).
+			pieceSlots = if data then BuildRules.pieceSlots(Content.Products, data.purchases.counts) else {},
+		}
 	end)
 	Sync.provide("layout", function(player: Player)
 		local plot = byPlayer[player]

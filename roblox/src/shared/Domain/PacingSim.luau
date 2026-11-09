@@ -18,6 +18,10 @@
 	Stock rule (§11.4): fractional expected stock is floored whenever the player checks
 	"have", so 0.97 of a Trigger Group never builds a gun.
 
+	The Ember Trail pays as it is played: its first quests on their first builds
+	(Model.questTriggers), the later ones on what their objectives count from the moment they
+	open (LaterQuest), so Result.questAt shows where each chapter lands.
+
 	Times are minutes from the start of day 1 (minute 0 is midnight). PacingSim.day turns a
 	stamp into the 1-based fractional day §11.4's assertions use ("day 4.4" is day 4 at about
 	10:00).
@@ -67,6 +71,31 @@ export type Location = {
 -- A goal entry: "build.<piece>", "upgrade:<station id>" (one level up), "gate:<tower id>"
 -- or "craft:<recipe id>".
 export type Goal = { name: string, pieces: { Count }, flags: { string }?, minLevel: number? }
+
+--[[
+	An Ember Trail quest past the first ones (Model.questTriggers pays those in order). It is
+	paid once its prerequisite is paid and its reachLevel objectives are met, and then:
+	- `craft`: the moment the sim crafts that (tier-2) tool;
+	- `blackRun`: on a Black-fog run;
+	- otherwise, at the first home visit or run end where everything listed holds, counted
+	  from when the quest opened (objectives only count once a quest is open): `crafts`
+	  (recipe id -> crafts, or station batches), `built` (goal key -> times built),
+	  `searched` (location id -> containers searched), `kills` (Hollow, not wildlife) and
+	  `runs` (location id, or "tier<n>" for any location of that fog tier). `cost` is what
+	  its objectives use up that the sim doesn't build itself (torches, armor, crates): a
+	  need while the quest is open, taken from stock when it completes.
+]]
+export type LaterQuest = {
+	questId: string,
+	craft: string?,
+	blackRun: boolean?,
+	crafts: { [string]: number }?,
+	built: { [string]: number }?,
+	searched: { [string]: number }?,
+	kills: number?,
+	runs: { [string]: number }?,
+	cost: { [string]: number }?,
+}
 
 export type Model = {
 	days: number,
@@ -129,13 +158,14 @@ export type Model = {
 	goals: { Goal },
 	priority: { string }, -- goal entries built before anything cheaper
 	questTriggers: { string }, -- first builds that complete the next Ember Trail quest
-	laterQuests: { { questId: string, craft: string?, blackRun: boolean? } },
+	laterQuests: { LaterQuest },
 	craftGates: { [string]: { stationId: string, level: number } }, -- "known recipe" gates
 	recycle: { string },
 	fuelOrder: { string },
 	fuelKeep: { [string]: number }, -- never burn below this stock
 	lineWants: { [string]: number }, -- station outputs kept at a fixed stock (food, powder)
 	lineBoost: { [string]: number }, -- line score multipliers (food before coal)
+	questBoost: number?, -- line score multiplier for a craft an open later quest still asks for
 	plankFloat: { below: number, extra: number, yieldsTo: { string } }, -- planks kept in stock
 	glue: { early: number, late: number, fromGoal: number },
 	coal: { stock: number, below: number, stationLevel: number },
@@ -181,6 +211,7 @@ export type Result = {
 	milestones: { [string]: number },
 	levelAt: { [number]: number },
 	flagAt: { [string]: number },
+	questAt: { [string]: number }, -- quest id -> when the trail paid it
 	level: number,
 	xp: number,
 	stats: Stats,
@@ -421,6 +452,17 @@ function PacingSim.run(content: Content, model: Model): Result
 	local flags: { [string]: boolean } = {}
 	local questsPaid = 0
 	local laterPaid: { [string]: boolean } = {}
+	local questAt: { [string]: number } = {}
+	-- Running totals the checked later quests count from, and each one's totals when it opened.
+	type Tally = {
+		crafted: { [string]: number },
+		built: { [string]: number },
+		searched: { [string]: number },
+		kills: number,
+		runs: { [string]: number },
+	}
+	local tally: Tally = { crafted = {}, built = built, searched = {}, kills = 0, runs = {} }
+	local openedWith: { [string]: Tally } = {}
 	local hunger = tuning.survival.hunger.max
 	local thirst = tuning.survival.thirst.max
 	local meleeLeft = 0
@@ -484,6 +526,7 @@ function PacingSim.run(content: Content, model: Model): Result
 		stats.crafted[recipeId] = byDay
 		local day = t // DAY + 1
 		byDay[day] = (byDay[day] or 0) + count
+		add(tally.crafted, recipeId, count)
 	end
 
 	-- Helpers --------------------------------------------------------------------------------
@@ -623,6 +666,22 @@ function PacingSim.run(content: Content, model: Model): Result
 			handInputs(model.dressingRecipe),
 			math.max(0, model.dressingReserve - have(ids.dressing)) / dressing.outputs[1].count
 		)
+		-- Open later quests: what their objectives use up, and the crafts they still want made
+		-- (on top of the stock, so the station runs them even with the item already in hand).
+		for _, entry in model.laterQuests do
+			local since = openedWith[entry.questId]
+			if since == nil or laterPaid[entry.questId] then
+				continue
+			end
+			addAll(entry.cost or {}, 1)
+			for recipeId, count in (entry.crafts or {}) :: { [string]: number } do
+				local left = count - ((tally.crafted[recipeId] or 0) - (since.crafted[recipeId] or 0))
+				local output = content.Recipes[recipeId].outputs[1]
+				if left > 0 then
+					add(need, output.itemId, have(output.itemId) + left * output.count)
+				end
+			end
+		end
 		if (built[ids.ammoStation] or 0) > 0 and (built["craft:" .. model.gunRecipe] or 0) > 0 then
 			local rounds = content.Recipes[model.roundsRecipe]
 			local short = math.max(0, model.roundsReserve - have(ids.rounds))
@@ -811,6 +870,20 @@ function PacingSim.run(content: Content, model: Model): Result
 		local _, short = deficits()
 		local need = needs()
 		local now = nowSeconds()
+		-- Lines an open later quest still asks for (recipe id -> batches left): the player runs
+		-- those first.
+		local questLines: { [string]: number } = {}
+		for _, entry in model.laterQuests do
+			local since = openedWith[entry.questId]
+			if since and not laterPaid[entry.questId] then
+				for recipeId, count in (entry.crafts or {}) :: { [string]: number } do
+					local left = count - ((tally.crafted[recipeId] or 0) - (since.crafted[recipeId] or 0))
+					if left > EPSILON then
+						questLines[recipeId] = math.max(questLines[recipeId] or 0, left)
+					end
+				end
+			end
+		end
 		local coalWanted = false
 		for _, station in stations do
 			if station.def.fuel and station.state.level >= model.coal.stationLevel then
@@ -898,10 +971,18 @@ function PacingSim.run(content: Content, model: Model): Result
 				end
 				local available = have(line.input)
 					+ (if current and current.recipe.id == line.recipe.id then station.state.input.count else 0)
+				-- A quest's batches count when they finish, whatever is in stock or in the slot.
+				local questLeft = questLines[line.recipe.id]
+				if questLeft then
+					want = math.max(want, math.ceil(questLeft * line.outputCount - EPSILON))
+				end
 				if available < line.inputCount or want <= 0 then
 					continue
 				end
 				local score = want * (1 + line.minutes / 60) * (model.lineBoost[item] or 1)
+				if questLeft then
+					score *= model.questBoost or 1
+				end
 				if score > bestScore then
 					best, bestScore = line, score
 				end
@@ -918,6 +999,11 @@ function PacingSim.run(content: Content, model: Model): Result
 				end
 			end
 			local load = math.min(slotCap(station) - station.state.input.count, have(chosen.input))
+			local questLeft = questLines[chosen.recipe.id]
+			if questLeft then
+				-- Only the quest's batches: the line goes back to the grind after them.
+				load = math.min(load, math.ceil(questLeft - EPSILON) * chosen.inputCount - station.state.input.count)
+			end
 			if load > 0 then
 				local nextState, accepted =
 					Converter.putInput(station.state, ctx, progress, { itemId = chosen.input, count = load }, now)
@@ -956,6 +1042,8 @@ function PacingSim.run(content: Content, model: Model): Result
 
 	-- Ember Trail and quests -------------------------------------------------------------------
 	local function payQuest(quest: Types.QuestDef)
+		questAt[quest.id] = t
+		trace(`quest {quest.id}`)
 		addXp(quest.rewards.xp)
 		for _, stack in (quest.rewards.items or {}) :: { Types.ItemStack } do
 			add(store, stack.itemId, stack.count)
@@ -966,14 +1054,52 @@ function PacingSim.run(content: Content, model: Model): Result
 		local quest = content.Quests[questId]
 		return quest ~= nil and (laterPaid[questId] == true or quest.order <= questsPaid)
 	end
-	local function laterQuest(kind: "craft" | "blackRun", key: string?)
+	local function copyTally(): Tally
+		return {
+			crafted = table.clone(tally.crafted),
+			built = table.clone(tally.built),
+			searched = table.clone(tally.searched),
+			kills = tally.kills,
+			runs = table.clone(tally.runs),
+		}
+	end
+	-- Whether a checked later quest's counts have grown enough since it opened.
+	local function counted(entry: LaterQuest, since: Tally): boolean
+		local function grown(
+			need: { [string]: number }?,
+			now: { [string]: number },
+			before: { [string]: number }
+		): boolean
+			for key, count in (need or {}) :: { [string]: number } do
+				if (now[key] or 0) - (before[key] or 0) < count - EPSILON then
+					return false
+				end
+			end
+			return true
+		end
+		return grown(entry.crafts, tally.crafted, since.crafted)
+			and grown(entry.built, tally.built, since.built)
+			and grown(entry.searched, tally.searched, since.searched)
+			and grown(entry.runs, tally.runs, since.runs)
+			and tally.kills - since.kills >= (entry.kills or 0) - EPSILON
+	end
+	local function laterQuest(kind: "craft" | "blackRun" | "check", key: string?)
 		for _, entry in model.laterQuests do
 			local quest = content.Quests[entry.questId]
-			local fired = (kind == "craft" and entry.craft == key) or (kind == "blackRun" and entry.blackRun == true)
-			if laterPaid[entry.questId] or not fired then
+			if laterPaid[entry.questId] then
 				continue
 			end
 			if quest.prerequisite and not questDone(quest.prerequisite) then
+				continue
+			end
+			local checked = entry.craft == nil and entry.blackRun ~= true
+			if checked and openedWith[entry.questId] == nil then
+				openedWith[entry.questId] = copyTally()
+			end
+			local fired = (kind == "craft" and entry.craft == key)
+				or (kind == "blackRun" and entry.blackRun == true)
+				or (kind == "check" and checked)
+			if not fired then
 				continue
 			end
 			local levelOk = true
@@ -982,10 +1108,19 @@ function PacingSim.run(content: Content, model: Model): Result
 					levelOk = false
 				end
 			end
-			if levelOk then
-				laterPaid[entry.questId] = true
-				payQuest(quest)
+			if not levelOk then
+				continue
 			end
+			if checked then
+				if not counted(entry, openedWith[entry.questId]) then
+					continue
+				end
+				if entry.cost and not take(entry.cost) then
+					continue
+				end
+			end
+			laterPaid[entry.questId] = true
+			payQuest(quest)
 		end
 	end
 
@@ -1264,7 +1399,15 @@ function PacingSim.run(content: Content, model: Model): Result
 		return if item then item.stackSize else 20
 	end
 
-	type Plan = { haul: { [string]: number }, xp: number, minutes: number, hits: { [string]: number }, food: number }
+	type Plan = {
+		haul: { [string]: number },
+		xp: number,
+		minutes: number,
+		hits: { [string]: number },
+		food: number,
+		searched: number, -- containers
+		kills: number, -- Hollow (wildlife not counted)
+	}
 
 	local function planRun(location: Location, short: { [string]: number }): Plan
 		local tier = location.tier
@@ -1278,6 +1421,7 @@ function PacingSim.run(content: Content, model: Model): Result
 		local haul: { [string]: number } = {}
 		local gained = 0
 		local hitsUsed: { [string]: number } = {}
+		local searched, hollowKills = 0, 0
 		for _, container in location.containers do
 			local count = container.count
 			if location.dailyReset then
@@ -1285,6 +1429,7 @@ function PacingSim.run(content: Content, model: Model): Result
 			end
 			local share = if tier >= 2 then model.contested else 1
 			count *= share
+			searched += count
 			for itemId, units in Loot.expected(model.lootTables, container.tableId, model.bandMultiplier) do
 				add(haul, itemId, units * count)
 			end
@@ -1304,6 +1449,9 @@ function PacingSim.run(content: Content, model: Model): Result
 			local kills = spawn.count * model.killShare
 			seconds += kills * (model.killSeconds[spawn.id] or 5)
 			gained += kills * content.Enemies[spawn.id].xp
+			if not model.wildlife[spawn.id] then
+				hollowKills += kills
+			end
 			if model.stalk[spawn.id] then
 				foodSeconds += kills * (model.killSeconds[spawn.id] or 5)
 			end
@@ -1389,7 +1537,15 @@ function PacingSim.run(content: Content, model: Model): Result
 			add(haul, itemId, units)
 		end
 		gained += tuning.extraction.xpByTier[tier]
-		return { haul = haul, xp = gained, minutes = seconds / 60, hits = hitsUsed, food = foodSeconds / 60 }
+		return {
+			haul = haul,
+			xp = gained,
+			minutes = seconds / 60,
+			hits = hitsUsed,
+			food = foodSeconds / 60,
+			searched = searched,
+			kills = hollowKills,
+		}
 	end
 
 	type Choice = { location: Location, walk: boolean, plan: Plan, cost: number }
@@ -1508,6 +1664,7 @@ function PacingSim.run(content: Content, model: Model): Result
 		build()
 		refill()
 		build()
+		laterQuest("check", nil)
 	end
 
 	-- The clock ----------------------------------------------------------------------------------
@@ -1596,9 +1753,14 @@ function PacingSim.run(content: Content, model: Model): Result
 			packFrame = true
 		end
 		addXp(choice.plan.xp)
+		add(tally.searched, location.id, choice.plan.searched)
+		tally.kills += choice.plan.kills
+		add(tally.runs, location.id, 1)
+		add(tally.runs, `tier{location.tier}`, 1)
 		if location.tier >= 3 then
 			laterQuest("blackRun", nil)
 		end
+		laterQuest("check", nil)
 		table.insert(stats.runsAt, { minute = t, locationId = location.id, walk = choice.walk })
 		trace(`run {location.id}{if choice.walk then " (walk)" else ""} {string.format("%.1f", choice.cost)} min`)
 		advance(math.ceil(choice.cost - EPSILON), true)
@@ -1608,6 +1770,7 @@ function PacingSim.run(content: Content, model: Model): Result
 		milestones = milestones,
 		levelAt = levelAt,
 		flagAt = flagAt,
+		questAt = questAt,
 		level = level(),
 		xp = xp,
 		stats = stats,

@@ -236,6 +236,46 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 					{ itemId = "item.scrap_plate", min = 1, max = 1, chance = 0.4 },
 				},
 			},
+			-- The Reedweave set and the stake (launch content) give their reed back.
+			{
+				inputItemId = "item.reedweave_cap",
+				seconds = 4 * 60,
+				outputs = {
+					{ itemId = "item.fiber", min = 1, max = 2, chance = 1 },
+					{ itemId = "item.cloth", min = 1, max = 1, chance = 0.5 },
+				},
+			},
+			{
+				inputItemId = "item.reedweave_shirt",
+				seconds = 5 * 60,
+				outputs = {
+					{ itemId = "item.fiber", min = 1, max = 2, chance = 1 },
+					{ itemId = "item.cloth", min = 1, max = 2, chance = 1 },
+				},
+			},
+			{
+				inputItemId = "item.reedweave_trousers",
+				seconds = 5 * 60,
+				outputs = {
+					{ itemId = "item.cloth", min = 1, max = 2, chance = 1 },
+					{ itemId = "item.rope", min = 1, max = 1, chance = 0.5 },
+				},
+			},
+			{
+				inputItemId = "item.reedweave_wraps",
+				seconds = 4 * 60,
+				outputs = {
+					{ itemId = "item.cloth", min = 1, max = 1, chance = 1 },
+					{ itemId = "item.rope", min = 1, max = 1, chance = 0.5 },
+				},
+			},
+			{
+				inputItemId = "item.sharpened_stake",
+				seconds = 2 * 60,
+				outputs = {
+					{ itemId = "item.sticks", min = 1, max = 3, chance = 1 },
+				},
+			},
 			-- Spare blueprints are never wasted.
 			{
 				inputItemId = "item.bp_pack_frame",
@@ -272,6 +312,19 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 		}),
 		fuel = WOOD_FUEL,
 		feature = "fogRuns",
+	},
+	-- No-fuel food and water (docs/research/ldoe-mvp-parity-content.md LB-5): one level each,
+	-- the slots of a level-1 station.
+	["station.rain_barrel"] = {
+		id = "station.rain_barrel",
+		name = "Rain Barrel",
+		levels = { { level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 } },
+	},
+	["station.smoke_rack"] = {
+		id = "station.smoke_rack",
+		name = "Smoke Rack",
+		levels = { { level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 } },
+		feature = "fogRuns", -- raw venison comes from Fog Run deer
 	},
 }
 

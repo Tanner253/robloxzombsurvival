@@ -319,6 +319,7 @@ export type BuildPieceKind =
 	| "roof"
 	| "station"
 	| "storage"
+	| "furniture" -- lights, the doormat: objects on the furniture sub-grid
 
 export type BuildPieceDef = {
 	id: BuildPieceId,
@@ -340,6 +341,10 @@ export type BuildPieceDef = {
 	footprint: { w: number, d: number }?,
 	maxPerPlot: number?, -- nil means no limit
 	tab: string?, -- build menu tab when it isn't the kind's own, e.g. "defense" for fences
+	-- A warm light the placed piece throws (Pitch Torch, Post Lantern): studs and PointLight
+	-- brightness (checklist 9.9).
+	light: { range: number, brightness: number }?,
+	respawn: boolean?, -- the Reed Doormat: you respawn on it at home (Services/Plots)
 	unlock: UnlockGate?, -- nil means available from the start
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
@@ -419,6 +424,9 @@ export type ProductGrant =
 	| { kind: "backpackSlots", amount: number }
 	| { kind: "embers", amount: number } -- the premium currency
 	| { kind: "vipLounge" } -- the VIP Lounge pass (Services/Haven)
+	-- One more of a capped piece may stand on your plot ("+1 Smelter can be placed"):
+	-- counted from the purchase count, so nothing is stored (Domain/BuildRules.pieceSlots).
+	| { kind: "pieceSlot", pieceId: BuildPieceId, amount: number }
 
 export type ProductDef = {
 	id: ProductId,
@@ -435,7 +443,7 @@ export type ProductDef = {
 	-- "firstPurchase": shown only to accounts that never paid, for Tuning.embers.
 	-- firstPurchaseHours after their first win, once (Domain/Offers).
 	offer: "firstPurchase"?,
-	tab: "best" | "supplies" | "embers" | "passes", -- the shop tab it sits on
+	tab: "best" | "supplies" | "equipment" | "building" | "embers" | "passes", -- the shop tab it sits on
 	grants: { ProductGrant }, -- item grants go into the locked stash (ARCHITECTURE.md §6)
 }
 
@@ -459,6 +467,8 @@ export type TuningDef = {
 		hardCap: number, -- tonics and purchases may go past cap up to this
 		levelUpRestore: number,
 		foodDailyCap: number, -- energy from food and drink per UTC day
+		-- Trail Rations all location quests together pay per player per UTC day (Domain/Quests).
+		locationQuestRations: { itemId: ItemId, perDay: number },
 	},
 	inventory: {
 		pocketSlots: number,
