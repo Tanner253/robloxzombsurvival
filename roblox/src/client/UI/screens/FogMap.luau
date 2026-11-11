@@ -1184,7 +1184,7 @@ local function FogMap()
 					label = "RUN",
 					glyph = "sprint",
 					detail = `{location.energyCost}`,
-					note = blocked or if short then "Not enough Energy" else "a few seconds",
+					note = blocked or if short then "No Energy" else "a few seconds",
 					enabled = ready and blocked == nil and not short,
 					order = 1,
 					onActivated = function()
