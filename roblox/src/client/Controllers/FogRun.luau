@@ -592,11 +592,19 @@ local function onFx(kind: any, payload: any)
 		State.set("extracting", false)
 		State.notify(if payload and payload.reason == "hit" then "Extraction interrupted" else "Extraction stopped")
 	elseif kind == "runDeath" then
-		State.set("death", { info = payload, at = os.clock() })
+		-- The screen stays up on the run side until a choice is sent (F-09): "held".
+		State.set("death", { info = payload, at = os.clock(), reentry = payload.reentry, held = payload.held })
 		State.set("search", false)
 		State.set("extracting", false)
 		State.set("loot", false)
 		Sfx.play("lowMeter", nil, 1)
+	elseif kind == "recovered" then
+		local death = State.get("death")
+		if type(death) == "table" and death.info and death.info.bagId == payload.bagId then
+			local fresh = table.clone(death)
+			fresh.recovered = true
+			State.set("death", fresh)
+		end
 	elseif kind == "runResult" then
 		State.set("result", { info = payload, at = os.clock() })
 	elseif kind == "fogWarning" then

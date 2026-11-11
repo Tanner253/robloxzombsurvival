@@ -11,11 +11,12 @@
 	- openShop(productId?): the shop, e.g. from the inventory's currency "+"
 	- gear(): the Scavenger's Kit, for the death screen and after a weapon breaks
 	- gearChip(): what the death screen's chip shows (name, live price)
+	- buyEmbers(shortfall): the Ember Pouch, for "Recover all" pressed short of Embers (F-09)
 	Controllers/Shop sets them for v0.1 (MVP_LAUNCH Monetization v0.1): Fill up asks to buy
 	the shortfall with Embers, forNotice puts "View offer" on the bag-full and broken-weapon
 	toasts (once a day each), gear and buyEnergy prompt their product.
 
-	For S2B's death screen and Fog map (the flow review's F-08): call `gearChip()` and
+	The death screen and the Fog map (the flow review's F-08, screens/RunHud and FogMap) call `gearChip()` and
 	`energyChip(shortfall)` while rendering, show nothing when they return nil (not on offer,
 	or the shop hasn't synced), and call `gear()` / `buyEnergy(shortfall)` on the press. The
 	server's "energyShort" effect puts the latest shortfall in State.ui().energyShort.
@@ -43,6 +44,7 @@ local offers = {
 	openShop = nil :: ((productId: string?) -> ())?,
 	gear = nil :: (() -> ())?,
 	gearChip = nil :: (() -> ProductChip?)?,
+	buyEmbers = nil :: ((shortfall: number) -> ())?,
 }
 
 return offers

@@ -269,6 +269,12 @@ local function fogRunScenes(): { Scene }
 			ui = { panel = "fogmap", fogLocation = "loc.sunken_quarry" },
 		},
 		-- Neighbours' outposts (M2's raid layer, fed by a fixture until then).
+		-- Short of Energy for the Run: grey Run, the Refill slot beside it (F-08).
+		{
+			name = "fogmap.refill",
+			sections = { energy = { value = 4, cap = 200, secondsPerPoint = 300, updatedAt = now } },
+			ui = { panel = "fogmap", fogLocation = "loc.pine_hollow" },
+		},
 		{
 			name = "fogmap.neighbours",
 			sections = {
@@ -363,6 +369,27 @@ local function fogRunScenes(): { Scene }
 						locationId = "loc.ashfall_depot",
 					},
 					reentry = { untilAt = now + 300 },
+				},
+			},
+			ui = { panel = "none" },
+		},
+		-- On the run side (F-09): Energy short of going back in (the Refill stands in its
+		-- place) and Embers short of Recover all, with the kit chip (F-08).
+		{
+			name = "run.death.offers",
+			sections = {
+				run = false,
+				energy = { value = 2, cap = 200, secondsPerPoint = 300, updatedAt = now },
+				wallet = { embers = 40 },
+				death = {
+					info = {
+						cause = "hollow",
+						lost = { backpack = lost, equipment = { slot("item.pipe_pistol", 1) } },
+						locationId = "loc.ashfall_depot",
+						bagId = "d1",
+					},
+					reentry = { locationId = "loc.ashfall_depot", untilAt = now + 300 },
+					held = true,
 				},
 			},
 			ui = { panel = "none" },

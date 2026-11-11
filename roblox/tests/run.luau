@@ -63,6 +63,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Parity", spec = require("./Parity.spec") },
 	{ name = "MapData", spec = require("./MapData.spec") },
 	{ name = "Launch", spec = require("./Launch.spec") },
+	{ name = "MomentOffers", spec = require("./MomentOffers.spec") },
 	{ name = "Arsenal", spec = require("./Arsenal.spec") },
 }
 

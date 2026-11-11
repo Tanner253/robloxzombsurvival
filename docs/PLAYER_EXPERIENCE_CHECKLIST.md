@@ -193,7 +193,7 @@ Nothing player-facing is done until it has all ten:
 | 11.4 | The travel route is drawn on the map. Walk shows a real-time timer you can leave running while you do other things at home. | rec3 route | S2 |
 | 11.5 | **Loading screen:** location name, time of day, fog tier, your HP, Energy, food and water, and a rotating gameplay tip, over location art. | rec7 | S2 |
 | 11.6 | **Travel bonus loot:** a "found on the way" panel on arrival, with TAKE per item and Take all (the ad slot is wired in S3). | rec3 | S2 |
-| 11.7 | Energy display with "+", and regen ticking in real time. When Energy is short, the Run button shows the shortfall slot for the S3 refill. | rec1 | S2 |
+| 11.7 | Energy display with "+", and regen ticking in real time. When Energy is short, the Run greys and an Energy Refill slot beside it shows the shortfall (✅ 2026-11-11, F-08; also on a server "energyShort"). | rec1 | S2 |
 
 ## 12. Locations and lobbies (S2: PvE lobbies; PvP is M2)
 
@@ -204,7 +204,7 @@ Nothing player-facing is done until it has all ten:
 | 12.3 | **Lobby-wide Fog meter:** visible on the HUD; it rises over about 15 min, raising loot tier and Hollow strength. Visible fog thickens as it rises. A 60 s warning before it closes. Anyone left inside is lost (death rules). | — | S2 |
 | 12.4 | **Containers** (crates, lockers, car trunks, cabinets): E to search with a progress bar (about 5 s, interruptible), an opening animation and sound, then a loot panel with TAKE and Take all. Each player rolls their own loot in Light fog; loot is shared and contested in Dense and Black. Searched containers look visibly open. | rec6 | S2 |
 | 12.5 | **Extraction:** in Light fog you leave from any edge. Dense and Black have 2–3 marked extraction points (one closed at random each run), shown on the minimap, with an 8 s channel that's interrupted by damage. | — | S2 |
-| 12.6 | **Death on a run:** a death screen with the cause and what was lost. The backpack drops as a lootable bag with a lantern glow. You can re-enter the same lobby while it's open (costs Energy) to recover it. Bags persist until the lobby closes. Access by tier per GAME_DESIGN. | — | S2 |
+| 12.6 | **Death on a run:** a death screen with the cause and what was lost. The backpack drops as a lootable bag with a lantern glow. You can re-enter the same lobby while it's open (costs Energy) to recover it. Bags persist until the lobby closes. ✅ 2026-11-11 (F-08, F-09): the screen stays on the run side until you choose; **Recover all** for 100 Embers sends the bag to the inbox (short of Embers it opens the Ember Pouch); short of Energy, the Energy Refill stands in place of "Go back in"; the Scavenger's Kit chip always shows; the lobby closing counts as Continue; no recover-by-ad until ads ship. Access by tier per GAME_DESIGN. | — | S2 |
 | 12.7 | Minimap at locations: points of interest, extraction points, your bag, party members, and Hollow dots when alerted (§8.7). | rec6 | S2 |
 | 12.8 | Other players show name tags and party colour. Light fog has no friendly fire. | — | S2 |
 
@@ -240,6 +240,6 @@ S3's brief expands these into full rows:
   - **Room kits:** prefab material bundles such as "Stone room 3×3".
   - **Capacity packs:** "+1 Campfire can be placed".
   - The currency "+" opens it. Receipt flow.
-- **Buy at the moment of need** (GAME_DESIGN Monetization): Energy refill in the travel panel, "Fill up" missing materials in every craft, build and upgrade panel, a backpack offer on the inventory-full toast, capacity offers at limits, timer speed-ups on station rows, and a gear offer on the death screen. All are one tap through the Roblox prompt, and the item lands in the inbox and counts toward have/need instantly. S1 should leave a slot for these buttons in its panels now.
+- **Buy at the moment of need** (GAME_DESIGN Monetization): Energy refill in the travel panel, "Fill up" missing materials in every craft, build and upgrade panel, a backpack offer on the inventory-full toast, capacity offers at limits, timer speed-ups on station rows, and a gear offer on the death screen (✅ 2026-11-11: the travel-panel Refill and the death-screen kit, Refill and Recover all). All are one tap through the Roblox prompt, and the item lands in the inbox and counts toward have/need instantly. S1 should leave a slot for these buttons in its panels now.
 - **Delivery inbox** (rec8): purchases, event rewards and mail land here, with TAKE per row, Take all and a category filter. It's safe storage that can't be raided, which is our locked-stash rule turned into UX. Items never expire if they were bought.
 - **Crews:** invites, roles, a shared outpost.

@@ -28,6 +28,7 @@ local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local FogRegions = require(ReplicatedStorage.Shared.Data.FogRegions)
 local NeighboursMath = require(ReplicatedStorage.Shared.Domain.Neighbours)
+local MomentOffers = require(ReplicatedStorage.Shared.Domain.MomentOffers)
 local TravelMath = require(ReplicatedStorage.Shared.Domain.Travel)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
@@ -40,6 +41,7 @@ local Glyph = require("../components/Glyph")
 local ItemSlot = require("../components/ItemSlot")
 local KeyChip = require("../components/KeyChip")
 local Label = require("../components/Label")
+local offers = require("../offers")
 
 local e = React.createElement
 
@@ -48,6 +50,7 @@ local PIN_LABEL = 200 -- a pin's name, centred under it
 local REACH = 120 -- design pixels above the safe area (UI/components/FullScreen)
 local PIN = 46
 local ROUND = 66
+local ROBUX = "rbxasset://textures/ui/common/robux.png"
 local TIER_COLORS = {
 	Color3.fromHex("8FC26A"), -- Light: a living green
 	Color3.fromHex("E0A24A"), -- Dense: amber
@@ -651,20 +654,31 @@ local function Route(props: { from: Vector2, to: Vector2, size: Vector2, clear: 
 	return e("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 3 }, children)
 end
 
-local function RoundButton(props: {
-	label: string,
-	glyph: string?,
-	detail: string,
-	note: string,
-	enabled: boolean,
-	order: number,
-	onActivated: () -> (),
-})
-	local teal = Color3.fromHex("2E8C82")
+local function RoundButton(
+	props: {
+		label: string,
+		glyph: string?,
+		detail: string,
+		note: string,
+		enabled: boolean,
+		order: number,
+		onActivated: () -> (),
+		price: number?, -- a product slot: the Robux price under the glyph
+		fill: Color3?,
+		rim: Color3?,
+		position: UDim2?,
+		anchorPoint: Vector2?,
+		zIndex: number?,
+	}
+)
+	local teal = props.fill or Color3.fromHex("2E8C82")
 	return e("Frame", {
 		Size = UDim2.fromOffset(ROUND + 20, ROUND + 40),
+		Position = props.position,
+		AnchorPoint = props.anchorPoint,
 		BackgroundTransparency = 1,
 		LayoutOrder = props.order,
+		ZIndex = props.zIndex,
 	}, {
 		Button = e("TextButton", {
 			Size = UDim2.fromOffset(ROUND, ROUND),
@@ -681,7 +695,7 @@ local function RoundButton(props: {
 		}, {
 			Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
 			Stroke = e("UIStroke", {
-				Color = if props.enabled then Color3.fromHex("9FE7D8") else Theme.colors.disabledStroke,
+				Color = if props.enabled then props.rim or Color3.fromHex("9FE7D8") else Theme.colors.disabledStroke,
 				Thickness = 2,
 			}),
 			Icon = props.glyph and e(Glyph, {
@@ -690,13 +704,39 @@ local function RoundButton(props: {
 				position = UDim2.new(0.5, 0, 0, 10),
 				anchorPoint = Vector2.new(0.5, 0),
 			}),
-			Detail = e(Label, {
+			Detail = props.price == nil and e(Label, {
 				text = props.detail,
 				style = "caption",
 				position = UDim2.new(0.5, 0, 1, -8),
 				anchorPoint = Vector2.new(0.5, 1),
 				size = UDim2.fromOffset(ROUND - 6, 18),
 				alignX = Enum.TextXAlignment.Center,
+			}),
+			Price = props.price ~= nil and e("Frame", {
+				Size = UDim2.fromOffset(ROUND - 6, 18),
+				Position = UDim2.new(0.5, 0, 1, -8),
+				AnchorPoint = Vector2.new(0.5, 1),
+				BackgroundTransparency = 1,
+			}, {
+				Layout = e("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+					Padding = UDim.new(0, 3),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+				}),
+				Robux = e("ImageLabel", {
+					Size = UDim2.fromOffset(14, 14),
+					BackgroundTransparency = 1,
+					Image = ROBUX,
+					LayoutOrder = 1,
+				}),
+				Amount = e(Label, {
+					text = tostring(props.price),
+					style = "caption",
+					size = UDim2.fromOffset(30, 18),
+					layoutOrder = 2,
+				}),
 			}),
 		}),
 		Label = e(Label, {
@@ -999,7 +1039,22 @@ local function FogMap()
 			blocked = "Closed now"
 		end
 	end
-	local short = location ~= nil and energyValue < location.energyCost
+	-- Short of Energy for the Run: it greys, and the Refill slot beside it shows the shortfall
+	-- (F-08; SHOP_CATALOG §6 "Out of Energy"). A Run the server refused for Energy
+	-- ("energyShort", Controllers/Shop) shows it too, whatever this clock says.
+	local slot: MomentOffers.RunSlot = if location
+		then MomentOffers.runSlot(energyValue, location.energyCost, blocked ~= nil)
+		else { run = "blocked", short = 0 }
+	local refused = ui.energyShort
+	if location and blocked == nil and type(refused) == "table" and os.clock() - (refused.at or 0) < 30 then
+		local need = math.max(slot.short, math.ceil(refused.need or 0))
+		if need > 0 then
+			slot = { run = "refill", short = need }
+		end
+	end
+	local short = location ~= nil and (energyValue < location.energyCost or slot.run == "refill")
+	local energyChip = offers.energyChip
+	local refill = if slot.run == "refill" and energyChip then energyChip(slot.short) else nil
 	-- An event location closing before a Walk would get there (the server refuses it too).
 	-- LocationDef has required fields where Travel.Destination has optional ones, which
 	-- the new solver's invariant table properties refuse without the assertion.
@@ -1007,6 +1062,28 @@ local function FogMap()
 		and TravelMath.walkTooLate(location :: TravelMath.Destination, Content.Tuning.travel :: any, now)
 	-- An event pin's countdown sits under its name: the Run and Walk buttons go below it.
 	local countdownGap = if location and eventClock(location, now) ~= nil then 20 else 0
+	-- The Refill slot sits left of the Run: a neighbouring pin (and its name) under it is left
+	-- off while it shows, as the panel's pins are.
+	if refill and at then
+		local right = at.X * size.X - (ROUND + 20) - 18
+		local left = right - (ROUND + 20)
+		local top = at.Y * size.Y + PIN / 2 + 30 + countdownGap
+		local bottom = top + ROUND + 40
+		for id in pins do
+			local spot = if id ~= selected then pinAt(id) else nil
+			if spot then
+				local x, y = spot.X * size.X, spot.Y * size.Y
+				if
+					x + PIN_LABEL / 2 > left
+					and x - PIN_LABEL / 2 < right
+					and y + PIN / 2 + 24 > top
+					and y - PIN / 2 < bottom
+				then
+					pins[id] = nil
+				end
+			end
+		end
+	end
 	-- The map reaches REACH design pixels above the safe area, under Roblox's top bar
 	-- (as UI/components/FullScreen's dim does); the chrome keeps to the safe area.
 	local topInset = REACH
@@ -1028,12 +1105,33 @@ local function FogMap()
 			ZIndex = 2,
 		}, {
 			Tiles = e(MapCanvas, { size = size }),
+			Refill = location and at and not walking and refill and e(RoundButton, {
+				label = "REFILL",
+				glyph = "energy",
+				detail = "",
+				price = refill.price,
+				note = `Need {slot.short} more`,
+				enabled = true,
+				order = 0,
+				fill = Theme.colors.accent,
+				rim = Theme.colors.accentSoft,
+				-- Left of the Run and Walk pair, which stays centred under the pin.
+				position = UDim2.new(at.X, -(ROUND + 20) - 6 - 12, at.Y, PIN / 2 + 30 + countdownGap),
+				anchorPoint = Vector2.new(1, 0),
+				zIndex = 5,
+				onActivated = function()
+					local buy = offers.buyEnergy
+					if buy then
+						buy(slot.short)
+					end
+				end,
+			}),
 			Route = at and e(Route, {
 				from = home,
 				to = at,
 				size = size,
 				clear = Rect.new(
-					at.X * size.X - (ROUND + 26),
+					at.X * size.X - (ROUND + 26) - (if refill then ROUND + 32 else 0),
 					at.Y * size.Y - PIN / 2 - 6,
 					at.X * size.X + (ROUND + 26),
 					at.Y * size.Y + PIN / 2 + 30 + countdownGap + ROUND + 46
@@ -1086,7 +1184,7 @@ local function FogMap()
 					label = "RUN",
 					glyph = "sprint",
 					detail = `{location.energyCost}`,
-					note = blocked or if short then "Not enough Energy" else "a few seconds",
+					note = blocked or if short then "No Energy" else "a few seconds",
 					enabled = ready and blocked == nil and not short,
 					order = 1,
 					onActivated = function()

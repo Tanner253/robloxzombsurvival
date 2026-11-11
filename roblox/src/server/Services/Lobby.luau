@@ -37,6 +37,7 @@ local ExtractionMath = require(Domain.Extraction)
 local InventoryMath = require(Domain.Inventory)
 local LobbyMath = require(Domain.Lobby)
 local Matchmaking = require(Domain.Matchmaking)
+local MomentOffers = require(Domain.MomentOffers)
 local RunTicket = require(Domain.RunTicket)
 local Net = require("../Net")
 local OnRun = require("../OnRun")
@@ -65,7 +66,6 @@ local TICK_SECONDS = 0.5
 local MATCH_SECONDS = 1
 local PUBLISH_SECONDS = 5
 local STATE_SECONDS = 1
-local DEATH_LINGER_SECONDS = 4 -- the death screen shows on the run server before the trip home
 
 export type RunStats = {
 	enteredAt: number,
@@ -98,6 +98,15 @@ export type Run = {
 type Party = { id: string, leader: Player, members: { Player } }
 type Queued = { entry: Matchmaking.Entry, players: { Player }, mode: ("run" | "walk")? }
 type Reentry = { lobbyId: string, locationId: string, untilAt: number }
+-- A dead player on the death screen, still on the run side until they choose (F-09): the
+-- trip home waits, so "Recover all" runs where the bag is.
+type Hold = {
+	home: Teleport.HomeData,
+	homePlaceId: number,
+	lobbyId: string,
+	recovered: boolean,
+	watch: RBXScriptConnection?,
+}
 
 -- Signals for the other Fog Run services.
 Lobby.opened = Signal.new() -- (hosted)
@@ -107,6 +116,7 @@ Lobby.exited = Signal.new() -- (player, run, outcome): fires before the player i
 Lobby.bandChanged = Signal.new() -- (hosted, band)
 Lobby.hurt = Signal.new() -- (player, damage, cause)
 Lobby.failed = Signal.new() -- (player, reason, ticket?): a trip in that never happened (refund it)
+Lobby.wantsReentry = Signal.new() -- (player, locationId): "Go back in" chosen on the run side; Travel pays
 
 -- Set by Combat: whether a player is inside a dodge roll's i-frames.
 Lobby.invulnerable = function(_player: Player): boolean
@@ -132,6 +142,7 @@ local pendingHome: { [Player]: { data: Teleport.HomeData, homePlaceId: number, t
 local loadWaits: { [Player]: any } = {} -- run arrivals waiting on their profile
 local dispatched: { [Player]: number } = {} -- when a player's teleport to a lobby was sent
 local recoverDaily: { [Player]: DeathRecovery.DailyState } = {}
+local holds: { [Player]: Hold } = {}
 local seq = 0
 
 local HOME_RETRIES = 3
@@ -199,6 +210,11 @@ end
 function Lobby.isPartyLeader(player: Player): boolean
 	local party = parties[player]
 	return party == nil or party.leader == player
+end
+
+-- Whether a player who died is still on the death screen, on the run side (F-09).
+function Lobby.holding(player: Player): boolean
+	return holds[player] ~= nil
 end
 
 -- Where a player who died may go back in, while that is still possible.
@@ -401,12 +417,56 @@ local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome,
 		home.locationId = hosted.location.id
 		home.reentryUntil = closesAt - lobbyConfig.reentryCutoffSeconds
 	end
-	-- A death lingers on its screen before the trip home; an extraction leaves at once.
-	task.delay(if outcome == "died" then DEATH_LINGER_SECONDS else 0, function()
+	if outcome == "died" then
+		-- The death screen stays until they choose (F-09). Whatever body respawns meanwhile
+		-- waits, anchored, behind it.
+		local hold: Hold = {
+			home = home,
+			homePlaceId = run.ticket.homePlaceId,
+			lobbyId = hosted.id,
+			recovered = false,
+		}
+		hold.watch = player.CharacterAdded:Connect(function(character: Model)
+			local root = character:WaitForChild("HumanoidRootPart", 5)
+			if holds[player] == hold and root and root:IsA("BasePart") then
+				root.Anchored = true
+			end
+		end)
+		holds[player] = hold
+		return
+	end
+	-- An extraction leaves at once.
+	task.defer(function()
 		if player.Parent == Players then
 			sendHome(player, run.ticket.homePlaceId, home)
 		end
 	end)
+end
+
+-- Ends a death screen's wait: home, and back in if they chose it (Domain/MomentOffers).
+local function release(player: Player, choice: MomentOffers.Choice)
+	local hold = holds[player]
+	if hold == nil then
+		return
+	end
+	holds[player] = nil
+	if hold.watch then
+		hold.watch:Disconnect()
+	end
+	local root = rootOf(player)
+	if root then
+		root.Anchored = false
+	end
+	local after = MomentOffers.afterHold(choice, hold.recovered)
+	local home: Teleport.HomeData = table.clone(hold.home)
+	home.death = nil -- seen and answered on the run side
+	if not after.keepReentry then
+		home.lobbyId, home.locationId, home.reentryUntil = nil, nil, nil
+	end
+	home.reenter = if after.reenter then true else nil
+	if player.Parent == Players then
+		sendHome(player, hold.homePlaceId, home)
+	end
 end
 
 -- Death drops by fog tier (Domain/Lobby), written back to the profile.
@@ -458,7 +518,18 @@ local function onDied(player: Player, run: Run)
 		bagId = if drop then drop.id else nil,
 		locationId = run.hosted.location.id,
 	}
-	Sync.fx(player, "runDeath", death)
+	-- The screen's choices are made here, on the run side: when "Go back in" closes.
+	local closesAt = LobbyMath.closesAt(run.hosted.state, lobbyConfig) or now()
+	Sync.fx(player, "runDeath", {
+		cause = death.cause,
+		lost = death.lost,
+		bagId = death.bagId,
+		locationId = death.locationId,
+		held = true,
+		reentry = if drop
+			then { locationId = run.hosted.location.id, untilAt = closesAt - lobbyConfig.reentryCutoffSeconds }
+			else nil,
+	})
 	finish(player, run, "died", death)
 end
 
@@ -665,6 +736,9 @@ local function homeLocally(player: Player, data: Teleport.HomeData)
 		reentries[player] = { lobbyId = data.lobbyId, locationId = data.locationId, untilAt = data.reentryUntil }
 	end
 	welcomeHome(player, data)
+	if data.reenter and data.locationId then
+		task.defer(Lobby.wantsReentry.Fire, Lobby.wantsReentry, player, data.locationId)
+	end
 	local plot = Plots.of(player)
 	local character = player.Character
 	local humanoid = humanoidOf(player)
@@ -674,6 +748,12 @@ local function homeLocally(player: Player, data: Teleport.HomeData)
 end
 
 local function closeHosted(hosted: Hosted, lost: { number })
+	-- Still on the death screen when the lobby ends: that's "Continue".
+	for player, hold in holds do
+		if hold.lobbyId == hosted.id then
+			release(player, "lobbyClosed")
+		end
+	end
 	for _, userId in lost do
 		local player = Players:GetPlayerByUserId(userId)
 		local run = player and runs[player]
@@ -871,6 +951,10 @@ local function recoverAll(player: Player, bagId: string, method: DeathRecovery.M
 	for _, hosted in hostedLobbies do
 		local drop = hosted.state.drops[bagId]
 		if drop and drop.ownerUserId == player.UserId then
+			if LobbyMath.phase(hosted.state, stamp, lobbyConfig) == "closed" then
+				Sync.notice(player, "The Fog has taken that bag")
+				return -- checked before paying: never charge for a bag that's gone
+			end
 			if not Payments.pay(player, "recoverAll", method, 0) then
 				Sync.notice(player, "Recovery isn't available yet")
 				return
@@ -886,6 +970,12 @@ local function recoverAll(player: Player, bagId: string, method: DeathRecovery.M
 				if method == "ad" then
 					recoverDaily[player] = DeathRecovery.useRecoverAll(daily, stamp)
 				end
+				local hold = holds[player]
+				if hold then
+					hold.recovered = true
+				end
+				Sync.notice(player, "Recovered: your things wait in your inbox at home", "good")
+				Sync.fx(player, "recovered", { bagId = bagId })
 			end
 			return
 		end
@@ -1042,7 +1132,7 @@ end
 
 -- Whether a player is already queued, mid-teleport into a lobby or on a run.
 function Lobby.busy(player: Player): boolean
-	if runs[player] then
+	if runs[player] or holds[player] then
 		return true
 	end
 	local sentAt = dispatched[player]
@@ -1193,6 +1283,19 @@ local function onPlayerAdded(player: Player)
 			result = if type(data.result) == "table" then data.result else nil,
 			death = if type(data.death) == "table" then data.death else nil,
 		})
+		if data.reenter == true and type(data.locationId) == "string" then
+			-- "Go back in" from the death screen: the trip starts once the profile is here.
+			local locationId: string = data.locationId
+			task.spawn(function()
+				local deadline = os.clock() + 30
+				while PlayerData.get(player) == nil and player.Parent == Players and os.clock() < deadline do
+					task.wait(0.25)
+				end
+				if PlayerData.get(player) then
+					Lobby.wantsReentry:Fire(player, locationId)
+				end
+			end)
+		end
 	end
 end
 
@@ -1251,6 +1354,13 @@ local function onPlayerRemoving(player: Player)
 	pendingHome[player] = nil
 	dispatched[player] = nil
 	recoverDaily[player] = nil
+	local hold = holds[player]
+	if hold then
+		holds[player] = nil
+		if hold.watch then
+			hold.watch:Disconnect()
+		end
+	end
 	if loadWaits[player] then
 		loadWaits[player]:Disconnect()
 		loadWaits[player] = nil
@@ -1279,6 +1389,9 @@ function Lobby.init()
 	end)
 	Net.onEvent("BagTakeAll", takeAllFromBag)
 	Net.onEvent("RecoverAll", recoverAll)
+	Net.onEvent("DeathChoice", function(player: Player, choice: "continue" | "back")
+		release(player, choice)
+	end)
 end
 
 function Lobby.start()
