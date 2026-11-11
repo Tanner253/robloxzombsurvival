@@ -511,8 +511,8 @@ local function step(dt: number)
 	if moving then
 		ok, reason = BuildRules.canMove(currentLayout, moving, target, ctx)
 	else
-		local plot = State.get("plot")
-		local slots = if type(plot) == "table" then plot.pieceSlots else nil
+		local plotState = State.get("plot")
+		local slots = if type(plotState) == "table" then plotState.pieceSlots else nil
 		ok, reason = BuildRules.canPlace(currentLayout, pieceId, target, ctx, progress(), inventory(), slots)
 	end
 	current = { target = target, valid = ok, reason = reason }
