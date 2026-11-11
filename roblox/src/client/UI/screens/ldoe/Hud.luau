@@ -464,6 +464,9 @@ end
 local function weaponIcon(slot: any, durability: number?): { [string]: any }
 	local children: { [string]: any } = {}
 	if slot and slot.count > 0 then
+		-- The weapon's own picture stands alone, as in LDoE: the button's glyph (the knife)
+		-- showed through a dark gun and read as the weapon.
+		children.Icon = false
 		children.Item = e("Frame", {
 			Size = UDim2.fromScale(0.7, 0.7),
 			Position = UDim2.fromScale(0.5, 0.5),

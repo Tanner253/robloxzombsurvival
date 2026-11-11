@@ -67,7 +67,39 @@ local PARENTS: { [string]: string } = {
 	LeftLowerLeg = "LeftUpperLeg",
 }
 
-type Spec = { length: number, loop: boolean?, keys: { { time: number, poses: { [string]: CFrame } } } }
+-- `partial`: only the parts a key names are posed; the rest keep whatever plays beneath
+-- (the legs go on walking under a firing stance).
+type Spec = {
+	length: number,
+	loop: boolean?,
+	partial: boolean?,
+	keys: { { time: number, poses: { [string]: CFrame } } },
+}
+
+--[[
+	The firing stances. A held gun is welded to the right fist in the carry pose (muzzle
+	forward, World/Models), so it turns with the hand: raise the arm as UAL's pistol clip
+	does and the muzzle swings up to the sky. Each stance's RightHand pose is therefore the
+	wrist turn that puts the hand back in its rest orientation with the carry pose's 19 degrees
+	of lift taken out, so the gun stays level along the aim. The angles were solved against the
+	StarterCharacter's joints in Studio (2026-11-11) and checked in side captures.
+]]
+local PISTOL_STANCE: { [string]: CFrame } = {
+	-- Both hands out in front of the chest.
+	RightUpperArm = deg(60, 0, -35),
+	RightLowerArm = deg(65),
+	RightHand = deg(-128.2, -65.7, -8.3),
+	LeftUpperArm = deg(53, 0, 47),
+	LeftLowerArm = deg(12),
+}
+local LONG_STANCE: { [string]: CFrame } = {
+	-- The grip hand folded in to the chest (the stock at the body), the other under the gun.
+	RightUpperArm = deg(50, 0, -55),
+	RightLowerArm = deg(125),
+	RightHand = deg(-130.3, -69.2, 51.4),
+	LeftUpperArm = deg(40, 0, 50),
+	LeftLowerArm = deg(15),
+}
 
 local SPECS: { [string]: Spec } = {
 	-- A quick diagonal slash: wind back, cut across, recover.
@@ -119,40 +151,27 @@ local SPECS: { [string]: Spec } = {
 			{ time = 0.78, poses = {} },
 		},
 	},
-	-- Gun up and level (held while firing), a kick on each shot.
+	-- Gun up and level in both hands (held while firing): a pistol, then a long gun.
 	aim = {
 		length = 0.3,
 		loop = true,
-		keys = {
-			{
-				time = 0,
-				poses = {
-					RightUpperArm = deg(88, 0, 0),
-					RightLowerArm = deg(4),
-					LeftUpperArm = deg(80, 0, 30),
-					LeftLowerArm = deg(30),
-				},
-			},
-			{
-				time = 0.3,
-				poses = {
-					RightUpperArm = deg(88, 0, 0),
-					RightLowerArm = deg(4),
-					LeftUpperArm = deg(80, 0, 30),
-					LeftLowerArm = deg(30),
-				},
-			},
-		},
+		partial = true,
+		keys = { { time = 0, poses = PISTOL_STANCE }, { time = 0.3, poses = PISTOL_STANCE } },
 	},
+	aimLong = {
+		length = 0.3,
+		loop = true,
+		partial = true,
+		keys = { { time = 0, poses = LONG_STANCE }, { time = 0.3, poses = LONG_STANCE } },
+	},
+	-- A kick on each shot: the chest rocks back and the arms and gun ride with it.
 	recoil = {
 		length = 0.22,
+		partial = true,
 		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.05,
-				poses = { UpperTorso = deg(-6, 0, 0), RightUpperArm = deg(18, 0, 0), RightLowerArm = deg(14) },
-			},
-			{ time = 0.22, poses = {} },
+			{ time = 0, poses = { UpperTorso = deg(0) } },
+			{ time = 0.05, poses = { UpperTorso = deg(-6, 0, 0) } },
+			{ time = 0.22, poses = { UpperTorso = deg(0) } },
 		},
 	},
 	reload = {
@@ -285,12 +304,11 @@ local SPECS: { [string]: Spec } = {
 local clips: { [string]: Animation } = {}
 
 -- Clips retargeted from Quaternius's Universal Animation Library (CC0, Data/UalClips):
--- the gun, the hit and the fall. Melee swings stay hand-keyed above, timed to the hit
+-- the reload, the hit and the fall. Melee swings stay hand-keyed above, timed to the hit
 -- frame (UAL's sword attack is a long spinning slash), and so does the quick dodge
--- (UAL's roll takes 1.5 s with its get-up).
+-- (UAL's roll takes 1.5 s with its get-up). The firing stances and the kick are hand-keyed
+-- too: UAL's Pistol_Aim_Neutral and Pistol_Shoot turn the wrist, and the gun with it.
 local UAL: { [string]: { clip: string, loop: boolean? } } = {
-	aim = { clip = "Pistol_Aim_Neutral", loop = true },
-	recoil = { clip = "Pistol_Shoot" },
 	reload = { clip = "Pistol_Reload" },
 	hitReact = { clip = "Hit_Chest" },
 	collapse = { clip = "Death01" },
@@ -408,7 +426,11 @@ local function build(spec: Spec): KeyframeSequence
 			end
 			local pose = Instance.new("Pose")
 			pose.Name = name
-			pose.CFrame = key.poses[name] or CFrame.identity
+			local posed: CFrame? = key.poses[name]
+			pose.CFrame = posed or CFrame.identity
+			if spec.partial and not posed then
+				pose.Weight = 0
+			end
 			pose.EasingStyle = Enum.PoseEasingStyle.Cubic
 			pose.EasingDirection = Enum.PoseEasingDirection.Out
 			local parentName = PARENTS[name]
@@ -507,6 +529,13 @@ local function activeItem(): (string?, any)
 	local slot = hands.slots and hands.slots[hands.active]
 	local itemId = slot and slot.itemId
 	return itemId, if itemId then Items[itemId] else nil
+end
+
+-- The stance a gun fires from: long guns come to the chest, pistols go out in front.
+local function aimClip(): string
+	local _, def = activeItem()
+	local firearm = def and def.weapon and def.weapon.firearm
+	return if firearm and firearm.animClass ~= "pistol" then "aimLong" else "aim"
 end
 
 local function weaponKind(): "melee" | "gun" | "bow"
@@ -901,7 +930,7 @@ function CombatControl.press()
 	local kind = weaponKind()
 	local character = player.Character
 	if kind == "gun" then
-		play(character, "aim")
+		play(character, aimClip())
 		fireOnce()
 		lastShot = os.clock()
 	elseif kind == "bow" then
@@ -934,6 +963,7 @@ function CombatControl.release()
 		fireOnce()
 	elseif kind == "gun" then
 		stop(character, "aim")
+		stop(character, "aimLong")
 	end
 end
 

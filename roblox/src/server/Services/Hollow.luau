@@ -274,6 +274,13 @@ function Hollow.positionOf(hosted: Lobby.Hosted, id: string): Vector3?
 	return if record and record.diedAt == nil then record.position else nil
 end
 
+-- A living Hollow's health, or nil (scripted playtests read a shot's damage with it).
+function Hollow.hpOf(hosted: Lobby.Hosted, id: string): number?
+	local world = worldOf(hosted)
+	local record = world and world.hollows[id]
+	return if record and record.diedAt == nil then record.hp else nil
+end
+
 -- Whether it has noticed anyone (a sneak backstab needs it not to, LDOE_PARITY #44).
 function Hollow.isAware(hosted: Lobby.Hosted, id: string): boolean
 	local world = worldOf(hosted)

@@ -594,6 +594,18 @@ local function autoFight(player: Player, fighter: Fighter)
 	end
 end
 
+-- Scripted playtests (Diagnostics "shoot"): the same fire and reload the remotes run, and
+-- the active hand's rounds loaded (nil with no gun in hand).
+Combat.dev = {
+	fire = fire,
+	reload = reload,
+	loaded = function(player: Player): number?
+		local fighter = fighterOf(player) -- matched to the paper-doll first
+		local gun = fighter and Hands.active(fighter.hands).gun
+		return if gun then gun.loaded else nil
+	end,
+}
+
 function Combat.init()
 	if not Features.on(tuning, "fogRuns") then
 		return
