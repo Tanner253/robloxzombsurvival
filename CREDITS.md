@@ -30,13 +30,35 @@ Columns: **Work** is what we use. **By** is the author or owner. **License** is 
 |---|---|---|---|
 | "sawnoffs Animated" (the Scrap Shotgun) | DJMaesen | CC-BY-4.0 | sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb |
 | "Service Pistol" (the Worn Pistol) | Mateusz Sadek | CC0 | polyhaven.com/a/service_pistol |
+| "animated pistol" (the Duty Pistol) | DJMaesen | CC-BY-4.0 | sketchfab.com/3d-models/animated-pistol-bd896167e7ca44f19597d3afe6a8d83f |
+| "Benelli M3 Tactical" (the Pump Shotgun) | Amapsis | CC-BY-4.0 | sketchfab.com/3d-models/benelli-m3-tactical-1eaea0239fdf43ad92eb276fbf9c60dd |
+| "Bolt Action Rifle 7.62" (the Hunting Rifle) | Mateusz Sadek | CC0 | polyhaven.com/a/bolt_action_rifle_7_62 |
+| "FPS AK-74m animations" (the Assault Rifle) | Cransh | CC-BY-4.0 | sketchfab.com/3d-models/fps-ak-74m-animations-94be8385c402474cacd39bc096c6ca14 |
+| "Barrett-M82 (Optimized)" (the Anti-Materiel Rifle) | Gintoki1234 | CC-BY-4.0 | sketchfab.com/3d-models/barrett-m82-optimized-af16e974a47e463989311bcda6f51f87 |
 | "Machete" (the Machete) | Ulan Cabanilla | CC0 | polyhaven.com/a/machete |
 | "Crowbar 01" (the Tire Iron) | Alexander Otterbeck | CC0 | polyhaven.com/a/crowbar_01 |
-| "Universal Animation Library" (combat animations: gun aim, shot, reload, hit, fall) | Quaternius | CC0 | quaternius.com |
+| "Universal Animation Library" (combat animations: reload, hit, fall) | Quaternius | CC0 | quaternius.com |
 
 This work is based on "sawnoffs Animated"
 (https://sketchfab.com/3d-models/sawnoffs-animated-001bec4277414a62bb8ad9b2a1a7abcb) by DJMaesen
 (https://sketchfab.com/bumstrum) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+This work is based on "animated pistol"
+(https://sketchfab.com/3d-models/animated-pistol-bd896167e7ca44f19597d3afe6a8d83f) by DJMaesen
+(https://sketchfab.com/bumstrum) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+This work is based on "Benelli M3 Tactical"
+(https://sketchfab.com/3d-models/benelli-m3-tactical-1eaea0239fdf43ad92eb276fbf9c60dd) by Amapsis
+(https://sketchfab.com/Amapsis) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+This work is based on "FPS AK-74m animations"
+(https://sketchfab.com/3d-models/fps-ak-74m-animations-94be8385c402474cacd39bc096c6ca14) by Cransh
+(https://sketchfab.com/ccransh) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+This work is based on "Barrett-M82 (Optimized)"
+(https://sketchfab.com/3d-models/barrett-m82-optimized-af16e974a47e463989311bcda6f51f87) by Gintoki1234
+(https://sketchfab.com/Gintoki1234) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
 CC0 assets are listed as a courtesy.
 
 The models came through the developer's Zona repository (`assets-src/models`, see its CREDITS.md),

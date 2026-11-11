@@ -9,6 +9,7 @@ local TestKit = require("./TestKit")
 local Content = require("../src/shared/Data")
 local Combat = require("../src/shared/Domain/Combat")
 local Loot = require("../src/shared/Domain/Loot")
+local Credits = require("../src/shared/Data/Credits")
 
 local TUNING = Content.Tuning
 
@@ -291,6 +292,23 @@ return function(test: TestKit.Register)
 		end
 		for _, asset in DEAD_ASSETS do
 			TestKit.equal(string.find(source, asset, 1, true), nil, `dead upload {asset}`)
+		end
+	end)
+
+	test("each gun's source model is credited (CREDITS.md and the Credits panel)", function()
+		local works: { string } = {}
+		for _, section in Credits :: any do
+			for _, row in section.rows do
+				table.insert(works, row.work)
+			end
+		end
+		for itemId in GUNS do
+			local name = (Content.Items[itemId] :: any).name
+			local found = false
+			for _, work in works do
+				found = found or string.find(work, `(the {name})`, 1, true) ~= nil
+			end
+			TestKit.truthy(found, `{name} has a credit row`)
 		end
 	end)
 

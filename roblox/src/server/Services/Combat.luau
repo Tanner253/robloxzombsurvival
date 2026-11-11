@@ -641,6 +641,8 @@ function Combat.start()
 		-- The run starts with whichever slot was in hand at home.
 		local hands = Hands.new(slotIds(player), Items, tuning.hands)
 		hands.active = Inventory.activeWeapon(player)
+		-- Drawn as the run starts: at home the hand may still hold a tool, or nothing.
+		Inventory.setActiveWeapon(player, hands.active)
 		local fighter: Fighter = {
 			hands = hands,
 			stamina = CombatMath.newStamina(tuning.stamina, now()),
