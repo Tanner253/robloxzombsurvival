@@ -1062,6 +1062,28 @@ local function FogMap()
 		and TravelMath.walkTooLate(location :: TravelMath.Destination, Content.Tuning.travel :: any, now)
 	-- An event pin's countdown sits under its name: the Run and Walk buttons go below it.
 	local countdownGap = if location and eventClock(location, now) ~= nil then 20 else 0
+	-- The Refill slot sits left of the Run: a neighbouring pin (and its name) under it is left
+	-- off while it shows, as the panel's pins are.
+	if refill and at then
+		local right = at.X * size.X - (ROUND + 20) - 18
+		local left = right - (ROUND + 20)
+		local top = at.Y * size.Y + PIN / 2 + 30 + countdownGap
+		local bottom = top + ROUND + 40
+		for id in pins do
+			local spot = if id ~= selected then pinAt(id) else nil
+			if spot then
+				local x, y = spot.X * size.X, spot.Y * size.Y
+				if
+					x + PIN_LABEL / 2 > left
+					and x - PIN_LABEL / 2 < right
+					and y + PIN / 2 + 24 > top
+					and y - PIN / 2 < bottom
+				then
+					pins[id] = nil
+				end
+			end
+		end
+	end
 	-- The map reaches REACH design pixels above the safe area, under Roblox's top bar
 	-- (as UI/components/FullScreen's dim does); the chrome keeps to the safe area.
 	local topInset = REACH
