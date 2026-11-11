@@ -78,6 +78,9 @@ export type Ui = {
 	-- An Ember purchase waiting for BUY (screens/ldoe/EmberConfirm): what, the price, and
 	-- what BUY does.
 	emberAsk: { title: string, text: string, price: number, run: () -> () }?,
+	-- The last Run the server refused for Energy ("energyShort"): how much was missing, and
+	-- when (os.clock()), for the Fog map's Refill slot (UI/offers.energyChip).
+	energyShort: { need: number, at: number }?,
 	havenId: string?, -- who or what on Haven Square the "haven" panel is talking to
 	havenTab: string?, -- the Trader's tab: "buy" (default) or "sell"
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size
