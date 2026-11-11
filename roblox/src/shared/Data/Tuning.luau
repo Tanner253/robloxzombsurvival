@@ -19,6 +19,10 @@ local Tuning: Types.TuningDef = {
 		hardCap = 400,
 		levelUpRestore = 20,
 		foodDailyCap = 40,
+		-- The content parity audit's BR-9: all location quests together pay at most this many
+		-- Trail Rations (60 Energy each) a UTC day per player, whatever their data says, so
+		-- the dailies can't out-earn the day's regen (Domain/Quests.payLocationQuest).
+		locationQuestRations = { itemId = "item.rations", perDay = 2 },
 	},
 	inventory = {
 		pocketSlots = 10, -- LDoE's 10 pockets
@@ -131,10 +135,11 @@ local Tuning: Types.TuningDef = {
 		spacingStuds = 184,
 		rowGapStuds = 36,
 		marginStuds = 28,
-		-- Haven Square (Domain/Neighbourhood): the paved middle, half its width and depth.
-		-- Two plots stand each side of it in both rows; the road runs through it.
-		plazaHalfStuds = 56,
-		plazaDepthStuds = 80,
+		-- Haven Square (Domain/Neighbourhood): the trodden middle inside its palisade, half
+		-- its width and depth. Tight like LDoE's settlement (rec4_01): 0.6 of the first
+		-- cut's area. Two plots stand each side of it in both rows; the road runs through it.
+		plazaHalfStuds = 44,
+		plazaDepthStuds = 62,
 	},
 	interaction = {
 		-- Arm's reach (checklist 3.11): how far from an object's edge (its footprint
@@ -397,6 +402,15 @@ local Tuning: Types.TuningDef = {
 			["product.embers_300"] = 799, -- Ember Chest
 			["product.pack_expansion"] = 199,
 			["product.vip_lounge"] = 399,
+			-- The Equipment tab (MVP_LAUNCH, LDoE rec8_sheet4) and the Building tab's capacity packs.
+			["product.scouts_kit"] = 79,
+			["product.weapon_parts"] = 149,
+			["product.padded_armor"] = 199,
+			["product.gunrunner_pack"] = 249,
+			["product.raider_arms"] = 499,
+			["product.heavy_equipment"] = 2499,
+			["product.smelter_slot"] = 399,
+			["product.recycler_slot"] = 399,
 		},
 	},
 	-- Embers, the premium currency (playbook §7.2, at LDoE coin parity). Sinks: Recover all,

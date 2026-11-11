@@ -228,6 +228,22 @@ return function(test: TestKit.Register)
 		TestKit.equal(Content.Levels[20].xp, 115000, "level 20")
 	end)
 
+	test("levels 21-30 carry the §9.3 curve on: every step longer than the last, half rewarded", function()
+		local levels = Content.Levels
+		TestKit.equal(#levels, 30, "the launch cap")
+		for index = 17, #levels do
+			local step = levels[index].xp - levels[index - 1].xp
+			local before = levels[index - 1].xp - levels[index - 2].xp
+			TestKit.truthy(step > before, `level {index}: a {step} XP step after {before} (a flat tail)`)
+		end
+		local rewarded = 0
+		for index = 21, 30 do
+			rewarded += if levels[index].rewards then 1 else 0
+		end
+		TestKit.equal(rewarded, 5, "rewards on half of levels 21-30")
+		TestKit.truthy(levels[30].rewards ~= nil, "the cap pays")
+	end)
+
 	-- Domain changes -------------------------------------------------------------------------------
 	test("yieldEvery: Ironbark yields a log on every 2nd hit; XP is still per hit", function()
 		local def = Nodes["node.ironbark_tree"]

@@ -17,8 +17,12 @@
 	  ("clock", hours).
 	  Fog Runs: ("fogrun", locationId) queues a run there at once (no Trailhead walk),
 	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
-	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("energy", n) sets Energy,
-	  ("meter", seconds) ages your lobby by that long.
+	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("wear", itemId) puts armor in its
+	  slot, ("energy", n) sets Energy,
+	  ("meter", seconds) ages your lobby by that long. ("npcfeet") reports each Haven NPC's
+	  foot-to-ground gap (seated settlers report their seat height).
+	- puts the Dev Armory crate by each claimed plot: one of every weapon and armor piece
+	  into the inbox, so the developer can try all the gear.
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -34,6 +38,7 @@ local Net = require("../Net")
 local Building = require("./Building")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
+local Models = require("../World/Models")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
@@ -139,6 +144,40 @@ local function devCommand(command: string, ...: any): any
 		local equipment = data.inventory.equipment :: any
 		equipment[key] = { itemId = item.id, count = 1, durability = item.durability }
 		Sync.mark(player, "inventory")
+		return "ok"
+	elseif command == "npcfeet" then
+		-- Every standing Haven NPC's gap between its lowest foot point and the ground under
+		-- it (studs); the check wants each within 0.15.
+		local HavenWorld = require("../World/Haven")
+		local haven = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Haven")
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		local report = {}
+		for _, humanoid in (if haven then haven:GetDescendants() else {}) do
+			if humanoid:IsA("Humanoid") and humanoid.Parent and humanoid.Parent:IsA("Model") then
+				local rig = humanoid.Parent :: Model
+				local root = rig:FindFirstChild("HumanoidRootPart") :: BasePart?
+				local low = HavenWorld.lowestFoot(rig)
+				if root and low then
+					local hit = workspace:Raycast(root.Position + Vector3.new(0, 5, 0), Vector3.new(0, -40, 0), params)
+					local gap = if hit then low - hit.Position.Y else 999
+					table.insert(report, string.format("%s %.3f", rig.Name, gap))
+				end
+			end
+		end
+		return table.concat(report, " | ")
+	elseif command == "wear" then
+		local data = PlayerData.get(player)
+		local item = Content.Items[args[1]]
+		local slot = item and item.equipSlot
+		if data == nil or item == nil or slot == nil or slot == "weapon" then
+			return "not armor or a bag"
+		end
+		local equipment = data.inventory.equipment :: any
+		equipment[slot] = { itemId = item.id, count = 1, durability = item.durability }
+		Sync.mark(player, "inventory")
+		Inventory.refreshGear(player)
 		return "ok"
 	elseif command == "energy" then
 		local state, config = Energy.state(player)
@@ -273,6 +312,73 @@ local function devCommand(command: string, ...: any): any
 	return "ok"
 end
 
+--[[
+	The Dev Armory (Studio only, hard-off in live games): a crate by every claimed plot's
+	road edge that puts one of every weapon and armor piece in the inbox, so the developer
+	can see and try all the gear. It's a plain Roblox prompt; players never see it.
+]]
+local function armoryGrant(player: Player)
+	local slots: { any } = {}
+	for id, item in Content.Items do
+		if item.category == "weapon" or item.category == "armor" then
+			table.insert(slots, { itemId = id, count = 1, durability = item.durability })
+		end
+	end
+	table.sort(slots, function(a, b)
+		return a.itemId < b.itemId
+	end)
+	Inbox.grant(player, slots :: any, "Dev Armory")
+end
+
+local function devArmory(player: Player, plot: any)
+	local name = `EO_DevArmory_{player.UserId}`
+	local old = workspace:FindFirstChild(name)
+	if old then
+		old:Destroy()
+	end
+	local crate = Models.kit({ "EO_StorageCrate", "Crate" })
+	if crate == nil then
+		return
+	end
+	crate.Name = name
+	local spawn = Plots.spawnCFrame(plot)
+	local at = spawn * CFrame.new(7, 0, 0)
+	crate:PivotTo(CFrame.new(at.Position.X, plot.origin.Y, at.Position.Z) * spawn.Rotation)
+	local body = crate:FindFirstChildWhichIsA("BasePart", true)
+	if body == nil then
+		crate:Destroy()
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ObjectText = "Dev Armory (Studio only)"
+	prompt.ActionText = "Take every weapon and armor piece"
+	prompt.HoldDuration = 0.3
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt.Triggered:Connect(function(who: Player)
+		if who == player then
+			armoryGrant(who)
+		end
+	end)
+	prompt.Parent = body
+	local label = Instance.new("BillboardGui")
+	label.Size = UDim2.fromOffset(220, 30)
+	label.StudsOffsetWorldSpace = Vector3.new(0, crate:GetExtentsSize().Y + 1.5, 0)
+	label.AlwaysOnTop = true
+	label.MaxDistance = 80
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.fromScale(1, 1)
+	text.BackgroundTransparency = 1
+	text.Text = "DEV ARMORY (Studio)"
+	text.TextColor3 = Color3.fromRGB(255, 210, 122)
+	text.TextStrokeTransparency = 0.3
+	text.TextScaled = true
+	text.FontFace = Font.fromName("BuilderSans", Enum.FontWeight.Bold)
+	text.Parent = label
+	label.Parent = body
+	crate.Parent = workspace
+end
+
 function Diagnostics.init()
 	Net.onInvoke("Ping", function(_player: Player, nonce: number)
 		return nonce, workspace:GetServerTimeNow()
@@ -287,6 +393,16 @@ function Diagnostics.start()
 	dev.Name = "EO_Dev"
 	dev.OnInvoke = devCommand
 	dev.Parent = ServerStorage
+	-- The Dev Armory crate by each claimed plot (Studio only; this start() returns in live games).
+	Plots.claimed:Connect(function(player: Player, plot: any)
+		task.defer(devArmory, player, plot)
+	end)
+	Players.PlayerRemoving:Connect(function(player: Player)
+		local crate = workspace:FindFirstChild(`EO_DevArmory_{player.UserId}`)
+		if crate then
+			crate:Destroy()
+		end
+	end)
 	PlayerData.loaded:Connect(function(player: Player)
 		if workspace:GetAttribute("DevKit") == true then
 			task.wait(1)

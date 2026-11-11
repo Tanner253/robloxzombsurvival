@@ -172,7 +172,8 @@ local function place(player: Player, pieceId: string, x: number, z: number, axis
 	local target: Grid.Target = { x = x, z = z, axis = axis :: Grid.Axis?, rot = rot }
 	local ctx = Plots.context(plot, player)
 	local pool = Materials.virtual(player) or view -- have/need counts the whole home pool (5.13)
-	local ok, reason = BuildRules.canPlace(plot.layout, pieceId, target, ctx, progress, pool)
+	local slots = BuildRules.pieceSlots(Content.Products, data.purchases.counts)
+	local ok, reason = BuildRules.canPlace(plot.layout, pieceId, target, ctx, progress, pool, slots)
 	if not ok then
 		deny(player, reason)
 		return

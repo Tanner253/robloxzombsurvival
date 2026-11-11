@@ -150,6 +150,10 @@ return function(test: TestKit.Register)
 	test("the home chapter has a Trail Keeper reward and the v9 profile starts with no coins", function()
 		TestKit.truthy(Market.chapterDone(Content.Quests :: any, {}, "Ashes and Embers") == false)
 		TestKit.truthy(Haven.chapterRewards["Ashes and Embers"] ~= nil)
+		-- Every chapter of the trail has its hand-in (the content parity audit's SH-10).
+		for _, quest in Content.Quests do
+			TestKit.truthy(Haven.chapterRewards[quest.chapter] ~= nil, `{quest.chapter} has a Trail Keeper reward`)
+		end
 		local fresh = PlayerSchema.template()
 		TestKit.equal(fresh.haven.coins, 0)
 		TestKit.equal(fresh.haven.vipCrateDay, 0)

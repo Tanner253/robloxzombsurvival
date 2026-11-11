@@ -82,7 +82,7 @@ return function(test: TestKit.Register)
 		TestKit.truthy(vip ~= nil and vip.vipLounge, "the Lounge pass")
 	end)
 
-	test("Embers and energy deliver; the ten v0.1 products have their cards", function()
+	test("Embers and energy deliver; every product has its card and exists on Roblox", function()
 		local _, pouch = Receipts.apply(fresh(), Products["product.embers_50"], "r-1", 100, 15)
 		TestKit.equal((pouch :: any).embers, 50)
 		local _, chest = Receipts.apply(fresh(), Products["product.embers_300"], "r-2", 100, 15)
@@ -102,12 +102,59 @@ return function(test: TestKit.Register)
 				TestKit.equal(product.limit, 1)
 			end
 		end
-		TestKit.equal(count, 10, "ten SKUs")
+		TestKit.equal(count, 18, "v0.1's ten, the Equipment six, the Building two")
 		TestKit.equal(passes, 2, "Pack Expansion and the VIP Lounge")
 		TestKit.equal(Receipts.productByRobloxId(Products, 0), nil)
 	end)
 
-	test("the room kits hold every material for a 3x3 room up the upgrade chain", function()
+	test("every pack is repurchasable and its gear arrives fresh, one piece a row", function()
+		local onceOnly = {
+			["product.starter_offer"] = true, -- the one-time Firestarter Kit
+			["product.pack_expansion"] = true, -- game passes
+			["product.vip_lounge"] = true,
+			["product.smelter_slot"] = true, -- capacity
+			["product.recycler_slot"] = true,
+		}
+		for id, product in Products do
+			if not onceOnly[id] then
+				TestKit.equal(product.limit, nil, `{id} can be bought again`)
+			end
+			-- Nothing in a repeatable pack is a permanent unlock (a blueprint or a bag).
+			if not onceOnly[id] then
+				for _, grant in product.grants do
+					local g: any = grant
+					if g.kind == "item" then
+						local def = Content.Items[g.itemId]
+						TestKit.truthy(def.category ~= "blueprint" and def.category ~= "bag", `{id}: {g.itemId}`)
+					end
+				end
+			end
+		end
+		local slots = Receipts.inboxSlots({
+			{ itemId = "item.pipe_pistol", count = 2 },
+			{ itemId = "item.field_dressing", count = 5 },
+		}, Content.Items :: any)
+		TestKit.equal(#slots, 3, "two pistols in their own rows, the dressings stacked")
+		TestKit.equal((slots[1] :: any).durability, Content.Items["item.pipe_pistol"].durability)
+		TestKit.equal((slots[3] :: any).count, 5)
+	end)
+
+	test("a +1 Smelter purchase raises the Smelter's plot limit by one per purchase", function()
+		local BuildRules = require("../src/shared/Domain/BuildRules")
+		local base = BuildRules.limitOf("build.smelter", Content.BuildPieces :: any)
+		TestKit.truthy(base ~= nil, "the Smelter has a plot limit")
+		local none = BuildRules.pieceSlots(Products :: any, {})
+		TestKit.equal(BuildRules.limitOf("build.smelter", Content.BuildPieces :: any, none), base)
+		local two = BuildRules.pieceSlots(Products :: any, { ["product.smelter_slot"] = 2 })
+		TestKit.equal(BuildRules.limitOf("build.smelter", Content.BuildPieces :: any, two), (base :: number) + 2)
+		-- Other pieces keep their limits.
+		TestKit.equal(
+			BuildRules.limitOf("build.recycler", Content.BuildPieces :: any, two),
+			BuildRules.limitOf("build.recycler", Content.BuildPieces :: any)
+		)
+	end)
+
+	test("Kits.room: every material for a 3x3 room up the upgrade chain (the Firestarter's Scrap room)", function()
 		local kit = Kits.room(Content.BuildPieces :: any, 3)
 		TestKit.truthy(#kit > 0, "materials")
 		-- Exactly the chain costs: 9 foundations, 11 walls, a doorway and a door.
@@ -120,7 +167,8 @@ return function(test: TestKit.Register)
 		for _, stack in kit do
 			TestKit.equal(stack.count, expect[stack.itemId], stack.itemId)
 		end
-		-- The Reinforced kit costs more than the Scrap room in the Firestarter Kit.
+		-- A Reinforced room costs more than the Scrap room in the Firestarter Kit. (The Reinforced
+		-- Room Kit product is a head start on it, not the whole room: Data/Products.)
 		local scrap = 0
 		for _, stack in Kits.room(Content.BuildPieces :: any, 2) do
 			scrap += stack.count

@@ -453,6 +453,94 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		unlock = quest("quest.the_dense_fog"), -- was level 10 (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
+	-- Launch content (docs/research/ldoe-mvp-parity-content.md LB-3, LB-4, LB-5) -----------
+	-- Lights: warm pools at night, "light is territory" (checklist 9.9). No fuel in v0.1.
+	["build.pitch_torch"] = {
+		id = "build.pitch_torch",
+		footprint = { w = 1, d = 1 }, -- quarter cells (2 studs)
+		name = "Pitch Torch",
+		kind = "furniture",
+		tier = 1,
+		hp = 100,
+		cost = {
+			{ itemId = "item.sticks", count = 3 },
+			{ itemId = "item.pitch_glue", count = 1 },
+			{ itemId = "item.cloth", count = 1 },
+		},
+		breachCost = 1,
+		maxPerPlot = 12,
+		light = { range = 14, brightness = 1.4 },
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["build.post_lantern"] = {
+		id = "build.post_lantern",
+		footprint = { w = 2, d = 2 },
+		name = "Post Lantern",
+		kind = "furniture",
+		tier = 1,
+		hp = 200,
+		cost = {
+			{ itemId = "item.plank", count = 2 },
+			{ itemId = "item.scrap_plate", count = 1 },
+			{ itemId = "item.pitch_glue", count = 1 },
+		},
+		breachCost = 1,
+		maxPerPlot = 8,
+		light = { range = 22, brightness = 1.3 },
+		unlock = quest("quest.hold_the_door"),
+	},
+	-- The respawn point (LB-4): lay the Reed Doormat on a floor; you wake there after a bad run.
+	["build.doormat"] = {
+		id = "build.doormat",
+		footprint = { w = 2, d = 2 },
+		name = "Reed Doormat",
+		kind = "furniture",
+		tier = 1,
+		hp = 50,
+		cost = { { itemId = "item.doormat", count = 1 } },
+		breachCost = 1,
+		minFoundationTier = 1,
+		maxPerPlot = 1,
+		respawn = true,
+		unlock = quest("quest.scavenger"),
+		feature = "fogRuns",
+	},
+	-- No-fuel stations (LB-5).
+	["build.rain_barrel"] = {
+		id = "build.rain_barrel",
+		footprint = { w = 2, d = 2 },
+		name = "Rain Barrel",
+		kind = "station",
+		tier = 1,
+		hp = 200,
+		cost = {
+			{ itemId = "item.timber", count = 8 },
+			{ itemId = "item.cloth", count = 3 },
+			{ itemId = "item.scrap", count = 2 },
+		},
+		breachCost = 1,
+		stationId = "station.rain_barrel",
+		maxPerPlot = 2,
+		unlock = quest("quest.keep_the_fire"),
+	},
+	["build.smoke_rack"] = {
+		id = "build.smoke_rack",
+		footprint = { w = 3, d = 2 },
+		name = "Smoke Rack",
+		kind = "station",
+		tier = 1,
+		hp = 200,
+		cost = {
+			{ itemId = "item.plank", count = 5 },
+			{ itemId = "item.rope", count = 10 },
+			{ itemId = "item.stone", count = 10 },
+		},
+		breachCost = 1,
+		stationId = "station.smoke_rack",
+		maxPerPlot = 2,
+		unlock = quest("quest.stand_your_ground"),
+		feature = "fogRuns",
+	},
 }
 
 return BuildPieces

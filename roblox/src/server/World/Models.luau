@@ -12,6 +12,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local Art = require(ReplicatedStorage.Shared.Art)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -400,7 +401,90 @@ end
 -- A build piece's model: the material deck for foundations, else its approved kit
 -- model, or nil while it has none (the piece is then hidden from the build menu and
 -- can't be placed; there are no stand-in builds, checklist §0).
+-- The Reed Doormat (exact geometry: a flat woven mat): a reed body with a darker bound
+-- edge and woven bands across it, lying flat, pivot at its base centre.
+local MAT_REED = Color3.fromRGB(176, 150, 98)
+local MAT_EDGE = Color3.fromRGB(112, 86, 56)
+
+local function doormat(def: Types.BuildPieceDef): Model
+	local model = newModel(def.id)
+	local w, d, t = 3.4, 2.3, 0.1
+	part(model, Vector3.new(w, t, d), CFrame.new(0, t / 2, 0), Enum.Material.Fabric, MAT_REED)
+	for _, z in { -d / 2 + 0.09, d / 2 - 0.09 } do
+		part(
+			model,
+			Vector3.new(w + 0.04, t + 0.03, 0.18),
+			CFrame.new(0, (t + 0.03) / 2, z),
+			Enum.Material.Fabric,
+			MAT_EDGE
+		)
+	end
+	for _, x in { -w / 2 + 0.09, w / 2 - 0.09 } do
+		part(model, Vector3.new(0.18, t + 0.03, d), CFrame.new(x, (t + 0.03) / 2, 0), Enum.Material.Fabric, MAT_EDGE)
+	end
+	for index = -3, 3 do
+		part(
+			model,
+			Vector3.new(0.14, t + 0.015, d - 0.4),
+			CFrame.new(index * 0.42, (t + 0.015) / 2, 0),
+			Enum.Material.Fabric,
+			MAT_REED:Lerp(MAT_EDGE, 0.35)
+		)
+	end
+	for _, piece in model:GetChildren() do
+		if piece:IsA("BasePart") then
+			piece.CanCollide = false
+		end
+	end
+	return finish(model)
+end
+
+-- A placed light's warm glow (Pitch Torch, Post Lantern; checklist 9.9): always lit.
+local TORCH_GLOW = Color3.fromRGB(255, 150, 66)
+
+local function lightUp(model: Model, def: Types.BuildPieceDef)
+	local light = def.light
+	if light == nil then
+		return
+	end
+	local glow: PointLight?
+	if def.id == "build.pitch_torch" then
+		-- A flame on the torch's head, wherever the stake leans.
+		local box, size = model:GetBoundingBox()
+		local head = box.Position + Vector3.new(0, size.Y / 2 - 0.35, 0)
+		local core =
+			part(model, Vector3.new(0.4, 0.4, 0.4), CFrame.new(head), Enum.Material.Neon, EMBER, Enum.PartType.Ball)
+		core.Name = "FireCore"
+		core.Transparency = 1
+		core.CanCollide = false
+		core.CanQuery = false
+		local fire = Instance.new("Fire")
+		fire.Name = "Flame"
+		fire.Heat = 7
+		fire.Size = 2.2
+		fire.Color = EMBER
+		fire.SecondaryColor = Color3.fromRGB(255, 181, 71)
+		fire.Parent = core
+		local lamp = Instance.new("PointLight")
+		lamp.Parent = core
+		glow = lamp
+	else
+		glow = Models.lanternGlow(model)
+	end
+	if glow then
+		glow.Name = "Glow"
+		glow.Range = light.range
+		glow.Brightness = light.brightness
+		glow.Color = TORCH_GLOW
+		glow.Shadows = false
+		glow.Enabled = true
+	end
+end
+
 function Models.piece(def: Types.BuildPieceDef): Model?
+	if def.respawn then
+		return doormat(def)
+	end
 	if def.kind == "foundation" then
 		local deck = Models.deck(def.tier)
 		deck.Name = def.id
@@ -437,6 +521,7 @@ function Models.piece(def: Types.BuildPieceDef): Model?
 		-- so the flame shows over the dome from the camera above.
 		addFireCore(kit, Vector3.new(-0.44, kit:GetExtentsSize().Y - 0.3, 0.38), 2.2)
 	end
+	lightUp(kit, def)
 	kit.Name = def.id
 	return kit
 end
@@ -693,6 +778,62 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 	local rotation = MOUNT_FRAMES[mount] * frame(axis, -edge):Inverse()
 	model.Name = itemId
 	return { model = model, rotation = rotation, gripPoint = gripPoint }
+end
+
+-- A body part's rest rotation relative to the root, from the StarterCharacter, so a
+-- mount is laid out in the character's frame (forward, up) whatever the custom
+-- rig's part axes are, and still follows the part when it animates.
+local restRotations: { [string]: CFrame } = {}
+local function restRotation(partName: string): CFrame
+	local cached = restRotations[partName]
+	if cached then
+		return cached
+	end
+	local rig = StarterPlayer:FindFirstChild("StarterCharacter")
+	local root = rig and rig:FindFirstChild("HumanoidRootPart")
+	local body = rig and rig:FindFirstChild(partName)
+	local rotation = CFrame.identity
+	if root and body and root:IsA("BasePart") and body:IsA("BasePart") then
+		rotation = root.CFrame:ToObjectSpace(body.CFrame).Rotation
+	end
+	restRotations[partName] = rotation
+	return rotation
+end
+
+-- The mount's frame on `part`: the part's live rotation with its rest rotation removed.
+local function bodyFrame(body: BasePart, at: Vector3): CFrame
+	return CFrame.new(at) * body.CFrame.Rotation * restRotation(body.Name):Inverse()
+end
+
+-- Where a mount sits on a survivor rig (a player's character or a Haven NPC) and the
+-- part it rides on: the right fist, across the back, or either hip.
+function Models.mountFrame(character: Model, mount: Mount): (CFrame?, BasePart?)
+	local function partNamed(name: string): BasePart?
+		local found = character:FindFirstChild(name)
+		return if found and found:IsA("BasePart") then found else nil
+	end
+	if mount == "hand" then
+		local hand = partNamed("RightHand") or partNamed("Right Arm")
+		if hand == nil then
+			return nil, nil
+		end
+		local grip = hand:FindFirstChild("RightGripAttachment") :: Attachment?
+		local at = if grip then grip.WorldPosition else hand.Position
+		return bodyFrame(hand, at), hand
+	elseif mount == "back" then
+		local torso = partNamed("UpperTorso") or partNamed("Torso")
+		if torso == nil then
+			return nil, nil
+		end
+		local back = bodyFrame(torso, torso.Position)
+		return back * CFrame.new(-0.35, 0.1, 0.78), torso
+	end
+	local hips = partNamed("LowerTorso") or partNamed("Torso")
+	if hips == nil then
+		return nil, nil
+	end
+	local side = if mount == "belt" then 1 else -1
+	return bodyFrame(hips, hips.Position) * CFrame.new(0.78 * side, -0.25, 0.1), hips
 end
 
 -- Places a held model on a mount (a world CFrame) and welds it to `anchorPart`.

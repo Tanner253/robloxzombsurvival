@@ -29,6 +29,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Contracts = require(ReplicatedStorage.Shared.Domain.Contracts)
 local Market = require(ReplicatedStorage.Shared.Domain.Market)
@@ -73,6 +74,8 @@ local function origin(): Vector3
 	local value = if world then world:GetAttribute("Origin") else nil
 	return if typeof(value) == "Vector3" then value else DEFAULT_ORIGIN
 end
+
+local VIP_GOLD = Color3.fromHex("FFD27A") -- the ember-gold accent
 
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
@@ -236,36 +239,54 @@ local function dress(player: Player)
 			part.CollisionGroup = if member then HavenWorld.MEMBER_GROUP else "Default"
 		end
 	end
-	local root = rootOf(player)
-	local aura = root and root:FindFirstChild("VipAura")
-	if member and root and aura == nil then
-		local holder = Instance.new("Attachment")
-		holder.Name = "VipAura"
-		holder.Position = Vector3.new(0, -2.4, 0)
-		local embers = Instance.new("ParticleEmitter")
-		embers.Texture = "rbxasset://textures/particles/fire_main.dds"
-		embers.Color = ColorSequence.new(Color3.fromRGB(255, 196, 92), Color3.fromRGB(255, 110, 40))
-		embers.LightEmission = 0.9
-		embers.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.4),
-			NumberSequenceKeypoint.new(1, 1),
-		})
-		embers.Size = NumberSequence.new(0.55, 0)
-		embers.Lifetime = NumberRange.new(0.6, 1.1)
-		embers.Rate = 16
-		embers.Speed = NumberRange.new(1, 2)
-		embers.SpreadAngle = Vector2.new(180, 30)
-		embers.Acceleration = Vector3.new(0, 4, 0)
-		embers.Parent = holder
-		local warmth = Instance.new("PointLight")
-		warmth.Range = 7
-		warmth.Brightness = 0.6
-		warmth.Color = Color3.fromRGB(255, 170, 90)
-		warmth.Shadows = false
-		warmth.Parent = holder
-		holder.Parent = root
-	elseif not member and aura then
-		aura:Destroy()
+	-- VIP shows as a small gold flame beside the member's overhead name (no particle aura:
+	-- LDoE has none, and a trail of puffs at the hips read as something else entirely).
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local head = character:FindFirstChild("Head")
+	local tag = head and head:FindFirstChild("VipTag")
+	if member and head and humanoid and tag == nil then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "VipTag"
+		gui.Size = UDim2.fromOffset(240, 26)
+		gui.StudsOffsetWorldSpace = Vector3.new(0, 2.2, 0)
+		gui.MaxDistance = 90
+		gui.LightInfluence = 0
+		local row = Instance.new("Frame")
+		row.Size = UDim2.fromScale(1, 1)
+		row.BackgroundTransparency = 1
+		row.Parent = gui
+		local layout = Instance.new("UIListLayout")
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		layout.VerticalAlignment = Enum.VerticalAlignment.Center
+		layout.Padding = UDim.new(0, 4)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = row
+		local flame = Instance.new("ImageLabel")
+		flame.Size = UDim2.fromOffset(18, 18)
+		flame.BackgroundTransparency = 1
+		flame.Image = Art.glyphs.campfire
+		flame.ImageColor3 = VIP_GOLD
+		flame.LayoutOrder = 1
+		flame.Parent = row
+		local name = Instance.new("TextLabel")
+		name.Size = UDim2.fromOffset(0, 22)
+		name.AutomaticSize = Enum.AutomaticSize.X
+		name.BackgroundTransparency = 1
+		name.FontFace = Font.fromName("BuilderSans", Enum.FontWeight.Bold)
+		name.Text = player.DisplayName
+		name.TextSize = 18
+		name.TextColor3 = Color3.fromRGB(255, 240, 214)
+		name.TextStrokeTransparency = 0.4
+		name.LayoutOrder = 2
+		name.Parent = row
+		gui.Parent = head
+	elseif not member and tag then
+		tag:Destroy()
+		if humanoid then
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+		end
 	end
 end
 
