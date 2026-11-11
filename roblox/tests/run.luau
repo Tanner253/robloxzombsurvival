@@ -58,6 +58,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "RunSetup", spec = require("./RunSetup.spec") },
 	{ name = "FogRegions", spec = require("./FogRegions.spec") },
 	{ name = "Neighbours", spec = require("./Neighbours.spec") },
+	{ name = "Wildlife", spec = require("./Wildlife.spec") },
 	{ name = "Parity", spec = require("./Parity.spec") },
 }
 

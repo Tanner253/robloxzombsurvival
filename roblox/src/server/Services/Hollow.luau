@@ -81,6 +81,9 @@ type Record = {
 	pathGoal: Plane.Point?,
 	pathAt: number,
 	pathing: boolean, -- a path is being computed
+	progressAt: number, -- the last time it got anywhere while moving (stuck guard)
+	progressFrom: Vector3, -- where it stood then
+	sidestep: Plane.Point?, -- a clear point beside it, walked to when a path keeps failing
 }
 
 type Cloud = { position: Vector3, radius: number, dps: number, endsAt: number }
@@ -100,8 +103,11 @@ type World = {
 
 local worlds: { [string]: World } = {}
 
+-- The nav probe steps virtual Hollows in its own time (Hollow.navProbe; Studio only).
+local probeClock: number? = nil
+
 local function now(): number
-	return workspace:GetServerTimeNow()
+	return probeClock or workspace:GetServerTimeNow()
 end
 
 -- A compact, mixed-type row for the snapshot (an array keeps HollowSync small).
@@ -134,7 +140,8 @@ local function spawnPoints(world: World): { Vector3 }
 	local points: { Vector3 } = {}
 	local players = characters(world)
 	for _, marker in Map.markers(world.hosted.map, "hollow") do
-		local clear = true
+		-- A marker the map build found shut in (Maps.checkSpawns) never spawns anything.
+		local clear = marker:GetAttribute("Unreachable") ~= true
 		for _, character in players do
 			local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root and (root.Position - marker.Position).Magnitude < config.spawnSpreadStuds then
@@ -160,7 +167,7 @@ local function count(world: World): number
 end
 
 -- Only kinds with a rig the clients can draw (ReplicatedStorage.EO_Hollow) ever spawn: an
--- unseen enemy would be worse than none (checklist §0). Wildlife waits for its rigs (M4).
+-- unseen enemy would be worse than none (checklist §0). tests/Wildlife.spec checks every spawned or hunted kind has one.
 local function drawable(enemyId: string): boolean
 	local rigs = ReplicatedStorage:FindFirstChild("EO_Hollow")
 	return rigs ~= nil and rigs:FindFirstChild(enemyId) ~= nil
@@ -172,7 +179,7 @@ local function spawn(world: World, enemyId: string, amount: number)
 	if enemy == nil or #points == 0 or not drawable(enemyId) then
 		return -- no map yet, every spot too close to a player, or no rig to draw it
 	end
-	local hp, damage = HollowAI.scaled(enemy, world.strength)
+	local hp, damage = HollowAI.scaled(enemy, world.strength, tuning.hollowTierScale, world.hosted.location.fogTier)
 	for _ = 1, amount do
 		if count(world) >= config.maxActive then
 			return
@@ -198,6 +205,9 @@ local function spawn(world: World, enemyId: string, amount: number)
 			pathGoal = nil,
 			pathAt = 0,
 			pathing = false,
+			progressAt = now(),
+			progressFrom = at,
+			sidestep = nil,
 		}
 	end
 end
@@ -212,7 +222,8 @@ local function rescale(world: World, strength: number)
 	world.strength = strength
 	for _, record in world.hollows do
 		if record.diedAt == nil then
-			local hp, damage = HollowAI.scaled(record.enemy, strength)
+			local hp, damage =
+				HollowAI.scaled(record.enemy, strength, tuning.hollowTierScale, world.hosted.location.fogTier)
 			record.hp = record.hp / record.maxHp * hp
 			record.maxHp = hp
 			record.damage = damage
@@ -452,13 +463,47 @@ local PATH_REFRESH = 2 -- seconds before a path is recomputed
 local PATH_GOAL_MOVED = 6 -- studs the goal may move before the path is recomputed
 local PATH_BUDGET = 4 -- path computations started per world per tick
 local WAYPOINT_REACHED = 2
-local agent = { AgentRadius = 1.6, AgentHeight = 5.5, AgentCanJump = false, WaypointSpacing = 5 }
+local STEP_UP = 2.2 -- the highest ledge a Hollow steps onto (a floor or a sill, never a car)
+local PATH_STEP_UP = 4 -- along a navmesh path (a doorway's step, a dock's ramp edge) it climbs a little more
+local STUCK_SECONDS = 1.5 -- no headway for this long while moving: re-path at once
+local SIDESTEP_SECONDS = 3 -- still none: step aside to a clear spot, then try again
+local HEADWAY = 0.6 -- studs that count as getting somewhere
 
--- Whether a straight walk to `goal` is clear at chest height (walls, wrecks, fences).
+-- Pathfinding agents per archetype (checklist 12.9): a bloater is wide and won't fit a
+-- door a runner takes (radius 1.0 is a Hollow's body: the nav probe found 1.2 too wide for a
+-- 4.5-stud door on the navmesh). Water is all but impassable, mud slow, undergrowth a little slow.
+local COSTS = { Water = 40, Mud = 3, Foliage = 2 }
+local AGENTS: { [string]: { [string]: any } } = {
+	default = { AgentRadius = 1.0, AgentHeight = 5.5, AgentCanJump = true, WaypointSpacing = 5, Costs = COSTS },
+	["enemy.runner"] = {
+		AgentRadius = 1.0,
+		AgentHeight = 5.5,
+		AgentCanJump = true,
+		WaypointSpacing = 5,
+		Costs = COSTS,
+	},
+	["enemy.bloater"] = {
+		AgentRadius = 1.6,
+		AgentHeight = 6.5,
+		AgentCanJump = true,
+		WaypointSpacing = 6,
+		Costs = COSTS,
+	},
+}
+
+local function agentFor(enemyId: string): { [string]: any }
+	return AGENTS[enemyId] or AGENTS.default
+end
+
+-- Whether a straight walk to `goal` is clear at chest height (walls, wrecks, fences). The
+-- ground itself never counts (QA, the nav probe: a creek bank or a slope read as a wall);
+-- a ledge too high to step onto stops it in advance() instead.
 local function clearWay(from: Vector3, goal: Vector3, exclude: { Instance }): boolean
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = exclude
+	local ignore = table.clone(exclude)
+	table.insert(ignore, workspace.Terrain)
+	params.FilterDescendantsInstances = ignore
 	params.RespectCanCollide = true
 	local origin = from + Vector3.new(0, 2.5, 0)
 	local target = Vector3.new(goal.X, origin.Y, goal.Z)
@@ -474,7 +519,7 @@ local function requestPath(record: Record, goal: Vector3)
 	record.pathAt = now()
 	record.pathGoal = plane(goal)
 	task.spawn(function()
-		local path = PathfindingService:CreatePath(agent)
+		local path = PathfindingService:CreatePath(agentFor(record.enemy.id))
 		local ok = pcall(function()
 			path:ComputeAsync(record.position, goal)
 		end)
@@ -493,11 +538,16 @@ local function requestPath(record: Record, goal: Vector3)
 end
 
 -- The point to walk toward this tick: the goal itself, or the next waypoint round an obstacle.
-local function steer(record: Record, goal: Plane.Point, budget: { n: number }, exclude: { Instance }): Plane.Point
+local function steer(
+	record: Record,
+	goal: Plane.Point,
+	budget: { n: number },
+	exclude: { Instance }
+): (Plane.Point, boolean)
 	local goal3 = Vector3.new(goal.x, record.position.Y, goal.z)
 	if clearWay(record.position, goal3, exclude) then
 		record.path = nil
-		return goal
+		return goal, false
 	end
 	local stale = record.pathGoal == nil
 		or Plane.distance(record.pathGoal :: Plane.Point, goal) > PATH_GOAL_MOVED
@@ -510,11 +560,87 @@ local function steer(record: Record, goal: Plane.Point, budget: { n: number }, e
 	while path and #path > 0 do
 		local nextPoint = path[1]
 		if Plane.distance(plane(record.position), plane(nextPoint)) > WAYPOINT_REACHED then
-			return plane(nextPoint)
+			return plane(nextPoint), true
 		end
 		table.remove(path, 1)
 	end
-	return goal -- no path yet: lean on the obstacle until one arrives
+	return goal, false -- no path yet: it waits at the obstacle (it never walks into it; see advance)
+end
+
+-- A clear spot a few studs to one side, for a Hollow that can't get round something.
+local function sidestepFrom(record: Record, goal: Plane.Point, exclude: { Instance }, rng: Rng.Source): Plane.Point?
+	local here = plane(record.position)
+	local heading = math.atan2(goal.x - here.x, goal.z - here.z)
+	for _ = 1, 8 do
+		local angle = heading + (rng:NextNumber() - 0.5) * math.pi * 1.6
+		local reach = 4 + rng:NextNumber() * 4
+		local spot = { x = here.x + math.sin(angle) * reach, z = here.z + math.cos(angle) * reach }
+		if clearWay(record.position, Vector3.new(spot.x, record.position.Y, spot.z), exclude) then
+			return spot
+		end
+	end
+	return nil
+end
+
+--[[
+	One tick of walking toward `goal` (checklist 12.9): along a path round anything in the
+	way, never into a solid (the step ahead is checked at chest height first), stepping up
+	at most a sill, and never stuck: no headway for STUCK_SECONDS forces a fresh path, and
+	for SIDESTEP_SECONDS a step aside to a clear spot before trying again.
+]]
+local function advance(
+	record: Record,
+	goal: Plane.Point,
+	speed: number,
+	dt: number,
+	exclude: { Instance },
+	budget: { n: number },
+	rng: Rng.Source
+)
+	local here = plane(record.position)
+	local stamp = now()
+	local target = goal
+	local sidestep = record.sidestep
+	if sidestep then
+		if Plane.distance(here, sidestep) <= 1 then
+			record.sidestep = nil
+		else
+			target = sidestep
+		end
+	end
+	local towards, onPath = target, false
+	if record.sidestep == nil then
+		towards, onPath = steer(record, target, budget, exclude)
+	end
+	local nextPoint = Plane.moveToward(here, towards, speed * dt)
+	local ahead = Plane.moveToward(here, towards, speed * dt + 1.2) -- a body's width beyond the step
+	local moved = false
+	-- A navmesh waypoint is clear for this agent's size already; a straight walk is checked.
+	if onPath or clearWay(record.position, Vector3.new(ahead.x, record.position.Y, ahead.z), exclude) then
+		local stepUp = if onPath then PATH_STEP_UP else STEP_UP
+		local landing = Map.ground(nextPoint.x, nextPoint.z, record.position.Y, exclude, stepUp)
+		if landing.Y - record.position.Y <= stepUp then
+			record.yaw = Plane.yawTo(here, nextPoint)
+			record.position = landing
+			moved = true
+		end
+	end
+	if not moved and not record.pathing and budget.n > 0 and record.sidestep == nil and stamp - record.pathAt > 0.5 then
+		-- Blocked this step: a path round it now, not at the next refresh.
+		budget.n -= 1
+		requestPath(record, Vector3.new(target.x, record.position.Y, target.z))
+	end
+	if (record.position - record.progressFrom).Magnitude >= HEADWAY then
+		record.progressAt = stamp
+		record.progressFrom = record.position
+	elseif stamp - record.progressAt > SIDESTEP_SECONDS and record.sidestep == nil then
+		record.sidestep = sidestepFrom(record, goal, exclude, rng)
+		record.path = nil
+		record.pathGoal = nil
+		record.progressAt = stamp
+	elseif stamp - record.progressAt > STUCK_SECONDS and not record.pathing then
+		record.pathGoal = nil -- stale at once: the next tick asks for a fresh path
+	end
 end
 
 local function stepHollow(world: World, record: Record, dt: number, exclude: { Instance }, budget: { n: number })
@@ -553,11 +679,12 @@ local function stepHollow(world: World, record: Record, dt: number, exclude: { I
 		cue(world, output.cue, record.id)
 	end
 	if output.action == "move" and output.moveTo then
-		local towards = steer(record, output.moveTo, budget, exclude)
-		local nextPoint = Plane.moveToward(here, towards, output.speed * dt)
-		record.yaw = Plane.yawTo(here, nextPoint)
-		record.position = Map.ground(nextPoint.x, nextPoint.z, record.position.Y, exclude)
-	elseif output.action == "attack" then
+		advance(record, output.moveTo, output.speed, dt, exclude, budget, world.rng)
+	else
+		record.progressAt = stamp -- standing still on purpose is not being stuck
+		record.progressFrom = record.position
+	end
+	if output.action == "attack" then
 		local target = playerById(world, output.targetId)
 		if target then
 			Lobby.hurtPlayer(target, record.damage, "hollow", record.position)
@@ -629,6 +756,163 @@ local function sync(world: World)
 	for player in world.hosted.players do
 		Net.fireClient("HollowSync", player, payload)
 	end
+end
+
+--[[
+	The nav probe (checklist 12.9; Studio only, through Diagnostics' "navprobe"): virtual
+	Hollows of one kind walk from every Hollow spawn marker on a built map to sampled
+	places a survivor could stand (open, dry, clear ground inside the bounds), with the
+	same advance() the live Hollow uses, in the probe's own clock. A trip succeeds when it
+	ends within 3.5 studs of its target in time; a Hollow without headway for 5 s counts
+	as stuck. Run it with no lobby open (it borrows the Hollow's clock).
+]]
+export type ProbeResult = {
+	trips: number,
+	reached: number,
+	stuck: number, -- trips with a 5 s stretch of no headway
+	worstStall: number, -- seconds
+	failures: { string },
+}
+
+local function probeTargets(map: Instance, wanted: number, rng: Rng.Source): { Vector3 }
+	local bounds = Map.bounds(map)
+	local origin = map:GetAttribute("Origin") :: Vector3
+	local half = map:GetAttribute("Half") :: number
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {}
+	params.RespectCanCollide = true
+	params.IgnoreWater = false
+	local overlap = OverlapParams.new()
+	overlap.RespectCanCollide = true
+	local found: { Vector3 } = {}
+	-- About a quarter of the targets stand inside buildings (survivors hide in them; the
+	-- Hollow must get through the doors).
+	local floors: { BasePart } = {}
+	local buildings = map:FindFirstChild("Buildings")
+	if buildings then
+		for _, part in buildings:GetDescendants() do
+			if part:IsA("BasePart") and part.Name == "Floor" then
+				table.insert(floors, part)
+			end
+		end
+	end
+	for index = 1, math.min(#floors, math.floor(wanted / 4)) do
+		local floor = floors[(index - 1) % #floors + 1]
+		table.insert(found, floor.Position + Vector3.new(0, 0.1, 0))
+	end
+	for _ = 1, wanted * 30 do
+		if #found >= wanted then
+			break
+		end
+		local x = origin.X + (rng:NextNumber() * 2 - 1) * (half - 12)
+		local z = origin.Z + (rng:NextNumber() * 2 - 1) * (half - 12)
+		local hit = workspace:Raycast(Vector3.new(x, origin.Y + 150, z), Vector3.new(0, -300, 0), params)
+		if
+			hit
+			and hit.Instance == workspace.Terrain
+			and hit.Material ~= Enum.Material.Water
+			and (bounds == nil or Map.insideBy(bounds, hit.Position) > 6)
+		then
+			local body = workspace:GetPartBoundsInRadius(hit.Position + Vector3.new(0, 2.6, 0), 1.6, overlap)
+			if #body == 0 then
+				table.insert(found, hit.Position)
+			end
+		end
+	end
+	return found
+end
+
+function Hollow.navProbe(map: Instance, enemyId: string, trips: number): ProbeResult
+	local enemy = Content.Enemies[enemyId]
+	assert(enemy, `no enemy {enemyId}`)
+	local rng = Rng.new(trips * 7919 + #enemyId)
+	local starts: { Vector3 } = {}
+	for _, marker in Map.markers(map, "hollow") do
+		if marker:GetAttribute("Unreachable") ~= true then
+			table.insert(starts, (marker :: BasePart).Position)
+		end
+	end
+	local targets = probeTargets(map, trips, rng)
+	local result: ProbeResult = { trips = 0, reached = 0, stuck = 0, worstStall = 0, failures = {} }
+	local speed = enemy.moveSpeed
+	local dt = 0.1
+	local clock = workspace:GetServerTimeNow()
+	probeClock = clock
+	for index, target in targets do
+		local start = starts[(index - 1) % #starts + 1]
+		local ground = Map.ground(start.X, start.Z, start.Y + 2, {}, 4)
+		local record: Record = {
+			id = `probe{index}`,
+			enemy = enemy,
+			arch = HollowAI.archetype(enemy, config, tuning.sneak),
+			ai = HollowAI.new(now()),
+			position = ground,
+			home = plane(ground),
+			yaw = 0,
+			hp = 1,
+			maxHp = 1,
+			damage = 0,
+			burn = nil,
+			burnOwner = nil,
+			diedAt = nil,
+			path = nil,
+			pathGoal = nil,
+			pathAt = 0,
+			pathing = false,
+			progressAt = now(),
+			progressFrom = ground,
+			sidestep = nil,
+		}
+		local goal = plane(target)
+		local limit = Plane.distance(plane(ground), goal) / speed * 3 + 20
+		local elapsed, stallFrom, stalled = 0, 0, false
+		local lastSpot = ground
+		while elapsed < limit and Plane.distance(plane(record.position), goal) > 3.5 do
+			advance(record, goal, speed, dt, {}, { n = 1 }, rng)
+			while record.pathing do
+				task.wait()
+			end
+			elapsed += dt
+			clock += dt
+			probeClock = clock -- its own clock (another probe may have finished meanwhile)
+			if (record.position - lastSpot).Magnitude >= HEADWAY then
+				lastSpot = record.position
+				stallFrom = elapsed
+			elseif elapsed - stallFrom > 5 and not stalled then
+				stalled = true
+			end
+			result.worstStall = math.max(result.worstStall, elapsed - stallFrom)
+		end
+		result.trips += 1
+		local reached = Plane.distance(plane(record.position), goal) <= 3.5
+		if reached then
+			result.reached += 1
+		elseif #result.failures < 6 then
+			local origin = map:GetAttribute("Origin") :: Vector3
+			local from, to, at = start - origin, target - origin, record.position - origin
+			table.insert(
+				result.failures,
+				string.format(
+					"(%d,%d)->(%d,%d) ended (%d,%d)",
+					math.round(from.X),
+					math.round(from.Z),
+					math.round(to.X),
+					math.round(to.Z),
+					math.round(at.X),
+					math.round(at.Z)
+				)
+			)
+		end
+		if stalled then
+			result.stuck += 1
+		end
+		if index % 4 == 0 then
+			task.wait()
+		end
+	end
+	probeClock = nil
+	return result
 end
 
 function Hollow.init() end

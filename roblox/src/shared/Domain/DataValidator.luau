@@ -1635,7 +1635,7 @@ local function checkUsage(errors: Errors, content: Types.Content)
 		end
 	end
 	for _, id in TableUtil.sortedKeys(content.Enemies) do
-		if not usedEnemies[id] then
+		if not usedEnemies[id] and content.Enemies[id].deferred == nil then
 			push(errors, `Enemies['{id}']: not spawned in any location`)
 		end
 	end

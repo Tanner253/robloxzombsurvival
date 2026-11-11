@@ -33,6 +33,20 @@ local function player(x: number, visible: boolean?): HollowAI.Target
 end
 
 return function(test: TestKit.Register)
+	test("ECONOMY §6.4: Hollow stats scale by fog tier on top of the bands; wildlife doesn't", function()
+		local scale = Content.Tuning.hollowTierScale
+		local shambler = Content.Enemies["enemy.shambler"]
+		TestKit.deepEqual({ HollowAI.scaled(shambler, 1, scale, 1) }, { 40, 5 }, "Light: base stats")
+		local hp, damage = HollowAI.scaled(shambler, 1, scale, 2)
+		TestKit.equal(hp, 48, "Dense health")
+		TestKit.truthy(math.abs(damage - 5.75) < 1e-9, "Dense damage")
+		local worstHp = HollowAI.scaled(shambler, Content.Tuning.lobby.bands[3].hollowStrength, scale, 3) / shambler.hp
+		TestKit.truthy(math.abs(worstHp - 2.03) < 0.01, `Black at band 3: HP x{worstHp}`)
+		local wolf = Content.Enemies["enemy.wolf"]
+		TestKit.deepEqual({ HollowAI.scaled(wolf, 1, scale, 3) }, { wolf.hp, wolf.damage }, "wildlife ignores the tier")
+		TestKit.deepEqual({ HollowAI.scaled(shambler, 1.2) }, { 48, 6 }, "no scale given: the band alone")
+	end)
+
 	test("archetypes come from enemy data and Tuning.hollow", function()
 		TestKit.equal(SHAMBLER.sightRadius, Content.Enemies["enemy.shambler"].aggroRadius)
 		TestKit.equal(RUNNER.moveSpeed, 18)

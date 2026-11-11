@@ -94,6 +94,29 @@ Builder.paints = {
 		variant = "EO_WornWood",
 		tint = rgb(222, 206, 186),
 	},
+	bark = {
+		-- Log bark: plain wood grain along the log (QA: the plank variant wrapped round a
+		-- cylinder read as banded grey pipe).
+		material = Enum.Material.Wood,
+		color = rgb(86, 68, 52),
+	},
+	endGrain = {
+		-- A sawn log end: pale, so a stack reads as logs from the gameplay camera.
+		material = Enum.Material.Wood,
+		color = rgb(178, 150, 112),
+	},
+	flareRed = {
+		-- A road flare's red paper casing, sun-faded.
+		material = Enum.Material.Plastic,
+		color = rgb(146, 58, 46),
+	},
+	charred = {
+		-- Fire-blackened boards (Gloaming Deep's burnt cabin and bridge).
+		material = Enum.Material.Wood,
+		color = rgb(52, 46, 42),
+		variant = "EO_WornWood",
+		tint = rgb(92, 80, 72),
+	},
 	brick = {
 		material = Enum.Material.Brick,
 		color = rgb(134, 88, 70),
@@ -417,13 +440,14 @@ function Builder.terrain(ctx: Ctx, spec: TerrainSpec)
 		local size = region.Size / res
 		local nx, ny, nz = math.floor(size.X + 0.5), math.floor(size.Y + 0.5), math.floor(size.Z + 0.5)
 		local corner = region.CFrame.Position - region.Size / 2
-		local materials: { { { any } } } = table.create(nx)
-		local occupancy: { { { number } } } = table.create(nx)
+		-- table.create without a fill value leaves the element type open, so the grids assert theirs.
+		local materials = table.create(nx) :: { { { any } } }
+		local occupancy = table.create(nx) :: { { { number } } }
 		for ix = 1, nx do
-			local mx: { { any } }, ox: { { number } } = table.create(ny), table.create(ny)
+			local mx, ox = table.create(ny) :: { { any } }, table.create(ny) :: { { number } }
 			for iy = 1, ny do
-				mx[iy] = table.create(nz)
-				ox[iy] = table.create(nz)
+				mx[iy] = table.create(nz) :: { any }
+				ox[iy] = table.create(nz) :: { number }
 			end
 			materials[ix], occupancy[ix] = mx, ox
 			local wx = corner.X + (ix - 0.5) * res
@@ -574,7 +598,9 @@ function Builder.kit(ctx: Ctx, names: { string }, x: number, z: number, yaw: num
 		frame *= CFrame.Angles(0, 0, math.rad(opts.pitch))
 	end
 	placed:PivotTo(frame)
-	local solid = opts.solid ~= false
+	-- A tree (canopy) collides only at its trunk (checklist 12.9: its mesh's box spanned the
+	-- whole crown, an invisible wall that also swallowed Hollow spawn points).
+	local solid = opts.solid ~= false and not opts.canopy
 	for _, descendant in placed:GetDescendants() do
 		if descendant:IsA("BasePart") then
 			descendant.CanCollide = solid
@@ -583,6 +609,20 @@ function Builder.kit(ctx: Ctx, names: { string }, x: number, z: number, yaw: num
 	end
 	if opts.canopy then
 		CollectionService:AddTag(placed, Builder.CANOPY_TAG)
+		local size = placed:GetExtentsSize()
+		local trunk = Instance.new("Part")
+		trunk.Name = "Collider"
+		trunk.Shape = Enum.PartType.Cylinder
+		local width = math.clamp(math.min(size.X, size.Z) * 0.1, 1, 2.4)
+		local height = math.min(size.Y, 8)
+		trunk.Size = Vector3.new(height, width, width)
+		trunk.CFrame = frame * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+		trunk.Anchored = true
+		trunk.CanCollide = opts.solid ~= false
+		trunk.CanTouch = false
+		trunk.Transparency = 1
+		trunk.CastShadow = false
+		trunk.Parent = placed
 	end
 	placed.Parent = opts.parent or Builder.folder(ctx, "Dressing")
 	Builder.breathe(ctx, 4)
@@ -642,7 +682,8 @@ function Builder.scatter(
 			clear = false
 		end
 		if clear then
-			local opts: KitOptions = table.clone(options or {})
+			local given: KitOptions = options or {}
+			local opts = table.clone(given)
 			if opts.height then
 				opts.height = (opts.height :: number) * (0.85 + ctx.rng:NextNumber() * 0.3)
 			end
@@ -698,71 +739,146 @@ end
 	(PointId) and the exit tag for the minimap arc. `edge` exits (Light fog) are the
 	same overlay at a road or trail leaving the map.
 ]]
-function Builder.exit(ctx: Ctx, pointId: string, name: string, x: number, z: number, radius: number, yaw: number)
+-- How an extraction point shows in the world (checklist 12.10: no bright flat circles).
+-- "sign": a Light map's worn trail leaving the map, marked by a weathered signpost;
+-- "flare": a Dense or Black point's smouldering flare stake; "lantern": a lantern post;
+-- "none": the layout's own landmark marks it (the Old Bridge, a parked truck).
+export type ExitLandmark = "sign" | "flare" | "lantern" | "none"
+
+-- A weathered signpost beside the trail, its board pointing off the map.
+local function exitSign(ctx: Ctx, holder: Model, name: string, x: number, z: number, radius: number)
+	local out = if math.abs(x) >= math.abs(z) then Vector2.new(math.sign(x), 0) else Vector2.new(0, math.sign(z))
+	local side = Vector2.new(-out.Y, out.X)
+	local at = Vector2.new(x, z) + side * (radius * 0.7) - out * 2
+	local facing = math.deg(math.atan2(out.X, out.Y))
+	local base = Builder.frame(ctx, at.X, at.Y, facing) * CFrame.Angles(math.rad(3), 0, math.rad(-4))
+	Builder.part(holder, Vector3.new(0.6, 6.6, 0.6), base * CFrame.new(0, 3, 0), "trim", "Post")
+	-- The board runs along the way out (local -Z), sagged on its nail so its painted face
+	-- turns up to the sky (QA: upright, the top-down camera saw only its edge); its tip a
+	-- diamond for an arrow head.
+	local board = Builder.part(
+		holder,
+		Vector3.new(0.22, 1.4, 4.6),
+		base * CFrame.new(0.2, 5.4, -1.6) * CFrame.Angles(0, 0, math.rad(58)),
+		"boards",
+		"Board"
+	)
+	Builder.part(
+		holder,
+		Vector3.new(0.22, 1, 1),
+		board.CFrame * CFrame.new(0, 0, -2.3) * CFrame.Angles(math.rad(45), 0, 0),
+		"boards",
+		"Tip"
+	)
+	for _, face in { Enum.NormalId.Right } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 1
+		gui.Parent = board
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(0.92, 0.8)
+		label.Position = UDim2.fromScale(0.04, 0.1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.SpecialElite
+		label.Text = string.upper(name)
+		label.TextScaled = true
+		label.TextColor3 = Color3.fromRGB(214, 202, 178)
+		label.TextTransparency = 0.18
+		label.Parent = gui
+	end
+	-- A second, older board fallen askew below it.
+	Builder.part(
+		holder,
+		Vector3.new(0.14, 0.7, 2.6),
+		base * CFrame.new(0.05, 3.6, -0.6) * CFrame.Angles(math.rad(-14), 0, math.rad(4)),
+		"boards",
+		"OldBoard"
+	)
+end
+
+-- A road flare tied to a stake, smouldering: a dim warm light and a thread of smoke.
+local function exitFlare(ctx: Ctx, holder: Model, x: number, z: number)
+	local base = Builder.frame(ctx, x, z, (x * 37 + z * 11) % 360) * CFrame.Angles(math.rad(4), 0, math.rad(-3))
+	Builder.part(holder, Vector3.new(0.32, 4.4, 0.32), base * CFrame.new(0, 1.9, 0), "trim", "Stake")
+	Builder.cylinder(holder, 1.1, 0.34, base * CFrame.new(0.32, 3.2, 0), "flareRed")
+	local ember =
+		Builder.part(holder, Vector3.new(0.3, 0.3, 0.3), base * CFrame.new(0.32, 3.85, 0), "flareRed", "Ember")
+	ember.Material = Enum.Material.Neon
+	ember.Color = Color3.fromRGB(232, 126, 64)
+	ember:SetAttribute("Glow", true)
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(236, 150, 84)
+	light.Range = 13
+	light.Brightness = 0.9
+	light.Shadows = false
+	light.Parent = ember
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(150, 132, 120), Color3.fromRGB(110, 106, 104))
+	smoke.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.7),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	smoke.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1.6) })
+	smoke.Lifetime = NumberRange.new(2, 3.2)
+	smoke.Rate = 3
+	smoke.Speed = NumberRange.new(0.8, 1.4)
+	smoke.SpreadAngle = Vector2.new(8, 8)
+	smoke.Acceleration = Vector3.new(0.3, 0.4, 0)
+	smoke.LightEmission = 0.05
+	smoke.Parent = ember
+	-- A few stones round the foot of the stake.
+	for step = 0, 4 do
+		local angle = step / 5 * math.pi * 2 + 0.4
+		Builder.part(
+			holder,
+			Vector3.new(0.7, 0.45, 0.6),
+			base * CFrame.new(math.cos(angle) * 0.75, 0.15, math.sin(angle) * 0.75) * CFrame.Angles(0, angle, 0.2),
+			"rubble",
+			"Stone"
+		).CanCollide =
+			false
+	end
+end
+
+--[[
+	An extraction point (#42), diegetic (checklist 12.10). The world shows only the
+	landmark; a soft amber ground mark and the prompt appear on the client when a survivor
+	comes near (Controllers/FogRun), and a closed point's landmark goes cold and unlit.
+	The model's pivot is the point's centre (the minimap's arcs read it).
+]]
+function Builder.exit(
+	ctx: Ctx,
+	pointId: string,
+	name: string,
+	x: number,
+	z: number,
+	radius: number,
+	yaw: number,
+	landmark: ExitLandmark?
+)
 	local holder = model(Builder.folder(ctx, "Exits"), `Exit_{pointId}`)
 	holder:SetAttribute("PointId", pointId)
 	holder:SetAttribute("ExitName", name)
 	holder:SetAttribute("Radius", radius)
-	local centre = Builder.at(ctx, x, z, 0.12)
-	-- The overlay: a soft translucent green disc just over the highest ground under it (so
-	-- slopes never cut it), and a thin glowing rim laid segment by segment on the ground.
-	local top = ctx.groundHeight(x, z)
-	for step = 0, 11 do
-		local angle = step / 12 * math.pi * 2
-		top = math.max(top, ctx.groundHeight(x + math.cos(angle) * radius, z + math.sin(angle) * radius))
+	holder:SetAttribute("Yaw", yaw)
+	local kind: ExitLandmark = landmark or (if pointId == "edge" then "sign" else "flare")
+	if kind == "sign" then
+		exitSign(ctx, holder, name, x, z, radius)
+	elseif kind == "flare" then
+		exitFlare(ctx, holder, x, z)
+	elseif kind == "lantern" then
+		local post = Builder.kit(ctx, { "EO_LanternPost" }, x + radius * 0.6, z, yaw)
+		if post then
+			post.Parent = holder
+		end
+		local lamp = Builder.lamp(ctx, x + radius * 0.6, z, 6.5, true, 16)
+		lamp:SetAttribute("Glow", true)
+		lamp.Parent = holder
 	end
-	-- Just clear of a road surface too (Builder.road pieces stand 0.2 + lift above ground).
-	local discCentre = ctx.origin + Vector3.new(x, top + 0.45, z)
-	local disc = Instance.new("Part")
-	disc.Name = "Overlay"
-	disc.Shape = Enum.PartType.Cylinder
-	disc.Size = Vector3.new(0.1, radius * 2, radius * 2)
-	disc.CFrame = CFrame.new(discCentre) * CFrame.Angles(0, 0, math.rad(90))
-	disc.Anchored = true
-	disc.CanCollide = false
-	disc.CanQuery = false
-	disc.CanTouch = false
-	disc.CastShadow = false
-	Builder.paint(disc, "exitGlow")
-	disc.Material = Enum.Material.SmoothPlastic
-	disc.Transparency = 0.7
-	disc.Parent = holder
-	local segments = 28
-	for step = 0, segments - 1 do
-		local a0 = step / segments * math.pi * 2
-		local a1 = (step + 1) / segments * math.pi * 2
-		local p0 = Builder.at(ctx, x + math.cos(a0) * radius, z + math.sin(a0) * radius, 0.2)
-		local p1 = Builder.at(ctx, x + math.cos(a1) * radius, z + math.sin(a1) * radius, 0.2)
-		local seg = Instance.new("Part")
-		seg.Name = "Rim"
-		seg.Size = Vector3.new(0.35, 0.12, (p1 - p0).Magnitude + 0.1)
-		seg.CFrame = CFrame.lookAt((p0 + p1) / 2, p1)
-		seg.Anchored = true
-		seg.CanCollide = false
-		seg.CanQuery = false
-		seg.CanTouch = false
-		seg.CastShadow = false
-		Builder.paint(seg, "exitGlow")
-		seg.Transparency = 0.2
-		seg.Parent = holder
-	end
-	-- A pole with a green lantern, so the point reads from afar and at night.
-	local pole = Builder.part(
-		holder,
-		Vector3.new(0.4, 7, 0.4),
-		CFrame.new(centre + Vector3.new(0, 3.5, 0)) * CFrame.Angles(0, math.rad(yaw), 0),
-		"darkMetal",
-		"Pole"
-	)
-	local lamp =
-		Builder.part(holder, Vector3.new(0.9, 0.9, 0.9), pole.CFrame * CFrame.new(0, 3.6, 0), "exitGlow", "Lamp")
-	lamp.Transparency = 0.15
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(110, 230, 130)
-	light.Range = radius + 8
-	light.Brightness = 1.2
-	light.Shadows = false
-	light.Parent = lamp
+	holder.WorldPivot = CFrame.new(Builder.at(ctx, x, z, 0))
 	CollectionService:AddTag(holder, Builder.EXIT_TAG)
 	Builder.marker(ctx, "extract", x, z, { PointId = pointId, ExitName = name })
 end
@@ -1187,6 +1303,35 @@ function Builder.building(ctx: Ctx, spec: BuildingSpec): Building
 	for _, side in { "N", "S", "E", "W" } do
 		wallSide(ctx, building, base, spec, side :: any, height)
 	end
+	-- A ramp up to each doorway whose sill stands proud of the ground outside (checklist
+	-- 12.9: the nav probe found Hollow shut in by a 1.2-stud step; survivors hopped it).
+	for _, opening in spec.openings do
+		if opening.kind ~= "window" then
+			local info = SIDES[opening.side]
+			local offset = if info.axis == "X" then spec.depth / 2 else spec.width / 2
+			local along = (if info.axis == "X" then Vector3.xAxis else Vector3.zAxis) * opening.at
+			local w = opening.width or DOOR_W
+			local floorTop = base.Position.Y + 0.2
+			local run = 3
+			local far = base * (info.normal * (offset + 0.5 + run) + along)
+			local farGround = ctx.origin.Y + ctx.groundHeight(far.X - ctx.origin.X, far.Z - ctx.origin.Z)
+			local rise = floorTop - farGround
+			if rise > 0.5 then
+				run = math.max(3, rise * 2.4)
+				local outward: Vector3 = base:VectorToWorldSpace(info.normal)
+				local foot = base * (info.normal * (offset + 0.5) + along)
+				local centre = Vector3.new(foot.X, farGround + rise / 2, foot.Z) + outward * (run / 2)
+				local ramp = Instance.new("WedgePart")
+				ramp.Name = "DoorRamp"
+				ramp.Size = Vector3.new(w + 0.6, rise, run)
+				ramp.CFrame = CFrame.lookAt(centre, centre + outward)
+				ramp.Anchored = true
+				ramp.CanTouch = false
+				Builder.paint(ramp, "concreteDark")
+				ramp.Parent = building
+			end
+		end
+	end
 	-- Corner posts in trim.
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
@@ -1420,7 +1565,7 @@ function Builder.rubble(ctx: Ctx, x: number, z: number, radius: number, paint: s
 			if ctx.rng:NextNumber() < 0.2 then "trim" else (paint or "rubble"),
 			"Chunk"
 		)
-		chunk.CanCollide = s > 1.2
+		chunk.CanCollide = s > 1.7 -- only the big pieces: a survivor walks over the chips (12.9)
 	end
 	Builder.breathe(ctx, radius * 2.5)
 end
@@ -1678,7 +1823,7 @@ function Builder.utilityPole(ctx: Ctx, x: number, z: number, wireTo: Vector2?)
 		local to = Builder.at(ctx, wireTo.X, wireTo.Y, 18.7)
 		local mid = (from + to) / 2 - Vector3.new(0, 1.4, 0)
 		for _, sag in { { from, mid }, { mid, to } } do
-			local a, b = sag[1], sag[2]
+			local a: Vector3, b: Vector3 = sag[1], sag[2]
 			local wire = Builder.part(
 				holder,
 				Vector3.new(0.08, 0.08, (b - a).Magnitude),
@@ -1759,14 +1904,17 @@ function Builder.leanTo(
 			"Rope"
 		)
 		rope.CanCollide = false
-		Builder.part(folder, Vector3.new(0.3, 0.6, 0.3), base * CFrame.new(sign * 9, 0.3, -3.5), "trim", "Peg")
+		-- Tent pegs are scatter: nothing snags on them (12.9).
+		Builder.part(folder, Vector3.new(0.3, 0.6, 0.3), base * CFrame.new(sign * 9, 0.3, -3.5), "trim", "Peg").CanCollide =
+			false
 		Builder.part(
 			folder,
 			Vector3.new(0.3, 0.6, 0.3),
 			base * CFrame.new(sign * 5.4, 0.3, -3.5 + reach),
 			"trim",
 			"Peg"
-		)
+		).CanCollide =
+			false
 	end
 	return base
 end
@@ -1777,7 +1925,7 @@ function Builder.toLocal(ctx: Ctx, frame: CFrame): (number, number)
 	return p.X, p.Z
 end
 
-function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: boolean, range: number?)
+function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: boolean, range: number?): BasePart
 	local part = Builder.part(
 		Builder.folder(ctx, "Lights"),
 		Vector3.new(0.6, 0.6, 0.6),
@@ -1793,6 +1941,7 @@ function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: bool
 	light.Brightness = if warm then 1.1 else 0.6
 	light.Shadows = false
 	light.Parent = part
+	return part
 end
 
 -- Edges -------------------------------------------------------------------------------------------

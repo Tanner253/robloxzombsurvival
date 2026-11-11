@@ -12,7 +12,13 @@
 	them, and the Fog map only pins locations listed in Data/FogRegions.
 ]]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Content = require(ReplicatedStorage.Shared.Data)
 local Builder = require("@self/Builder")
+local Map = require("./Map")
+
+local PathfindingService = game:GetService("PathfindingService")
 
 local Maps = {}
 
@@ -27,6 +33,13 @@ Maps.layouts = {
 	["loc.sunken_quarry"] = require("@self/Rustwater") :: Layout,
 	["loc.ashfall_depot"] = require("@self/AshfallDepot") :: Layout,
 	["loc.stranded_caravan"] = require("@self/StrandedCaravan") :: Layout,
+	-- The resource zones (ECONOMY §6.2), from one shared builder (Maps/ResourceZone).
+	["loc.bracken_edge"] = require("@self/BrackenEdge") :: Layout,
+	["loc.ironbark_stand"] = require("@self/IronbarkStand") :: Layout,
+	["loc.gloaming_deep"] = require("@self/GloamingDeep") :: Layout,
+	["loc.rockfall_slope"] = require("@self/RockfallSlope") :: Layout,
+	["loc.greenvein_bluffs"] = require("@self/GreenveinBluffs") :: Layout,
+	["loc.deepcut_pit"] = require("@self/DeepcutPit") :: Layout,
 } :: { [string]: Layout }
 
 -- Where each map sits when they share a server with the Neighbourhood (Studio).
@@ -35,6 +48,12 @@ local SIMULATED_ORIGINS: { [string]: Vector3 } = {
 	["loc.sunken_quarry"] = Vector3.new(3200, 2, 800),
 	["loc.ashfall_depot"] = Vector3.new(3200, 2, 2000),
 	["loc.stranded_caravan"] = Vector3.new(3200, 2, 3200),
+	["loc.bracken_edge"] = Vector3.new(4600, 2, -400),
+	["loc.ironbark_stand"] = Vector3.new(4600, 2, 800),
+	["loc.gloaming_deep"] = Vector3.new(4600, 2, 2000),
+	["loc.rockfall_slope"] = Vector3.new(6000, 2, -400),
+	["loc.greenvein_bluffs"] = Vector3.new(6000, 2, 800),
+	["loc.deepcut_pit"] = Vector3.new(6000, 2, 2000),
 }
 local RUN_ORIGIN = Vector3.new(0, 2, 0)
 
@@ -107,9 +126,84 @@ function Maps.build(locationId: string, runServer: boolean): Instance?
 		return nil
 	end
 	Builder.bounds(ctx)
+	Maps.checkNodes(root, locationId)
+	Maps.checkSpawns(root, locationId)
 	root:SetAttribute("Ready", true)
 	print(`[Maps] built {locationId} in {math.floor((os.clock() - started) * 10) / 10} s`)
 	return root
+end
+
+--[[
+	ECONOMY §6: a map's node markers must equal its location's node counts. A mismatch is
+	reported (and left on the folder as NodeMismatch) rather than failing the build.
+]]
+function Maps.checkNodes(root: Instance, locationId: string): boolean
+	local location = Content.Locations[locationId]
+	if location == nil then
+		return true
+	end
+	local counts: { [string]: number } = {}
+	for _, marker in root:GetDescendants() do
+		if marker:IsA("BasePart") and marker:GetAttribute("RunMarker") == "node" then
+			local id = marker:GetAttribute("NodeId")
+			if type(id) == "string" then
+				counts[id] = (counts[id] or 0) + 1
+			end
+		end
+	end
+	local wrong: { string } = {}
+	local wanted: { [string]: number } = {}
+	for _, entry in location.nodes do
+		wanted[entry.nodeId] = (wanted[entry.nodeId] or 0) + entry.count
+	end
+	for nodeId, count in wanted do
+		if (counts[nodeId] or 0) ~= count then
+			table.insert(wrong, `{nodeId} {counts[nodeId] or 0}/{count}`)
+		end
+	end
+	for nodeId, count in counts do
+		if wanted[nodeId] == nil then
+			table.insert(wrong, `{nodeId} {count}/0`)
+		end
+	end
+	if #wrong > 0 then
+		table.sort(wrong)
+		local text = table.concat(wrong, ", ")
+		root:SetAttribute("NodeMismatch", text)
+		warn(`[Maps] {locationId}: node markers differ from the data: {text}`)
+		return false
+	end
+	return true
+end
+
+--[[
+	Checklist 12.9: every Hollow spawn marker must have a way out. Each one is pathed to the
+	survivors' arrival point with the Hollow's agent; one with no path (shut in a building
+	with no way out) is marked Unreachable, never spawns, and is reported.
+]]
+function Maps.checkSpawns(root: Instance, locationId: string): number
+	local arrivals = Map.markers(root, "spawn")
+	local arrival: BasePart? = arrivals[1]
+	if arrival == nil then
+		return 0
+	end
+	local shut = 0
+	local agent = { AgentRadius = 1.0, AgentHeight = 5.5, AgentCanJump = true, WaypointSpacing = 5 }
+	for _, marker in Map.markers(root, "hollow") do
+		local path = PathfindingService:CreatePath(agent)
+		local ok = pcall(function()
+			path:ComputeAsync(marker.Position + Vector3.new(0, 1, 0), arrival.Position + Vector3.new(0, 1, 0))
+		end)
+		if not ok or path.Status ~= Enum.PathStatus.Success then
+			marker:SetAttribute("Unreachable", true)
+			shut += 1
+		end
+	end
+	if shut > 0 then
+		root:SetAttribute("ShutInSpawns", shut)
+		warn(`[Maps] {locationId}: {shut} Hollow spawn(s) have no way out and are skipped`)
+	end
+	return shut
 end
 
 -- Waits for a map another thread is building. nil after `timeout` seconds.

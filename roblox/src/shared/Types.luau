@@ -250,6 +250,7 @@ export type EnemyDef = {
 	lightFear: number, -- light exposure (0..1) at or above which it flees; above 1 never flees
 	burst: BurstDef?, -- bursts into a toxic cloud near its target and on death (the bloater)
 	wildlife: WildlifeDef?, -- an animal, not a Hollow (LDOE_PARITY #35): deer flee, wolves hunt
+	deferred: string?, -- why no location spawns it yet (e.g. post-launch, awaiting its rig)
 }
 
 -- World map ---------------------------------------------------------------------
@@ -581,6 +582,12 @@ export type TuningDef = {
 	-- ECONOMY §6.2: a location quest pays once per period per player ("daily": once per UTC
 	-- day), never once per lobby, so its Rations can't turn a Run into an Energy loop.
 	locationQuests: { period: "daily" },
+	-- ECONOMY §1/§11.1: each player in a lobby has their own copy of every resource node
+	-- (containers and PvP stay contested), and nothing regrows within a lobby.
+	runs: { personalNodes: boolean, nodesRegrow: boolean },
+	-- ECONOMY §6.4: the Hollow's health and damage by fog tier (1-3), on top of the
+	-- lobby's Fog-meter bands. Wildlife ignores it.
+	hollowTierScale: { health: { number }, damage: { number } },
 	-- Fog Runs (slice 2). Off until features.fogRuns; the types are in the block below.
 	features: Features,
 	lobby: LobbyTuning,

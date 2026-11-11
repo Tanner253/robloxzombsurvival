@@ -19,8 +19,11 @@
 	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
 	  ("equip", itemId, slot) puts a weapon in hand 1 or 2, ("wear", itemId) puts armor in its
 	  slot, ("energy", n) sets Energy,
-	  ("meter", seconds) ages your lobby by that long. ("npcfeet") reports each Haven NPC's
+	  ("meter", seconds) ages your lobby by that long, ("looted", n) counts n container
+	  searches toward the location quests. ("npcfeet") reports each Haven NPC's
 	  foot-to-ground gap (seated settlers report their seat height).
+	  ("navprobe", locationId, enemyId?, trips?) walks virtual Hollow over a built map
+	  (checklist 12.9); run it with no lobby open.
 	- puts the Dev Armory crate by each claimed plot: one of every weapon and armor piece
 	  into the inbox, so the developer can try all the gear.
 ]]
@@ -127,6 +130,23 @@ local function devCommand(command: string, ...: any): any
 		}
 	elseif command == "extract" then
 		Lobby.extract(player)
+		return "ok"
+	elseif command == "navprobe" then
+		-- Checklist 12.9's nav probe on one built map: ("navprobe", locationId, enemyId?, trips?).
+		local map = require("./RunWorld").map(args[1])
+		if map == nil then
+			return "no map"
+		end
+		return require("./Hollow").navProbe(map, args[2] or "enemy.shambler", args[3] or 40)
+	elseif command == "looted" then
+		-- As if the survivor finished searching a container here (location quest checks).
+		local run = Lobby.runOf(player)
+		if run == nil then
+			return "no run"
+		end
+		for _ = 1, args[1] or 1 do
+			require("./Containers").looted:Fire(player, run.hosted)
+		end
 		return "ok"
 	elseif command == "die" then
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")

@@ -57,6 +57,12 @@ local Credits: { Section } = {
 				license = "CC0",
 				source = "polyhaven.com/a/crowbar_01",
 			},
+			{
+				work = '"Universal Animation Library" (combat animations: gun aim, shot, reload, hit, fall)',
+				by = "Quaternius",
+				license = "CC0",
+				source = "quaternius.com",
+			},
 		},
 	},
 }

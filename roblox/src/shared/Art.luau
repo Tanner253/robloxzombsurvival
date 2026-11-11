@@ -112,7 +112,13 @@ Art.dropModels = { "EO_SupplySacksMesh", "EO_SupplySacks", "Gen_backpack", "EO_S
 
 -- `sink` (studs) settles a model into the ground; `clump` stems of a thin plant grow as
 -- one bush, each turned and offset (CLUMP below), the way LDoE's bushes read round.
-export type NodeArt = { names: { string }, height: number, sink: number?, clump: number? }
+export type NodeArt = {
+	names: { string },
+	height: number,
+	sink: number?,
+	clump: number?,
+	tint: Color3?, -- a retint of the base model (its SurfaceAppearance colour)
+}
 Art.nodes = {
 	["node.pine_tree"] = { names = { "EO_PineTree", "Gen_tree" }, height = 22 },
 	["node.boulder"] = { names = { "EO_RockCluster" }, height = 3.1, sink = 0.3 },
@@ -125,6 +131,22 @@ Art.nodes = {
 	["node.fatwood_stump"] = { names = { "EO_FatwoodStump" }, height = 3 },
 	["node.scrap_heap"] = { names = { "EO_ScrapHeapClean" }, height = 3.8 },
 	["node.ashroot_mound"] = { names = { "AshrootMound" }, height = 1.6 },
+	-- ECONOMY §1 ores: free retints of the A-grade rock cluster, rust-red and copper-green.
+	["node.ironstone_rock"] = {
+		names = { "EO_RockCluster" },
+		height = 3.3,
+		sink = 0.3,
+		tint = Color3.fromRGB(190, 136, 114), -- QA: 214,138,108 read as terracotta in daylight
+	},
+	["node.malachite_vein"] = {
+		names = { "EO_RockCluster" },
+		height = 3.0,
+		sink = 0.3,
+		tint = Color3.fromRGB(132, 194, 158),
+	},
+	-- Ironbark (ECONOMY §1.1): the broadleaf hardwood. Interim: the orchard's A-grade
+	-- broadleaf, darkened, until the oak-like model is approved.
+	["node.ironbark_tree"] = { names = { "EO_AppleTree" }, height = 18, tint = Color3.fromRGB(150, 142, 124) },
 } :: { [string]: NodeArt }
 
 -- Clump stems: { x, z offset as a share of the stem's width, turn in degrees, scale }.
@@ -218,8 +240,9 @@ Art.approved = {
 	EO_Boxcar = true,
 	EO_FuelPump = true,
 	-- Weapons (realistic per the developer, 2026-11-08): Zona's service pistol (CC0) and
-	-- sawn-off (CC-BY), its machete (CC0); our fire axe and shortbow.
+	-- sawn-off (CC-BY), its machete (CC0); our fire axe, shortbow and photoreal flare pistol.
 	EO_WornPistol = true,
+	EO_FlarePistol = true,
 	EO_ScrapShotgun = true,
 	EO_Machete = true,
 	EO_FireAxe = true,
@@ -285,6 +308,7 @@ Art.uploaded = {
 	EO_FuelPump = { id = 130764128762105, yaw = 0, axis = "Y", size = 6 },
 	-- Held weapons (scaled again to Art.held lengths in the hand).
 	EO_WornPistol = { id = 137577727330156, yaw = 0, axis = "Y", size = 1 },
+	EO_FlarePistol = { id = 130325429565330, yaw = 0, axis = "Z", size = 1.25 },
 	EO_ScrapShotgun = { id = 72894953650046, yaw = 0, axis = "Y", size = 1 },
 	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
 	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
@@ -366,6 +390,7 @@ Art.items = {
 	-- Fog Run weapons (slice 2B): realistic guns and the machete from the Zona sources
 	-- (CREDITS.md), the fire axe and shortbow from the slice 2 family sheets.
 	["item.pipe_pistol"] = { "EO_WornPistol" },
+	["item.flare_pistol"] = { "EO_FlarePistol" },
 	["item.scrap_shotgun"] = { "EO_ScrapShotgun" },
 	["item.machete"] = { "EO_Machete" },
 	["item.fire_axe"] = { "EO_FireAxe" },
@@ -431,6 +456,15 @@ Art.held = {
 		length = 1.1,
 		holster = "belt",
 		drop = 0.28,
+	},
+	-- An orange signal pistol, a little longer than the service pistol (about 24 cm).
+	["item.flare_pistol"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.2,
+		length = 1.25,
+		holster = "belt",
+		drop = 0.3,
 	},
 	["item.scrap_shotgun"] = {
 		axis = Vector3.new(0, 0, -1),
@@ -695,6 +729,7 @@ Art.fogMap = {
 		quarry = "rbxassetid://92598748095092",
 		railcars = "rbxassetid://77219659895404",
 		town = "rbxassetid://114224405252566",
+		caravan = "rbxassetid://107928089189056",
 		trees1 = "rbxassetid://123655961716432",
 		trees2 = "rbxassetid://132728099422417",
 		trees3 = "rbxassetid://123407507301838",
@@ -707,6 +742,7 @@ Art.fogMap = {
 		quarry = 569 / 768,
 		railcars = 222 / 512,
 		town = 395 / 768,
+		caravan = 362 / 512,
 		cliff = 174 / 256,
 		trees1 = 213 / 256,
 		trees2 = 204 / 256,
@@ -716,12 +752,19 @@ Art.fogMap = {
 	} :: { [string]: number },
 	-- Each location's panel and loading-screen art: its corner of the painted map
 	-- (art/higgsfield/m1-slice2/ui/locations, cropped round the pin). The Stranded
-	-- Caravan, not on the painting, uses a render of its built map at dusk.
+	-- Caravan, not on the painting, has its own painted piece in the same style.
 	art = {
 		["loc.pine_hollow"] = "rbxassetid://80424846897012",
 		["loc.sunken_quarry"] = "rbxassetid://78393149598495",
 		["loc.ashfall_depot"] = "rbxassetid://114701602305172",
-		["loc.stranded_caravan"] = "rbxassetid://107008535507654",
+		["loc.stranded_caravan"] = "rbxassetid://137407895553916",
+		-- The resource zones: corners of the same painting until their maps are rendered.
+		["loc.bracken_edge"] = "rbxassetid://96114023676635",
+		["loc.ironbark_stand"] = "rbxassetid://89748983476178",
+		["loc.gloaming_deep"] = "rbxassetid://96078812443149",
+		["loc.rockfall_slope"] = "rbxassetid://103015990609868",
+		["loc.greenvein_bluffs"] = "rbxassetid://140391888762231",
+		["loc.deepcut_pit"] = "rbxassetid://120630890068398",
 	} :: { [string]: string },
 }
 
@@ -762,6 +805,126 @@ Art.hollowAnimations = {
 		death = COLLAPSE,
 	},
 } :: { [string]: { [string]: string } }
+
+-- Wildlife rigs (LDOE_PARITY #35): the deer and the wolf carry no clips. Controllers/Gait
+-- drives their joints from how fast they move. Each leg lists its joints from the body
+-- down, how far each one swings with the stride (`swing`) and folds while the foot is in
+-- the air (`fold`), in radians per unit of stride, and where the leg sits in the walk and
+-- the run (a share of the cycle). Rest axes: X across the body, Y up, -Z forward.
+-- Rigs: our own (post-launch: a family sheet, a generated mesh, segmented and jointed with
+-- these joint names). No free models; until then the deer and wolf don't spawn.
+export type WildlifeLeg = {
+	joints: { string },
+	swing: { number },
+	fold: { number },
+	walk: number,
+	run: number,
+}
+export type WildlifeRig = {
+	root: string, -- the body's joint to the root: bob, lunge, flinch, fall
+	spine: string?, -- flexes on the run
+	legs: { WildlifeLeg },
+	neck: { string },
+	jaw: string?,
+	ears: { string }?,
+	tail: { string }?,
+	stride: number, -- studs per cycle at a walk
+	grazes: boolean, -- drops its head to feed when idle
+}
+
+local ELK_FRONT_SWING = { 1, 0.2, 0, 0 }
+local ELK_FRONT_FOLD = { 0, 0.35, -1.2, -0.6 }
+local ELK_HIND_SWING = { 1, 0, 0, 0 }
+local ELK_HIND_FOLD = { 0.2, 0.7, -1.1, 0.5 }
+local WOLF_FRONT_SWING = { 0.45, 0.6, 0, 0, 0 }
+local WOLF_FRONT_FOLD = { 0, 0.25, 0.2, -1.1, -0.6 }
+local WOLF_HIND_SWING = { 1, 0, 0, 0 }
+local WOLF_HIND_FOLD = { 0.2, 0.8, -1.1, 0.5 }
+
+Art.wildlifeRigs = {
+	["enemy.deer"] = {
+		root = "Shoulders",
+		spine = "Hips",
+		legs = {
+			{
+				joints = { "LThigh", "LCalf", "LAnkle", "LFoot" },
+				swing = ELK_HIND_SWING,
+				fold = ELK_HIND_FOLD,
+				walk = 0,
+				run = 0,
+			},
+			{
+				joints = { "LArm1", "LArm2", "LArm3", "LWrist" },
+				swing = ELK_FRONT_SWING,
+				fold = ELK_FRONT_FOLD,
+				walk = 0.25,
+				run = 0.55,
+			},
+			{
+				joints = { "RThigh", "RCalf", "RAnkle", "RFoot" },
+				swing = ELK_HIND_SWING,
+				fold = ELK_HIND_FOLD,
+				walk = 0.5,
+				run = 0.1,
+			},
+			{
+				joints = { "RArm1", "RArm2", "RArm3", "RWrist" },
+				swing = ELK_FRONT_SWING,
+				fold = ELK_FRONT_FOLD,
+				walk = 0.75,
+				run = 0.65,
+			},
+		},
+		neck = { "Neck1", "Neck2", "Neck3", "FakeHead" },
+		jaw = "Jaw",
+		ears = { "LEar", "REar" },
+		stride = 3.6,
+		grazes = true,
+	},
+	["enemy.wolf"] = {
+		root = "Chest",
+		spine = "Waist",
+		legs = {
+			{
+				joints = { "ThighL", "CalfL", "FootL", "PawHL" },
+				swing = WOLF_HIND_SWING,
+				fold = WOLF_HIND_FOLD,
+				walk = 0,
+				run = 0,
+			},
+			{
+				joints = { "ShoulderL", "UpperarmL", "ForearmL", "WristL", "PawFL" },
+				swing = WOLF_FRONT_SWING,
+				fold = WOLF_FRONT_FOLD,
+				walk = 0.25,
+				run = 0.55,
+			},
+			{
+				joints = { "ThighR", "CalfR", "FootR", "PawHR" },
+				swing = WOLF_HIND_SWING,
+				fold = WOLF_HIND_FOLD,
+				walk = 0.5,
+				run = 0.1,
+			},
+			{
+				joints = { "ShoulderR", "UpperarmR", "ForearmR", "WristR", "PawFR" },
+				swing = WOLF_FRONT_SWING,
+				fold = WOLF_FRONT_FOLD,
+				walk = 0.75,
+				run = 0.65,
+			},
+		},
+		neck = { "Neck1", "Neck2", "Neck3", "RealHead" },
+		jaw = "Jaw",
+		tail = { "Tail1", "Tail2", "Tail3", "Tail4", "Tail5", "Tail6" },
+		stride = 2.8,
+		grazes = false,
+	},
+} :: { [string]: WildlifeRig }
+
+-- The soft amber mark on the ground at an exit a survivor stands near (checklist 12.10:
+-- no bright circles; art/ui/fogmap/exit_ground_glow.png, made by a script, not generated).
+Art.exitGroundGlow = "rbxassetid://132317298258032"
 
 -- The HUD meters' glyph names.
 Art.meterGlyphs = {

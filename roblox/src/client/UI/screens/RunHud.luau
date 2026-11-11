@@ -42,6 +42,7 @@ local MAP_RADIUS = 90
 local TIER_NAMES = Content.Tuning.travel.fogTierNames
 local TIER_COLORS = { Color3.fromHex("8FC26A"), Color3.fromHex("E0A24A"), Color3.fromHex("C8473A") }
 local EXIT_GREEN = Color3.fromHex("5CC86E")
+local EXIT_AMBER = Color3.fromHex("E2AC62") -- the exit mark on the ground (12.10)
 local VERSION = "v0.1"
 
 local TIPS = {
@@ -338,9 +339,12 @@ local function TargetBar()
 	})
 end
 
+-- A timed search or extraction as Controllers/FogRun stores it (false when idle).
+type Channel = { endsAt: number, startedAt: number, kind: string? }
+
 local function Progress()
-	local search = hooks.useSection("search")
-	local extracting = hooks.useSection("extracting")
+	local search: Channel | false | nil = hooks.useSection("search")
+	local extracting: Channel | false | nil = hooks.useSection("extracting")
 	local now = hooks.useClock(0.05)
 	local active = if type(extracting) == "table" then extracting elseif type(search) == "table" then search else nil
 	if active == nil then
@@ -369,6 +373,46 @@ local function Progress()
 				color = if isExtract then EXIT_GREEN else Theme.colors.accent,
 				size = UDim2.new(1, -24, 0, 14),
 				position = UDim2.fromOffset(12, 32),
+			}),
+		},
+	})
+end
+
+-- Near an exit (checklist 12.10): its name and what to do, or that it's closed. The world
+-- shows only the landmark and a soft mark on the ground; this says the rest. The timed
+-- Progress card takes over once the survivor is getting out.
+type NearExit = { name: string, closed: boolean, inside: boolean }
+
+local function NearExitPrompt()
+	local near: NearExit | false | nil = hooks.useSection("nearExit")
+	local extracting: Channel | false | nil = hooks.useSection("extracting")
+	if type(near) ~= "table" or type(extracting) == "table" then
+		return nil
+	end
+	local hint = if near.closed
+		then "Closed. Find another way out"
+		elseif near.inside then "Press E or tap the hand to leave"
+		else "Walk onto the mark to leave"
+	return card({
+		size = UDim2.fromOffset(320, 58),
+		position = UDim2.new(0.5, 0, 1, -128),
+		anchorPoint = Vector2.new(0.5, 1),
+		children = {
+			Name = e(Label, {
+				text = string.upper(near.name),
+				style = "section",
+				color = if near.closed then Theme.colors.textMuted else EXIT_AMBER,
+				position = UDim2.fromOffset(12, 4),
+				size = UDim2.new(1, -24, 0, 22),
+				alignX = Enum.TextXAlignment.Center,
+			}),
+			Hint = e(Label, {
+				text = hint,
+				style = "body",
+				color = Theme.colors.textMuted,
+				position = UDim2.fromOffset(12, 28),
+				size = UDim2.new(1, -24, 0, 22),
+				alignX = Enum.TextXAlignment.Center,
 			}),
 		},
 	})
@@ -899,6 +943,7 @@ function RunHud.Screen()
 				Bonus = e(TravelBonus),
 			}),
 			Progress = onRun and e(Progress),
+			NearExit = onRun and e(NearExitPrompt),
 		}),
 		Hurt = onRun and e(Hurt),
 		Death = e(DeathScreen),

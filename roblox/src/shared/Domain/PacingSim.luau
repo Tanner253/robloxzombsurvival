@@ -31,6 +31,7 @@ local Types = require("../Types")
 local Converter = require("./Converter")
 local Gathering = require("./Gathering")
 local Loot = require("./Loot")
+local Unlocks = require("./Unlocks")
 
 local PacingSim = {}
 
@@ -506,7 +507,7 @@ function PacingSim.run(content: Content, model: Model): Result
 			blueprints[id] = true
 		end
 	end
-	local progress = {
+	local progress: Unlocks.Progress = {
 		level = #content.Levels,
 		unlocks = { recipes = {}, blueprints = blueprints },
 		quests = { completed = allQuests },
@@ -1210,14 +1211,15 @@ function PacingSim.run(content: Content, model: Model): Result
 			progressed = false
 			local goal = model.goals[goalIndex]
 			local left = goalLeft[goalIndex]
-			local order: { { key: string, rank: number, sum: number, index: number } } = {}
+			type Entry = { key: string, rank: number, sum: number, index: number }
+			local order: { Entry } = {}
 			for index, piece in goal.pieces do
 				if (left[piece.id] or 0) > 0 then
 					local rank = if table.find(model.priority, piece.id) then 0 else 1
 					table.insert(order, { key = piece.id, rank = rank, sum = costSum(piece.id), index = index })
 				end
 			end
-			table.sort(order, function(a, b)
+			table.sort(order, function(a: Entry, b: Entry)
 				if a.rank ~= b.rank then
 					return a.rank < b.rank
 				elseif a.sum ~= b.sum then

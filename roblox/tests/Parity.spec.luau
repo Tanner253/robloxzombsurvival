@@ -91,7 +91,8 @@ return function(test: TestKit.Register)
 			config = TUNING.autoClear,
 		}
 		local haul = AutoClear.roll(QUARRY, ctx)
-		TestKit.truthy(haul.containers >= 3 and haul.containers <= 5, `containers {haul.containers}`)
+		-- Rustwater, a loot hub since ECONOMY §6.3: 3-4 cabinets, 2-3 boots, 2-3 lockers.
+		TestKit.truthy(haul.containers >= 7 and haul.containers <= 10, `containers {haul.containers}`)
 		TestKit.truthy(haul.kills >= 5 and haul.kills <= 8, `kills {haul.kills}`)
 		TestKit.truthy(haul.xp > 0 and #haul.items > 0, "XP and items")
 		local stone = 0
@@ -104,6 +105,34 @@ return function(test: TestKit.Register)
 		local replay = table.clone(ctx)
 		replay.rng = Rng.new(9)
 		TestKit.deepEqual(AutoClear.roll(QUARRY, replay), haul, "the same seed, the same haul")
+	end)
+
+	test("#31 AUTO harvests only the nodes the survivor's tools can cut", function()
+		-- Ironbark Stand's nodes alone: its crates can hold logs too.
+		local stand =
+			{ containers = {}, nodes = Content.Locations["loc.ironbark_stand"].nodes, enemySpawns = {} } :: any
+		local function logs(canHarvest: ((any) -> boolean)?): number
+			local haul = AutoClear.roll(stand, {
+				tables = Content.LootTables :: any,
+				nodes = Content.Nodes :: any,
+				enemies = Content.Enemies :: any,
+				rng = Rng.new(4),
+				config = TUNING.autoClear,
+				canHarvest = canHarvest,
+			})
+			local count = 0
+			for _, stack in haul.items do
+				if stack.itemId == Content.Nodes["node.ironbark_tree"].yields[1].itemId then
+					count += stack.count
+				end
+			end
+			return count
+		end
+		TestKit.truthy(logs(nil) > 0, "ungated, ironbark falls")
+		local noForgedHatchet = function(def: any): boolean
+			return def.tool == nil or def.tool.tier < 2
+		end
+		TestKit.equal(logs(noForgedHatchet), 0, "without a Forged Hatchet, no ironbark logs")
 	end)
 
 	test("#31 in-world AUTO targets the nearest Hollow in its radius", function()
@@ -149,14 +178,15 @@ return function(test: TestKit.Register)
 			local guaranteed = (Content.LootTables[id].guaranteed :: any)[1]
 			TestKit.equal(guaranteed.itemId, "item.raw_meat", id)
 		end
-		local pine = Content.Locations["loc.pine_hollow"]
-		local animals = 0
-		for _, spawn in pine.enemySpawns do
-			if Content.Enemies[spawn.enemyId].wildlife then
-				animals += 1
+		-- Post-launch until our own rigs exist: nothing spawns them, and the defs say why.
+		for _, id in { "enemy.deer", "enemy.wolf" } do
+			TestKit.truthy(Content.Enemies[id].deferred ~= nil, `{id} is deferred`)
+			for locationId, location in Content.Locations do
+				for _, spawn in location.enemySpawns do
+					TestKit.truthy(spawn.enemyId ~= id, `{locationId} doesn't spawn {id}`)
+				end
 			end
 		end
-		TestKit.equal(animals, 2, "deer and wolves live in Light fog")
 	end)
 
 	-- #37 fog exposure ---------------------------------------------------------------------------

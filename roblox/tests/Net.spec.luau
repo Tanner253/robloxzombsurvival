@@ -30,6 +30,17 @@ return function(test: TestKit.Register)
 		TestKit.equal((validate(1, 2)), false, "extra argument")
 	end)
 
+	test("Gather takes a home plot node key or a Fog Run lobby node key", function()
+		local validate = Remotes.get("Gather").validate
+		TestKit.truthy((validate("12345:node.pine_tree#3")), "home plot node")
+		TestKit.truthy((validate("rsim2:36")), "simulated lobby node")
+		TestKit.truthy((validate("r8f3c2a1e-77b0-4d2e-9a51-0c4f6e2b9d13:120")), "run server lobby node")
+		TestKit.equal((validate("rsim2:x")), false, "lobby index not a number")
+		TestKit.equal((validate("node.pine_tree")), false, "bare node id")
+		TestKit.equal((validate(36)), false, "a number")
+		TestKit.equal((validate("r" .. string.rep("a", 80) .. ":1")), false, "too long")
+	end)
+
 	test("Check.string and Check.contentId bound their input", function()
 		TestKit.equal((Check.string(4)("abcde")), false, "too long")
 		TestKit.equal((Check.string(8)("\255\254")), false, "invalid UTF-8")

@@ -54,6 +54,9 @@ type Node = {
 	radius: number,
 	plot: Plots.Plot?, -- a home node's plot; nil for a Fog Run node
 	lobbyId: string?, -- a Fog Run node's lobby: anyone in it may harvest (nothing regrows there)
+	-- A personal lobby node (Tuning.runs.personalNodes): each player's own copy, by user id.
+	-- The model and its attributes stay as spawned; each client hides the copy it felled.
+	personal: { [number]: GatheringMath.Node }?,
 	-- The stump or rubble shown while the node is down: each part's authored transparency.
 	remnant: { [BasePart]: number }?,
 }
@@ -233,7 +236,9 @@ local function clearNodes(plot: Plots.Plot)
 end
 
 -- Fog Runs: a lobby's nodes stand on its map's "node" markers (FogRuns/Map). Anyone in the
--- lobby harvests them, first come first served, and they don't regrow before it closes.
+-- lobby harvests them, and they don't regrow before it closes. With Tuning.runs.personalNodes
+-- every player has their own copy of each (ECONOMY §1): what one fells is still standing
+-- for the rest.
 local function spawnLobbyNodes(hosted: Lobby.Hosted)
 	local random = Random.new(hosted.state.seed)
 	local folder = Instance.new("Folder")
@@ -270,6 +275,7 @@ local function spawnLobbyNodes(hosted: Lobby.Hosted)
 			radius = math.max(size.X, size.Z) / 2,
 			plot = nil,
 			lobbyId = hosted.id,
+			personal = if tuning.runs.personalNodes then {} else nil,
 		}
 		setStanding(node, true)
 		model:SetAttribute("HitsLeft", node.state.hitsLeft)
@@ -349,7 +355,11 @@ local function gather(player: Player, key: string)
 		return
 	end
 	local stamp = os.time()
-	if not GatheringMath.isStanding(node.state, stamp) then
+	local personal = node.personal
+	local state = if personal
+		then personal[player.UserId] or GatheringMath.fromSave(nil, node.def, stamp)
+		else node.state
+	if not GatheringMath.isStanding(state, stamp) then
 		return
 	end
 	local view = Inventory.view(player)
@@ -369,11 +379,15 @@ local function gather(player: Player, key: string)
 	local respawn = if node.plot
 		then GatheringMath.homeRespawn(node.def.id, tuning.home.renewing)
 		else GatheringMath.NEVER
-	local nextState, yields, depleted = GatheringMath.hit(node.state, node.def, rng, stamp, respawn)
+	local nextState, yields, depleted = GatheringMath.hit(state, node.def, rng, stamp, respawn)
 	if nextState == nil then
 		return
 	end
-	node.state = nextState
+	if personal then
+		personal[player.UserId] = nextState
+	else
+		node.state = nextState
+	end
 	if node.plot then
 		saveNode(player, node)
 	end
@@ -424,10 +438,13 @@ local function gather(player: Player, key: string)
 		end
 	end
 
-	if depleted then
-		setStanding(node, false)
-	else
-		node.model:SetAttribute("HitsLeft", node.state.hitsLeft)
+	-- A personal node changes only this player's copy: their client hides it (the "gather" effect).
+	if not personal then
+		if depleted then
+			setStanding(node, false)
+		else
+			node.model:SetAttribute("HitsLeft", node.state.hitsLeft)
+		end
 	end
 	Progression.grantXp(player, node.def.xpPerHit, "Gathering")
 	for _, stack in given do
@@ -441,6 +458,8 @@ local function gather(player: Player, key: string)
 		depleted = depleted,
 		tool = toolItem,
 		broke = broke,
+		personal = personal ~= nil,
+		hitsLeft = nextState.hitsLeft,
 	})
 end
 
@@ -458,6 +477,27 @@ function Gathering.start()
 		end
 	end)
 	Lobby.closed:Connect(clearLobbyNodes)
+	-- A player's own cut and felled lobby nodes (personal nodes), key -> hits left (0 =
+	-- felled). Their client re-applies these when a node streams back in or they come back
+	-- to the lobby (QA: the server kept the state, the client forgot it and showed a full
+	-- node it could not hit).
+	Lobby.addRunState("personalNodes", function(player: Player, run: Lobby.Run): any
+		if not tuning.runs.personalNodes then
+			return nil
+		end
+		local stamp = os.time()
+		local mine: { [string]: number } = {}
+		local touched = false
+		for key, node in nodes do
+			local personal = node.personal
+			local state = if personal and node.lobbyId == run.hosted.id then personal[player.UserId] else nil
+			if state then
+				mine[key] = if GatheringMath.isStanding(state, stamp) then state.hitsLeft else 0
+				touched = true
+			end
+		end
+		return if touched then mine else nil
+	end)
 	Plots.claimed:Connect(spawnNodes)
 	Plots.releasing:Connect(function(player: Player, plot: Plots.Plot)
 		flushAnalytics(player)

@@ -54,9 +54,10 @@ return function(test: TestKit.Register)
 				tiers[location.fogTier] = (tiers[location.fogTier] or 0) + 1
 			end
 		end
-		TestKit.equal(tiers[1], 1, "Light locations")
-		TestKit.equal(tiers[2], 1, "Dense locations")
-		TestKit.equal(tiers[3], 1, "Black locations")
+		-- ECONOMY §6.1: a Forest, a Mine and a loot hub on each tier.
+		TestKit.equal(tiers[1], 3, "Light locations")
+		TestKit.equal(tiers[2], 3, "Dense locations")
+		TestKit.equal(tiers[3], 3, "Black locations")
 		TestKit.equal(rotating, 1, "rotating event locations")
 		TestKit.equal(airdrops, 1, "the airdrop location (LDOE_PARITY #43)")
 		local hollow, wildlife = 0, 0

@@ -517,13 +517,14 @@ local function gatherables(ctx: Builder.Ctx)
 		local angle = rng:NextNumber() * math.pi * 2
 		return centre + V2(math.cos(angle), math.sin(angle)) * radius * (0.5 + rng:NextNumber() * 0.5)
 	end
-	for _ = 1, 6 do
+	-- ECONOMY §6.3: Rustwater is a loot hub, light on gathering (4 pines, 4 fatwood, 6 stone).
+	for _ = 1, 4 do
 		local p = near(V2(-120, -140), 28)
 		Builder.node(ctx, "node.pine_tree", p.X, p.Y)
 		local q = near(V2(110, -140), 24)
 		Builder.node(ctx, "node.fatwood_stump", q.X, q.Y)
 	end
-	for _ = 1, 18 do
+	for _ = 1, 6 do
 		local p = near(V2(if rng:NextNumber() < 0.5 then -110 else 100, 60), 40)
 		Builder.node(ctx, "node.boulder", p.X, p.Y)
 	end

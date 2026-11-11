@@ -488,11 +488,12 @@ local function gatherables(ctx: Builder.Ctx)
 	end
 	-- Pines to fell at the woods' edges, stones and branches in the clearings, reeds by
 	-- the pond, stumps and ember bushes in the woods.
-	for index = 1, 14 do
+	-- A loot hub since ECONOMY §6.3: fewer nodes than the Forest (counts = Data/Locations).
+	for index = 1, 8 do
 		local p = spot(26, if index % 2 == 0 then V2(-92, -20) else V2(86, -96))
 		Builder.node(ctx, "node.pine_tree", p.X, p.Y)
 	end
-	for _ = 1, 8 do
+	for _ = 1, 4 do
 		local p = spot(30, V2(-96, -40))
 		Builder.node(ctx, "node.boulder", p.X, p.Y)
 	end
@@ -502,11 +503,11 @@ local function gatherables(ctx: Builder.Ctx)
 		local q = spot(40, V2(-30, 50))
 		Builder.node(ctx, "node.loose_stones", q.X, q.Y)
 	end
-	for _ = 1, 8 do
+	for _ = 1, 10 do
 		local p = spot(24, POND)
 		Builder.node(ctx, "node.reed_patch", p.X, p.Y)
 	end
-	for _ = 1, 5 do
+	for _ = 1, 6 do
 		local p = spot(30, V2(80, 112))
 		Builder.node(ctx, "node.ember_bush", p.X, p.Y)
 		local q = spot(26, V2(-90, 100))

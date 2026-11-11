@@ -27,6 +27,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Net = require("../Net")
 local Sfx = require("../Sfx")
@@ -117,13 +118,14 @@ local function restoreHome()
 	end
 	homeLook = nil
 	local a, g = atmosphere(), grade()
-	if a and saved.density then
-		a.Density = saved.density
+	local density: number?, saturation: number? = saved.density, saved.saturation
+	if a and density then
+		a.Density = density
 		a.Haze = saved.haze
 		a.Offset = saved.offset
 	end
-	if g and saved.saturation then
-		g.Saturation = saved.saturation
+	if g and saturation then
+		g.Saturation = saturation
 		g.Contrast = saved.contrast
 	end
 end
@@ -243,15 +245,16 @@ local function watchContainer(instance: Instance)
 	end
 	local holder = instance :: Model
 	-- Parts can stream in after the tagged model: wait a moment for the body.
-	local body = marker(holder)
+	local found = marker(holder)
 	local waited = 0
-	while body == nil and waited < 10 and holder.Parent do
+	while found == nil and waited < 10 and holder.Parent do
 		waited += task.wait(0.25)
-		body = marker(holder)
+		found = marker(holder)
 	end
-	if body == nil then
+	if found == nil then
 		return
 	end
+	local body: BasePart = found
 	holder:SetAttribute("Watched", true)
 	local function refresh(animate: boolean)
 		local run = FogRun.state()
@@ -392,16 +395,17 @@ local function openExits(): { [string]: boolean }?
 	return open
 end
 
--- A closed exit looks shut: its ring and flare pole go grey, and its green light goes out.
+-- A closed exit goes cold: its flare or lantern goes out and its smoke stops (12.10). The
+-- landmark itself (wood, stone) keeps its look.
 local function paintExits()
 	local open = openExits()
 	for _, exit in CollectionService:GetTagged(EXIT_TAG) do
 		local id = exit:GetAttribute("PointId")
 		local closed = open ~= nil and type(id) == "string" and not open[id]
 		for _, part in exit:GetDescendants() do
-			if part:IsA("Light") then
+			if part:IsA("Light") or part:IsA("ParticleEmitter") then
 				part.Enabled = not closed
-			elseif part:IsA("BasePart") then
+			elseif part:IsA("BasePart") and part:GetAttribute("Glow") then
 				if part:GetAttribute("LitColor") == nil then
 					part:SetAttribute("LitColor", part.Color)
 					part:SetAttribute("LitMaterial", part.Material.Name)
@@ -409,16 +413,126 @@ local function paintExits()
 				local litMaterial = part:GetAttribute("LitMaterial") :: string
 				part.Color = if closed then CLOSED_EXIT else part:GetAttribute("LitColor") :: Color3
 				part.Material = if closed
-					then Enum.Material.SmoothPlastic
+					then Enum.Material.Slate
 					else (Enum.Material :: any)[litMaterial] :: Enum.Material
 			end
 		end
 	end
 end
 
+-- The exit a survivor stands near gets a soft amber mark on the ground showing where to
+-- stand (a cold one when it's closed), and the HUD its prompt (RunHud's NearExit). Only
+-- the nearest exit within reach shows; nothing shows from afar (12.10).
+local EXIT_MARK_REACH = 9 -- studs past the exit's radius where the mark starts to show
+local exitMark: BasePart? = nil
+local nearExitKey: string? = nil
+local nearExitModel: Model? = nil -- every edge exit is named Exit_edge, so the key alone can't tell them apart
+
+local function markPart(): BasePart
+	local existing = exitMark
+	if existing and existing.Parent then
+		return existing
+	end
+	local part = Instance.new("Part")
+	part.Name = "EO_ExitMark"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Transparency = 1
+	part.Size = Vector3.new(1, 0.05, 1)
+	local decal = Instance.new("Decal")
+	decal.Name = "Glow"
+	decal.Face = Enum.NormalId.Top
+	decal.Texture = Art.exitGroundGlow
+	decal.Parent = part
+	part.Parent = workspace
+	exitMark = part
+	return part
+end
+
+-- The mark lies on the highest ground under the exit's ring, so no slope swallows half of
+-- it (QA: a flat mark at the centre's height sank under the far side). Cached per exit.
+local markHeights: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
+
+local function markHeight(exit: Model, centre: Vector3, radius: number): number
+	local known = markHeights[exit]
+	if known then
+		return known
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { workspace.Terrain }
+	local top = -math.huge
+	for step = 0, 12 do
+		local angle = step / 12 * math.pi * 2
+		local reach = if step == 12 then 0 else radius * 0.95
+		local from = centre + Vector3.new(math.cos(angle) * reach, 40, math.sin(angle) * reach)
+		local hit = workspace:Raycast(from, Vector3.new(0, -80, 0), params)
+		if hit then
+			top = math.max(top, hit.Position.Y)
+		end
+	end
+	local height = if top > -math.huge then top else centre.Y
+	markHeights[exit] = height
+	return height
+end
+
+local function updateExitMark()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local open = openExits()
+	local best: Model? = nil
+	local bestGap = math.huge
+	if root then
+		for _, exit in CollectionService:GetTagged(EXIT_TAG) do
+			if exit:IsA("Model") then
+				local radius = (exit:GetAttribute("Radius") :: number?) or 9
+				local offset = exit:GetPivot().Position - root.Position
+				local gap = Vector3.new(offset.X, 0, offset.Z).Magnitude - radius
+				if gap < EXIT_MARK_REACH and gap < bestGap then
+					best, bestGap = exit, gap
+				end
+			end
+		end
+	end
+	local part = markPart()
+	local decal = part:FindFirstChild("Glow") :: Decal
+	if best == nil then
+		decal.Transparency = 1
+		if nearExitKey ~= nil then
+			nearExitKey = nil
+			nearExitModel = nil
+			State.set("nearExit", false)
+		end
+		return
+	end
+	local id = best:GetAttribute("PointId")
+	local closed = open ~= nil and type(id) == "string" and not open[id]
+	local radius = (best:GetAttribute("Radius") :: number?) or 9
+	local centre = best:GetPivot().Position
+	part.Size = Vector3.new(radius * 2.2, 0.05, radius * 2.2)
+	part.CFrame = CFrame.new(centre.X, markHeight(best, centre, radius) + 0.15, centre.Z)
+	-- Fully shown from a couple of studs out, fading in over the reach.
+	local fade = math.clamp((bestGap - 2) / (EXIT_MARK_REACH - 2), 0, 1)
+	decal.Transparency = if closed then 0.55 + 0.45 * fade else fade
+	decal.Color3 = if closed then Color3.fromRGB(120, 132, 142) else Color3.new(1, 1, 1)
+	local key = `{closed}|{bestGap <= 0}`
+	if key ~= nearExitKey or best ~= nearExitModel then
+		nearExitKey = key
+		nearExitModel = best
+		State.set("nearExit", {
+			name = best:GetAttribute("ExitName") or "Way out",
+			closed = closed,
+			inside = bestGap <= 0,
+		})
+	end
+end
+
 -- Server effects ---------------------------------------------------------------------------------------
 
-local function onFx(kind: string, payload: any)
+local function onFx(kind: any, payload: any)
 	if kind == "travel" then
 		State.set("travel", payload)
 		Sfx.play("uiOpen")
@@ -448,6 +562,8 @@ local function onFx(kind: string, payload: any)
 			State.set("arrival", { locationId = payload.locationId, at = os.clock() })
 		end
 		Sfx.play("questComplete", nil, 0.5)
+	elseif kind == "locationQuestDone" then
+		Sfx.play("questComplete", nil, 0.5) -- the notice and the XP pop come with it
 	elseif kind == "travelBonus" then
 		State.set("travelBonus", payload or false)
 	elseif kind == "container" then
@@ -548,7 +664,7 @@ function FogRun.start()
 		task.spawn(watchContainer, instance)
 	end)
 
-	local roofClock, canopyClock = 0, 0
+	local roofClock, canopyClock, exitClock = 0, 0, 0
 	RunService.RenderStepped:Connect(function(dt: number)
 		if State.isHeld() then
 			return -- the UI gate is showing fixture screens
@@ -569,6 +685,21 @@ function FogRun.start()
 		end
 		if run then
 			applyLook(run, dt)
+		end
+		exitClock += dt
+		if exitClock > 0.1 then
+			exitClock = 0
+			if run then
+				updateExitMark()
+			elseif nearExitKey ~= nil or (exitMark and exitMark.Parent) then
+				nearExitKey = nil
+				nearExitModel = nil
+				State.set("nearExit", false)
+				if exitMark then
+					exitMark:Destroy()
+					exitMark = nil
+				end
+			end
 		end
 		roofClock += dt
 		if roofClock > 0.2 then

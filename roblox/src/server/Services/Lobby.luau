@@ -567,18 +567,18 @@ local function arrive(player: Player, ticket: RunTicket.Ticket)
 		refuse(player, ticket, "wrong server")
 		return
 	end
-	local hosted: Hosted? = hostedLobbies[ticket.lobbyId]
-	if hosted == nil and role == "run" then
-		hosted = host(ticket.lobbyId, ticket.locationId, ticket.powerBand)
+	local found: Hosted? = hostedLobbies[ticket.lobbyId]
+	if found == nil and role == "run" then
+		found = host(ticket.lobbyId, ticket.locationId, ticket.powerBand)
 		if player.Parent ~= Players then
 			return -- left while the map was built
 		end
 	end
-	if hosted == nil or hosted.location.id ~= ticket.locationId then
+	if found == nil or found.location.id ~= ticket.locationId then
 		refuse(player, ticket, "closed")
 		return
 	end
-	assert(hosted, "hosted")
+	local hosted: Hosted = found
 	local stamp = now()
 	local state = hosted.state
 	local ok: boolean, reason: string? = true, nil

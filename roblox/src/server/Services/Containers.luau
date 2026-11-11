@@ -43,6 +43,7 @@ local Containers = {}
 
 -- (player) a search started: looting breaks sneak (LDOE_PARITY #44).
 Containers.searched = Signal.new()
+Containers.looted = Signal.new() -- (player, hosted): a search finished and the container opened
 
 local tuning = Content.Tuning
 local config = tuning.containers
@@ -227,6 +228,7 @@ local function complete(player: Player, active: Active)
 	end
 	world.pity[player.UserId] = pity
 	Lobby.recordSearch(player)
+	Containers.looted:Fire(player, world.hosted)
 	local marker = world.markers[id]
 	if marker then
 		marker:SetAttribute("Opened", true)
