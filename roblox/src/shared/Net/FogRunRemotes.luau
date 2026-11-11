@@ -262,6 +262,13 @@ local FogRunRemotes: { [string]: Decl } = {
 		validate = Check.args(bagId, Check.oneOf({ "ad", "premium" })),
 		description = "(bagId, method) the death screen's Recover all: your drop to the inbox (#46)",
 	},
+	DeathChoice = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.oneOf({ "continue", "back" })),
+		description = "(choice) leave the death screen on the run side: home, or home and back in (F-09)",
+	},
 }
 
 return FogRunRemotes

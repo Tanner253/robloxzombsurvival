@@ -22,7 +22,8 @@
 	  and reports its health and the gun's durability before and after, ("heal") restores the
 	  survivor between checks, ("wear", itemId) puts armor in its
 	  slot, ("energy", n) sets Energy,
-	  ("meter", seconds) ages your lobby by that long, ("looted", n) counts n container
+	  ("embers", n) sets the Ember balance, ("deathstate") reports the death screen's wait
+  (F-09: holding, Embers, inbox size, Energy, the body), ("meter", seconds) ages your lobby by that long, ("looted", n) counts n container
 	  searches toward the location quests. ("npcfeet") reports each Haven NPC's
 	  foot-to-ground gap (seated settlers report their seat height).
 	  ("navprobe", locationId, enemyId?, trips?) walks virtual Hollow over a built map
@@ -324,6 +325,29 @@ local function devCommand(command: string, ...: any): any
 			"Dev"
 		)
 		return "ok"
+	elseif command == "embers" then
+		local data = PlayerData.get(player)
+		if data == nil then
+			return "no profile"
+		end
+		data.embers = math.max(0, math.floor(args[1]))
+		Sync.mark(player, "wallet")
+		return "ok"
+	elseif command == "deathstate" then
+		local data = PlayerData.get(player)
+		local energy = Energy.state(player)
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		return {
+			holding = Lobby.holding(player),
+			onRun = Lobby.runOf(player) ~= nil,
+			busy = Lobby.busy(player),
+			embers = if data then data.embers else nil,
+			inbox = if data then #data.inbox else nil,
+			energy = if energy then energy.value else nil,
+			alive = humanoid ~= nil and humanoid.Health > 0,
+			anchored = root ~= nil and root.Anchored,
+		}
 	elseif command == "meter" then
 		local run = Lobby.runOf(player)
 		if run == nil then

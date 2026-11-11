@@ -266,6 +266,10 @@ local function reenter(player: Player, locationId: string)
 	local trip, energy, reason = TravelMath.startReentry(location :: any, ctx, entry.untilAt)
 	if trip == nil or energy == nil then
 		Sync.notice(player, REASONS[reason or ""] or "Can't go back in now")
+		if reason == "energy" then
+			local cost = TravelMath.reentryPlan(location :: any, ctx.config).energyCost
+			Sync.fx(player, "energyShort", { need = EnergyMath.shortfall(ctx.energy, ctx.now, ctx.energyConfig, cost) })
+		end
 		return
 	end
 	spendEnergy(player, ctx.energy, energy, trip.energySpent, "Reentry")
@@ -485,6 +489,7 @@ function Travel.init()
 	Net.onEvent("TravelStart", start)
 	Net.onEvent("TravelCancel", cancel)
 	Net.onEvent("LobbyReenter", reenter)
+	Lobby.wantsReentry:Connect(reenter) -- "Go back in" chosen on the death screen (F-09)
 	Net.onEvent("TravelBonusTake", take)
 	Net.onEvent("TravelBonusTakeAll", takeAll)
 	Net.onEvent("TravelHurry", hurry)

@@ -46,6 +46,7 @@ export type HomeData = {
 	reentryUntil: number?, -- the lobby's re-entry cutoff (UTC seconds)
 	result: { [string]: any }?, -- the run's results card, shown once they're home
 	death: { [string]: any }?, -- the death screen (cause, what was lost), shown once they're home
+	reenter: boolean?, -- they chose "Go back in" on the death screen: start that trip at home
 }
 
 -- What the simulated adapter needs from LobbyService.
