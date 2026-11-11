@@ -310,7 +310,14 @@ function Hollow.inArc(
 end
 
 -- The first living Hollow along a shot, within `range` (the caller caps it at walls).
-function Hollow.raycast(hosted: Lobby.Hosted, origin: Vector3, yaw: number, range: number): (string?, number)
+-- `skip` names Hollow the round has already gone through (a piercing round's next target).
+function Hollow.raycast(
+	hosted: Lobby.Hosted,
+	origin: Vector3,
+	yaw: number,
+	range: number,
+	skip: { [string]: boolean }?
+): (string?, number)
 	local world = worldOf(hosted)
 	if world == nil then
 		return nil, range
@@ -319,7 +326,7 @@ function Hollow.raycast(hosted: Lobby.Hosted, origin: Vector3, yaw: number, rang
 	local bestId: string? = nil
 	local best = range
 	for id, record in world.hollows do
-		if record.diedAt == nil then
+		if record.diedAt == nil and not (skip and skip[id]) then
 			local t = Plane.rayCircle(from, yaw, best, plane(record.position), config.hitRadiusStuds)
 			if t and t <= best then
 				bestId, best = id, t

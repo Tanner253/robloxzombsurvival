@@ -244,6 +244,12 @@ Art.approved = {
 	EO_Machete = true,
 	EO_FireAxe = true,
 	EO_Shortbow = true,
+	-- The first five of ARSENAL's roster (§0: uploaded and graded A from side and top renders).
+	EO_DutyPistol = true,
+	EO_PumpShotgun = true,
+	EO_HuntingRifle = true,
+	EO_AssaultRifle = true,
+	EO_AntiMaterielRifle = true,
 	-- Launch content, graded in the lineup beside the Campfire, Crate and Spiked Club
 	-- (docs/milestones/m1-launch L04): the camp family's wrapped torch and rain collector,
 	-- the generated smoke rack (second take: muted meat, cold ash), Zona's crowbar and
@@ -309,12 +315,20 @@ Art.uploaded = {
 	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
 	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
 	EO_Shortbow = { id = 104799057457758, yaw = 0, axis = "Z", size = 3 },
+	-- ARSENAL §0's graded uploads (art/zona/guns). As imported the muzzle points along -X
+	-- (the Duty Pistol's along -Z) with the top up, measured in Studio 2026-11-11.
+	EO_DutyPistol = { id = 72665632302595, yaw = 0, axis = "Z", size = 1.2 },
+	EO_PumpShotgun = { id = 102438923048838, yaw = 0, axis = "X", size = 4.3 },
+	-- The source model carries a loose cartridge under its magazine: a floater, left out.
+	EO_HuntingRifle = { id = 99562708864658, yaw = 0, axis = "X", size = 4.6, omit = { "Vert.023" } },
+	EO_AssaultRifle = { id = 129256241328198, yaw = 0, axis = "X", size = 3.6 },
+	EO_AntiMaterielRifle = { id = 93078334956668, yaw = 0, axis = "X", size = 5 },
 	-- Launch content: found melee from Zona (art/zona/melee), the generated smoke rack.
 	EO_TireIron = { id = 74586365090292, yaw = 0, axis = "Y", size = 2 },
 	EO_SharpenedStake = { id = 88147290024814, yaw = 0, axis = "Y", size = 2 },
 	EO_RailMallet = { id = 84097844053183, yaw = 0, axis = "Y", size = 3.4 },
 	EO_SmokeRack = { id = 132431669150006, yaw = 0, axis = "X", size = 5.6 },
-} :: { [string]: { id: number, yaw: number, axis: string, size: number } }
+} :: { [string]: { id: number, yaw: number, axis: string, size: number, omit: { string }? } }
 
 local function anyApproved(names: { string }?): boolean
 	local list: { string } = names or {}
@@ -391,6 +405,11 @@ Art.items = {
 	["item.machete"] = { "EO_Machete" },
 	["item.fire_axe"] = { "EO_FireAxe" },
 	["item.shortbow"] = { "EO_Shortbow" },
+	["item.duty_pistol"] = { "EO_DutyPistol" },
+	["item.pump_shotgun"] = { "EO_PumpShotgun" },
+	["item.hunting_rifle"] = { "EO_HuntingRifle" },
+	["item.assault_rifle"] = { "EO_AssaultRifle" },
+	["item.anti_materiel_rifle"] = { "EO_AntiMaterielRifle" },
 	-- Launch content: the starter stake, the found Tire Iron and Rail Mallet (Zona meshes).
 	["item.sharpened_stake"] = { "EO_SharpenedStake" },
 	["item.tire_iron"] = { "EO_TireIron" },
@@ -469,6 +488,48 @@ Art.held = {
 		length = 2.4,
 		holster = "back",
 		drop = 0.22,
+	},
+	-- ARSENAL's first five. `grip` is the pistol grip (the stock's wrist on the Hunting
+	-- Rifle), read from a side capture of each model; long guns ride on the back.
+	["item.duty_pistol"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.23,
+		length = 1.2,
+		holster = "belt",
+		drop = 0.2,
+	},
+	["item.pump_shotgun"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.3,
+		length = 4.3,
+		holster = "back",
+		drop = 0.19,
+	},
+	["item.hunting_rifle"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.25,
+		length = 4.6,
+		holster = "back",
+		drop = 0.05,
+	},
+	["item.assault_rifle"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.31,
+		length = 3.6,
+		holster = "back",
+		drop = 0.08,
+	},
+	["item.anti_materiel_rifle"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.22,
+		length = 5,
+		holster = "back",
+		drop = 0.27,
 	},
 	["item.machete"] = {
 		axis = Vector3.new(0, 1, 0),
@@ -601,6 +662,10 @@ Art.sounds = {
 		{ region = { 0, 0.9 }, variants = { snd(9117398114, 1.1, { region = { 0, 0.9 } }) } }
 	), -- PSE "Pistol Single Shots 1/11"
 	shotgunShot = snd(9112912106, 1.2, { region = { 0, 1.1 } }), -- PSE "12 Gauge Shotgun 1", the first blast only
+	-- Rifles and the .50 reuse the two licensed shots, pitched down (no new sound was added):
+	-- a rifle is the pistol crack a fifth lower, the Anti-Materiel Rifle the 12 gauge slowed.
+	rifleShot = snd(9117396996, 1.2, { region = { 0, 0.9 }, speed = 0.78 }),
+	heavyShot = snd(9112912106, 1.35, { region = { 0, 1.1 }, speed = 0.7 }),
 	flareLaunch = snd(9118591402, 1, { region = { 0, 1.4 } }), -- PSE "Rocket Flare Out 1"
 	reload = snd(9113104516, 1, { region = { 0, 1.4 } }), -- PSE magazine clip, "Magazine 4" (the reload beat)
 	dryClick = snd(9117396530, 1, { region = { 0, 0.3 } }), -- PSE "Pistol Handling 1", one click

@@ -188,6 +188,7 @@ local function isChance(value: number): boolean
 end
 
 -- Fog Runs: melee, firearm and bow stats (Domain/Combat).
+local GUN_CLASSES: { [string]: boolean } = { pistol = true, smg = true, rifle = true, shotgun = true }
 local function checkFlare(errors: Errors, where: string, flare: Types.FlareStats)
 	if flare.lightRadius <= 0 or flare.seconds <= 0 or flare.fleeRadius <= 0 then
 		push(errors, `{where}: lightRadius, seconds and fleeRadius must be positive`)
@@ -240,6 +241,15 @@ local function checkWeaponStats(errors: Errors, where: string, weapon: Types.Wea
 		end
 		if gun.spreadDegrees < 0 or gun.spreadDegrees >= 180 then
 			push(errors, `{where}.firearm: spreadDegrees must be in [0, 180)`)
+		end
+		if not GUN_CLASSES[gun.animClass] then
+			push(errors, `{where}.firearm: animClass must be pistol, smg, rifle or shotgun`)
+		end
+		if gun.pierce ~= nil and not isPositiveInteger(gun.pierce) then
+			push(errors, `{where}.firearm: pierce must be a positive integer`)
+		end
+		if gun.recoilScale ~= nil and gun.recoilScale <= 0 then
+			push(errors, `{where}.firearm: recoilScale must be positive`)
 		end
 		if gun.falloffMin ~= nil and (gun.falloffMin <= 0 or gun.falloffMin > 1) then
 			push(errors, `{where}.firearm: falloffMin must be in (0, 1]`)

@@ -214,6 +214,15 @@ function Combat.fire(gun: Gun, now: number): Gun
 	return { loaded = gun.loaded - 1, lastShotAt = now, reloadEndsAt = nil }
 end
 
+--[[
+	When a round asked for at `now` counts as fired: on the gun's next beat when the request
+	came early (the server lets a held trigger's requests land a moment ahead), never before
+	`now`. Fed to Combat.fire, it keeps an automatic at fireInterval however the requests bunch.
+]]
+function Combat.shotTime(firearm: Types.FirearmStats, gun: Gun, now: number): number
+	return math.max(now, gun.lastShotAt + firearm.fireInterval)
+end
+
 -- Starts a reload when the magazine has room. It costs nothing but the time.
 function Combat.startReload(firearm: Types.FirearmStats, gun: Gun, now: number): (Gun?, ReloadReason?)
 	if gun.reloadEndsAt ~= nil then

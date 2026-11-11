@@ -26,6 +26,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local UalClips = require(ReplicatedStorage.Shared.Data.UalClips)
 local Net = require("../Net")
@@ -602,11 +603,14 @@ end
 
 -- Effects -------------------------------------------------------------------------------------------------
 
-local function muzzleOf(character: Model): Vector3
+-- Where a shot leaves the gun: ahead of the fist by the barrel's length past the grip.
+local function muzzleOf(character: Model, itemId: string?): Vector3
 	local hand = character:FindFirstChild("RightHand") :: BasePart?
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if hand then
-		return hand.Position + (if root then root.CFrame.LookVector * 1.4 else Vector3.zero)
+		local held = if itemId then Art.held[itemId] else nil
+		local ahead = if held then math.max(1.4, held.length * (1 - held.grip)) else 1.4
+		return hand.Position + (if root then root.CFrame.LookVector * ahead else Vector3.zero)
 	end
 	return if root then root.Position + Vector3.new(0, 1.2, 0) else Vector3.zero
 end
@@ -730,11 +734,24 @@ local function flareRound(from: Vector3, yaw: number, speed: number)
 	Debris:AddItem(round, travel + 0.05)
 end
 
-local SOUNDS: { [string]: string } = {
-	["item.pipe_pistol"] = "pistolShot",
-	["item.scrap_shotgun"] = "shotgunShot",
-	["item.flare_pistol"] = "flareLaunch",
+-- One shot sound per gun class (ARSENAL §8.3), the .50 its own; the flare is a launch.
+local CLASS_SOUNDS: { [string]: string } = {
+	pistol = "pistolShot",
+	smg = "pistolShot",
+	rifle = "rifleShot",
+	shotgun = "shotgunShot",
 }
+
+local function shotSound(firearm: any): string
+	if firearm == nil then
+		return "pistolShot"
+	elseif firearm.flare then
+		return "flareLaunch"
+	elseif (firearm.recoilScale or 1) >= 2 then
+		return "heavyShot"
+	end
+	return CLASS_SOUNDS[firearm.animClass] or "pistolShot"
+end
 
 local function characterOf(userId: number): Model?
 	local other = Players:GetPlayerByUserId(userId)
@@ -748,7 +765,7 @@ local function onShot(payload: any)
 	end
 	local def = Items[payload.itemId]
 	local weapon = def and def.weapon
-	local from = muzzleOf(character)
+	local from = muzzleOf(character, payload.itemId)
 	local yaw: number = payload.yaw
 	if weapon and weapon.bow then
 		Sfx.play("bowRelease", from)
@@ -757,19 +774,17 @@ local function onShot(payload: any)
 		return
 	end
 	play(character, "recoil")
-	local flare = payload.itemId == "item.flare_pistol"
-	flash(
-		from,
-		if flare then Color3.fromHex("FF8A3D") else Color3.fromHex("FFB547"),
-		if payload.itemId == "item.scrap_shotgun" then 1.4 else 1
-	)
-	Sfx.play(SOUNDS[payload.itemId] or "pistolShot", from)
+	local firearm = weapon and weapon.firearm
+	local flare = firearm ~= nil and firearm.flare ~= nil
+	-- The kick against a pistol's (FirearmStats.recoilScale): a wider flash, a harder shake.
+	local kick: number = if firearm then firearm.recoilScale or 1 else 1
+	flash(from, if flare then Color3.fromHex("FF8A3D") else Color3.fromHex("FFB547"), math.clamp(kick, 1, 1.8))
+	Sfx.play(shotSound(firearm), from)
 	if flare then
 		flareRound(from, yaw, 90)
 		return
 	end
 	shellEject(character)
-	local firearm = weapon and weapon.firearm
 	local range = if weapon then weapon.range else 60
 	local pellets = if firearm and firearm.pellets then math.min(firearm.pellets, 6) else 1
 	local spread = math.rad(if firearm then firearm.spreadDegrees else 4)
@@ -787,7 +802,7 @@ local function onShot(payload: any)
 		end
 	end
 	if payload.userId == player.UserId then
-		Camera.shake(if payload.itemId == "item.scrap_shotgun" then 0.35 else 0.18)
+		Camera.shake(math.min(0.18 * kick * kick, 0.6))
 	end
 end
 
@@ -957,6 +972,9 @@ function CombatControl.start()
 			onSwing(payload)
 		elseif kind == "dodge" then
 			onDodge(payload)
+		elseif kind == "dryClick" then
+			-- An empty magazine reloads itself (LDoE has no reload button): the beat is the wait.
+			CombatControl.reload()
 		elseif kind == "hurt" then
 			play(player.Character, "hitReact")
 			Sfx.play("hitThud", nil, 0.8)
@@ -975,7 +993,7 @@ function CombatControl.start()
 		if holding and FogRun.active() and weaponKind() == "gun" then
 			local _, def = activeItem()
 			local firearm = def and def.weapon and def.weapon.firearm
-			local interval = if firearm then math.max(firearm.fireInterval, 0.15) else 0.5
+			local interval = if firearm then math.max(firearm.fireInterval, 0.1) else 0.5
 			if os.clock() - lastShot >= interval then
 				lastShot = os.clock()
 				fireOnce()

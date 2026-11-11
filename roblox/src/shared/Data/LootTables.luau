@@ -71,6 +71,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.ember_tonic", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 7, min = 1, max = 1 },
 			{ itemId = "item.trigger_group", weight = 5, min = 1, max = 1 },
+			{ itemId = "item.duty_pistol", weight = 3, min = 1, max = 1 },
+			{ itemId = "item.pump_shotgun", weight = 2, min = 1, max = 1 },
+			{ itemId = "item.hunting_rifle", weight = 2, min = 1, max = 1 },
 		},
 		guaranteed = { { itemId = "item.rations", count = 1 } },
 	},
@@ -163,6 +166,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.sealed_tin", weight = 10, min = 1, max = 2 },
 			{ itemId = "item.hearth_stew", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
+			{ itemId = "item.hunting_rifle", weight = 1, min = 1, max = 1 }, -- ARSENAL 3.4
 		},
 	},
 	["loot.depot_strongbox"] = {
@@ -173,7 +177,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.coil_spring", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.ember_tonic", weight = 16, min = 1, max = 1 },
 			{ itemId = "item.bp_pack_frame", weight = 14, min = 1, max = 1, rarity = "epic" },
-			{ itemId = "item.bp_reinforced", weight = 12, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_reinforced", weight = 14, min = 1, max = 1, rarity = "epic" }, -- 12 -> 14: its share holds (ARSENAL 3.4)
+			{ itemId = "item.bp_assault_rifle", weight = 2, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.anti_materiel_rifle", weight = 1, min = 1, max = 1, rarity = "legendary" },
 			{ itemId = "item.shortbow", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.scrapblade", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.padded_vest", weight = 8, min = 1, max = 1 },
@@ -273,6 +279,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.coil_spring", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.fire_axe", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.machete", weight = 4, min = 1, max = 1 },
+			{ itemId = "item.duty_pistol", weight = 2, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.pump_shotgun", weight = 1, min = 1, max = 1, rarity = "epic" },
 		},
 	},
 	["loot.depot_band2"] = {
@@ -299,6 +307,12 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.pipe_pistol", weight = 6, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.flare_pistol", weight = 6, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.scrap_shotgun", weight = 3, min = 1, max = 1, rarity = "epic" },
+			-- ARSENAL 3.4: the standard guns, the advanced gun and its schematic, the jackpot.
+			{ itemId = "item.duty_pistol", weight = 4, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.pump_shotgun", weight = 3, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.assault_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_assault_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.anti_materiel_rifle", weight = 1, min = 1, max = 1, rarity = "legendary" },
 		},
 		-- Bad-luck protection: a whole gun at least once in every 10 late Black-fog containers.
 		pity = { rarity = "epic", every = 10 },
@@ -323,6 +337,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.coil_spring", weight = 20, min = 1, max = 2 }, -- was Blackpowder (F-13; ARSENAL 3.4)
 			{ itemId = "item.flare_pistol", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.machete", weight = 7, min = 1, max = 1 },
+			{ itemId = "item.duty_pistol", weight = 4, min = 1, max = 1 },
+			{ itemId = "item.pump_shotgun", weight = 4, min = 1, max = 1 },
 		},
 	},
 
@@ -429,6 +445,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.ember_tonic", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.brass_gear", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 3, min = 1, max = 1 },
+			{ itemId = "item.duty_pistol", weight = 1, min = 1, max = 1 },
 		},
 	},
 	["loot.forest_crate_t1"] = {
@@ -477,6 +494,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.brass_gear", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.bp_pack_frame", weight = 2, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.seized_motor", weight = 3, min = 1, max = 1 },
+			{ itemId = "item.hunting_rifle", weight = 2, min = 1, max = 1 },
 		},
 	},
 	["loot.mine_box_t1"] = {

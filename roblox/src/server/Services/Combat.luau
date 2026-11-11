@@ -57,6 +57,7 @@ local combatConfig: CombatMath.CombatConfig = tuning.combat :: any
 local Items: any = Content.Items
 local SLOT_KEYS = { "weapon", "weapon2" } -- paper-doll keys for hand slots 1 and 2
 local MUZZLE_HEIGHT = 1.5
+local FIRE_LEEWAY_SECONDS = 0.05 -- how early a held trigger's next request may land and still fire
 
 -- Bare hands, from Tuning.player.
 local FISTS: Types.WeaponStats = {
@@ -301,35 +302,46 @@ local function projectile(
 	flare: Types.FlareStats?
 )
 	local clear, wallAt = clearDistance(origin, yaw, weapon.range)
-	local id, distance = Hollow.raycast(run.hosted, origin, yaw, clear)
-	local impact = if id then origin + Vector3.new(math.sin(yaw), 0, math.cos(yaw)) * distance else wallAt
 	local firearm = weapon.firearm
-	local multiplier = if firearm then CombatMath.falloff(firearm, weapon.range, distance) else 1
-	local amount = damage * multiplier
-	if crit then
-		amount *= combatConfig.critMultiplier
+	-- A piercing round carries on through each Hollow it hits (the Anti-Materiel Rifle: two
+	-- more), still stopped by the first wall. It is one round: one durability, one crit roll.
+	local struck: { { id: string, distance: number } } = {}
+	local through: { [string]: boolean } = {}
+	for _ = 0, if firearm then firearm.pierce or 0 else 0 do
+		local id, distance = Hollow.raycast(run.hosted, origin, yaw, clear, through)
+		if id == nil then
+			break
+		end
+		through[id] = true
+		table.insert(struck, { id = id, distance = distance })
 	end
-	task.delay(CombatMath.travelSeconds(distance, speed), function()
+	local first = struck[1]
+	local reach = if first then first.distance else clear
+	local impact = if first then origin + Vector3.new(math.sin(yaw), 0, math.cos(yaw)) * reach else wallAt
+	task.delay(CombatMath.travelSeconds(reach, speed), function()
 		if Lobby.hosted(run.hosted.id) == nil then
 			return
 		end
 		if flare then
 			Hollow.flare(run.hosted, flare, impact, `u{player.UserId}`)
 		end
-		if id then
-			local knockback = if firearm then firearm.knockbackStuds else nil
-			local dealt = Hollow.damage(run.hosted, id, amount, player, {
-				knockbackStuds = knockback,
+		for _, hit in struck do
+			local amount = damage * (if firearm then CombatMath.falloff(firearm, weapon.range, hit.distance) else 1)
+			if crit then
+				amount *= combatConfig.critMultiplier
+			end
+			local dealt = Hollow.damage(run.hosted, hit.id, amount, player, {
+				knockbackStuds = if firearm then firearm.knockbackStuds else nil,
 				fromYaw = yaw,
 				burn = flare,
 				crit = crit,
 			})
 			if dealt > 0 then
-				broadcast(run, "hit", { id = id, damage = dealt, crit = crit })
+				broadcast(run, "hit", { id = hit.id, damage = dealt, crit = crit })
 			end
 		end
 	end)
-	return id, impact
+	return if first then first.id else nil, impact
 end
 
 local function fireBow(
@@ -383,15 +395,16 @@ local function fire(player: Player, yaw: number, lockId: string?)
 	local firearm = weapon.firearm :: Types.FirearmStats
 	local hand = Hands.active(fighter.hands)
 	local gun = hand.gun or CombatMath.newGun(0)
-	local ok, reason = CombatMath.canFire(firearm, gun, stamp)
+	-- A held trigger's requests arrive unevenly, so one a moment early still fires; it counts
+	-- as fired on the gun's beat (shotTime), so the leeway never raises the rate of fire.
+	local ok, reason = CombatMath.canFire(firearm, gun, stamp + FIRE_LEEWAY_SECONDS)
 	if not ok then
 		if reason == "empty" then
-			Sync.fx(player, "dryClick", nil)
-			Sync.notice(player, "Empty: reload")
+			Sync.fx(player, "dryClick", nil) -- the client starts the reload (CombatControl)
 		end
 		return
 	end
-	fighter.hands = Hands.setGun(fighter.hands, CombatMath.fire(gun, stamp))
+	fighter.hands = Hands.setGun(fighter.hands, CombatMath.fire(gun, CombatMath.shotTime(firearm, gun, stamp)))
 	local origin = root.Position + Vector3.new(0, MUZZLE_HEIGHT, 0)
 	local aim = softLock(run, origin, yaw, lockId)
 	local crit = CombatMath.rollCrit(CombatMath.critChance(weapon, combatConfig), rng)

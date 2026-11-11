@@ -392,6 +392,76 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		unlock = quest("quest.the_dense_fog"), -- was level 14: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
+	-- Standard guns (ARSENAL §3.3): one per chapter-3 quest. Copper Wire and the Trigger Group
+	-- are the throttle.
+	["recipe.duty_pistol"] = {
+		id = "recipe.duty_pistol",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 1 },
+			{ itemId = "item.trigger_group", count = 1 },
+			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.coil_spring", count = 2 },
+			{ itemId = "item.copper_wire", count = 2 },
+			{ itemId = "item.pitch_glue", count = 1 },
+		},
+		outputs = { { itemId = "item.duty_pistol", count = 1 } },
+		craftSeconds = 30 * 60,
+		unlock = quest("quest.into_the_black"),
+		feature = "fogRuns",
+	},
+	["recipe.pump_shotgun"] = {
+		id = "recipe.pump_shotgun",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 2 },
+			{ itemId = "item.trigger_group", count = 2 },
+			{ itemId = "item.scrap_plate", count = 4 },
+			{ itemId = "item.ironbark_plank", count = 3 },
+			{ itemId = "item.rivets", count = 6 },
+			{ itemId = "item.coil_spring", count = 2 },
+			{ itemId = "item.copper_wire", count = 2 },
+		},
+		outputs = { { itemId = "item.pump_shotgun", count = 1 } },
+		craftSeconds = 60 * 60,
+		unlock = quest("quest.the_plans"),
+		feature = "fogRuns",
+	},
+	["recipe.hunting_rifle"] = {
+		id = "recipe.hunting_rifle",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 2 },
+			{ itemId = "item.trigger_group", count = 1 },
+			{ itemId = "item.brass_gear", count = 1 },
+			{ itemId = "item.ironbark_plank", count = 4 },
+			{ itemId = "item.scrap_plate", count = 3 },
+			{ itemId = "item.rivets", count = 4 },
+			{ itemId = "item.copper_wire", count = 2 },
+			{ itemId = "item.leather", count = 1 },
+		},
+		outputs = { { itemId = "item.hunting_rifle", count = 1 } },
+		craftSeconds = 60 * 60,
+		unlock = quest("quest.copper_lines"),
+		feature = "fogRuns",
+	},
+	-- Advanced: learned from a schematic found in Black fog (the Pack Frame Schematic pattern).
+	-- The Anti-Materiel Rifle has no recipe: it is loot only.
+	["recipe.assault_rifle"] = {
+		id = "recipe.assault_rifle",
+		inputs = {
+			{ itemId = "item.steel_pipe", count = 2 },
+			{ itemId = "item.trigger_group", count = 3 },
+			{ itemId = "item.brass_gear", count = 2 },
+			{ itemId = "item.scrap_plate", count = 6 },
+			{ itemId = "item.rivets", count = 8 },
+			{ itemId = "item.copper_wire", count = 4 },
+			{ itemId = "item.coil_spring", count = 3 },
+			{ itemId = "item.ironbark_plank", count = 3 },
+		},
+		outputs = { { itemId = "item.assault_rifle", count = 1 } },
+		craftSeconds = 2 * 60 * 60,
+		-- No feature tag (as the Pack Frame): its schematic must always have a recipe to unlock.
+		unlock = { kind = "blueprint", itemId = "item.bp_assault_rifle" },
+	},
 
 	-- Guns and the bow run on durability alone (DECISIONS 2026-11-08): there are no rounds and
 	-- no press to make them. The Signal Flare stays: it is what the Black-fog flare extract burns, not a

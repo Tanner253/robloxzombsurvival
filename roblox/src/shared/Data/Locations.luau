@@ -117,6 +117,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.steel_pipe",
 			"item.trigger_group",
 			"item.machete",
+			"item.duty_pistol",
+			"item.pump_shotgun",
 		},
 		run = {
 			recommendedGearScore = 90, -- a Scrapblade and a hood
@@ -196,6 +198,12 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.pipe_pistol",
 			"item.flare_pistol",
 			"item.scrap_shotgun",
+			"item.duty_pistol",
+			"item.pump_shotgun",
+			"item.hunting_rifle",
+			"item.assault_rifle",
+			"item.bp_assault_rifle",
+			"item.anti_materiel_rifle",
 		},
 		run = {
 			recommendedGearScore = 140, -- tier 2 weapon, hood, vest and a pack frame
@@ -409,6 +417,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.forged_hatchet",
 			"item.bp_pack_frame",
 			"item.hearth_stew",
+			"item.duty_pistol",
+			"item.hunting_rifle",
 		},
 		run = {
 			recommendedGearScore = 140,
@@ -617,6 +627,7 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.forged_pick",
 			"item.steel_pipe",
 			"item.trigger_group",
+			"item.duty_pistol",
 		},
 		run = {
 			recommendedGearScore = 140,
@@ -694,6 +705,8 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			"item.flare",
 			"item.trigger_group",
 			"item.flare_pistol",
+			"item.duty_pistol",
+			"item.pump_shotgun",
 		},
 		run = {
 			recommendedGearScore = 110,
@@ -744,7 +757,14 @@ local Locations: { [Types.LocationId]: Types.LocationDef } = {
 			{ enemyId = "enemy.bloater", count = { min = 1, max = 1 } },
 		},
 		mainLoot = { "item.rations", "item.sealed_tin", "item.field_dressing" },
-		possibleLoot = { "item.ember_tonic", "item.steel_pipe", "item.trigger_group" },
+		possibleLoot = {
+			"item.ember_tonic",
+			"item.steel_pipe",
+			"item.trigger_group",
+			"item.duty_pistol",
+			"item.pump_shotgun",
+			"item.hunting_rifle",
+		},
 		run = {
 			recommendedGearScore = 60,
 			placeId = 0,

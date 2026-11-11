@@ -191,7 +191,11 @@ return function(test: TestKit.Register)
 		for itemId, item in Content.Items do
 			if item.weapon then
 				local biggest = Combat.maxHit(item.weapon, COMBAT, MELEE)
-				TestKit.truthy(biggest < maxHealth, `{itemId}: biggest hit {biggest} must be under {maxHealth}`)
+				-- The home and improvised weapons stay under a full health bar outright. ARSENAL's
+				-- standard guns and up (tier 3+) hit harder and rely on the PvP cap (its rule 5).
+				if item.tier <= 2 then
+					TestKit.truthy(biggest < maxHealth, `{itemId}: biggest hit {biggest} must be under {maxHealth}`)
+				end
 				local capped = Combat.pvpCap(biggest, maxHealth, COMBAT)
 				TestKit.truthy(Combat.hitsToKill(capped, maxHealth) >= 2, `{itemId}: at least two hits`)
 			end

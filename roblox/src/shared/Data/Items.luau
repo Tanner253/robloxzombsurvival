@@ -568,6 +568,17 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		stackSize = 20,
 		icon = "rbxassetid://92477519102534",
 	},
+	-- ARSENAL §3.3: advanced guns are learned from a schematic found in Black fog.
+	["item.bp_assault_rifle"] = {
+		id = "item.bp_assault_rifle",
+		name = "Assault Rifle Schematic",
+		description = "Read it to learn the Assault Rifle.",
+		category = "blueprint",
+		tier = 4,
+		rarity = "epic",
+		stackSize = 20,
+		icon = "rbxassetid://140630898641024", -- the schematic sheet (as the Pack Frame Schematic)
+	},
 
 	-- Fog Runs (slice 2): the first guns and what makes them ------------------------------
 	-- Found only on Fog Runs until Tuning.features.fogRuns turns their recipes on.
@@ -675,6 +686,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 				falloffStart = 45,
 				falloffMin = 0.7,
 				knockbackStuds = 1,
+				animClass = "pistol",
 			},
 		},
 	},
@@ -706,6 +718,8 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 				falloffStart = 10,
 				falloffMin = 0.35,
 				knockbackStuds = 3,
+				animClass = "shotgun",
+				recoilScale = 1.4,
 			},
 		},
 	},
@@ -734,6 +748,167 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 				noiseRadius = 30,
 				-- Checklist 13.8: each flare lights an area for 20 s, burns what it hits, the Hollow flee it.
 				flare = { lightRadius = 24, seconds = 20, burnDps = 6, burnSeconds = 5, fleeRadius = 18 },
+				animClass = "pistol",
+			},
+		},
+	},
+	-- The first five of ARSENAL's roster (HANDOFF §6 step 3): three standard guns unlocked on
+	-- the chapter-3 trail, one advanced gun behind a Black-fog schematic, and the loot-only
+	-- jackpot. Stats are ARSENAL §3.2; durability is its shot count x 3, the factor F-14 put
+	-- on the three guns above (DECISIONS 2026-11-11). No rounds: a reload is free.
+	["item.duty_pistol"] = {
+		id = "item.duty_pistol",
+		name = "Duty Pistol",
+		description = "A service sidearm with a full magazine. Quick, steady, and it doesn't jam.",
+		category = "weapon",
+		tier = 3,
+		rarity = "uncommon",
+		stackSize = 1,
+		durability = 270, -- ARSENAL 90 x 3
+		icon = "",
+		equipSlot = "weapon",
+		weapon = {
+			kind = "ranged",
+			damage = 22, -- five shots for a Black Runner (ARSENAL §6.2)
+			attacksPerSecond = 12 / (11 * 0.3 + 1.6),
+			range = 70,
+			firearm = {
+				fireInterval = 0.3,
+				magazine = 12,
+				reloadSeconds = 1.6,
+				spreadDegrees = 5,
+				projectileSpeed = 340,
+				noiseRadius = 85,
+				falloffStart = 45,
+				falloffMin = 0.7,
+				knockbackStuds = 1,
+				animClass = "pistol",
+			},
+		},
+	},
+	["item.pump_shotgun"] = {
+		id = "item.pump_shotgun",
+		name = "Pump Shotgun",
+		description = "Five shells and a pump. Clears a doorway, and tells the whole yard you did.",
+		category = "weapon",
+		tier = 3,
+		rarity = "uncommon",
+		stackSize = 1,
+		durability = 84, -- ARSENAL 28 x 3
+		icon = "",
+		equipSlot = "weapon",
+		weapon = {
+			kind = "ranged",
+			damage = 10, -- per pellet: 8 x 10 = 80 point blank, 120 on a crit
+			attacksPerSecond = 5 / (4 * 0.9 + 3),
+			range = 32,
+			swapSeconds = 0.8,
+			firearm = {
+				fireInterval = 0.9,
+				magazine = 5,
+				reloadSeconds = 3,
+				spreadDegrees = 14,
+				pellets = 8,
+				projectileSpeed = 260,
+				noiseRadius = 125,
+				falloffStart = 12,
+				falloffMin = 0.35,
+				knockbackStuds = 3.5,
+				animClass = "shotgun",
+				recoilScale = 1.2,
+			},
+		},
+	},
+	["item.hunting_rifle"] = {
+		id = "item.hunting_rifle",
+		name = "Hunting Rifle",
+		description = "A bolt-action rifle. Slow to cycle, and it hits just as hard across the yard.",
+		category = "weapon",
+		tier = 3,
+		rarity = "uncommon",
+		stackSize = 1,
+		durability = 96, -- ARSENAL 32 x 3
+		icon = "",
+		equipSlot = "weapon",
+		weapon = {
+			kind = "ranged",
+			damage = 70,
+			attacksPerSecond = 5 / (4 * 1.3 + 2.8),
+			range = 120,
+			swapSeconds = 0.9,
+			firearm = {
+				fireInterval = 1.3, -- the bolt
+				magazine = 5,
+				reloadSeconds = 2.8,
+				spreadDegrees = 1,
+				projectileSpeed = 520,
+				noiseRadius = 140,
+				knockbackStuds = 2,
+				animClass = "rifle",
+				recoilScale = 1.2,
+			},
+		},
+	},
+	["item.assault_rifle"] = {
+		id = "item.assault_rifle",
+		name = "Assault Rifle",
+		description = "Thirty rounds, fully automatic. Hold the trigger and it eats itself alive.",
+		category = "weapon",
+		tier = 4,
+		rarity = "rare",
+		stackSize = 1,
+		durability = 480, -- ARSENAL 160 x 3
+		icon = "",
+		equipSlot = "weapon",
+		weapon = {
+			kind = "ranged",
+			damage = 17,
+			attacksPerSecond = 30 / (29 * 0.12 + 2.4),
+			range = 90,
+			swapSeconds = 0.8,
+			firearm = {
+				fireInterval = 0.12, -- automatic: it fires for as long as the button is held
+				magazine = 30,
+				reloadSeconds = 2.4,
+				spreadDegrees = 6,
+				projectileSpeed = 460,
+				noiseRadius = 125,
+				falloffStart = 60,
+				falloffMin = 0.75,
+				knockbackStuds = 0.6,
+				animClass = "rifle",
+				recoilScale = 0.5,
+			},
+		},
+	},
+	["item.anti_materiel_rifle"] = {
+		id = "item.anti_materiel_rifle",
+		name = "Anti-Materiel Rifle",
+		description = "A .50 that goes through three of them in a line. Every Hollow on the map hears it.",
+		category = "weapon",
+		tier = 4,
+		rarity = "legendary",
+		stackSize = 1,
+		durability = 45, -- ARSENAL 15 x 3
+		icon = "",
+		equipSlot = "weapon",
+		weapon = {
+			kind = "ranged",
+			damage = 220, -- a crit is 330: Tuning.combat.pvpMaxHitFraction caps it on a player (M2)
+			attacksPerSecond = 5 / (4 * 0.9 + 3.5),
+			range = 160,
+			swapSeconds = 1.1,
+			firearm = {
+				fireInterval = 0.9,
+				magazine = 5,
+				reloadSeconds = 3.5,
+				spreadDegrees = 0.5,
+				projectileSpeed = 700,
+				noiseRadius = 220,
+				knockbackStuds = 6,
+				animClass = "rifle",
+				pierce = 2,
+				recoilScale = 2,
 			},
 		},
 	},

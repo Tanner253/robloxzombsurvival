@@ -655,7 +655,13 @@ export type FirearmStats = {
 	falloffMin: number?, -- damage multiplier at full range (default 1: no falloff)
 	knockbackStuds: number?,
 	flare: FlareStats?, -- each round burns as a flare where it lands (the Flare Pistol; Domain/Flare)
+	-- ARSENAL §8.4. The class picks the shot sound, the muzzle flash and how the gun is carried.
+	animClass: GunClass,
+	pierce: number?, -- extra Hollow one round passes through (the Anti-Materiel Rifle: 2)
+	recoilScale: number?, -- the kick's size against a pistol's (camera shake and muzzle flash); default 1
 }
+
+export type GunClass = "pistol" | "smg" | "rifle" | "shotgun"
 
 export type BowStats = {
 	drawSeconds: number, -- time to full draw

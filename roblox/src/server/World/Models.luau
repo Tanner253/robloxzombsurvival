@@ -108,6 +108,14 @@ local function loadUploaded(name: string): Model?
 		loading[name] = nil
 		return nil
 	end
+	-- Parts the source model shouldn't show (a floater the gate found), gone before measuring.
+	local omit: { string } = entry.omit or {}
+	for _, partName in omit do
+		local stray = model:FindFirstChild(partName, true)
+		if stray then
+			stray:Destroy()
+		end
+	end
 	local box = model:GetBoundingBox()
 	model.WorldPivot = CFrame.new(box.Position)
 	model:PivotTo(CFrame.new(box.Position) * CFrame.Angles(0, math.rad(entry.yaw), 0))
