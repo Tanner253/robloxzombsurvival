@@ -12,11 +12,16 @@
 	what the next quests ask for. Rewards supply what the following quest needs, so nobody
 	stalls on a missing input.
 
-	The home chapter (quests 1-7) is playable on the home plot alone. Objectives with a
-	`flag` wait on that feature (Shared/Flags): quest 1's Hollow kill and body search
-	(#57) and quest 6's trip to Pine Hollow need Fog Runs; until they ship those objectives
-	are left out, and quests whose every objective waits stay closed. (#57's one-time crash
-	site is a Fog Runs location, slice 2's to add.)
+	The home chapter (quests 1-7) is playable on the home plot alone (the flow review's F-07):
+	its 28 pines give 84 timber and Claim the Ground pays 20 more, 104 against the 87 that
+	quests 3, 4 and 7, the Stonecutter and the Workbench's planks take (tests/Pacing.spec),
+	so about 17 are left for fuel. Home trees never regrow: when the last one falls the
+	player is told, and the Guide points at the Trailhead, where the Fog has more. Objectives with a
+	`flag` wait on that feature (Shared/Flags): quest 6's trip to Pine Hollow, its first
+	Hollow kill and the drop that Hollow leaves (#57) need Fog Runs; until they ship those
+	objectives are left out, and quests whose every objective waits stay closed. Quest 1 has
+	no flagged objective, so it completes at home whether Fog Runs are on or off. (#57's
+	one-time crash site is a Fog Runs location, slice 2's to add.)
 
 	Quests 11-13 (docs/ECONOMY.md §11.2) open the tier-2 ladder after the Dense fog: the
 	Forged Hatchet and Ironbark Planks, the Forged Pick and copper, then the Black fog.
@@ -27,9 +32,11 @@
 	a spare set, banded storage, the Stranded Caravan, full stores) and the fog line (15, 17,
 	19, 21, 23, 25: the Reinforcement Plans, copper, reinforced walls, the Padded set, the
 	Depot, then level 25). In the pacing model (tests/Pacing.spec, 2.5 h a day) they land
-	from day 8 to day 18, so the trail no longer ends in the first week. Build and craft objectives
-	count from the moment a quest opens, so the reinforced ones open while the base is still
-	going up and ask for pieces it keeps needing (walls, not its one door).
+	from day 8 to day 18, so the trail no longer ends in the first week. Build objectives, and
+	craft objectives for gear, count what the player already has when the quest opens
+	(Domain/Quests.holdings, the flow review's F-06): the pieces they placed (never the
+	starter shelter's) and the tools, weapons and bags they carry or wear. The reinforced
+	ones ask for pieces a base keeps needing (walls, not its one door).
 ]]
 
 local Types = require("../Types")
@@ -44,15 +51,15 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 1,
 		chapter = HOME,
 		name = "First Light",
-		description = "The fog thins at dawn. Gather branches and stones, twist reeds into a cord, and sharpen a stake to keep in hand. Then put down the Hollow that wandered in.",
-		-- The stake takes 4 of the sticks; the other 6 and the stones make Tools of Survival.
+		description = "The fog thins at dawn. Gather branches and stones, twist reeds into a cord, and sharpen a stake to keep in hand.",
+		-- Home only, with or without Fog Runs (the flow review's F-02): every objective is
+		-- something the plot reports. The stake takes 4 of the sticks; the other 6 and the
+		-- stones make Tools of Survival. The first Hollow waits in Into the Fog.
 		objectives = {
 			{ kind = "gather", itemId = "item.sticks", count = 10 },
 			{ kind = "gather", itemId = "item.stone", count = 6 },
 			{ kind = "craft", recipeId = "recipe.sharpened_stake", count = 1 },
 			{ kind = "equip", itemId = "item.sharpened_stake" },
-			{ kind = "kill", count = 1, flag = "fogRuns" },
-			{ kind = "lootBody", count = 1, flag = "fogRuns" },
 		},
 		rewards = { xp = 150, items = { { itemId = "item.sealed_tin", count = 2 } } },
 	},
@@ -67,7 +74,16 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			{ kind = "craft", recipeId = "recipe.stone_hatchet", count = 1 },
 			{ kind = "craft", recipeId = "recipe.stone_pick", count = 1 },
 		},
-		rewards = { xp = 150, items = { { itemId = "item.fiber", count = 6 } } },
+		-- Fiber for the cord ahead, and a third hatchet's sticks and stone: the plot's 28 pines
+		-- (F-07) take 84 swings, more than two stone hatchets last.
+		rewards = {
+			xp = 150,
+			items = {
+				{ itemId = "item.fiber", count = 6 },
+				{ itemId = "item.sticks", count = 3 },
+				{ itemId = "item.stone", count = 3 },
+			},
+		},
 	},
 	["quest.claim_the_ground"] = {
 		id = "quest.claim_the_ground",
@@ -80,9 +96,10 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			{ kind = "build", pieceId = "build.foundation_wood", count = 2 },
 			{ kind = "build", pieceId = "build.wall_wood", count = 2 },
 		},
+		-- 20 timber (F-07): with the plot's 84, chapter 1's builds are paid for.
 		rewards = {
 			xp = 200,
-			items = { { itemId = "item.timber", count = 10 }, { itemId = "item.rope", count = 4 } },
+			items = { { itemId = "item.timber", count = 20 }, { itemId = "item.rope", count = 4 } },
 		},
 	},
 	["quest.a_place_to_work"] = {
@@ -119,12 +136,16 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 6,
 		chapter = HOME,
 		name = "Into the Fog",
-		description = "Weave a satchel to carry what you find, then Run or Walk to Pine Hollow on the Fog map.",
+		description = "Weave a satchel to carry what you find, then Run or Walk to Pine Hollow on the Fog map. Put down a Hollow there and take what it drops.",
 		prerequisite = "quest.keep_the_fire",
+		-- The first kill and the first Hollow drop (#57) live here, where the Fog map opens:
+		-- Services/LocationQuests reports "kill", and "lootBody" when a Hollow's drop is picked up.
 		objectives = {
 			{ kind = "craft", recipeId = "recipe.satchel", count = 1 },
 			{ kind = "equip", itemId = "item.satchel" },
 			{ kind = "travel", locationId = "loc.pine_hollow", flag = "fogRuns" },
+			{ kind = "kill", count = 1, flag = "fogRuns" },
+			{ kind = "lootBody", count = 1, flag = "fogRuns" },
 		},
 		rewards = {
 			xp = 300,

@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local Features = require(ReplicatedStorage.Shared.Features)
 local Types = require(ReplicatedStorage.Shared.Types)
 local GatheringMath = require(ReplicatedStorage.Shared.Domain.Gathering)
 local Rng = require(ReplicatedStorage.Shared.Domain.Rng)
@@ -320,6 +321,28 @@ local function flushAnalytics(player: Player)
 	end
 end
 
+local function yieldsTimber(def: Types.ResourceNodeDef): boolean
+	for _, yield in def.yields do
+		if yield.itemId == "item.timber" then
+			return true
+		end
+	end
+	return false
+end
+
+-- Whether `node`, just felled, was the last standing timber node on its home plot.
+local function lastTree(node: Node): boolean
+	if not yieldsTimber(node.def) then
+		return false
+	end
+	for _, other in nodes do
+		if other ~= node and other.plot == node.plot and yieldsTimber(other.def) and other.state.hitsLeft > 0 then
+			return false
+		end
+	end
+	return true
+end
+
 -- Toolnames for the "needs a tool" notice.
 local function toolName(kind: string, tier: number): string
 	for _, def in Content.Items do
@@ -442,6 +465,18 @@ local function gather(player: Player, key: string)
 	if not personal then
 		if depleted then
 			setStanding(node, false)
+			if node.plot and lastTree(node) then
+				-- Home trees never regrow (F-07): say so once, and where the timber is now.
+				local fog = Features.on(tuning, "fogRuns")
+				Sync.notice(
+					player,
+					if fog
+						then "Your plot's trees are gone for good. The Fog has more."
+						else "Your plot's trees are gone for good.",
+					"info"
+				)
+				Sync.fx(player, "homeTreesGone", {})
+			end
 		else
 			node.model:SetAttribute("HitsLeft", node.state.hitsLeft)
 		end

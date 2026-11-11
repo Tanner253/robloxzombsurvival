@@ -40,9 +40,9 @@ function questText.objective(objective: any): string
 	elseif kind == "loot" then
 		return "Search containers"
 	elseif kind == "lootBody" then
-		return "Search the body"
+		return "Take what a Hollow drops"
 	elseif kind == "kill" then
-		return "Put down the Hollow"
+		return if objective.count and objective.count > 1 then "Put down the Hollow" else "Put down a Hollow"
 	elseif kind == "equip" then
 		return `Equip the {format.itemName(objective.itemId)}`
 	elseif kind == "consume" then

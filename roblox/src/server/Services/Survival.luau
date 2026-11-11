@@ -131,13 +131,12 @@ local function setupCharacter(player: Player, character: Model)
 	humanoid.UseJumpPower = false
 	humanoid.JumpHeight = Content.Tuning.movement.hopHeight
 	if state.died then
+		-- A death (a run, starving, Reset Character) wakes at the respawn values, never full
+		-- (the flow review's F-05): dying is not a meal.
 		state.died = false
-		state.meters = {
-			hunger = math.max(state.meters.hunger, config.respawnHunger),
-			thirst = math.max(state.meters.thirst, config.respawnThirst),
-			updatedAt = now(),
-		}
-		humanoid.Health = config.respawnHealth
+		local meters, health = SurvivalMath.respawn(config, now())
+		state.meters = meters
+		humanoid.Health = health
 	else
 		local saved = data.survival.health
 		humanoid.Health = if saved > 0 then math.min(saved, maxHealth) else config.respawnHealth
@@ -145,7 +144,9 @@ local function setupCharacter(player: Player, character: Model)
 	humanoid.Died:Connect(function()
 		local current = runtime[player]
 		if current then
+			-- The respawn meters are saved at once, so leaving before the respawn keeps them.
 			current.died = true
+			current.meters = (SurvivalMath.respawn(config, now()))
 			save(player)
 		end
 	end)

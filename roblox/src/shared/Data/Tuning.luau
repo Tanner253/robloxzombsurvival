@@ -42,7 +42,8 @@ local Tuning: Types.TuningDef = {
 	survival = {
 		-- LDoE's numbers (LDOE_PARITY #33): both meters drain 1 point every 10 s while in
 		-- the world (about 17 min from full), an empty meter deals 2 HP/s, and the HUD
-		-- warns at 20. Death resets every meter to full.
+		-- warns at 20. A death (anywhere, Reset Character included) wakes you at exactly the
+		-- respawn values below, never full (the flow review's F-05): dying is not a meal.
 		hunger = {
 			max = 100,
 			decayPerSecond = 1 / 10,
@@ -60,9 +61,9 @@ local Tuning: Types.TuningDef = {
 		warnAt = 20,
 		regenThreshold = 60,
 		regenPerSecond = 0.1,
-		respawnHealth = 100,
-		respawnHunger = 100,
-		respawnThirst = 100,
+		respawnHealth = 50,
+		respawnHunger = 40,
+		respawnThirst = 40,
 		tickSeconds = 1,
 	},
 	combat = {
@@ -110,11 +111,14 @@ local Tuning: Types.TuningDef = {
 		-- stations, floors and walls), and it never respawns. Node state is saved per
 		-- outpost, so a restart or rejoin never refills it; repeat farming happens on Fog
 		-- Runs. The spring is a well, not a stock: it refills like a Fog Run node.
-		-- ECONOMY §1.3: 20 pines, 7 boulders and 5 heaps are LDoE's 60 timber, 21 stone and
-		-- 40 scrap. Loose stones are 11 (was 10): the hook's stations, blocks and the 2 picks
-		-- that 41 rock and heap hits wear through need 42 stone (tests/Pacing.spec).
+		-- ECONOMY §1.3: 7 boulders and 5 heaps are LDoE's 21 stone and 40 scrap. Loose stones
+		-- are 11 (was 10): the hook's stations, blocks and the 2 picks that 41 rock and heap
+		-- hits wear through need 42 stone (tests/Pacing.spec). Pines are 28 (LDoE's 20 plus 8,
+		-- the flow review's F-07): 84 timber and Claim the Ground's 20 pay for chapter 1's
+		-- builds (quests 3, 4 and 7, the Stonecutter and the Workbench's planks: 87) with a
+		-- little fuel to spare. The last one falling says so, and points at the Fog.
 		nodes = {
-			{ nodeId = "node.pine_tree", count = 20 },
+			{ nodeId = "node.pine_tree", count = 28 },
 			{ nodeId = "node.boulder", count = 7 },
 			{ nodeId = "node.scrap_heap", count = 5 },
 			{ nodeId = "node.ember_bush", count = 7 },

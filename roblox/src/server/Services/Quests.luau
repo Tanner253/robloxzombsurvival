@@ -23,6 +23,7 @@ local Analytics = require("./Analytics")
 local Energy = require("./Energy")
 local Inbox = require("./Inbox")
 local PlayerData = require("./PlayerData")
+local Plots = require("./Plots")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
 
@@ -30,14 +31,35 @@ local Quests = {}
 
 local settling: { [Player]: boolean } = {}
 
-local function facts(data: any): QuestsMath.Facts
+local holdingsContent: QuestsMath.HoldingsContent = {
+	recipes = Content.Recipes :: any,
+	items = Content.Items :: any,
+	pieces = Content.BuildPieces :: any,
+}
+
+-- What is true now: level, what is worn, and what the player already has for craft and
+-- build objectives (gear carried or worn, the pieces they placed; F-06).
+local function facts(player: Player, data: any): QuestsMath.Facts
 	local equipped: { [string]: boolean } = {}
+	local slots: { any } = {}
 	for _, slot in data.inventory.equipment do
 		if slot.count > 0 then
 			equipped[slot.itemId] = true
+			table.insert(slots, slot)
 		end
 	end
-	return { level = data.progression.level, equipped = equipped }
+	for _, container in { data.inventory.pockets, data.inventory.backpack } do
+		for _, slot in container do
+			table.insert(slots, slot)
+		end
+	end
+	local plot = Plots.of(player)
+	local pieces: { any } = {}
+	for _, piece in (if plot then plot.layout.pieces else {}) :: { [string]: any } do
+		table.insert(pieces, piece)
+	end
+	local made, placed = QuestsMath.holdings(slots, pieces, holdingsContent)
+	return { level = data.progression.level, equipped = equipped, made = made, placed = placed }
 end
 
 local function pay(player: Player, questId: string)
@@ -85,7 +107,8 @@ local function settle(player: Player, event: QuestsMath.Event?)
 		-- Completing a quest can complete the next (a reward's level-up meets reachLevel):
 		-- settle and pay until nothing more completes.
 		for _ = 1, 20 do
-			local state, done = QuestsMath.settle(data.quests :: any, Content.Quests, flags, facts(data), os.time())
+			local state, done =
+				QuestsMath.settle(data.quests :: any, Content.Quests, flags, facts(player, data), os.time())
 			data.quests = state :: any
 			if #done == 0 then
 				break
@@ -127,6 +150,10 @@ function Quests.start()
 		settle(player, nil)
 	end)
 	PlayerData.loaded:Connect(function(player: Player)
+		settle(player, nil)
+	end)
+	-- The plot loads after the profile: its placed pieces count once it is claimed (F-06).
+	Plots.claimed:Connect(function(player: Player)
 		settle(player, nil)
 	end)
 	for _, player in game:GetService("Players"):GetPlayers() do

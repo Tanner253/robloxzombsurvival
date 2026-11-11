@@ -20,6 +20,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Domain = ReplicatedStorage.Shared.Domain
@@ -29,7 +30,9 @@ local Offers = require(Domain.Offers)
 local Rng = require(Domain.Rng)
 local Net = require("../Net")
 local Events = require("../Events")
+local OnRun = require("../OnRun")
 local Analytics = require("./Analytics")
+local Drops = require("./Drops")
 local Embers = require("./Embers")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
@@ -387,11 +390,22 @@ local function handCraft(player: Player, recipeId: string, count: number)
 	if data == nil or recipe == nil then
 		return
 	end
-	-- Inputs come from the home pool (5.13); what doesn't fit the bag goes to the inbox.
+	-- Inputs come from the home pool (5.13); what doesn't fit the bag goes to the inbox. On a
+	-- Fog Run (F-03, F-04) the pool is only what is carried, and what doesn't fit drops at
+	-- your feet, where a death leaves it: nothing made on a run is banked.
+	local onRun = OnRun.is(player)
 	local pool = Materials.virtual(player) :: Types.Inventory
 	local ok, reason = Crafting.check(recipe, pool, Quests.progress(data), count)
 	if not ok then
 		refuse(player, reason)
+		return
+	end
+	local made: { Types.ItemStack } = {}
+	for _, stack in recipe.outputs do
+		table.insert(made, { itemId = stack.itemId, count = stack.count * count })
+	end
+	if onRun and not Art.dropReady() and not Inventory.fits(player, made) then
+		refuse(player, "inventoryFull") -- no sack model to drop the rest in
 		return
 	end
 	local inputs: { Types.ItemStack } = {}
@@ -402,12 +416,17 @@ local function handCraft(player: Player, recipeId: string, count: number)
 		refuse(player, "missingInputs")
 		return
 	end
-	local made: { Types.ItemStack } = {}
-	for _, stack in recipe.outputs do
-		table.insert(made, { itemId = stack.itemId, count = stack.count * count })
-	end
 	local _, leftover = Inventory.give(player, made, "Crafting")
-	Inbox.grant(player, leftover :: any, "Overflow")
+	if #leftover > 0 and onRun then
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Drops.spawn(player, root.Position + root.CFrame.LookVector * 3, leftover :: any, true)
+			Sync.notice(player, "Your bag is full. The rest dropped on the ground.")
+		end
+	elseif #leftover > 0 then
+		Inbox.grant(player, leftover :: any, "Overflow")
+	end
 	Analytics.custom(player, "HandCraft", count, { recipeId })
 	Sync.fx(player, "items", { items = made, source = "craft" })
 	Events.played:Fire(player, { kind = "craft", recipeId = recipeId, count = count })

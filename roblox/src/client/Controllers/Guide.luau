@@ -4,7 +4,8 @@
 	quest's next objective, so a new player is led through chapter 1 to their first Run
 	without a tutorial:
 	- gather: the nearest standing node of yours that yields the item wears an ember
-	  outline (it moves on as nodes are picked);
+	  outline (it moves on as nodes are picked); when your plot has none left (home nodes
+	  never regrow), the Trailhead, as for travel below;
 	- make at a station (boil water, cut planks): your nearest such station is outlined,
 	  or the Build button pulses while you have none;
 	- craft by hand: the Craft button pulses; build: the Build button pulses;
@@ -14,7 +15,9 @@
 	  within the departure range (Tuning.travel.departureStuds, the same rule as
 	  Services/Travel), the Map button rings (ui.guide = "map") and the Fog map opens once
 	  (Actions.toggleFogMap, S2B); ui.guideLocation names the location for the map to mark
-	  its pin and Run button.
+	  its pin and Run button;
+	- kill, take a Hollow's drop, search containers: the same Trailhead pointer while you are
+	  at home (on a run they are all around you, so nothing is outlined).
 	It steps aside while a panel is open or AUTO is gathering for you. The HUD reads the
 	button from ui.guide.
 ]]
@@ -124,11 +127,39 @@ end
 -- The Fog map opens by itself once per travel objective, the first time you arrive.
 local openedFor: string? = nil
 
+-- Whether the survivor is on a Fog Run now (the "run" section is a table only then).
+local function onRun(): boolean
+	return type(State.get("run")) == "table"
+end
+
+-- Toward the Trailhead (only with Fog Runs on): its models outlined, then the Map button once
+-- you stand at the departure range, where the Fog map opens by itself once per `key`.
+local function toTrailhead(key: string?): ({ Instance }, string?)
+	if not Features.on(Content.Tuning, "fogRuns") or onRun() then
+		return {}, nil
+	end
+	local targets, sign = trailhead()
+	if atTrailhead(sign) then
+		local toggleFogMap: any = (Actions :: any).toggleFogMap
+		if openedFor ~= key and type(toggleFogMap) == "function" then
+			openedFor = key;
+			(toggleFogMap :: () -> ())()
+		end
+		return {}, "map"
+	end
+	return targets, nil
+end
+
 -- What the guide points at for an objective: models to outline, or a HUD button.
 local function pointFor(objective: any): ({ Instance }, string?)
 	local kind = objective.kind
 	if kind == "gather" then
-		return { nearestNode(objective.itemId) :: any }, nil
+		local node = nearestNode(objective.itemId)
+		if node == nil and not onRun() and type(State.get("plot")) == "table" then
+			-- The plot has none left (home nodes never regrow, F-07): the Fog has more.
+			return toTrailhead(`gather:{objective.itemId}`)
+		end
+		return { node :: any }, nil
 	elseif kind == "craft" then
 		local recipe = Content.Recipes[objective.recipeId]
 		if recipe and recipe.stationId then
@@ -143,19 +174,10 @@ local function pointFor(objective: any): ({ Instance }, string?)
 	elseif kind == "consume" or kind == "equip" then
 		return {}, "inventory"
 	elseif kind == "travel" then
-		if not Features.on(Content.Tuning, "fogRuns") then
-			return {}, nil
-		end
-		local targets, sign = trailhead()
-		if atTrailhead(sign) then
-			local toggleFogMap: any = (Actions :: any).toggleFogMap
-			if openedFor ~= objective.locationId and type(toggleFogMap) == "function" then
-				openedFor = objective.locationId;
-				(toggleFogMap :: () -> ())()
-			end
-			return {}, "map"
-		end
-		return targets, nil
+		return toTrailhead(objective.locationId or `tier{objective.fogTier}`)
+	elseif kind == "kill" or kind == "lootBody" or kind == "loot" then
+		-- Hollow and containers are out in the Fog: at home the way there is the Trailhead.
+		return toTrailhead(objective.locationId or kind)
 	end
 	return {}, nil
 end

@@ -10,7 +10,9 @@
 	- Gameplay reports events ("gather 2 item.sticks", "build build.wall_wood"); each adds to
 	  the matching objectives of every active quest, capped at the objective's count. State
 	  objectives (equip, reachLevel) are checked against `facts` instead, so a satchel worn
-	  before the quest opened still counts.
+	  before the quest opened still counts. Craft objectives for gear and build objectives
+	  also count what the player already has (`holdings`, the flow review's F-06): a
+	  hatchet made during quest 1, a crate placed on day 1.
 	- A quest completes by itself on its last objective (#50): `settle` moves it to
 	  `completed`, opens the next one and repeats, so a chain of already-met quests settles
 	  in one call. The caller pays the rewards into the inbox.
@@ -60,7 +62,70 @@ export type Event = {
 export type Facts = {
 	level: number,
 	equipped: { [string]: boolean }, -- item ids worn or held
+	-- What the player already has (the flow review's F-06; `holdings`): craft objectives for
+	-- tools, weapons and bags count the units of their output carried or worn, by recipe;
+	-- build objectives count the pieces the player placed, by piece (an upgraded piece
+	-- counts as every tier it was built through).
+	made: { [string]: number }?,
+	placed: { [string]: number }?,
 }
+
+-- Hand-made gear whose craft objective counts one already owned (F-06). Materials,
+-- food and armor are not: a spare set means weaving another.
+local OWNED_CATEGORIES = { tool = true, weapon = true, bag = true }
+
+export type HoldingsContent = {
+	recipes: { [string]: { outputs: { Types.ItemStack }, stationId: string? } },
+	items: { [string]: { category: string } },
+	pieces: { [string]: { upgradesTo: string? } },
+}
+
+--[[
+	The `made` and `placed` facts from what the player carries and wears (`slots`) and the
+	pieces on their plot. The starter shelter's pieces (Grid.STARTER_AT, placedAt 0) are
+	not the player's and count for nothing.
+]]
+function Quests.holdings(
+	slots: { Types.Slot },
+	pieces: { { pieceId: string, placedAt: number } },
+	content: HoldingsContent
+): ({ [string]: number }, { [string]: number })
+	local units: { [string]: number } = {}
+	for _, slot in slots do
+		if slot.count > 0 then
+			units[slot.itemId] = (units[slot.itemId] or 0) + slot.count
+		end
+	end
+	local made: { [string]: number } = {}
+	for id, recipe in content.recipes do
+		local output = recipe.outputs[1]
+		local item = output and content.items[output.itemId]
+		local have = if output then units[output.itemId] else nil
+		if recipe.stationId == nil and item and OWNED_CATEGORIES[item.category] and have then
+			made[id] = have
+		end
+	end
+	local below: { [string]: string } = {}
+	for id, def in content.pieces do
+		if def.upgradesTo then
+			below[def.upgradesTo] = id
+		end
+	end
+	local placed: { [string]: number } = {}
+	for _, piece in pieces do
+		if piece.placedAt ~= 0 then
+			local id: string? = piece.pieceId
+			for _ = 1, 32 do
+				if id == nil then
+					break
+				end
+				placed[id] = (placed[id] or 0) + 1
+				id = below[id]
+			end
+		end
+	end
+	return made, placed
+end
 
 -- One tracker row: a quest and its objectives with progress.
 export type Row = {
@@ -167,7 +232,12 @@ function Quests.record(state: State, defs: Defs, flags: Flags, event: Event): St
 	return result
 end
 
--- Sets the state objectives (equip, reachLevel) of the active quests from `facts`.
+--[[
+	Sets the state objectives (equip, reachLevel) of the active quests from `facts`, and
+	raises craft and build objectives to what the player already has (`facts.made`,
+	`facts.placed`, F-06), so a hatchet made before Tools of Survival opened still counts.
+	Progress never goes down.
+]]
 function Quests.observe(state: State, defs: Defs, flags: Flags, facts: Facts): State
 	local result = copy(state)
 	for id, quest in result.active do
@@ -179,6 +249,15 @@ function Quests.observe(state: State, defs: Defs, flags: Flags, facts: Facts): S
 					or (objective.kind == "reachLevel" and facts.level >= objective.level)
 				if met then
 					quest.progress[key] = 1
+				end
+				local have = 0
+				if objective.kind == "craft" and facts.made then
+					have = facts.made[objective.recipeId] or 0
+				elseif objective.kind == "build" and facts.placed then
+					have = facts.placed[objective.pieceId] or 0
+				end
+				if have > 0 then
+					quest.progress[key] = math.max(quest.progress[key] or 0, math.min(Quests.need(objective), have))
 				end
 			end
 		end

@@ -71,9 +71,17 @@ local function remove(drop: Drop)
 	drop.model:Destroy()
 end
 
--- Puts `stacks` on the ground at `position` for `player`. Returns the drop's id.
-function Drops.spawn(player: Player, position: Vector3, stacks: { Types.Slot }): string?
+--[[
+	Puts `stacks` on the ground at `position` for `player`. Returns the drop's id.
+	`keepOnGround` keeps it there: a Fog Run overflow (F-04) or a home death bag (F-05)
+	must never reach the inbox, so without a sack model it isn't placed (callers check
+	Art.dropReady first).
+]]
+function Drops.spawn(player: Player, position: Vector3, stacks: { Types.Slot }, keepOnGround: boolean?): string?
 	if not Art.dropReady() then
+		if keepOnGround then
+			return nil
+		end
 		-- No sack model is graded A yet: what would land on the ground waits in the
 		-- inbox instead (checklist 4.15 and §0).
 		Inbox.grant(player, stacks, "Overflow")

@@ -382,7 +382,7 @@ export type PlayerLevelDef = {
 }
 
 -- `flag` names a feature flag (Shared/Flags) the objective waits on: while the flag is off
--- the objective is left out, so quest 1 needs no Hollow until Fog Runs ship.
+-- the objective is left out, so Into the Fog needs no Hollow until Fog Runs ship.
 export type QuestObjective =
 	{ kind: "gather", itemId: ItemId, count: number, flag: string? } -- harvested from nodes
 	| { kind: "craft", recipeId: RecipeId, count: number, flag: string? } -- hand crafts or batches taken
@@ -390,7 +390,7 @@ export type QuestObjective =
 	-- Arrive by Run or Walk: at locationId, or (with fogTier instead) at any location of that tier.
 	| { kind: "travel", locationId: LocationId?, fogTier: number?, flag: string? }
 	| { kind: "loot", count: number, locationId: LocationId?, flag: string? } -- containers opened
-	| { kind: "lootBody", count: number, flag: string? } -- Hollow bodies searched
+	| { kind: "lootBody", count: number, flag: string? } -- a Hollow's drop picked up (Fog Runs report it)
 	| { kind: "kill", count: number, enemyId: EnemyId?, flag: string? } -- nil means any Hollow
 	| { kind: "equip", itemId: ItemId, flag: string? }
 	| { kind: "consume", itemId: ItemId, count: number, flag: string? }
