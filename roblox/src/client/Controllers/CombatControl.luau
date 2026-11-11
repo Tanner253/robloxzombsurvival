@@ -820,6 +820,7 @@ local function onShot(payload: any)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
+	params.RespectCanCollide = true -- as the server's rounds: they pass under tree crowns
 	for pellet = 1, pellets do
 		local offset = if pellets > 1 then (pellet / pellets - 0.5) * spread else 0
 		local dir = Vector3.new(math.sin(yaw + offset), 0, math.cos(yaw + offset))

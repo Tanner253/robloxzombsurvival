@@ -58,6 +58,7 @@ local Items: any = Content.Items
 local SLOT_KEYS = { "weapon", "weapon2" } -- paper-doll keys for hand slots 1 and 2
 local MUZZLE_HEIGHT = 1.5
 local FIRE_LEEWAY_SECONDS = 0.05 -- how early a held trigger's next request may land and still fire
+local HOLLOW_CHEST = 3.5 -- studs above the ground a Hollow stands on: where a round aims
 
 -- Bare hands, from Tuning.player.
 local FISTS: Types.WeaponStats = {
@@ -191,10 +192,12 @@ local function softLock(run: Lobby.Run, origin: Vector3, yaw: number, lockId: st
 	return yaw
 end
 
--- The distance a shot travels before a wall stops it (the line-of-sight hook).
-local function clearDistance(origin: Vector3, yaw: number, range: number): (number, Vector3)
+-- What stops a round: anything solid, never a survivor. A tree's crown doesn't collide (only
+-- its trunk does, Maps/Builder), so a shot passes under the canopy as a survivor walks under it.
+local function shotParams(): RaycastParams
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.RespectCanCollide = true
 	local exclude: { Instance } = {}
 	for _, other in Players:GetPlayers() do
 		if other.Character then
@@ -202,6 +205,12 @@ local function clearDistance(origin: Vector3, yaw: number, range: number): (numb
 		end
 	end
 	params.FilterDescendantsInstances = exclude
+	return params
+end
+
+-- The distance a shot travels before a wall stops it (the line-of-sight hook).
+local function clearDistance(origin: Vector3, yaw: number, range: number): (number, Vector3)
+	local params = shotParams()
 	local dir = Plane.direction(yaw)
 	local direction = Vector3.new(dir.x, 0, dir.z) * range
 	local hit = workspace:Raycast(origin, direction, params)
@@ -301,23 +310,36 @@ local function projectile(
 	crit: boolean,
 	flare: Types.FlareStats?
 )
-	local clear, wallAt = clearDistance(origin, yaw, weapon.range)
+	local _, wallAt = clearDistance(origin, yaw, weapon.range)
 	local firearm = weapon.firearm
+	local params = shotParams()
+	local ahead = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
 	-- A piercing round carries on through each Hollow it hits (the Anti-Materiel Rifle: two
 	-- more), still stopped by the first wall. It is one round: one durability, one crit roll.
+	-- Each Hollow is checked along a line to its chest, not a level one, so the ground rising
+	-- toward it doesn't swallow the shot.
 	local struck: { { id: string, distance: number } } = {}
 	local through: { [string]: boolean } = {}
+	local stopped: Vector3? = nil
 	for _ = 0, if firearm then firearm.pierce or 0 else 0 do
-		local id, distance = Hollow.raycast(run.hosted, origin, yaw, clear, through)
+		local id, distance = Hollow.raycast(run.hosted, origin, yaw, weapon.range, through)
 		if id == nil then
+			break
+		end
+		local spot = origin + ahead * distance
+		local standing = Hollow.positionOf(run.hosted, id)
+		local chest = if standing then Vector3.new(spot.X, standing.Y + HOLLOW_CHEST, spot.Z) else spot
+		local wall = workspace:Raycast(origin, chest - origin, params)
+		if wall then
+			stopped = wall.Position
 			break
 		end
 		through[id] = true
 		table.insert(struck, { id = id, distance = distance })
 	end
 	local first = struck[1]
-	local reach = if first then first.distance else clear
-	local impact = if first then origin + Vector3.new(math.sin(yaw), 0, math.cos(yaw)) * reach else wallAt
+	local impact = if first then origin + ahead * first.distance else stopped or wallAt
+	local reach = Vector3.new(impact.X - origin.X, 0, impact.Z - origin.Z).Magnitude
 	task.delay(CombatMath.travelSeconds(reach, speed), function()
 		if Lobby.hosted(run.hosted.id) == nil then
 			return

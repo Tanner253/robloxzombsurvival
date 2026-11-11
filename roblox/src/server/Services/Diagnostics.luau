@@ -258,9 +258,10 @@ local function devCommand(command: string, ...: any): any
 		local params = RaycastParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude
 		params.FilterDescendantsInstances = { character }
+		params.RespectCanCollide = true -- as Combat's shots: only solid things stop a round
 		local muzzle = from + Vector3.new(0, 1.5, 0)
 		local toward = Vector3.new(at.X - from.X, 0, at.Z - from.Z)
-		local wall = workspace:Raycast(muzzle, toward, params)
+		local wall = workspace:Raycast(muzzle, Vector3.new(at.X, at.Y + 3.5, at.Z) - muzzle, params)
 		CombatService.dev.fire(player, math.atan2(at.X - from.X, at.Z - from.Z), nearest.id)
 		task.wait(0.4)
 		local after = gun()
