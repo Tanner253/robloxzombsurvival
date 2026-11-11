@@ -23,15 +23,23 @@ local EMITTERS: { [string]: { { file: string, text: string } } } = {
 	},
 	travel = { { file = "src/server/Services/LocationQuests.luau", text = 'report(player, { kind = "travel"' } },
 	kill = { { file = "src/server/Services/LocationQuests.luau", text = 'report(killer, { kind = "kill"' } },
-	-- A finished search: Containers says what was opened, Domain/Quests.lootEvent names the
-	-- event (specced below) and LocationQuests reports it.
+	-- Containers says what was looted (a finished search on a container; a take from the pile a
+	-- Hollow left), Domain/Quests.lootEvent names the event (specced below) and LocationQuests
+	-- reports it. These lines only prove the wiring exists: the scripted Fog Run playtest
+	-- (EO_Dev "kill", then ContainerTakeAll, then "queststate") proves it fires.
 	loot = {
-		{ file = "src/server/Services/Containers.luau", text = "Containers.looted:Fire(player, world.hosted, source)" },
+		{
+			file = "src/server/Services/Containers.luau",
+			text = 'Containers.looted:Fire(player, world.hosted, if state.kind == "pile" then "pile" else "container")',
+		},
 		{ file = "src/server/Services/LocationQuests.luau", text = "QuestsMath.lootEvent(source" },
 	},
 	lootBody = {
 		{ file = "src/server/Services/Containers.luau", text = "if killer then killer.UserId else nil, true)" },
-		{ file = "src/server/Services/Containers.luau", text = 'elseif world.hollowDrops[id] then "hollowDrop"' },
+		{
+			file = "src/server/Services/Containers.luau",
+			text = 'Containers.looted:Fire(player, home.hosted, "hollowDrop")',
+		},
 		{ file = "src/server/Services/LocationQuests.luau", text = "QuestsMath.lootEvent(source" },
 	},
 	equip = { { file = "src/shared/Domain/Quests.luau", text = 'objective.kind == "equip" and facts.equipped[' } },

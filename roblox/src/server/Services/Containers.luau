@@ -43,8 +43,9 @@ local Containers = {}
 
 -- (player) a search started: looting breaks sneak (LDOE_PARITY #44).
 Containers.searched = Signal.new()
--- (player, hosted, source): a search finished and it opened. `source` is "container" (a
--- placed container), "hollowDrop" (the pile a Hollow left) or "pile" (any other pile).
+-- (player, hosted, source): what a survivor just looted. "container": a search finished on a
+-- placed container. "hollowDrop": they took something from the pile a Hollow left, once per
+-- pile (a pile holds its loot from the start, so it opens with no search to finish).
 Containers.looted = Signal.new()
 
 local tuning = Content.Tuning
@@ -59,7 +60,8 @@ type World = {
 	positions: { [string]: Vector3 },
 	markers: { [string]: BasePart },
 	piles: { [string]: Model }, -- the visible loot piles (FogRuns/Props)
-	hollowDrops: { [string]: boolean }, -- the piles a Hollow left (the trail's "lootBody")
+	-- The piles a Hollow left, and who has taken from each (the trail's "lootBody").
+	hollowDrops: { [string]: { [number]: boolean } },
 	rng: Rng.Source,
 	pity: { [number]: Loot.PityState },
 	seq: number,
@@ -167,7 +169,7 @@ function Containers.spawnPile(
 	world.states[id] = state
 	world.positions[id] = position
 	if fromHollow then
-		world.hollowDrops[id] = true
+		world.hollowDrops[id] = {}
 	end
 	local model =
 		Props.pile(hosted.map or workspace, position, id, if state.mode == "personal" then ownerUserId else nil)
@@ -236,8 +238,7 @@ local function complete(player: Player, active: Active)
 	end
 	world.pity[player.UserId] = pity
 	Lobby.recordSearch(player)
-	local source = if state.kind ~= "pile" then "container" elseif world.hollowDrops[id] then "hollowDrop" else "pile"
-	Containers.looted:Fire(player, world.hosted, source)
+	Containers.looted:Fire(player, world.hosted, if state.kind == "pile" then "pile" else "container")
 	local marker = world.markers[id]
 	if marker then
 		marker:SetAttribute("Opened", true)
@@ -254,8 +255,14 @@ local function giveFrom(player: Player, id: string, stacks: { Types.ItemStack })
 	end
 	local given, leftover = Inventory.give(player, stacks, "FogRunLoot")
 	ContainersMath.putBack(state, player.UserId, leftover)
+	local home = world :: World
 	if #given > 0 then
 		Sync.fx(player, "items", { items = given, source = "container" })
+		local takers = home.hollowDrops[id]
+		if takers and not takers[player.UserId] then
+			takers[player.UserId] = true
+			Containers.looted:Fire(player, home.hosted, "hollowDrop")
+		end
 	end
 	if #leftover > 0 then
 		Sync.notice(player, "Your bag is full")
@@ -263,7 +270,6 @@ local function giveFrom(player: Player, id: string, stacks: { Types.ItemStack })
 	local left = ContainersMath.view(state, player.UserId) or {}
 	show(player, id, left)
 	-- An emptied loot pile is gone (a personal one empties for its owner).
-	local home = world :: World
 	local pile = home.piles[id]
 	if pile and #left == 0 then
 		pile:Destroy()

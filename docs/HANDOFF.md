@@ -190,7 +190,10 @@ Run all checks after each merge.
 
 > **Update 2026-11-11: steps 1 and 2 are done in code; start at step 3.**
 > - **Step 2 (the five blockers):** F-01 `fogRuns = true`, held by `roblox/tests/Launch.spec.luau` (no dormant quest; every objective kind has a server emitter). F-02 quest 1 is home-only, and a Hollow's drop now reports `lootBody` (`Containers.looted` source, `Domain/Quests.lootEvent`). F-03 and F-04 are enforced by `server/OnRun.luau` (the run server role), not a workspace attribute. F-05 home deaths drop the bag and wake at 50/40/40.
-> - **Not yet verified in play:** the blockers pass the Lune specs and the type check only. A boot test of a local build showed the server starts with Fog Runs on (33 modules), but Studio was signed out, so every private asset failed to load and no run was played. The scripted playtest (step 5) needs the developer signed in to Studio with the cloud place "Ember" open.
+> - **Verified in play (2026-11-11, the cloud place "Ember", Studio simulation):** the server boots clean with Fog Runs on (33 modules, no script errors). A scripted run to Pine Hollow recorded quest 6's travel, kill and Hollow-drop objectives. How to repeat it: `ServerStorage.EO_Dev:Invoke("quests", 5)`, `("fogrun", "loc.pine_hollow")`, poll `("runstate")`, `("kill")`, then from the client fire `Remotes.ContainerSearch` and `Remotes.ContainerTakeAll` with the pile's `ContainerId`, then `("queststate", "quest.into_the_fog")`.
+>   - That run found two bugs the specs had passed: the drop event was hooked on a search that piles never run (it now fires when loot is taken from a Hollow's pile), and a Shambler dropped nothing half the time (its table now always rolls once).
+>   - **Not yet verified in play:** F-03, F-04 and F-05, and anything a real player sees (HUD, the Guide's pointer, the death screen).
+>   - **Seen, not fixed:** the first lobby at a location builds its map on demand, 12 s one time and 38 s another, while the player waits at home with only the "matching" effect. Run servers build at boot, so check what a live player sees before launch.
 > - **Still live until step 3:** the Ammo Press and the ammo recipes (behind quest "The Dense Fog"), now that `fogRuns` is on.
 
 1. **Merge** the branches in §5 and get main green.

@@ -11,7 +11,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 	-- The Hollow ------------------------------------------------------------------
 	["loot.enemy_shambler"] = {
 		id = "loot.enemy_shambler",
-		rolls = { min = 0, max = 1 },
+		-- Always one roll: every Hollow leaves something to take, as every body in LDoE can
+		-- be searched, so "take what it drops" (Into the Fog) never hangs on a coin flip.
+		rolls = { min = 1, max = 1 },
 		entries = {
 			{ itemId = "item.fiber", weight = 30, min = 1, max = 2 },
 			{ itemId = "item.rope", weight = 25, min = 1, max = 1 },

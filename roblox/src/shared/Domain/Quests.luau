@@ -197,10 +197,10 @@ local function matches(objective: Types.QuestObjective, event: Event): boolean
 end
 
 --[[
-	What a finished search on a run reports (Services/Containers.looted's `source`): a placed
-	container is "loot", the pile a Hollow left is "lootBody" (the trail's first drop, #57),
-	and any other pile (a craft that didn't fit, a spent arrow) is nothing, so nobody farms
-	"search a container" by picking their own things back up.
+	What looting on a run reports (Services/Containers.looted's `source`): a searched
+	container is "loot", taking from the pile a Hollow left is "lootBody" (the trail's first
+	drop, #57), and any other pile (a craft that didn't fit, a spent arrow) is nothing, so
+	nobody farms "search a container" by picking their own things back up.
 ]]
 function Quests.lootEvent(source: string, locationId: string): Event?
 	if source == "container" then

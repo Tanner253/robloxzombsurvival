@@ -24,6 +24,8 @@
 	  foot-to-ground gap (seated settlers report their seat height).
 	  ("navprobe", locationId, enemyId?, trips?) walks virtual Hollow over a built map
 	  (checklist 12.9); run it with no lobby open.
+	  Scripted playtests: ("kill", range?) kills the nearest Hollow as the survivor and stands
+	  them on the spot, ("queststate", questId) reads one trail quest's progress.
 	- puts the Dev Armory crate by each claimed plot: one of every weapon and armor piece
 	  into the inbox, so the developer can try all the gear.
 ]]
@@ -148,6 +150,37 @@ local function devCommand(command: string, ...: any): any
 			require("./Containers").looted:Fire(player, run.hosted, "container")
 		end
 		return "ok"
+	elseif command == "kill" then
+		-- The survivor kills the nearest living Hollow within `range` studs (default 400),
+		-- through the real damage path, and stands where it fell. Returns its id and spot.
+		local run = Lobby.runOf(player)
+		local character = player.Character
+		if run == nil or character == nil then
+			return "no run"
+		end
+		local HollowService = require("./Hollow")
+		local origin = character:GetPivot().Position
+		local nearest = HollowService.inArc(run.hosted, origin, 0, args[1] or 400, 360)[1]
+		if nearest == nil then
+			return "no hollow"
+		end
+		local at = HollowService.positionOf(run.hosted, nearest.id) or origin
+		local _, died = HollowService.damage(run.hosted, nearest.id, 1e6, player)
+		character:PivotTo(CFrame.new(at + Vector3.new(0, 3, 0)))
+		return { id = nearest.id, died = died, at = { at.X, at.Y, at.Z } }
+	elseif command == "queststate" then
+		-- One Ember Trail quest as the profile has it: its progress by objective, or done.
+		local data = PlayerData.get(player)
+		if data == nil then
+			return "no data"
+		end
+		local quests = data.quests :: any
+		local active = quests.active[args[1]]
+		return {
+			completed = quests.completed[args[1]] ~= nil,
+			active = active ~= nil,
+			progress = if active then table.clone(active.progress) else nil,
+		}
 	elseif command == "die" then
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
