@@ -134,7 +134,7 @@ local Nodes: { [Types.NodeId]: Types.ResourceNodeDef } = {
 		xpPerHit = 4,
 		respawnSeconds = 8 * 60,
 	},
-	-- Fog Runs (slice 2): Dense and Black fog only, so Blackpowder is a bottleneck material.
+	-- Fog Runs (slice 2): Dense and Black fog only, so Signal Flares are a bottleneck material.
 	["node.niter_seam"] = {
 		id = "node.niter_seam",
 		name = "Niter Seam",

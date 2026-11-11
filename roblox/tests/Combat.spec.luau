@@ -82,26 +82,24 @@ return function(test: TestKit.Register)
 		TestKit.equal(Combat.spendStamina(spent, T0, 41, STAMINA), nil, "not enough")
 	end)
 
-	test("Pipe Pistol: one round, fire, reload from the bag", function()
+	test("Pipe Pistol: one round, fire, a free reload (no rounds to carry)", function()
 		local gun = weapon("item.pipe_pistol").firearm
 		local state = Combat.newGun(1)
 		TestKit.truthy(Combat.canFire(gun, state, T0), "loaded")
 		state = Combat.fire(state, T0)
 		local _, empty = Combat.canFire(gun, state, T0 + 5)
 		TestKit.equal(empty, "empty")
-		local _, noAmmo = Combat.startReload(gun, state, T0 + 1, 0)
-		TestKit.equal(noAmmo, "noAmmo", "dry click")
-		state = Combat.startReload(gun, state, T0 + 1, 7) :: Combat.Gun
+		state = Combat.startReload(gun, state, T0 + 1) :: Combat.Gun
 		TestKit.equal(Combat.isReloading(state, T0 + 1.5), true)
 		local _, reloading = Combat.canFire(gun, state, T0 + 1.5)
 		TestKit.equal(reloading, "reloading")
-		local early, none = Combat.finishReload(gun, state, T0 + 2, 7)
-		TestKit.equal(none, 0, "not done yet")
-		TestKit.equal(early.loaded, 0)
-		local done, taken = Combat.finishReload(gun, state, T0 + 1 + gun.reloadSeconds, 7)
-		TestKit.equal(taken, 1, "one round moves from the bag")
-		TestKit.equal(done.loaded, 1)
-		local _, full = Combat.startReload(gun, done, T0 + 9, 6)
+		local _, again = Combat.startReload(gun, state, T0 + 1.5)
+		TestKit.equal(again, "reloading")
+		local early = Combat.finishReload(gun, state, T0 + 2)
+		TestKit.equal(early.loaded, 0, "not done yet")
+		local done = Combat.finishReload(gun, state, T0 + 1 + gun.reloadSeconds)
+		TestKit.equal(done.loaded, 1, "the magazine is full")
+		local _, full = Combat.startReload(gun, done, T0 + 9)
 		TestKit.equal(full, "full")
 	end)
 
@@ -112,14 +110,13 @@ return function(test: TestKit.Register)
 		local _, cooldown = Combat.canFire(gun, state, T0 + 0.1)
 		TestKit.equal(cooldown, "cooldown")
 		TestKit.truthy(Combat.canFire(gun, state, T0 + gun.fireInterval), "second barrel")
-		state = Combat.startReload(gun, state, T0 + 1, 1) :: Combat.Gun
+		state = Combat.startReload(gun, state, T0 + 1) :: Combat.Gun
 		local cancelled = Combat.cancelReload(state)
 		TestKit.equal(cancelled.reloadEndsAt, nil)
 		TestKit.equal(cancelled.loaded, 1, "nothing lost")
-		state = Combat.startReload(gun, cancelled, T0 + 2, 1) :: Combat.Gun
-		local done, taken = Combat.finishReload(gun, state, T0 + 2 + gun.reloadSeconds, 1)
-		TestKit.equal(taken, 1, "only what is carried")
-		TestKit.equal(done.loaded, 2)
+		state = Combat.startReload(gun, cancelled, T0 + 2) :: Combat.Gun
+		local done = Combat.finishReload(gun, state, T0 + 2 + gun.reloadSeconds)
+		TestKit.equal(done.loaded, 2, "both barrels")
 	end)
 
 	test("shotgun pellets fan across the spread cone", function()
@@ -150,14 +147,28 @@ return function(test: TestKit.Register)
 		end
 	end)
 
-	test("bow: draw time, duds and arrow recovery", function()
+	test("no ammo (F-13): no weapon names a round; the Flare Pistol carries its own flare", function()
+		for id, item in Content.Items :: { [string]: any } do
+			TestKit.truthy(item.category ~= "ammo", `{id} is not ammo`)
+			if item.weapon then
+				TestKit.equal(item.weapon.ammoItemId, nil, `{id} names no round`)
+			end
+		end
+		local flare = weapon("item.flare_pistol").firearm.flare
+		TestKit.truthy(flare, "the Flare Pistol's shots burn as flares")
+		TestKit.deepEqual(flare, (Content.Items["item.flare"] :: any).flare, "the same burn as a Signal Flare")
+		TestKit.equal(Content.Items["item.flare"].category, "consumable", "the Signal Flare is a signal, not a round")
+		TestKit.equal(Content.Items["item.pipe_pistol"].durability, 150, "F-14 floors")
+		TestKit.equal(Content.Items["item.scrap_shotgun"].durability, 90)
+		TestKit.equal(Content.Items["item.flare_pistol"].durability, 72)
+	end)
+
+	test("bow: draw time and duds", function()
 		local bow = weapon("item.shortbow").bow
 		near(Combat.drawFraction(bow, T0, T0 + bow.drawSeconds / 2), 0.5, "half draw")
 		near(Combat.drawFraction(bow, T0, T0 + 99), 1, "capped")
 		TestKit.equal(Combat.release(bow, T0, T0 + 0.01), nil, "a dud")
 		near(Combat.release(bow, T0, T0 + bow.drawSeconds) :: number, 1, "full draw")
-		TestKit.equal(Combat.arrowRecovered(bow, fixed(bow.recoveryChance - 0.01)), true)
-		TestKit.equal(Combat.arrowRecovered(bow, fixed(bow.recoveryChance)), false)
 	end)
 
 	test("dodge roll: stamina, cooldown and an i-frame window", function()

@@ -198,11 +198,18 @@ return function(test: TestKit.Register)
 
 	test("catches item fields that don't match the category", function()
 		local errors = brokenCopy(function(c)
-			c.Items["item.shortbow"].weapon.ammoItemId = "item.timber"
+			c.Items["item.shortbow"].weapon.bow = nil
+			c.Items["item.flare"].category = "material"
+			c.Items["item.flare_pistol"].weapon.firearm.flare.seconds = 0
 			c.Items["item.padded_vest"].equipSlot = "weapon"
 			c.Items["item.stone_pick"].tool = nil
 		end)
-		TestKit.anyContains(errors, "'item.timber' is not an ammo item")
+		TestKit.anyContains(errors, "Items['item.shortbow'].weapon: ranged weapons need exactly one of firearm and bow")
+		TestKit.anyContains(errors, "Items['item.flare']: only a consumable can burn as a signal flare")
+		TestKit.anyContains(
+			errors,
+			"Items['item.flare_pistol'].weapon.firearm.flare: lightRadius, seconds and fleeRadius"
+		)
 		TestKit.anyContains(errors, "Items['item.padded_vest']: armor needs equipSlot")
 		TestKit.anyContains(errors, "Items['item.stone_pick']: tool stats are required on tools")
 	end)

@@ -66,7 +66,7 @@ return function(test: TestKit.Register)
 	test("the full bundle with every feature on is valid", function()
 		local content = withFeatures(true)
 		TestKit.truthy(content.Recipes["recipe.scrap_shotgun"], "tagged recipe kept")
-		TestKit.truthy(content.Stations["station.ammo_press"], "tagged station kept")
+		TestKit.truthy(content.Stations["station.smoke_rack"], "tagged station kept")
 		report(DataValidator.validate(content))
 	end)
 
@@ -76,10 +76,10 @@ return function(test: TestKit.Register)
 
 	test("untagged content that needs stripped content fails validation", function()
 		local content = rawContent()
-		content.Recipes["recipe.plank"].stationId = "station.ammo_press"
+		content.Recipes["recipe.plank"].stationId = "station.smoke_rack"
 		content.Tuning.features.fogRuns = false
 		local errors = DataValidator.validate(Features.strip(content))
-		TestKit.anyContains(errors, "Recipes['recipe.plank']: unknown station 'station.ammo_press'")
+		TestKit.anyContains(errors, "Recipes['recipe.plank']: unknown station 'station.smoke_rack'")
 	end)
 
 	test("a tag must name a real flag", function()

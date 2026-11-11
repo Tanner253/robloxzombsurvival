@@ -31,7 +31,7 @@ local Levels: { Types.PlayerLevelDef } = {
 	{
 		level = 5,
 		xp = 4500,
-		rewards = { { itemId = "item.arrow", count = 10 }, { itemId = "item.ember_tonic", count = 1 } },
+		rewards = { { itemId = "item.scrap", count = 10 }, { itemId = "item.ember_tonic", count = 1 } }, -- scrap was arrows (F-13)
 	},
 	{ level = 6, xp = 7000, rewards = { { itemId = "item.plank", count = 10 } } },
 	{ level = 7, xp = 11000 },

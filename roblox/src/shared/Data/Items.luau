@@ -344,7 +344,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tool = { kind = "pick", tier = 2 },
 	},
 
-	-- Weapons and ammo -----------------------------------------------------------
+	-- Weapons -------------------------------------------------------------
 	["item.spiked_club"] = {
 		id = "item.spiked_club",
 		name = "Spiked Club",
@@ -374,7 +374,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.shortbow"] = {
 		id = "item.shortbow",
 		name = "Reed Shortbow",
-		description = "Fires arrows from a safe distance.",
+		description = "Looses fire-hardened arrows from a safe distance. Each draw wears the string.",
 		category = "weapon",
 		tier = 1,
 		rarity = "uncommon",
@@ -387,19 +387,8 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 			damage = 18,
 			attacksPerSecond = 0.8,
 			range = 60,
-			ammoItemId = "item.arrow",
-			bow = { drawSeconds = 0.9, minDraw = 0.35, recoveryChance = 0.6, projectileSpeed = 140 },
+			bow = { drawSeconds = 0.9, minDraw = 0.35, projectileSpeed = 140 },
 		},
-	},
-	["item.arrow"] = {
-		id = "item.arrow",
-		name = "Fire-Hardened Arrow",
-		description = "A fire-hardened arrow for the shortbow.",
-		category = "ammo",
-		tier = 1,
-		rarity = "common",
-		stackSize = 20,
-		icon = "rbxassetid://80248638313104",
 	},
 
 	-- Armor -------------------------------------------------------------------
@@ -580,29 +569,19 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		icon = "rbxassetid://92477519102534",
 	},
 
-	-- Fog Runs (slice 2): the first guns, their ammo, and what makes it ------------------
+	-- Fog Runs (slice 2): the first guns and what makes them ------------------------------
 	-- Found only on Fog Runs until Tuning.features.fogRuns turns their recipes on.
 	-- Pacing (GAME_DESIGN free-player targets): the first firearm lands on days 3-5.
 	-- The bottleneck is the Trigger Group, found only in Dense and Black fog late in a run.
 	["item.niter"] = {
 		id = "item.niter",
 		name = "Niter Crust",
-		description = "Bitter white crust scraped from damp stone. Half of blackpowder.",
+		description = "Bitter white crust scraped from damp stone. Signal Flares burn on it.",
 		category = "resource",
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 40,
 		icon = "rbxassetid://80428196242848",
-	},
-	["item.blackpowder"] = {
-		id = "item.blackpowder",
-		name = "Blackpowder",
-		description = "Two niter ground fine at the Ammo Press. Every round needs some.",
-		category = "material",
-		tier = 2,
-		rarity = "uncommon",
-		stackSize = 50,
-		icon = "rbxassetid://92308823000142",
 	},
 	["item.steel_pipe"] = {
 		id = "item.steel_pipe",
@@ -624,31 +603,11 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		stackSize = 5,
 		icon = "rbxassetid://124143273069872",
 	},
-	["item.light_rounds"] = {
-		id = "item.light_rounds",
-		name = "Light Rounds",
-		description = "Hand-pressed pistol rounds for the Worn Pistol.",
-		category = "ammo",
-		tier = 2,
-		rarity = "common",
-		stackSize = 60,
-		icon = "rbxassetid://93144209713385",
-	},
-	["item.shells"] = {
-		id = "item.shells",
-		name = "Scrap Shells",
-		description = "Paper-wrapped shot for the Scrap Shotgun.",
-		category = "ammo",
-		tier = 2,
-		rarity = "uncommon",
-		stackSize = 30,
-		icon = "rbxassetid://101704009207819",
-	},
 	["item.flare"] = {
 		id = "item.flare",
 		name = "Signal Flare",
-		description = "Burns bright for twenty seconds. The Hollow can't stand it.",
-		category = "ammo",
+		description = "Light it to signal for extraction in Black fog. The Hollow can't stand it.",
+		category = "consumable", -- a signal, not a round: the flare extract burns one (Services/Extraction)
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 10,
@@ -698,7 +657,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 50, -- ECONOMY §8.1 (was 140)
+		durability = 150, -- F-14: durability is the shot count (was 50)
 		icon = "rbxassetid://79417077588504",
 		equipSlot = "weapon",
 		weapon = {
@@ -706,7 +665,6 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 			damage = 34, -- two body shots drop a Shambler, three a Runner, never one a survivor
 			attacksPerSecond = 1 / 1.4, -- sustained: one shot per reload
 			range = 70,
-			ammoItemId = "item.light_rounds",
 			firearm = {
 				fireInterval = 0.5,
 				magazine = 1,
@@ -728,7 +686,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "rare",
 		stackSize = 1,
-		durability = 30, -- ECONOMY §8.1 (was 120)
+		durability = 90, -- F-14: durability is the shot count (was 30)
 		icon = "rbxassetid://109179071587052",
 		equipSlot = "weapon",
 		weapon = {
@@ -736,7 +694,6 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 			damage = 9, -- per pellet: 6 x 9 = 54 point blank, 81 on a crit (under 100 HP)
 			attacksPerSecond = 2 / (0.35 + 2.6), -- sustained: both barrels, then reload
 			range = 28,
-			ammoItemId = "item.shells",
 			swapSeconds = 0.7, -- a long gun comes up slower
 			firearm = {
 				fireInterval = 0.35,
@@ -760,7 +717,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		tier = 2,
 		rarity = "uncommon",
 		stackSize = 1,
-		durability = 24, -- ECONOMY §8.1 (was 100)
+		durability = 72, -- F-14: durability is the shot count (was 24)
 		icon = "rbxassetid://106575499729767",
 		equipSlot = "weapon",
 		weapon = {
@@ -768,7 +725,6 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 			damage = 12, -- the hit is small; the burn and the light are the point
 			attacksPerSecond = 1 / 2,
 			range = 60,
-			ammoItemId = "item.flare",
 			firearm = {
 				fireInterval = 1,
 				magazine = 1,
@@ -776,6 +732,8 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 				spreadDegrees = 2,
 				projectileSpeed = 90, -- slow enough to watch it arc
 				noiseRadius = 30,
+				-- Checklist 13.8: each flare lights an area for 20 s, burns what it hits, the Hollow flee it.
+				flare = { lightRadius = 24, seconds = 20, burnDps = 6, burnSeconds = 5, fleeRadius = 18 },
 			},
 		},
 	},

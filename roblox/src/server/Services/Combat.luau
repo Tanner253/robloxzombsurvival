@@ -12,10 +12,12 @@
 	- CombatFire: a gun fires from its magazine with seeded spread; each pellet is
 	  traced against the Hollow (Hollow.raycast) and capped at the first wall (the
 	  line-of-sight hook is a world raycast). Damage lands after the projectile's
-	  travel time, with falloff. A bow fires from the bag on release after
-	  CombatDraw. A Signal Flare lights where it lands and sets a hit Hollow burning.
-	- CombatReload moves ammo from the bag into the active gun when it completes;
-	  swapping or rolling cancels it. Out of ammo is a dry click and a toast.
+	  travel time, with falloff. A bow fires on release after CombatDraw. The Flare
+	  Pistol's flare lights where it lands and sets a hit Hollow burning.
+	- There are no rounds to carry (DECISIONS 2026-11-08): every shot and every bow
+	  release costs durability (Tuning.combat.gunDurabilityPerShot), nothing else.
+	- CombatReload refills the active gun's magazine for free when it completes (a
+	  pacing beat); swapping or rolling cancels it. An empty magazine is a dry click.
 	- CombatDodge: stamina, cooldown and i-frames (Lobby.hurtPlayer honours them).
 	- Two weapon slots, LDoE-style (Domain/Hands): WeaponSelect (1, 2), WeaponSwap
 	  (F), each slot with its own magazine and a swap delay; UseMeds (H) uses the
@@ -42,7 +44,6 @@ local Rng = require(Domain.Rng)
 local Net = require("../Net")
 local Containers = require("./Containers")
 local Hollow = require("./Hollow")
-local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local PlayerData = require("./PlayerData")
@@ -108,29 +109,13 @@ local function slotIds(player: Player): { string? }
 	return ids
 end
 
-local function giveBack(player: Player, stacks: { Types.ItemStack })
-	if #stacks == 0 then
-		return
-	end
-	local _, leftover = Inventory.give(player, stacks, "Unload")
-	if #leftover > 0 then
-		local slots: { Types.Slot } = {}
-		for _, stack in leftover do
-			table.insert(slots, { itemId = stack.itemId, count = stack.count })
-		end
-		Inbox.grant(player, slots, "Overflow")
-	end
-end
-
--- Matches the hands to the paper-doll (a changed slot unloads its old gun).
+-- Matches the hands to the paper-doll (a changed slot starts over with an empty gun).
 local function fighterOf(player: Player): Fighter?
 	local fighter = fighters[player]
 	if fighter == nil then
 		return nil
 	end
-	local synced, returned = Hands.sync(fighter.hands, slotIds(player), Items, tuning.hands)
-	fighter.hands = synced
-	giveBack(player, returned)
+	fighter.hands = Hands.sync(fighter.hands, slotIds(player), Items, tuning.hands)
 	return fighter
 end
 
@@ -303,11 +288,6 @@ end
 
 -- Guns and the bow ---------------------------------------------------------------------------------
 
-local function ammoCarried(player: Player, ammoItemId: string): number
-	local view = Inventory.view(player)
-	return if view then InventoryMath.count(view, ammoItemId) else 0
-end
-
 -- One projectile: trace it, then land the damage after its travel time.
 local function projectile(
 	player: Player,
@@ -372,31 +352,12 @@ local function fireBow(
 		Sync.fx(player, "dud", nil)
 		return
 	end
-	local ammo = weapon.ammoItemId :: string
-	if not Inventory.take(player, { { itemId = ammo, count = 1 } }, "Arrows") then
-		Sync.notice(player, "No arrows")
-		Sync.fx(player, "dryClick", nil)
-		return
-	end
 	local origin = root.Position + Vector3.new(0, MUZZLE_HEIGHT, 0)
 	local aim = softLock(run, origin, yaw, lockId)
 	local crit = CombatMath.rollCrit(CombatMath.critChance(weapon, combatConfig), rng)
-	local _, impact = projectile(
-		player,
-		run,
-		weapon,
-		origin,
-		aim,
-		weapon.damage * strength,
-		bow.projectileSpeed * strength,
-		crit,
-		nil
-	)
+	projectile(player, run, weapon, origin, aim, weapon.damage * strength, bow.projectileSpeed * strength, crit, nil)
 	Hollow.noise(run.hosted, "bow", origin, nil, `u{player.UserId}`)
 	broadcast(run, "shot", { userId = player.UserId, yaw = aim, itemId = Hands.active(fighter.hands).itemId })
-	if CombatMath.arrowRecovered(bow, rng) then
-		Containers.spawnPile(run.hosted, impact, { { itemId = ammo, count = 1 } }, player.UserId)
-	end
 	wear(player, fighter, "arrow")
 end
 
@@ -426,7 +387,7 @@ local function fire(player: Player, yaw: number, lockId: string?)
 	if not ok then
 		if reason == "empty" then
 			Sync.fx(player, "dryClick", nil)
-			Sync.notice(player, "Out of ammo: reload")
+			Sync.notice(player, "Empty: reload")
 		end
 		return
 	end
@@ -434,10 +395,8 @@ local function fire(player: Player, yaw: number, lockId: string?)
 	local origin = root.Position + Vector3.new(0, MUZZLE_HEIGHT, 0)
 	local aim = softLock(run, origin, yaw, lockId)
 	local crit = CombatMath.rollCrit(CombatMath.critChance(weapon, combatConfig), rng)
-	local ammo = weapon.ammoItemId and Items[weapon.ammoItemId]
-	local flare: Types.FlareStats? = if ammo then ammo.flare else nil
 	for _, pelletYaw in CombatMath.shotYaws(firearm, aim, rng) do
-		projectile(player, run, weapon, origin, pelletYaw, weapon.damage, firearm.projectileSpeed, crit, flare)
+		projectile(player, run, weapon, origin, pelletYaw, weapon.damage, firearm.projectileSpeed, crit, firearm.flare)
 	end
 	Hollow.noise(run.hosted, "gunshot", origin, firearm, `u{player.UserId}`)
 	broadcast(run, "shot", { userId = player.UserId, yaw = aim, itemId = hand.itemId })
@@ -468,13 +427,8 @@ local function reload(player: Player)
 	if weapon == nil or firearm == nil or hand.gun == nil then
 		return
 	end
-	local ammo = weapon.ammoItemId :: string
-	local started, reason = CombatMath.startReload(firearm, hand.gun, now(), ammoCarried(player, ammo))
+	local started = CombatMath.startReload(firearm, hand.gun, now())
 	if started == nil then
-		if reason == "noAmmo" then
-			Sync.fx(player, "dryClick", nil)
-			Sync.notice(player, "No ammo for that")
-		end
 		return
 	end
 	fighter.hands = Hands.setGun(fighter.hands, started)
@@ -489,11 +443,7 @@ local function reload(player: Player)
 		if current == nil or gun == nil or gun.reloadEndsAt ~= endsAt or current.hands.active ~= slot then
 			return
 		end
-		local done, rounds = CombatMath.finishReload(firearm, gun, now(), ammoCarried(player, ammo))
-		if rounds > 0 and not Inventory.take(player, { { itemId = ammo, count = rounds } }, "Ammo") then
-			done = CombatMath.cancelReload(gun)
-		end
-		current.hands = Hands.setGun(current.hands, done)
+		current.hands = Hands.setGun(current.hands, CombatMath.finishReload(firearm, gun, now()))
 		sendHands(player, current)
 	end)
 end
@@ -695,21 +645,10 @@ function Combat.start()
 			end
 		end
 	end)
-	Lobby.exited:Connect(function(player: Player, run: Lobby.Run, outcome: string)
+	Lobby.exited:Connect(function(player: Player)
 		Combat.setSneaking(player, false)
 		player:SetAttribute("Sneaking", nil)
-		local fighter = fighters[player]
 		fighters[player] = nil
-		if fighter == nil then
-			return
-		end
-		-- Rounds left in the magazines go back in the bag before the trip home, unless
-		-- the guns themselves were lost (Black fog drops equipped gear on death).
-		local rule = tuning.lobby.drops[run.hosted.location.fogTier]
-		local gunsLost = (outcome == "died" or outcome == "lost") and rule ~= nil and rule.equipment
-		if not gunsLost then
-			giveBack(player, Hands.loadedRounds(fighter.hands, Items))
-		end
 	end)
 	Lobby.addRunState("stamina", function(player: Player): any
 		local fighter = fighters[player]

@@ -33,7 +33,7 @@ end
 
 local function carried(): Inventory.Inventory
 	local inventory = Inventory.new(2, 2)
-	inventory.pockets[1] = { itemId = "item.light_rounds", count = 12 }
+	inventory.pockets[1] = { itemId = "item.niter", count = 12 }
 	inventory.backpack[1] = { itemId = "item.scrap", count = 20 }
 	return inventory
 end
@@ -280,7 +280,7 @@ return function(test: TestKit.Register)
 		local result = Lobby.loseToFog(lobby, 1, T0 + 900, CONFIG, DEATH, death())
 		TestKit.equal(result.drop, nil)
 		TestKit.equal(result.equipment.weapon.count, 0, "Black fog takes the equipped gun too")
-		TestKit.equal(Inventory.count(result.inventory, "item.light_rounds"), 0)
+		TestKit.equal(Inventory.count(result.inventory, "item.niter"), 0)
 		TestKit.equal(next(lobby.drops), nil)
 		TestKit.equal(lobby.members[1].state, "lost")
 	end)

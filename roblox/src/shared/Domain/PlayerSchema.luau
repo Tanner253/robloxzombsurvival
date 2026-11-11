@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 10
+PlayerSchema.VERSION = 11
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -475,14 +475,8 @@ local LEGACY_V7_LINES: { Types.RecipeDef } = {
 		craftSeconds = 4 * 60,
 		unlock = { kind = "default" },
 	},
-	{
-		id = "recipe.blackpowder",
-		inputs = { { itemId = "item.niter", count = 2 } },
-		outputs = { { itemId = "item.blackpowder", count = 2 } },
-		stationId = "station.ammo_press",
-		craftSeconds = 6 * 60,
-		unlock = { kind = "default" },
-	},
+	-- v7's powder line (2 niter -> 2 powder) went with its station in v11; migrateToV11
+	-- empties any station saved on it.
 }
 
 local function legacyLine(stationId: string, itemId: string): Types.RecipeDef?
@@ -497,7 +491,7 @@ end
 --[[
 	v8, the economy rescale (docs/ECONOMY.md §11.3). Nothing owned is lost:
 	- A station loaded with the input of a line whose rule changed (planks 1:1, blocks and
-	  plates at the Workbench, powder 2:2) is settled under the v7 rule: the batches done by
+	  plates at the Workbench) is settled under the v7 rule: the batches done by
 	  `now` (and while its fuel lasted) become outputs, and outputs, leftover input and
 	  unlit fuel all go to the inbox (source "Update"). The station restarts empty at its
 	  level. The scrap_plate line held scrap; it now takes ingots.
@@ -595,6 +589,133 @@ function PlayerSchema.migrateToV8(data: { [string]: any }, now: number)
 
 	if type(data.locationQuests) ~= "table" then
 		data.locationQuests = {}
+	end
+	data.inboxSeq = seq
+end
+
+--[[
+	v11, no ammo (DECISIONS 2026-11-08; flow review F-13). Guns and the bow fire on
+	durability alone, so the ammo items, their recipes and the Ammo Press are gone.
+	Nothing owned is lost:
+	- Every stack of a removed item (Fire-Hardened Arrows, Light Rounds, Scrap Shells,
+	  Blackpowder) becomes item.scrap, one for one, wherever it is: pockets, backpack,
+	  equipment, crates, the inbox and station slots. What a slot can't hold over scrap's
+	  stack size goes to the inbox (source "Update"), as v7 did.
+	- A station saved as the Ammo Press (no longer a station) is emptied into the inbox,
+	  its powder as scrap, and its record goes.
+	- The removed recipes leave the unlocks and the catalogue's marks.
+	The Signal Flare stays: it is what the Black-fog flare extract burns, not a round.
+]]
+PlayerSchema.V11_REMOVED_ITEMS = {
+	["item.arrow"] = true,
+	["item.light_rounds"] = true,
+	["item.shells"] = true,
+	["item.blackpowder"] = true,
+} :: { [string]: boolean }
+local V11_REMOVED_RECIPES = { "recipe.arrow", "recipe.light_rounds", "recipe.shells", "recipe.blackpowder" }
+local V11_SCRAP = "item.scrap"
+
+function PlayerSchema.migrateToV11(data: { [string]: any }, now: number)
+	local removed = PlayerSchema.V11_REMOVED_ITEMS
+	local inbox: { any } = if type(data.inbox) == "table" then data.inbox :: any else {}
+	data.inbox = inbox
+	local seq = if type(data.inboxSeq) == "number" then data.inboxSeq else 0
+	local function toInbox(itemId: any, count: any, durability: number?)
+		if type(itemId) ~= "string" or itemId == "" or type(count) ~= "number" or count <= 0 then
+			return
+		end
+		seq += 1
+		table.insert(inbox, {
+			id = `i{seq}`,
+			itemId = if removed[itemId] then V11_SCRAP else itemId,
+			count = count,
+			durability = if removed[itemId] then nil else durability,
+			source = "Update",
+			at = now,
+		})
+	end
+	local scrapStack = Items[V11_SCRAP].stackSize
+	local function convert(slot: any)
+		if type(slot) ~= "table" or type(slot.itemId) ~= "string" or not removed[slot.itemId] then
+			return
+		end
+		slot.itemId = V11_SCRAP
+		slot.durability = nil
+		if type(slot.count) == "number" and slot.count > scrapStack then
+			toInbox(V11_SCRAP, slot.count - scrapStack)
+			slot.count = scrapStack
+		end
+	end
+	local function convertAll(container: any)
+		if type(container) == "table" then
+			for _, slot in container do
+				convert(slot)
+			end
+		end
+	end
+
+	-- The inbox has no stack limit: its rows just change item.
+	for _, entry in inbox do
+		if type(entry) == "table" and type(entry.itemId) == "string" and removed[entry.itemId] then
+			entry.itemId = V11_SCRAP
+			entry.durability = nil
+		end
+	end
+
+	local inventory = data.inventory
+	if type(inventory) == "table" then
+		convertAll(inventory.pockets)
+		convertAll(inventory.backpack)
+		convertAll(inventory.equipment)
+	end
+	if type(data.storage) == "table" then
+		for _, container in data.storage do
+			convertAll(container)
+		end
+	end
+
+	local stations: { [string]: any } = if type(data.stations) == "table" then data.stations :: any else {}
+	for uid, record in stations do
+		if type(record) ~= "table" then
+			continue
+		end
+		if Stations[record.stationId] == nil then
+			-- The Ammo Press (or anything else no longer a station): empty it, drop it.
+			local input, fuel = record.input, record.fuel
+			if type(input) == "table" then
+				toInbox(input.itemId, input.count, input.durability)
+			end
+			if type(fuel) == "table" then
+				toInbox(fuel.itemId, fuel.count, fuel.durability)
+			end
+			if type(record.output) == "table" then
+				for _, slot in record.output do
+					if type(slot) == "table" then
+						toInbox(slot.itemId, slot.count, slot.durability)
+					end
+				end
+			end
+			stations[uid] = nil
+			continue
+		end
+		convert(record.input)
+		convert(record.fuel)
+		convertAll(record.output)
+	end
+	data.stations = stations
+
+	for _, field in { "unlocks", "recipeMarks" } do
+		local marks = data[field]
+		if type(marks) ~= "table" then
+			continue
+		end
+		for _, set in marks do
+			if type(set) == "table" then
+				for _, recipeId in V11_REMOVED_RECIPES do
+					set[recipeId] = nil
+				end
+			end
+		end
 	end
 	data.inboxSeq = seq
 end
@@ -697,6 +818,11 @@ PlayerSchema.migrations = {
 			end
 			counts["product.backpack_upgrade"] = nil
 		end
+	end,
+	-- v11: no ammo (F-13): removed ammo becomes scrap and the Ammo Press empties into the
+	-- inbox. See migrateToV11.
+	[10] = function(data)
+		PlayerSchema.migrateToV11(data, os.time())
 	end,
 } :: Migrations.Steps
 

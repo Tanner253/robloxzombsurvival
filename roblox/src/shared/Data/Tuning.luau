@@ -69,7 +69,7 @@ local Tuning: Types.TuningDef = {
 	combat = {
 		armorConstant = 50 / 3, -- LDoE's damage reduction formula
 		-- Durability (docs/ECONOMY.md §8.1): everything wears out at LDoE's rate or faster.
-		weaponDurabilityPerHit = 1, -- a landed light hit; each arrow released
+		weaponDurabilityPerHit = 1, -- a landed light hit; each bow shot released
 		heavyDurabilityPerHit = 2, -- a landed heavy swing
 		gunDurabilityPerShot = 1, -- every round fired, hit or miss (a shotgun shell is a round)
 		durabilityWarn = { 0.25, 0.10 }, -- the weapon ring turns amber, then red with a toast

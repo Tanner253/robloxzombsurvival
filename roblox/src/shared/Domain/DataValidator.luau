@@ -13,8 +13,8 @@
 	- every reference (items, recipes, stations, nodes, loot tables, enemies,
 	  locations, build pieces, quests, blueprint gates) points at an entry
 	- counts, weights, ranges, levels, chances and timings are sane
-	- item fields match their category (tools have tool stats, ranged weapons name
-	  an ammo item, armor has an equip slot, and so on)
+	- item fields match their category (tools have tool stats, ranged weapons have
+	  firearm or bow stats, armor has an equip slot, and so on)
 	- build tiers chain the way Domain/Grid refunds them: an upgrade goes up exactly
 	  one tier of the same kind, each piece is upgraded into from at most one
 	  piece, and every structural tier above 1 has a lower tier below it
@@ -188,6 +188,15 @@ local function isChance(value: number): boolean
 end
 
 -- Fog Runs: melee, firearm and bow stats (Domain/Combat).
+local function checkFlare(errors: Errors, where: string, flare: Types.FlareStats)
+	if flare.lightRadius <= 0 or flare.seconds <= 0 or flare.fleeRadius <= 0 then
+		push(errors, `{where}: lightRadius, seconds and fleeRadius must be positive`)
+	end
+	if flare.burnDps < 0 or flare.burnSeconds < 0 then
+		push(errors, `{where}: burnDps and burnSeconds must not be negative`)
+	end
+end
+
 local function checkWeaponStats(errors: Errors, where: string, weapon: Types.WeaponStats)
 	if weapon.critChance ~= nil and not isChance(weapon.critChance) then
 		push(errors, `{where}: critChance must be between 0 and 1`)
@@ -217,6 +226,9 @@ local function checkWeaponStats(errors: Errors, where: string, weapon: Types.Wea
 	end
 	local gun = weapon.firearm
 	if gun then
+		if gun.flare then
+			checkFlare(errors, `{where}.firearm.flare`, gun.flare)
+		end
 		if gun.fireInterval <= 0 or gun.reloadSeconds <= 0 or gun.projectileSpeed <= 0 or gun.noiseRadius <= 0 then
 			push(
 				errors,
@@ -247,8 +259,8 @@ local function checkWeaponStats(errors: Errors, where: string, weapon: Types.Wea
 		if bow.drawSeconds <= 0 or bow.projectileSpeed <= 0 then
 			push(errors, `{where}.bow: drawSeconds and projectileSpeed must be positive`)
 		end
-		if bow.minDraw < 0 or bow.minDraw >= 1 or not isChance(bow.recoveryChance) then
-			push(errors, `{where}.bow: need 0 <= minDraw < 1 and recoveryChance in [0, 1]`)
+		if bow.minDraw < 0 or bow.minDraw >= 1 then
+			push(errors, `{where}.bow: need 0 <= minDraw < 1`)
 		end
 	end
 end
@@ -314,31 +326,14 @@ local function checkItems(errors: Errors, content: Types.Content)
 			if weapon.damage <= 0 or weapon.attacksPerSecond <= 0 or weapon.range <= 0 then
 				push(errors, `{where}.weapon: damage, attacksPerSecond and range must be positive`)
 			end
-			if weapon.kind == "ranged" then
-				local ammo = if weapon.ammoItemId then content.Items[weapon.ammoItemId] else nil
-				if weapon.ammoItemId == nil then
-					push(errors, `{where}.weapon: ranged weapons need an ammoItemId`)
-				elseif ammo == nil then
-					push(errors, `{where}.weapon: unknown item '{weapon.ammoItemId}'`)
-				elseif ammo.category ~= "ammo" then
-					push(errors, `{where}.weapon: '{weapon.ammoItemId}' is not an ammo item`)
-				end
-			elseif weapon.ammoItemId ~= nil then
-				push(errors, `{where}.weapon: melee weapons take no ammo`)
-			end
 			checkWeaponStats(errors, `{where}.weapon`, weapon)
 		end
 		if item.flare then
-			if category ~= "ammo" then
-				push(errors, `{where}: only ammo can burn as a flare`)
+			-- The Signal Flare: what the Black-fog flare extract burns (Services/Extraction).
+			if category ~= "consumable" then
+				push(errors, `{where}: only a consumable can burn as a signal flare`)
 			end
-			local flare = item.flare
-			if flare.lightRadius <= 0 or flare.seconds <= 0 or flare.fleeRadius <= 0 then
-				push(errors, `{where}.flare: lightRadius, seconds and fleeRadius must be positive`)
-			end
-			if flare.burnDps < 0 or flare.burnSeconds < 0 then
-				push(errors, `{where}.flare: burnDps and burnSeconds must not be negative`)
-			end
+			checkFlare(errors, `{where}.flare`, item.flare)
 		end
 		if item.armor and item.armor.defense <= 0 then
 			push(errors, `{where}.armor: defense must be positive`)

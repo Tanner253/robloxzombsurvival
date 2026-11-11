@@ -237,7 +237,7 @@ local function fogRunScenes(): { Scene }
 				id = "b1",
 				mine = true,
 				position = { x = 6, z = 4 },
-				backpack = { slot("item.light_rounds", 12), slot("item.rations", 1), slot("item.niter", 4) },
+				backpack = { slot("item.flare", 8), slot("item.rations", 1), slot("item.niter", 4) },
 				equipment = { slot("item.pipe_pistol", 1, 60) },
 			},
 		},
@@ -247,7 +247,7 @@ local function fogRunScenes(): { Scene }
 	local lost = {}
 	for index, itemId in
 		{
-			"item.light_rounds",
+			"item.flare",
 			"item.rations",
 			"item.niter",
 			"item.steel_pipe",
@@ -330,7 +330,7 @@ local function fogRunScenes(): { Scene }
 				search = { startedAt = now, endsAt = now + 30 },
 				arrival = { at = os.clock(), locationId = "loc.pine_hollow" },
 				travelBonus = {
-					items = { slot("item.light_rounds", 6), slot("item.rations", 1), slot("item.niter", 3) },
+					items = { slot("item.flare", 6), slot("item.rations", 1), slot("item.niter", 3) },
 				},
 			},
 			ui = { panel = "none" },
@@ -342,7 +342,7 @@ local function fogRunScenes(): { Scene }
 				loot = {
 					kind = "container",
 					id = "c1",
-					items = { slot("item.light_rounds", 8), slot("item.scrap", 6), slot("item.niter", 2) },
+					items = { slot("item.flare", 8), slot("item.scrap", 6), slot("item.niter", 2) },
 				},
 			},
 			ui = { panel = "inventory" },

@@ -127,8 +127,6 @@ export type Model = {
 	gunHitShare: number,
 	gunShotsPerRun: { number }, -- by fog tier, once the gun exists
 	gunRecipe: string,
-	roundsRecipe: string,
-	roundsReserve: number,
 	earlyWeapon: string, -- recipe ids
 	lateWeapon: string,
 	lateWeaponFromGoal: number,
@@ -164,9 +162,10 @@ export type Model = {
 	recycle: { string },
 	fuelOrder: { string },
 	fuelKeep: { [string]: number }, -- never burn below this stock
-	lineWants: { [string]: number }, -- station outputs kept at a fixed stock (food, powder)
+	lineWants: { [string]: number }, -- station outputs kept at a fixed stock (food)
 	lineBoost: { [string]: number }, -- line score multipliers (food before coal)
 	questBoost: number?, -- line score multiplier for a craft an open later quest still asks for
+	questRunValue: number?, -- run score added where an open later quest still asks for a run
 	plankFloat: { below: number, extra: number, yieldsTo: { string } }, -- planks kept in stock
 	glue: { early: number, late: number, fromGoal: number },
 	coal: { stock: number, below: number, stationLevel: number },
@@ -174,15 +173,12 @@ export type Model = {
 		cord: string,
 		cordRecipe: string, -- the hand recipe cord comes from (expanded like a station line)
 		fuelStation: string, -- whose fuel list gives burn times
-		ammoStation: string, -- the build piece that makes rounds worth stocking
 		fiber: string,
 		plank: string,
 		timber: string,
 		murky: string,
 		rawMeat: string,
 		fatwood: string,
-		powder: string,
-		rounds: string,
 		dressing: string,
 		cloth: string,
 		glue: string,
@@ -683,10 +679,9 @@ function PacingSim.run(content: Content, model: Model): Result
 				end
 			end
 		end
-		if (built[ids.ammoStation] or 0) > 0 and (built["craft:" .. model.gunRecipe] or 0) > 0 then
-			local rounds = content.Recipes[model.roundsRecipe]
-			local short = math.max(0, model.roundsReserve - have(ids.rounds))
-			addAll(handInputs(model.roundsRecipe), short / rounds.outputs[1].count)
+		-- Once the gun exists, the parts for the next one are worth stocking: a gun runs on
+		-- durability alone (no rounds), so re-crafts are its only sink.
+		if (built["craft:" .. model.gunRecipe] or 0) > 0 then
 			addAll(handInputs(model.gunRecipe), 1)
 		end
 		local h, d = foodPoints()
@@ -1336,13 +1331,8 @@ function PacingSim.run(content: Content, model: Model): Result
 				stats.gunsCrafted += 1
 				noteCraft(model.gunRecipe, 1)
 			end
-			local rounds = content.Recipes[model.roundsRecipe]
-			while have(ids.rounds) < shots and take(handInputs(model.roundsRecipe)) do
-				add(store, ids.rounds, rounds.outputs[1].count)
-			end
-			if gunLeft >= shots and have(ids.rounds) >= shots then
+			if gunLeft >= shots then
 				gunLeft -= shots
-				store[ids.rounds] -= shots
 				local weapon = gunItem.weapon :: Types.WeaponStats
 				gunHp = shots * weapon.damage * model.gunHitShare
 				stats.shots += shots
@@ -1592,6 +1582,20 @@ function PacingSim.run(content: Content, model: Model): Result
 			end
 			value *= model.keep[location.tier]
 			value += plan.xp * (if gated then model.xpWeightGated else model.xpWeight)
+			-- An open later quest that still wants a run here (or of this tier) is where the
+			-- player goes next: the trail marks it (the Stranded Caravan's Dense run).
+			for _, entry in model.laterQuests do
+				local since = openedWith[entry.questId]
+				if since == nil or laterPaid[entry.questId] or entry.runs == nil then
+					continue
+				end
+				for key, count in entry.runs :: { [string]: number } do
+					local done = (tally.runs[key] or 0) - (since.runs[key] or 0)
+					if (key == location.id or key == `tier{location.tier}`) and done < count then
+						value += model.questRunValue or 0
+					end
+				end
+			end
 			local walk: boolean? = nil
 			local spend = 0
 			if energy >= location.energy then
