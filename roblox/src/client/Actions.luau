@@ -74,6 +74,13 @@ function Actions.toggleFogMap()
 	Sfx.play(if State.ui().panel == "fogmap" then "uiOpen" else "uiClose")
 end
 
+-- The full-screen map of the Neighbourhood (a tap on the minimap at home, or M while the
+-- Fog map is off; checklist 8.11).
+function Actions.toggleAreaMap()
+	State.toggle("areamap")
+	Sfx.play(if State.ui().panel == "areamap" then "uiOpen" else "uiClose")
+end
+
 -- Run or Walk to a location (the Fog map's buttons). The server checks the Trailhead,
 -- level, Energy and party.
 function Actions.travel(locationId: string, mode: "run" | "walk")

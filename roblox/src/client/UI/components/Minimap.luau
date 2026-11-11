@@ -1,292 +1,599 @@
 --!strict
 --[[
-	Minimap: the round home minimap (checklist 8.11, LDOE_PARITY #6-7), centred on you,
-	north up: the terrain tint, your outpost, the plots' nodes, the edge pines and your
-	arrow. Shared by the slice-1 HUD and the LDoE HUD.
+	Minimap: LDoE's round radar (checklist 8.11, LDOE_PARITY #6-7; rec1, rec6, rec8), one
+	component for home, the Neighbourhood and every Fog Run map.
+
+	- The background is the map's picture (Controllers/Radar: MapData drawn by
+	  components/MapCanvas in the Fog map's illustrated style), built once per map. Every
+	  frame (RenderStepped, after the camera) it pans under the centred arrow, turned so
+	  the camera's view is up, as in LDoE; only the parts near the view are drawn.
+	- The arrow turns smoothly with the survivor's facing; the N on the rim marks north.
+	- Live icons, placed every frame: Hollow (alerted or in sight), containers (searched
+	  ones dimmed), your stations (a teal badge when output is ready), bags (yours a red
+	  X), party members, other survivors at home, Haven's people, and the exits and the
+	  Trailhead, kept on the rim when off the radar.
+	- Zoom: the mouse wheel over the map (the camera keeps the wheel elsewhere) or a
+	  pinch on it, eased. Expand: a tap or click opens the full-screen map (at home the
+	  Neighbourhood map, on a Fog Run the Fog map).
+	Shared by the slice-1 HUD, the LDoE HUD and the Fog Run HUD (RunHud.RunMinimap).
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.Packages.React)
-local Content = require(ReplicatedStorage.Shared.Data)
-local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
-local Converter = require(ReplicatedStorage.Shared.Domain.Converter)
+local Art = require(ReplicatedStorage.Shared.Art)
+local MapData = require(ReplicatedStorage.Shared.Domain.MapData)
+local Actions = require("../../Actions")
+local Camera = require("../../Controllers/Camera")
+local Radar = require("../../Controllers/Radar")
 local Theme = require("../theme")
-local hooks = require("../hooks")
 local mark = require("../mark")
+local MapCanvas = require("./MapCanvas")
 
 local e = React.createElement
 
--- Home minimap (8.11): your outpost from above, north up, with you on it -------------------------------
+local SIZE = Theme.hud.minimap
+-- How far the radar reaches (studs from you to its rim), zoomed with the wheel or a pinch.
+local REACH_MIN, REACH_MAX, REACH_DEFAULT = 36, 240, 62
+local ZOOM_RATE = 14
+local TURN_RATE = 22
+local RIM_INSET = 3 -- icons stop this far inside the ring
+local PIN_INSET = 15 -- rim-pinned markers sit this far in (clear of the N badge on the ring)
+local BUCKET_MOVE = 20 -- studs moved before the drawn buckets are re-chosen
 
-local MAP_SIZE = 168
+local HOLLOW = Color3.fromHex("D2503F")
+local EXIT_GREEN = Color3.fromHex("5CC86E")
+local PARTY = Color3.fromHex("4FA3E0")
+local BAG_MINE = Color3.fromHex("E0503C")
+local CRATE = Color3.fromRGB(214, 182, 120)
+local INK = Color3.fromHex("0B0D10")
 
--- The map is centred on you and reaches MAP_RADIUS studs; the terrain under it is sampled
--- (top voxel per TILE-stud tile) and re-sampled only after you move RESAMPLE studs, so the
--- tint layer re-renders rarely while the rest follows you every tick.
-local MAP_RADIUS = 110
-local TILE = 8
-local RESAMPLE = 40
-local TERRAIN_TINT: { [Enum.Material]: Color3 } = {
-	[Enum.Material.Grass] = Color3.fromRGB(86, 102, 64),
-	[Enum.Material.LeafyGrass] = Color3.fromRGB(64, 86, 54),
-	[Enum.Material.Ground] = Color3.fromRGB(110, 98, 80),
-	[Enum.Material.Mud] = Color3.fromRGB(84, 72, 58),
-	[Enum.Material.Sand] = Color3.fromRGB(124, 116, 82),
-	[Enum.Material.Basalt] = Color3.fromRGB(52, 48, 46),
-}
-
-type Tile = { x: number, z: number, color: Color3 }
-local terrainCentre: Vector3? = nil
-local terrainTiles: { Tile } = {}
-
-local function sampleTerrain(centre: Vector3)
-	local reach = MAP_RADIUS + TILE * 2
-	local lo = Vector3.new(centre.X - reach, -8, centre.Z - reach)
-	local region = Region3.new(lo, lo + Vector3.new(reach * 2, 28, reach * 2)):ExpandToGrid(4)
-	local ok, materials = pcall(function()
-		return (workspace.Terrain:ReadVoxels(region, 4)) :: any
-	end)
-	if not ok then
-		return
-	end
-	local size: Vector3 = materials.Size
-	local corner = region.CFrame.Position - region.Size / 2
-	local tiles: { Tile } = {}
-	local step = TILE // 4
-	for ix = 1, size.X, step do
-		for iz = 1, size.Z, step do
-			for iy = size.Y, 1, -1 do
-				local material = materials[ix][iy][iz]
-				if material ~= Enum.Material.Air then
-					local tint = TERRAIN_TINT[material]
-					if tint then
-						table.insert(tiles, {
-							x = corner.X + (ix - 1) * 4,
-							z = corner.Z + (iz - 1) * 4,
-							color = tint,
-						})
-					end
-					break
-				end
-			end
-		end
-	end
-	terrainTiles = tiles
-	terrainCentre = centre
-end
-
--- The tint tiles, in world studs relative to `anchor`; memoised so it re-renders only on a resample.
-local TerrainLayer = React.memo(function(props: { tiles: { Tile }, anchor: Vector3, scale: number })
-	local children: { [string]: any } = {}
-	local px = math.ceil(TILE * props.scale) + 1
-	for index, tile in props.tiles do
-		children[`T{index}`] = e("Frame", {
-			Size = UDim2.fromOffset(px, px),
-			Position = UDim2.fromOffset(
-				(tile.x - props.anchor.X) * props.scale,
-				(tile.z - props.anchor.Z) * props.scale
-			),
-			BackgroundColor3 = tile.color,
-			BorderSizePixel = 0,
-		})
-	end
-	return e("Folder", {}, children)
-end)
-
--- Tree and node positions: the edge pines never move (read once); nodes are re-read each tick.
-local edgeTreeSpots: { Vector3 }? = nil
-local function edgeTrees(): { Vector3 }
-	if edgeTreeSpots then
-		return edgeTreeSpots
-	end
-	local world = workspace:FindFirstChild("World")
-	local dressing = world and world:FindFirstChild("Dressing")
-	local edges = dressing and dressing:FindFirstChild("Edges")
-	if edges == nil or #edges:GetChildren() == 0 then
-		return {}
-	end
-	local spots = {}
-	for _, tree in edges:GetChildren() do
-		if tree:IsA("Model") then
-			table.insert(spots, tree:GetPivot().Position)
-		end
-	end
-	edgeTreeSpots = spots
-	return spots
-end
+local reachTarget = REACH_DEFAULT -- kept for the session
+local reach = REACH_DEFAULT
+local instances = 0
 
 export type Props = {
 	position: UDim2?, -- defaults to the slice-1 HUD's spot (top right)
 	anchorPoint: Vector2?,
+	ring: Color3?, -- the rim's colour (a Fog Run's fog tier)
 }
 
-local function Minimap(props: Props?)
-	local plot = hooks.useSection("plot")
-	local saved = hooks.useSection("layout")
-	local stations = hooks.useSection("stations")
-	hooks.useClock(0.25)
-	local character = Players.LocalPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if type(plot) ~= "table" or type(saved) ~= "table" or root == nil then
-		return nil
+-- Icons ---------------------------------------------------------------------------------------------
+
+local function corner(parent: Instance, radius: UDim?)
+	local round = Instance.new("UICorner")
+	round.CornerRadius = radius or UDim.new(1, 0)
+	round.Parent = parent
+end
+
+local function stroke(parent: Instance, color: Color3, thickness: number, transparency: number?)
+	local line = Instance.new("UIStroke")
+	line.Color = color
+	line.Thickness = thickness
+	line.Transparency = transparency or 0
+	line.Parent = parent
+end
+
+local function box(parent: Instance?, size: number, color: Color3): Frame
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromOffset(size, size)
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(0.5, 0.5)
+	frame.BackgroundColor3 = color
+	frame.BorderSizePixel = 0
+	frame.Parent = parent
+	return frame
+end
+
+-- One icon for a blip (a holder frame centred on the blip's spot).
+local function makeIcon(blip: Radar.Blip): Frame
+	local holder = Instance.new("Frame")
+	holder.Name = blip.key
+	holder.Size = UDim2.fromOffset(0, 0)
+	holder.AnchorPoint = Vector2.new(0.5, 0.5)
+	holder.BackgroundTransparency = 1
+	holder.Visible = false
+	local kind = blip.kind
+	if kind == "hollow" then
+		local dot = box(holder, 7, HOLLOW)
+		corner(dot)
+		stroke(dot, INK, 1, 0.2)
+		holder.ZIndex = 4
+	elseif kind == "container" then
+		local crate = box(holder, 6, if blip.dim then Color3.fromRGB(120, 116, 108) else CRATE)
+		crate.BackgroundTransparency = if blip.dim then 0.45 else 0
+		corner(crate, UDim.new(0, 1))
+		stroke(crate, INK, 1, if blip.dim then 0.6 else 0.2)
+		holder.ZIndex = 2
+	elseif kind == "station" then
+		local station = box(holder, 7, Theme.colors.accentSoft)
+		corner(station, UDim.new(0, 2))
+		stroke(station, INK, 1, 0.15)
+		if blip.ready then
+			-- LDoE's teal ready badge (LDOE_PARITY #7).
+			local badge = box(holder, 8, Theme.colors.badge)
+			badge.Position = UDim2.new(0.5, 5, 0.5, -5)
+			corner(badge)
+			stroke(badge, Theme.colors.text, 1.2)
+		end
+		holder.ZIndex = 3
+	elseif kind == "bag" then
+		local color = if blip.mine then BAG_MINE else Theme.colors.textMuted
+		for _, turn in { 45, -45 } do
+			local arm = box(holder, 0, color)
+			arm.Size = UDim2.fromOffset(if blip.mine then 11 else 8, if blip.mine then 3 else 2)
+			arm.Rotation = turn
+			stroke(arm, INK, 1, 0.3)
+		end
+		holder.ZIndex = 5
+	elseif kind == "party" then
+		local dot = box(holder, 8, PARTY)
+		corner(dot)
+		stroke(dot, Theme.colors.text, 1.5)
+		holder.ZIndex = 6
+	elseif kind == "survivor" then
+		local dot = box(holder, 6, Theme.colors.text)
+		corner(dot)
+		stroke(dot, INK, 1, 0.3)
+		holder.ZIndex = 5
+	elseif kind == "exit" then
+		local color = if blip.dim then Theme.colors.disabledStroke else EXIT_GREEN
+		local ring = box(holder, 11, INK)
+		ring.BackgroundTransparency = 0.45
+		corner(ring)
+		stroke(ring, color, 2.5)
+		local core = box(holder, 4, color)
+		corner(core)
+		holder.ZIndex = 6
+	elseif kind == "npc" or kind == "fire" then
+		local back = box(holder, 15, Theme.colors.panel)
+		back.BackgroundTransparency = 0.15
+		corner(back)
+		stroke(back, Theme.colors.strokeWarm, 1)
+		local glyph = Instance.new("ImageLabel")
+		glyph.Size = UDim2.fromOffset(11, 11)
+		glyph.Position = UDim2.fromScale(0.5, 0.5)
+		glyph.AnchorPoint = Vector2.new(0.5, 0.5)
+		glyph.BackgroundTransparency = 1
+		local name = blip.glyph or "campfire"
+		glyph.Image = (Art.glyphs :: any)[name] or ""
+		glyph.ImageColor3 = if kind == "fire" then Theme.colors.accentSoft else Theme.colors.highlight
+		glyph:SetAttribute("Glyph", name)
+		glyph.Parent = back
+		holder.ZIndex = 3
+	elseif kind == "noise" then
+		-- A ring the size of the noise's reach, fading out (sized every frame).
+		local ring = box(holder, 0, INK)
+		ring.Name = "Ring"
+		ring.Size = UDim2.fromScale(1, 1)
+		ring.BackgroundTransparency = 1
+		corner(ring)
+		stroke(ring, Theme.colors.threat, 2)
+		holder.ZIndex = 1
 	end
-	local you = (root :: BasePart).Position
-	if terrainCentre == nil or (Vector3.new(you.X, 0, you.Z) - (terrainCentre :: Vector3)).Magnitude > RESAMPLE then
-		sampleTerrain(Vector3.new(you.X, 0, you.Z))
-	end
-	local scale = (MAP_SIZE / 2) / MAP_RADIUS
-	local function at(world: Vector3): UDim2
-		return UDim2.fromOffset(MAP_SIZE / 2 + (world.X - you.X) * scale, MAP_SIZE / 2 + (world.Z - you.Z) * scale)
-	end
-	local children: { [string]: any } = {
-		Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+	return holder
+end
+
+local function styleOf(blip: Radar.Blip): string
+	return `{blip.kind}|{blip.dim == true}|{blip.mine == true}|{blip.ready == true}|{blip.glyph or ""}`
+end
+
+-- The player arrow: a notched dart filled with a fan of bars from its tip (no image, no
+-- Unicode arrow, 4.17), over a darker, larger copy for its outline.
+local function dart(scale: number, color: Color3, order: number): { [string]: any }
+	local tip = Vector2.new(0, -8.5) * scale
+	local outline = {
+		Vector2.new(-6.5, 7) * scale,
+		Vector2.new(0, 3) * scale,
+		Vector2.new(6.5, 7) * scale,
 	}
-	-- Terrain tint (grass, litter, earth, the road, dry grass), moving with you.
-	local anchor = terrainCentre :: Vector3
-	children.Terrain = e("Frame", {
-		Size = UDim2.fromOffset(0, 0),
-		Position = at(anchor),
-		BackgroundTransparency = 1,
-	}, { Tiles = e(TerrainLayer, { tiles = terrainTiles, anchor = anchor, scale = scale }) })
-	-- Your outpost: floors, walls and objects.
-	local layout = Grid.deserialize(saved, Content.BuildPieces :: any)
-	local origin: Vector3 = plot.origin
-	local cell = Grid.CELL_STUDS
-	local pieces: { [string]: any } = if layout then layout.pieces else {}
-	for uid, piece in pieces do
-		local def = Content.BuildPieces[piece.pieceId]
-		if def == nil then
-			continue
-		end
-		local corner = origin + Vector3.new(piece.x * cell, 0, piece.z * cell)
-		if piece.layer == "floor" then
-			children[`F{uid}`] = e("Frame", {
-				Size = UDim2.fromOffset(cell * scale + 1, cell * scale + 1),
-				Position = at(corner),
-				BackgroundColor3 = Color3.fromRGB(196, 160, 104),
-				BorderSizePixel = 0,
-				ZIndex = 2,
-			})
-		elseif piece.layer == "frame" then
-			local horizontal = piece.axis == "h"
-			children[`W{uid}`] = e("Frame", {
-				Size = if horizontal
-					then UDim2.fromOffset(cell * scale + 1, 2)
-					else UDim2.fromOffset(2, cell * scale + 1),
-				Position = at(corner),
-				AnchorPoint = if horizontal then Vector2.new(0, 0.5) else Vector2.new(0.5, 0),
-				BackgroundColor3 = Theme.colors.text,
-				BorderSizePixel = 0,
-				ZIndex = 3,
-			})
-		elseif piece.layer == "object" then
-			local cx, cz = Grid.objectCenter(def, piece :: any)
-			-- A station with output waiting shows LDoE's teal ready dot (LDOE_PARITY #7).
-			local record = if type(stations) == "table" then stations[uid] else nil
-			local ready = record ~= nil and Converter.ready(record) > 0
-			children[`O{uid}`] = e("Frame", {
-				Size = if ready then UDim2.fromOffset(7, 7) else UDim2.fromOffset(4, 4),
-				Position = at(origin + Vector3.new(cx, 0, cz)),
+	local bars: { [string]: any } = {}
+	local count = 0
+	for segment = 1, 2 do
+		local a, b = outline[segment], outline[segment + 1]
+		for step = 0, 6 do
+			local point = a:Lerp(b, step / 6)
+			local span = point - tip
+			count += 1
+			bars[`B{count}`] = e("Frame", {
+				Size = UDim2.fromOffset(span.Magnitude, 2.2 * scale),
+				Position = UDim2.fromOffset((tip.X + point.X) / 2, (tip.Y + point.Y) / 2),
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundColor3 = if ready
-					then Theme.colors.badge
-					elseif def.kind == "station" then Theme.colors.accent
-					else Theme.colors.highlight,
-				ZIndex = 4,
-			}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+				Rotation = math.deg(math.atan2(span.Y, span.X)),
+				BackgroundColor3 = color,
+				BorderSizePixel = 0,
+				ZIndex = order,
+			})
 		end
 	end
-	-- Trees and resource nodes within reach (8.11): every plot's nodes and the edge pines.
-	local function dot(key: string, world: Vector3, size: number, color: Color3)
-		if (Vector3.new(world.X, 0, world.Z) - Vector3.new(you.X, 0, you.Z)).Magnitude > MAP_RADIUS then
-			return
+	return bars
+end
+
+-- The component --------------------------------------------------------------------------------------
+
+local function Minimap(props: Props?)
+	local placement: Props = props or {}
+	local current, setCurrent = React.useState(Radar.current())
+	local features, setFeatures = React.useState(Radar.features())
+	local canvasRef = React.useRef(nil :: Frame?)
+	local scaleRef = React.useRef(nil :: UIScale?)
+	local pivotRef = React.useRef(nil :: Frame?)
+	local arrowRef = React.useRef(nil :: Frame?)
+	local northRef = React.useRef(nil :: TextLabel?)
+	local iconsRef = React.useRef(nil :: Frame?)
+	local hitRef = React.useRef(nil :: GuiObject?)
+	local pinchedAt = React.useRef(0)
+	-- The canvas's bucket frames (re-collected when the map or its features redraw), and
+	-- whether the drawn set must be re-chosen.
+	local bucketsRef = React.useRef({} :: { { frame: GuiObject, key: string } })
+	local bucketsDirty = React.useRef(true)
+	local headingRef = React.useRef(nil :: number?)
+
+	React.useEffect(function()
+		local a = Radar.changed:Connect(function()
+			setCurrent(Radar.current())
+		end)
+		local b = Radar.featuresChanged:Connect(function()
+			setFeatures(Radar.features())
+		end)
+		setCurrent(Radar.current())
+		setFeatures(Radar.features())
+		return function()
+			a:Disconnect()
+			b:Disconnect()
 		end
-		children[key] = e("Frame", {
-			Size = UDim2.fromOffset(size, size),
-			Position = at(world),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = color,
-			ZIndex = 3,
-		}, { Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-	end
-	for index, spot in edgeTrees() do
-		dot(`E{index}`, spot, 6, Color3.fromRGB(38, 66, 40))
-	end
-	local world = workspace:FindFirstChild("World")
-	local plotsFolder = world and world:FindFirstChild("Plots")
-	for _, plotModel in (if plotsFolder then plotsFolder:GetChildren() else {}) do
-		local nodes = plotModel:FindFirstChild("Nodes")
-		for index, node in (if nodes then nodes:GetChildren() else {}) do
-			local id = node:GetAttribute("NodeId")
-			if node:IsA("Model") and id and node:GetAttribute("Standing") ~= false then
-				local tree = id == "node.pine_tree"
-				dot(
-					`N{plotModel.Name}{index}`,
-					node:GetPivot().Position,
-					if tree then 5 else 3,
-					if tree then Color3.fromRGB(46, 84, 48) else Color3.fromRGB(196, 186, 160)
-				)
+	end, {})
+
+	-- Pinch zoom on a touch screen, when the pinch starts on the map.
+	React.useEffect(function()
+		local startReach = reachTarget
+		local active = false
+		local connection = UserInputService.TouchPinch:Connect(
+			function(positions: { Vector2 }, scale: number, _velocity: number, state: Enum.UserInputState)
+				local hit = hitRef.current
+				if hit == nil then
+					return
+				end
+				if state == Enum.UserInputState.Begin then
+					local first = positions[1] :: Vector2?
+					local inset = game:GetService("GuiService"):GetGuiInset()
+					local lo, size = hit.AbsolutePosition, hit.AbsoluteSize
+					local function inside(point: Vector2): boolean
+						return point.X >= lo.X
+							and point.X <= lo.X + size.X
+							and point.Y >= lo.Y
+							and point.Y <= lo.Y + size.Y
+					end
+					active = first ~= nil and (inside(first :: Vector2) or inside((first :: Vector2) - inset))
+					startReach = reachTarget
+				end
+				if active then
+					reachTarget = math.clamp(startReach / math.max(scale, 0.1), REACH_MIN, REACH_MAX)
+					pinchedAt.current = os.clock()
+				end
+				if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+					active = false
+				end
+			end
+		)
+		return function()
+			connection:Disconnect()
+		end
+	end, {})
+
+	React.useEffect(function()
+		bucketsRef.current = if canvasRef.current then MapCanvas.buckets(canvasRef.current :: Frame) else {}
+		bucketsDirty.current = true
+	end, { current, features } :: { any })
+
+	-- Every frame: pan, turn, zoom, and place the icons.
+	React.useEffect(function()
+		if current == nil then
+			return function() end
+		end
+		local map = (current :: Radar.Current).map
+		local origin = (current :: Radar.Current).origin
+		local bounds = map.bounds
+		local spanX, spanZ = math.round(bounds.x1 - bounds.x0), math.round(bounds.z1 - bounds.z0)
+		local lastBucketAt: Vector2? = nil
+		local lastBucketReach = 0
+		local icons: { [string]: { frame: Frame, style: string } } = {}
+		local blipList: { Radar.Blip }? = nil
+		local yaw = Camera.yaw()
+		local radius = SIZE / 2 - RIM_INSET
+
+		local function syncIcons(list: { Radar.Blip })
+			local parent = iconsRef.current
+			if parent == nil then
+				return
+			end
+			local keep: { [string]: boolean } = {}
+			for _, blip in list do
+				keep[blip.key] = true
+				local style = styleOf(blip)
+				local icon = icons[blip.key]
+				if icon == nil or icon.style ~= style then
+					if icon then
+						icon.frame:Destroy()
+					end
+					local frame = makeIcon(blip)
+					frame.Parent = parent
+					icons[blip.key] = { frame = frame, style = style }
+				end
+			end
+			for key, icon in icons do
+				if not keep[key] then
+					icon.frame:Destroy()
+					icons[key] = nil
+				end
 			end
 		end
+
+		local name = `EO_Minimap{instances}`
+		instances += 1
+		RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 2, function(dt: number)
+			local character = Players.LocalPlayer.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local canvas, uiScale, pivot = canvasRef.current, scaleRef.current, pivotRef.current
+			if root == nil or canvas == nil or uiScale == nil or pivot == nil then
+				return
+			end
+			local you = (root :: BasePart).Position
+			local lx, lz = you.X - origin.X, you.Z - origin.Z
+			-- Zoom eases to the wanted reach.
+			reach += (reachTarget - reach) * MapData.ease(ZOOM_RATE, dt)
+			local scale = (SIZE / 2) / reach
+			uiScale.Scale = scale
+			pivot.Rotation = MapData.mapRotation(yaw)
+			-- A UDim's offset is a whole number, so a pan by offsets would step a stud at a
+			-- time. The anchor point is a float: it pins your spot on the picture to the
+			-- pivot (the radar's middle), smooth to a fraction of a pixel.
+			canvas.AnchorPoint = Vector2.new((lx - bounds.x0) / spanX, (lz - bounds.z0) / spanZ)
+			-- Draw only the buckets near the view.
+			local here = Vector2.new(lx, lz)
+			if
+				bucketsDirty.current
+				or lastBucketAt == nil
+				or (here - lastBucketAt :: Vector2).Magnitude > BUCKET_MOVE
+				or math.abs(reach - lastBucketReach) > lastBucketReach * 0.08
+			then
+				bucketsDirty.current = false
+				lastBucketAt, lastBucketReach = here, reach
+				local near = MapData.bucketsNear(lx, lz, reach + BUCKET_MOVE, MapData.BUCKET)
+				for _, bucket in bucketsRef.current do
+					bucket.frame.Visible = near[bucket.key] == true
+				end
+			end
+			-- The arrow turns smoothly toward the survivor's facing.
+			local look = (root :: BasePart).CFrame.LookVector
+			local target = MapData.heading(look.X, look.Z, yaw)
+			local was = headingRef.current
+			local heading = if was == nil then target else MapData.easeAngle(was, target, MapData.ease(TURN_RATE, dt))
+			headingRef.current = heading
+			local arrow = arrowRef.current
+			if arrow then
+				arrow.Rotation = heading
+			end
+			local north = northRef.current
+			if north then
+				local nx, ny = MapData.project(0, -1, yaw, 1)
+				north.Position = UDim2.fromScale(0.5 + nx * (SIZE / 2 - 1) / SIZE, 0.5 + ny * (SIZE / 2 - 1) / SIZE)
+			end
+			-- Icons: re-matched when Radar gathers a new list, placed every frame.
+			local list = Radar.blips()
+			if list ~= blipList then
+				blipList = list
+				syncIcons(list)
+			end
+			for _, blip in list do
+				local icon = icons[blip.key]
+				if icon == nil then
+					continue
+				end
+				local at: Vector3? = blip.at
+				local instance = blip.instance
+				if instance then
+					if instance:IsA("BasePart") then
+						at = instance.Position
+					elseif instance:IsA("Model") and instance.Parent then
+						at = instance:GetPivot().Position
+					end
+				end
+				if at == nil then
+					icon.frame.Visible = false
+					continue
+				end
+				local sx, sy = MapData.project((at :: Vector3).X - you.X, (at :: Vector3).Z - you.Z, yaw, scale)
+				local visible = true
+				if blip.pin then
+					sx, sy = MapData.rim(sx, sy, radius - PIN_INSET)
+				else
+					visible = sx * sx + sy * sy <= (radius - 3) ^ 2
+				end
+				if visible and blip.kind == "noise" then
+					-- The ring grows to the noise's reach (kept inside the rim) and fades.
+					local age = os.clock() - (blip.born or 0)
+					local inside = radius - math.sqrt(sx * sx + sy * sy)
+					local ring = math.max(0, math.min((blip.radius or 0) * scale, inside))
+					icon.frame.Size = UDim2.fromOffset(ring * 2, ring * 2)
+					local line = icon.frame:FindFirstChild("Ring")
+					local ringStroke = line and line:FindFirstChildOfClass("UIStroke")
+					if ringStroke then
+						ringStroke.Transparency = math.clamp(age / Radar.NOISE_SECONDS, 0, 1)
+					end
+					visible = age < Radar.NOISE_SECONDS
+				end
+				icon.frame.Visible = visible
+				if visible then
+					-- In scale (a float), not offset (whole pixels), so icons glide.
+					icon.frame.Position = UDim2.fromScale(0.5 + sx / SIZE, 0.5 + sy / SIZE)
+				end
+			end
+		end)
+		return function()
+			RunService:UnbindFromRenderStep(name)
+			for _, icon in icons do
+				icon.frame:Destroy()
+			end
+		end
+	end, { current } :: { any })
+
+	React.useEffect(function()
+		return function()
+			Camera.holdWheel(false)
+		end
+	end, {})
+
+	if current == nil then
+		return nil
 	end
-	children.North = e("TextLabel", {
-		Size = UDim2.fromOffset(18, 18),
-		Position = UDim2.new(0.5, 0, 0, 4),
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundTransparency = 1,
-		FontFace = Theme.fonts.header,
-		Text = "N",
-		TextSize = Theme.textSize.caption,
-		TextColor3 = Theme.colors.highlight,
-		TextStrokeColor3 = Theme.colors.shadow,
-		TextStrokeTransparency = 0.3,
-		ZIndex = 6,
-	})
-	-- You: the arrow at the centre, turning with the survivor.
-	local look = (root :: BasePart).CFrame.LookVector
-	-- You: a chevron drawn from two bars, turning with the survivor (no Unicode arrow, 4.17).
-	local function bar(side: number): any
-		return e("Frame", {
-			Size = UDim2.fromOffset(3, 11),
-			Position = UDim2.new(0.5, side * 3, 0.5, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = Theme.colors.highlight,
-			BorderSizePixel = 0,
-			Rotation = -side * 32, -- tops lean in: a ^ pointing ahead
-		}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1 }) })
+	local map = (current :: Radar.Current).map
+	local span = Vector2.new(math.round(map.bounds.x1 - map.bounds.x0), math.round(map.bounds.z1 - map.bounds.z0))
+	local onRun = (current :: Radar.Current).kind == "run"
+
+	local function zoom(notches: number)
+		reachTarget = MapData.zoomBy(reachTarget, notches, REACH_MIN, REACH_MAX)
 	end
-	children.You = e("Frame", {
-		Size = UDim2.fromOffset(16, 16),
-		Position = UDim2.fromOffset(MAP_SIZE / 2, MAP_SIZE / 2),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundTransparency = 1,
-		Rotation = math.deg(math.atan2(look.X, -look.Z)),
-		ZIndex = 6,
-	}, { Left = bar(-1), Right = bar(1) })
-	-- A CanvasGroup clips its children to the round corner (a Frame clips only to its box).
-	local placement: Props = props or {}
+
 	return e("Frame", {
-		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
+		Size = UDim2.fromOffset(SIZE, SIZE),
 		Position = placement.position or UDim2.new(1, -16, 0, 80),
 		AnchorPoint = placement.anchorPoint or Vector2.new(1, 0),
 		BackgroundTransparency = 1,
-		-- One drawing for the UI gate: its tiles, walls and dots overlap on purpose.
+		-- One drawing for the UI gate: its picture, icons and ring overlap on purpose.
 		ref = mark.composite,
 	}, {
-		Map = e("CanvasGroup", {
+		Clip = e("CanvasGroup", {
 			Size = UDim2.fromScale(1, 1),
-			BackgroundColor3 = Color3.fromRGB(46, 58, 44),
+			BackgroundColor3 = Color3.fromRGB(150, 158, 160),
 			BorderSizePixel = 0,
-		}, children),
+			ZIndex = 1,
+		}, {
+			Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			Pivot = e("Frame", {
+				Size = UDim2.fromOffset(0, 0),
+				Position = UDim2.fromScale(0.5, 0.5),
+				BackgroundTransparency = 1,
+				Rotation = MapData.mapRotation(Camera.yaw()),
+				ref = pivotRef,
+			}, {
+				Scale = e("UIScale", { Scale = (SIZE / 2) / reach, ref = scaleRef }),
+				Canvas = e("Frame", {
+					Size = UDim2.fromOffset(span.X, span.Y),
+					BackgroundTransparency = 1,
+					ref = canvasRef,
+				}, {
+					Ground = e(MapCanvas.Ground, { map = map }),
+					Features = e(MapCanvas.Features, {
+						bounds = map.bounds,
+						outposts = features.outposts,
+						trees = features.trees,
+						rocks = features.rocks,
+						version = features.version,
+					}),
+				}),
+			}),
+			-- A soft dark rim inside the ring, as LDoE's radar has.
+			Vignette = e("Frame", {
+				Size = UDim2.new(1, -10, 1, -10),
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundTransparency = 1,
+				ZIndex = 5,
+			}, {
+				Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+				Shade = e("UIStroke", { Color = INK, Thickness = 5, Transparency = 0.55 }),
+			}),
+		}),
+		Icons = e("Frame", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+			ref = iconsRef,
+		}),
+		Arrow = e("Frame", {
+			Size = UDim2.fromOffset(0, 0),
+			Position = UDim2.fromScale(0.5, 0.5),
+			BackgroundTransparency = 1,
+			ZIndex = 3,
+			ref = arrowRef,
+		}, {
+			Outline = e(
+				"Frame",
+				{ Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1, ZIndex = 1 },
+				dart(1.35, INK, 1)
+			),
+			Fill = e(
+				"Frame",
+				{ Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1, ZIndex = 2 },
+				dart(1, Color3.new(1, 1, 1), 2)
+			),
+		}),
+		-- North: a small badge riding the ring, clear of the map's icons.
+		North = e("TextLabel", {
+			Size = UDim2.fromOffset(15, 15),
+			Position = UDim2.fromScale(0.5, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Theme.colors.panel,
+			BackgroundTransparency = 0.05,
+			FontFace = Theme.fonts.header,
+			Text = "N",
+			TextSize = 11,
+			TextColor3 = Theme.colors.highlight,
+			ZIndex = 6,
+			ref = northRef,
+		}, {
+			Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			Stroke = e("UIStroke", {
+				Color = placement.ring or Theme.colors.strokeWarm,
+				Thickness = 1.5,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			}),
+		}),
 		Ring = e("Frame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
-			ZIndex = 7,
+			ZIndex = 5,
 		}, {
 			Round = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
-			Stroke = e("UIStroke", { Color = Theme.colors.strokeWarm, Thickness = Theme.strokeThickness }),
+			Stroke = e("UIStroke", {
+				Color = placement.ring or Theme.colors.strokeWarm,
+				Thickness = Theme.strokeThickness,
+			}),
+		}),
+		-- The whole map is the button: a tap opens the full map, the wheel zooms.
+		Hit = e("TextButton", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Text = "",
+			AutoButtonColor = false,
+			ZIndex = 6,
+			ref = hitRef,
+			[React.Event.Activated] = function()
+				if os.clock() - pinchedAt.current < 0.5 then
+					return -- the end of a pinch, not a tap
+				end
+				if onRun then
+					Actions.toggleFogMap()
+				else
+					Actions.toggleAreaMap()
+				end
+			end,
+			[React.Event.MouseEnter] = function()
+				Camera.holdWheel(true)
+			end,
+			[React.Event.MouseLeave] = function()
+				Camera.holdWheel(false)
+			end,
+			[React.Event.MouseWheelForward] = function()
+				zoom(1)
+			end,
+			[React.Event.MouseWheelBackward] = function()
+				zoom(-1)
+			end,
 		}),
 	})
 end

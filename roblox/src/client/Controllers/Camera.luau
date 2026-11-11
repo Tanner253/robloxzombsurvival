@@ -97,6 +97,12 @@ function Camera.yaw(): number
 	return YAW
 end
 
+-- While the pointer is over the minimap its wheel zooms the map, not the camera (8.11).
+local wheelHeld = false
+function Camera.holdWheel(held: boolean)
+	wheelHeld = held
+end
+
 local function step(dt: number)
 	local camera = workspace.CurrentCamera
 	local character = Players.LocalPlayer.Character
@@ -155,7 +161,7 @@ function Camera.start()
 	-- The wheel zooms anywhere in the world; a scrolling list under the mouse keeps it
 	-- (the event arrives processed then).
 	UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
-		if input.UserInputType == Enum.UserInputType.MouseWheel and not processed then
+		if input.UserInputType == Enum.UserInputType.MouseWheel and not processed and not wheelHeld then
 			Camera.zoomBy(1 - input.Position.Z * WHEEL_STEP)
 		end
 	end)

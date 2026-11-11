@@ -29,6 +29,7 @@ export type Panel =
 	| "shop"
 	| "haven"
 	| "fogmap"
+	| "areamap"
 export type BuildMode = "place" | "upgrade" | "demolish"
 export type Tone = "info" | "good" | "warn"
 
