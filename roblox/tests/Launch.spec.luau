@@ -46,7 +46,48 @@ local EMITTERS: { [string]: { { file: string, text: string } } } = {
 	reachLevel = { { file = "src/shared/Domain/Quests.luau", text = 'objective.kind == "reachLevel" and facts.level' } },
 }
 
+-- The moment-of-need offers (F-08, F-09): each hook a screen calls, the server effect a client
+-- handles and the remotes a client sends. Domain/MomentOffers (its own spec) holds the rules;
+-- these needles hold the wiring, which the specs can't run.
+local OFFER_WIRING: { { file: string, text: string, why: string } } = {
+	{ file = "src/client/UI/screens/RunHud.luau", text = "offers.gear", why = "the death screen's kit chip" },
+	{ file = "src/client/UI/screens/RunHud.luau", text = "offers.buyEnergy", why = "the death screen's Refill" },
+	{ file = "src/client/UI/screens/FogMap.luau", text = "offers.buyEnergy", why = "the Refill beside a greyed Run" },
+	{ file = "src/client/Controllers/Shop.luau", text = 'kind == "energyShort"', why = "a client handles energyShort" },
+	{ file = "src/client/UI/screens/FogMap.luau", text = "ui.energyShort", why = "the map shows the refusal" },
+	{
+		file = "src/client/UI/screens/RunHud.luau",
+		text = 'Net.fire("RecoverAll", info.bagId, "premium")',
+		why = "a client sends RecoverAll",
+	},
+	{ file = "src/client/UI/screens/RunHud.luau", text = "offers.buyEmbers", why = "short of Embers: the Pouch" },
+	{ file = "src/client/UI/screens/RunHud.luau", text = 'Net.fire("DeathChoice"', why = "the screen's choice" },
+	{
+		file = "src/server/Services/Lobby.luau",
+		text = 'Net.onEvent("DeathChoice"',
+		why = "the run side waits for the choice",
+	},
+	{
+		file = "src/server/Services/Lobby.luau",
+		text = 'release(player, "lobbyClosed")',
+		why = "the lobby ending counts as Continue",
+	},
+	{ file = "src/server/Services/Travel.luau", text = "Lobby.wantsReentry:Connect(reenter)", why = "Go back in" },
+}
+
 return function(test: TestKit.Register)
+	test("F-08, F-09: the moment-of-need offers are wired end to end", function()
+		for _, needle in OFFER_WIRING do
+			local source = fs.readFile(needle.file)
+			TestKit.truthy(string.find(source, needle.text, 1, true), `{needle.why}: {needle.file} has {needle.text}`)
+		end
+		local lobby = fs.readFile("src/server/Services/Lobby.luau")
+		TestKit.truthy(
+			not string.find(lobby, "DEATH_LINGER_SECONDS", 1, true),
+			"no timer sends the dead home before they choose"
+		)
+	end)
+
 	test("F-01: Fog Runs are on for the launch build", function()
 		TestKit.equal((Content.Tuning.features :: any).fogRuns, true, "Tuning.features.fogRuns")
 		TestKit.equal(Flags.DEFAULTS.fogRuns, true, "Flags follows the one switch")

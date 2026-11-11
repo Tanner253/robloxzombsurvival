@@ -32,11 +32,11 @@ local Glyph = require("../../components/Glyph")
 local IconButton = require("../../components/IconButton")
 local ItemIcon = require("../../components/ItemIcon")
 local Layout = require("../../components/Layout")
+local PriceButton = require("../../components/PriceButton")
 
 local e = React.createElement
 
 local KEY_ART = "rbxassetid://118390976045902" -- the loading key art: dusk at an outpost
-local ROBUX = "rbxasset://textures/ui/common/robux.png"
 local CARDS = 4
 
 export type Tab = "best" | "supplies" | "equipment" | "building" | "embers" | "passes"
@@ -121,60 +121,6 @@ local function Chip(props: { glyph: string?, itemId: string?, text: string, layo
 				LayoutOrder = 2,
 			}),
 		},
-	})
-end
-
--- The price button: Robux (with the Robux mark) or Embers (with the coin glyph).
-local function PriceButton(props: {
-	currency: "robux" | "embers",
-	price: number?,
-	text: string?,
-	enabled: boolean,
-	layoutOrder: number,
-	onActivated: () -> (),
-})
-	return e("TextButton", {
-		Size = UDim2.new(1, 0, 0, Theme.tapTarget),
-		AutoButtonColor = props.enabled,
-		BackgroundColor3 = if props.enabled then Theme.colors.chip else Theme.colors.disabled,
-		Text = "",
-		LayoutOrder = props.layoutOrder,
-		[React.Event.Activated] = function()
-			if props.enabled then
-				props.onActivated()
-			else
-				Sfx.play("uiError")
-			end
-		end,
-	}, {
-		Corner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
-		Row = e(Layout.Stack, {
-			direction = "row",
-			gap = 6,
-			alignX = Enum.HorizontalAlignment.Center,
-			alignY = Enum.VerticalAlignment.Center,
-			children = {
-				Robux = props.price ~= nil and props.currency == "robux" and e("ImageLabel", {
-					Size = UDim2.fromOffset(22, 22),
-					BackgroundTransparency = 1,
-					Image = ROBUX,
-					LayoutOrder = 1,
-				}),
-				Coin = props.price ~= nil
-					and props.currency == "embers"
-					and e(Glyph, { name = "coin", size = UDim2.fromOffset(24, 24), layoutOrder = 1 }),
-				Price = e("TextLabel", {
-					Size = UDim2.fromOffset(0, 28),
-					AutomaticSize = Enum.AutomaticSize.X,
-					BackgroundTransparency = 1,
-					FontFace = Theme.fonts.header,
-					Text = props.text or tostring(props.price),
-					TextSize = Theme.textSize.title,
-					TextColor3 = if props.enabled then Theme.colors.text else Theme.colors.disabledText,
-					LayoutOrder = 2,
-				}),
-			},
-		}),
 	})
 end
 

@@ -13,6 +13,7 @@
 	  beside a greyed Run, and "Go back in" when Energy is short); a chip is nil while the
 	  product isn't on offer. "Not enough Energy for a Run" toasts carry the same offer, and
 	  the server's "energyShort" effect keeps the shortfall in ui.energyShort.
+	- buyEmbers(shortfall): the Ember Pouch, when "Recover all" is pressed short of Embers.
 	- openShop(productId?): the shop on that product.
 	- When the server says Embers are short ("needEmbers"), the shop opens on EMBERS.
 ]]
@@ -20,6 +21,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local MomentOffers = require(ReplicatedStorage.Shared.Domain.MomentOffers)
 local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Actions = require("../Actions")
 local Net = require("../Net")
@@ -42,8 +44,8 @@ local function once(trigger: string, offer: offers.Offer): offers.Offer?
 	return offer
 end
 
-local GEAR = "product.scavenger_kit"
-local REFILL = "product.energy_refill"
+local GEAR = "product.scavenger_kit" -- MomentOffers.KIT
+local REFILL = "product.energy_refill" -- MomentOffers.REFILL
 
 -- The "shop" section's row for a product (price, available, reason), or nil before it syncs.
 local function row(productId: string): any
@@ -121,6 +123,9 @@ function Shop.init()
 	end
 	offers.gearChip = function(): offers.ProductChip?
 		return chip(GEAR, "A blade, a padded vest, dressings and food")
+	end
+	offers.buyEmbers = function(_shortfall: number)
+		Actions.buyProduct(MomentOffers.EMBERS) -- the Ember Pouch (LDoE: the price you can't pay opens the currency)
 	end
 	offers.forNotice = function(text: string): offers.Offer?
 		local lower = string.lower(text)

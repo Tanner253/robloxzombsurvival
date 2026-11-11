@@ -22,6 +22,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Clock = require(ReplicatedStorage.Shared.Clock)
 local Content = require(ReplicatedStorage.Shared.Data)
+local MomentOffers = require(ReplicatedStorage.Shared.Domain.MomentOffers)
 local Net = require("../../Net")
 local State = require("../../State")
 local Theme = require("../theme")
@@ -33,6 +34,8 @@ local ItemSlot = require("../components/ItemSlot")
 local Label = require("../components/Label")
 local ProgressBar = require("../components/ProgressBar")
 local Minimap = require("../components/Minimap")
+local PriceButton = require("../components/PriceButton")
+local offers = require("../offers")
 
 local e = React.createElement
 
@@ -498,10 +501,85 @@ local function slotRow(stacks: { any }, max: number): any
 	return children
 end
 
+-- One action on the death screen: a short line over its button (F-08, F-09).
+local function action(caption: string, width: number, order: number, button: any): any
+	return e("Frame", {
+		Size = UDim2.fromOffset(width, 26 + 52),
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		ZIndex = 31,
+	}, {
+		Caption = e(Label, {
+			text = caption,
+			style = "caption",
+			tone = "muted",
+			size = UDim2.new(1, 0, 0, 20),
+			alignX = Enum.TextXAlignment.Center,
+			zIndex = 31,
+		}),
+		Button = e("Frame", {
+			Size = UDim2.new(1, 0, 0, 52),
+			Position = UDim2.fromOffset(0, 26),
+			BackgroundTransparency = 1,
+			ZIndex = 31,
+		}, { Body = button }),
+	})
+end
+
+-- The death screen's gear offer (SHOP_CATALOG §6): the product's card picture, name, line
+-- and the shop's price button.
+local function KitChip(props: { chip: any, onBuy: () -> () })
+	local product = Content.Products[props.chip.productId]
+	return card({
+		size = UDim2.fromOffset(520, 76),
+		position = UDim2.fromScale(0.5, 0.84),
+		anchorPoint = Vector2.new(0.5, 0),
+		zIndex = 31,
+		children = {
+			Icon = e("ImageLabel", {
+				Size = UDim2.fromOffset(60, 60),
+				Position = UDim2.fromOffset(10, 8),
+				BackgroundTransparency = 1,
+				Image = if product and product.icon then product.icon else "",
+				ScaleType = Enum.ScaleType.Fit,
+				ZIndex = 32,
+			}),
+			Name = e(Label, {
+				text = props.chip.name,
+				style = "section",
+				tone = "highlight",
+				position = UDim2.fromOffset(82, 10),
+				size = UDim2.fromOffset(276, 26),
+				zIndex = 32,
+			}),
+			Line = e(Label, {
+				text = props.chip.line,
+				style = "caption",
+				tone = "muted",
+				position = UDim2.fromOffset(82, 40),
+				size = UDim2.fromOffset(276, 22),
+				zIndex = 32,
+			}),
+			Buy = e(PriceButton, {
+				currency = "robux",
+				price = props.chip.price,
+				enabled = true,
+				size = UDim2.fromOffset(140, 52),
+				position = UDim2.new(1, -12, 0.5, 0),
+				anchorPoint = Vector2.new(1, 0.5),
+				onActivated = props.onBuy,
+			}),
+		},
+	})
+end
+
 local function DeathScreen()
 	local death = hooks.useSection("death")
 	local energy = hooks.useSection("energy")
+	local wallet = hooks.useSection("wallet")
 	local run = hooks.useSection("run")
+	local _shop = hooks.useSection("shop") -- the chips follow the live prices
+	local now = hooks.useClock(1) -- "Go back in" closes at the lobby's cutoff
 	if type(death) ~= "table" then
 		return nil
 	end
@@ -512,9 +590,127 @@ local function DeathScreen()
 	end
 	local location = Content.Locations[info.locationId or ""]
 	local reentry = death.reentry
-	local canGoBack = type(reentry) == "table" and type(run) ~= "table" and State.now() < (reentry.untilAt or 0)
+	-- On the run side (held) the choice goes to the server; a screen shown at home re-enters
+	-- by the old path.
+	local held = death.held == true
+	local open = type(reentry) == "table" and now < (reentry.untilAt or 0)
+	local hasBag = info.bagId ~= nil and death.recovered ~= true
 	local cost = if location then math.ceil(location.energyCost / 2) else 0
-	local energyValue = if type(energy) == "table" then energy.value else 0
+	local embers = if type(wallet) == "table" and type(wallet.embers) == "number" then wallet.embers else 0
+	local plan = MomentOffers.deathScreen({
+		energy = if type(energy) == "table" and type(energy.value) == "number" then energy.value else 0,
+		reentryCost = cost,
+		canReenter = open and (held or type(run) ~= "table"),
+		hasBag = hasBag or (not held and #lost > 0),
+		embers = embers,
+		recoverCost = Content.Tuning.embers.recoverAll,
+		adsShipped = false, -- no recover-by-ad until ads ship (LDOE_PARITY #46)
+	})
+	if not held then
+		plan.recover = "none" -- "Recover all" runs only where the bag is (F-09)
+	end
+	local gearChip = offers.gearChip
+	local chip = if gearChip then gearChip() else nil
+	local energyChip = offers.energyChip
+	local refill = if plan.goBack == "refill" and energyChip then energyChip(plan.energyShort) else nil
+
+	local actions: { [string]: any } = {
+		Layout = e("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
+			Padding = UDim.new(0, 16),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	}
+	if plan.goBack == "pay" then
+		actions.Back = action(
+			"Back to where you fell",
+			260,
+			1,
+			e(Button, {
+				text = `Go back in: {cost} Energy`,
+				size = UDim2.fromScale(1, 1),
+				onActivated = function()
+					if held then
+						Net.fire("DeathChoice", "back")
+					elseif location then
+						Net.fire("LobbyReenter", location.id)
+					end
+					State.set("death", false)
+				end,
+			})
+		)
+	elseif plan.goBack == "refill" and refill then
+		-- Short of Energy: the Refill stands where "Go back in" would (never a dead button).
+		actions.Back = action(
+			`Go back in needs {plan.energyShort} more Energy`,
+			260,
+			1,
+			e(PriceButton, {
+				currency = "robux",
+				price = refill.price,
+				label = "Energy Refill",
+				enabled = true,
+				size = UDim2.fromScale(1, 1),
+				onActivated = function()
+					local buy = offers.buyEnergy
+					if buy then
+						buy(plan.energyShort)
+					end
+				end,
+			})
+		)
+	end
+	if plan.recover ~= "none" then
+		local short = plan.recover == "buyEmbers"
+		actions.Recover = action(
+			if short then `You have {embers} Embers` else "Your bag to your inbox at home",
+			240,
+			2,
+			e(PriceButton, {
+				currency = "embers",
+				price = Content.Tuning.embers.recoverAll,
+				label = "Recover all",
+				enabled = true, -- short of Embers it opens the Ember Pouch (LDoE)
+				size = UDim2.fromScale(1, 1),
+				onActivated = function()
+					if short then
+						local buy = offers.buyEmbers
+						if buy then
+							buy(plan.embersShort)
+						end
+					elseif info.bagId then
+						Net.fire("RecoverAll", info.bagId, "premium")
+					end
+				end,
+			})
+		)
+	end
+	local alone = actions.Back == nil and actions.Recover == nil
+	actions.Continue = action(
+		"",
+		200,
+		3,
+		e(Button, {
+			text = "Continue",
+			variant = if alone then "primary" else "secondary",
+			size = UDim2.fromScale(1, 1),
+			onActivated = function()
+				if held then
+					Net.fire("DeathChoice", "continue")
+				end
+				State.set("death", false)
+			end,
+		})
+	)
+
+	local lostLine = if death.recovered == true
+		then "Recovered: your things wait in your inbox at home."
+		elseif
+			#lost > 0
+		then `Your bag stays where you fell{if location then ` in {location.name}` else ""} until the lobby closes.`
+		else "You carried nothing out with you."
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, REACH),
 		Position = UDim2.fromOffset(0, -REACH),
@@ -528,7 +724,7 @@ local function DeathScreen()
 		Title = e(Label, {
 			text = "YOU DIED",
 			style = "header",
-			position = UDim2.fromScale(0.5, 0.26),
+			position = UDim2.fromScale(0.5, 0.2),
 			anchorPoint = Vector2.new(0.5, 0.5),
 			size = UDim2.fromOffset(600, 48),
 			alignX = Enum.TextXAlignment.Center,
@@ -538,51 +734,43 @@ local function DeathScreen()
 			text = CAUSES[info.cause or "hollow"] or "You fell in the Fog.",
 			style = "section",
 			tone = "muted",
-			position = UDim2.new(0.5, 0, 0.26, 36),
+			position = UDim2.new(0.5, 0, 0.2, 36),
 			anchorPoint = Vector2.new(0.5, 0),
 			size = UDim2.fromOffset(600, 24),
 			alignX = Enum.TextXAlignment.Center,
 			zIndex = 31,
 		}),
 		LostTitle = e(Label, {
-			text = if #lost > 0
-				then `Your bag stays where you fell{if location then ` in {location.name}` else ""} until the lobby closes.`
-				else "You carried nothing out with you.",
+			text = lostLine,
 			style = "body",
-			position = UDim2.fromScale(0.5, 0.42),
+			tone = if death.recovered == true then "good" else nil,
+			position = UDim2.fromScale(0.5, 0.36),
 			anchorPoint = Vector2.new(0.5, 0),
 			size = UDim2.fromOffset(720, 24),
 			alignX = Enum.TextXAlignment.Center,
 			zIndex = 31,
 		}),
-		Lost = #lost > 0 and e("Frame", {
+		Lost = #lost > 0 and death.recovered ~= true and e("Frame", {
 			Size = UDim2.fromOffset(720, 56),
-			Position = UDim2.new(0.5, 0, 0.42, 34),
+			Position = UDim2.new(0.5, 0, 0.36, 34),
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundTransparency = 1,
 			ZIndex = 31,
 		}, slotRow(lost, 10)),
-		Back = canGoBack and e(Button, {
-			text = `Go back in: {cost} Energy`,
-			disabled = energyValue < cost,
-			size = UDim2.fromOffset(260, 52),
-			position = UDim2.new(0.5, -8, 0.66, 0),
-			anchorPoint = Vector2.new(1, 0),
-			onActivated = function()
-				if location then
-					Net.fire("LobbyReenter", location.id)
+		Actions = e("Frame", {
+			Size = UDim2.fromOffset(760, 78),
+			Position = UDim2.fromScale(0.5, 0.6),
+			AnchorPoint = Vector2.new(0.5, 0),
+			BackgroundTransparency = 1,
+			ZIndex = 31,
+		}, actions),
+		Kit = chip and e(KitChip, {
+			chip = chip,
+			onBuy = function()
+				local gear = offers.gear
+				if gear then
+					gear()
 				end
-				State.set("death", false)
-			end,
-		}),
-		Continue = e(Button, {
-			text = "Continue",
-			variant = if canGoBack then "secondary" else "primary",
-			size = UDim2.fromOffset(200, 52),
-			position = if canGoBack then UDim2.new(0.5, 8, 0.66, 0) else UDim2.fromScale(0.5, 0.66),
-			anchorPoint = if canGoBack then Vector2.zero else Vector2.new(0.5, 0),
-			onActivated = function()
-				State.set("death", false)
 			end,
 		}),
 	})
