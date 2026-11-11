@@ -194,7 +194,11 @@ Run all checks after each merge.
 >   - That run found two bugs the specs had passed: the drop event was hooked on a search that piles never run (it now fires when loot is taken from a Hollow's pile), and a Shambler dropped nothing half the time (its table now always rolls once).
 >   - **Not yet verified in play:** F-03, F-04 and F-05, and anything a real player sees (HUD, the Guide's pointer, the death screen).
 >   - **Seen, not fixed:** the first lobby at a location builds its map on demand, 12 s one time and 38 s another, while the player waits at home with only the "matching" effect. Run servers build at boot, so check what a live player sees before launch.
-> - **Still live until step 3:** the Ammo Press and the ammo recipes (behind quest "The Dense Fog"), now that `fogRuns` is on.
+> - **Step 3, first half, is done: no ammo (F-13, F-14).** Arrows, Light Rounds, Scrap Shells, Blackpowder, their recipes and the Ammo Press are gone; guns, the Flare Pistol and the bow fire on durability (Pistol 150, Shotgun 90, Flare Pistol 72). The Signal Flare stays as a hand-made consumable for the Black-fog flare extract. Player schema is v11 and outpost schema v5, both with migrations. Booted in Studio; no gun was fired in play. Details are in the 2026-11-11 DECISIONS row.
+>   - **Open tuning item, do it after the guns are wired:** the removed ammo rows became scrap, and in the pacing model melee now breaks in about 5% of runs (it was 26%; `Pacing.spec` floor lowered from 10% to 5%) and the hook sits at 57 of 60 play-minutes. Levers: `loot.junk` instead of scrap in `loot.pine_band2` and `loot.pine_band3`, or melee durability. Restore the 10% floor if a lever allows it.
+>   - The parked Haven VIP branch also claims player schema v11: renumber it to v12 when it is ported.
+>   - ECONOMY.md, CONTENT_S2 and MVP_LAUNCH still mention ammo in places; DECISIONS and the checklist are current.
+> - **Next: step 3, second half** (wire in 4–5 guns from ARSENAL §0: items, loot, held pose, firing), then step 4.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
