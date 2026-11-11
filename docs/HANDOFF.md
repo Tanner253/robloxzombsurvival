@@ -188,6 +188,11 @@ Run all checks after each merge.
 
 ## 6. What to do next, in order (the minimum to a soft-launchable build)
 
+> **Update 2026-11-11: steps 1 and 2 are done in code; start at step 3.**
+> - **Step 2 (the five blockers):** F-01 `fogRuns = true`, held by `roblox/tests/Launch.spec.luau` (no dormant quest; every objective kind has a server emitter). F-02 quest 1 is home-only, and a Hollow's drop now reports `lootBody` (`Containers.looted` source, `Domain/Quests.lootEvent`). F-03 and F-04 are enforced by `server/OnRun.luau` (the run server role), not a workspace attribute. F-05 home deaths drop the bag and wake at 50/40/40.
+> - **Not yet verified in play:** the blockers pass the Lune specs and the type check only. A boot test of a local build showed the server starts with Fog Runs on (33 modules), but Studio was signed out, so every private asset failed to load and no run was played. The scripted playtest (step 5) needs the developer signed in to Studio with the cloud place "Ember" open.
+> - **Still live until step 3:** the Ammo Press and the ammo recipes (behind quest "The Dense Fog"), now that `fogRuns` is on.
+
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
    - **F-01:** `fogRuns = true`, plus a spec that every quest has a live objective and every objective kind has a server emitter.

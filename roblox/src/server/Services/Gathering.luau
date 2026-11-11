@@ -172,7 +172,12 @@ local function spawnNodes(player: Player, plot: Plots.Plot)
 				-- The save key is the node's type and number; the live key adds the owner.
 				local saveKey = `{def.id}#{index}`
 				local key = `{player.UserId}:{saveKey}`
-				local model = Models.node(def, random) :: Model
+				-- A model that failed to load (Models warns) costs this one node, not the
+				-- rest of the plot's: the spot stays taken so the others keep their places.
+				local model = Models.node(def, random)
+				if model == nil then
+					continue
+				end
 				local wx, wz = plot.origin.X + spot.X, plot.origin.Z + spot.Y
 				local y = groundAt(plot, wx, wz)
 				local scale = 0.88 + random:NextNumber() * 0.24
