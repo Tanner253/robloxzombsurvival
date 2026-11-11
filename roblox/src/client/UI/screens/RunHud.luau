@@ -150,7 +150,8 @@ function RunHud.FogMeter(props: { run: any })
 			style = "caption",
 			tone = if warning then "accent" else "muted",
 			position = UDim2.fromOffset(8, 2),
-			size = UDim2.new(1, -70, 0, 18),
+			-- 102 px at MAP_SIZE 168: "FOG: CLOSING" is 79 px; ends 6 px short of the time.
+			size = UDim2.new(1, -66, 0, 18),
 		}),
 		Time = e(Label, {
 			text = if left then clock(left) else "",
@@ -158,7 +159,7 @@ function RunHud.FogMeter(props: { run: any })
 			tone = if warning then "accent" else "text",
 			position = UDim2.new(1, -8, 0, 2),
 			anchorPoint = Vector2.new(1, 0),
-			size = UDim2.fromOffset(60, 18),
+			size = UDim2.fromOffset(44, 18), -- "59:59" is 30 px
 			alignX = Enum.TextXAlignment.Right,
 		}),
 		Bar = e("Frame", {
