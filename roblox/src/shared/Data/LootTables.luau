@@ -30,7 +30,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.snarled_wire", weight = 5, min = 1, max = 1 },
 		},
 	},
-	-- The bloater's crust is niter: one of the few sources of Blackpowder.
+	-- The bloater's crust is niter: Signal Flares are made from it.
 	["loot.enemy_bloater"] = {
 		id = "loot.enemy_bloater",
 		rolls = { min = 1, max = 1 },
@@ -64,8 +64,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		entries = {
 			{ itemId = "item.sealed_tin", weight = 20, min = 2, max = 3 },
 			{ itemId = "item.field_dressing", weight = 18, min = 2, max = 3 },
-			{ itemId = "item.light_rounds", weight = 16, min = 6, max = 10 },
-			{ itemId = "item.blackpowder", weight = 14, min = 2, max = 4 },
+			{ itemId = "item.scrap", weight = 30, min = 3, max = 6 }, -- was Light Rounds 16 and Blackpowder 14 (F-13)
 			{ itemId = "item.scrap_plate", weight = 12, min = 2, max = 4 },
 			{ itemId = "item.ember_tonic", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 7, min = 1, max = 1 },
@@ -118,12 +117,11 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		id = "loot.quarry_toolbox",
 		rolls = { min = 2, max = 3 },
 		entries = {
-			{ itemId = "item.scrap", weight = 25, min = 3, max = 6 },
+			{ itemId = "item.scrap", weight = 35, min = 3, max = 6 }, -- +10 from arrows (F-13)
 			{ itemId = "item.iron_ingot", weight = 15, min = 1, max = 2 },
 			{ itemId = "item.scrap_plate", weight = 10, min = 1, max = 2 },
 			{ itemId = "item.rivets", weight = 15, min = 1, max = 3 },
 			{ tableId = "loot.junk", weight = 22, min = 1, max = 1 },
-			{ itemId = "item.arrow", weight = 10, min = 4, max = 8 },
 			{ itemId = "item.coil_spring", weight = 6, min = 1, max = 1 },
 			{ itemId = "item.copper_wire", weight = 4, min = 1, max = 2 },
 			{ itemId = "item.stone_pick", weight = 5, min = 1, max = 1 },
@@ -159,7 +157,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.iron_ingot", weight = 10, min = 2, max = 4 },
 			{ itemId = "item.ironbark_plank", weight = 6, min = 2, max = 3 },
 			{ itemId = "item.copper_ingot", weight = 4, min = 1, max = 1 },
-			{ itemId = "item.arrow", weight = 10, min = 6, max = 10 },
+			{ itemId = "item.scrap", weight = 10, min = 3, max = 6 }, -- was arrows (F-13)
 			{ itemId = "item.sealed_tin", weight = 10, min = 1, max = 2 },
 			{ itemId = "item.hearth_stew", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
@@ -231,9 +229,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.cloth", weight = 25, min = 1, max = 2 },
 			{ itemId = "item.rope", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.sealed_tin", weight = 15, min = 1, max = 1 },
-			{ itemId = "item.arrow", weight = 15, min = 2, max = 4 },
+			{ itemId = "item.scrap", weight = 25, min = 2, max = 4 }, -- was arrows 15 and Light Rounds 10 (F-13)
 			{ itemId = "item.field_dressing", weight = 10, min = 1, max = 1 },
-			{ itemId = "item.light_rounds", weight = 10, min = 1, max = 3 },
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
 		},
 	},
@@ -241,9 +238,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		id = "loot.pine_band3",
 		rolls = { min = 1, max = 1 },
 		entries = {
-			{ itemId = "item.scrap", weight = 25, min = 3, max = 5 },
+			{ itemId = "item.scrap", weight = 43, min = 3, max = 5 }, -- +18 from Light Rounds (F-13)
 			{ itemId = "item.rivets", weight = 20, min = 1, max = 2 },
-			{ itemId = "item.light_rounds", weight = 18, min = 2, max = 4 },
 			{ itemId = "item.coil_spring", weight = 12, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.ember_tonic", weight = 8, min = 1, max = 1 },
@@ -255,12 +251,10 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 1 },
 		entries = {
 			{ itemId = "item.niter", weight = 22, min = 1, max = 3 },
-			{ itemId = "item.blackpowder", weight = 16, min = 1, max = 2 },
-			{ itemId = "item.light_rounds", weight = 16, min = 2, max = 5 },
+			{ itemId = "item.scrap", weight = 38, min = 2, max = 4 }, -- was Blackpowder 16, Light Rounds 16, Shells 6 (F-13)
 			{ itemId = "item.steel_pipe", weight = 14, min = 1, max = 1 },
 			{ itemId = "item.rivets", weight = 14, min = 1, max = 3 },
 			{ itemId = "item.trigger_group", weight = 3, min = 1, max = 1, rarity = "epic" },
-			{ itemId = "item.shells", weight = 6, min = 1, max = 2 },
 			{ itemId = "item.machete", weight = 4, min = 1, max = 1 },
 		},
 		pity = { rarity = "epic", every = 15 }, -- ECONOMY §7.4: a Trigger Group by the 15th band-2 Dense container
@@ -269,13 +263,12 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		id = "loot.quarry_band3",
 		rolls = { min = 1, max = 2 },
 		entries = {
-			{ itemId = "item.blackpowder", weight = 20, min = 2, max = 3 },
+			{ itemId = "item.scrap_plate", weight = 18, min = 1, max = 2 }, -- F-13: ARSENAL 3.4 parts replace the 44 weight of rounds
 			{ itemId = "item.steel_pipe", weight = 16, min = 1, max = 2 },
 			{ itemId = "item.trigger_group", weight = 5, min = 1, max = 1 },
-			{ itemId = "item.light_rounds", weight = 14, min = 3, max = 6 },
-			{ itemId = "item.shells", weight = 10, min = 2, max = 3 },
+			{ itemId = "item.rivets", weight = 14, min = 1, max = 3 },
 			{ itemId = "item.flare", weight = 10, min = 1, max = 2 },
-			{ itemId = "item.coil_spring", weight = 8, min = 1, max = 2 },
+			{ itemId = "item.coil_spring", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.fire_axe", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.machete", weight = 4, min = 1, max = 1 },
 		},
@@ -285,11 +278,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 2 },
 		entries = {
 			{ itemId = "item.niter", weight = 20, min = 2, max = 4 },
-			{ itemId = "item.blackpowder", weight = 18, min = 2, max = 3 },
+			{ itemId = "item.scrap", weight = 42, min = 3, max = 6 }, -- was Blackpowder 18, Shells 12, Light Rounds 12 (F-13)
 			{ itemId = "item.trigger_group", weight = 14, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 14, min = 1, max = 2 },
-			{ itemId = "item.shells", weight = 12, min = 2, max = 4 },
-			{ itemId = "item.light_rounds", weight = 12, min = 4, max = 8 },
 			{ itemId = "item.flare", weight = 10, min = 1, max = 2 },
 		},
 	},
@@ -298,8 +289,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 2 },
 		entries = {
 			{ itemId = "item.trigger_group", weight = 20, min = 1, max = 2 },
-			{ itemId = "item.blackpowder", weight = 18, min = 3, max = 5 },
-			{ itemId = "item.shells", weight = 14, min = 3, max = 6 },
+			{ itemId = "item.coil_spring", weight = 18, min = 1, max = 2 }, -- was Blackpowder (F-13; ARSENAL 3.4)
+			{ itemId = "item.steel_pipe", weight = 14, min = 1, max = 1 }, -- was Shells (F-13; ARSENAL 3.4)
 			{ itemId = "item.flare", weight = 12, min = 2, max = 3 },
 			{ itemId = "item.brass_gear", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.fire_axe", weight = 8, min = 1, max = 1 },
@@ -314,9 +305,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		id = "loot.caravan_band2",
 		rolls = { min = 1, max = 1 },
 		entries = {
-			{ itemId = "item.blackpowder", weight = 25, min = 1, max = 3 },
+			{ itemId = "item.scrap", weight = 45, min = 3, max = 6 }, -- was Blackpowder 25 and Light Rounds 20 (F-13)
 			{ itemId = "item.flare", weight = 20, min = 1, max = 2 },
-			{ itemId = "item.light_rounds", weight = 20, min = 3, max = 6 },
 			{ itemId = "item.steel_pipe", weight = 20, min = 1, max = 1 },
 			{ itemId = "item.trigger_group", weight = 15, min = 1, max = 1 },
 		},
@@ -326,9 +316,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 2 },
 		entries = {
 			{ itemId = "item.trigger_group", weight = 25, min = 1, max = 1 },
-			{ itemId = "item.shells", weight = 20, min = 2, max = 4 },
+			{ itemId = "item.steel_pipe", weight = 20, min = 1, max = 2 }, -- was Shells (F-13; ARSENAL 3.4)
 			{ itemId = "item.flare", weight = 20, min = 2, max = 3 },
-			{ itemId = "item.blackpowder", weight = 20, min = 2, max = 4 },
+			{ itemId = "item.coil_spring", weight = 20, min = 1, max = 2 }, -- was Blackpowder (F-13; ARSENAL 3.4)
 			{ itemId = "item.flare_pistol", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.machete", weight = 7, min = 1, max = 1 },
 		},
@@ -367,7 +357,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.niter", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.rivets", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.sealed_tin", weight = 15, min = 1, max = 1 },
-			{ itemId = "item.blackpowder", weight = 10, min = 1, max = 1 },
+			{ itemId = "item.scrap", weight = 10, min = 1, max = 2 }, -- was Blackpowder (F-13)
 			{ tableId = "loot.junk", weight = 10, min = 1, max = 1 },
 		},
 	},
@@ -536,7 +526,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.forged_pick", weight = 4, min = 1, max = 1 },
 			{ tableId = "loot.junk", weight = 8, min = 1, max = 1 },
-			{ itemId = "item.blackpowder", weight = 2, min = 1, max = 2 },
+			{ itemId = "item.scrap", weight = 2, min = 2, max = 4 }, -- was Blackpowder (F-13)
 		},
 	},
 }

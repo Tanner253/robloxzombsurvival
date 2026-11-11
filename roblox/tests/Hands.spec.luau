@@ -49,7 +49,7 @@ return function(test: TestKit.Register)
 		local pistol = (Content.Items["item.pipe_pistol"] :: any).weapon.firearm
 		local state = Hands.new({ "item.pipe_pistol", "item.scrap_shotgun" }, ITEMS, CONFIG)
 		state = Hands.setGun(state, Combat.newGun(1))
-		local reloading = Combat.startReload(pistol, Combat.newGun(0), T0, 5) :: Combat.Gun
+		local reloading = Combat.startReload(pistol, Combat.newGun(0), T0) :: Combat.Gun
 		local inSlot2 = Hands.swap(state, T0, ITEMS, CONFIG)
 		inSlot2 = Hands.setGun(inSlot2, reloading)
 		local backTo1 = Hands.swap(inSlot2, T0 + 0.2, ITEMS, CONFIG)
@@ -57,26 +57,17 @@ return function(test: TestKit.Register)
 		TestKit.equal((backTo1.hands[2].gun :: Combat.Gun).reloadEndsAt, nil, "the shotgun's reload was dropped")
 	end)
 
-	test("changing a slot on the paper-doll unloads the old gun into the bag", function()
+	test("changing a slot on the paper-doll starts it over; there are no rounds to give back", function()
 		local state = Hands.new({ "item.scrap_shotgun", "item.pipe_pistol" }, ITEMS, CONFIG)
 		state = Hands.setGun(state, Combat.newGun(2))
-		local synced, returned = Hands.sync(state, { "item.fire_axe", "item.pipe_pistol" }, ITEMS, CONFIG)
-		TestKit.deepEqual(returned, { { itemId = "item.shells", count = 2 } })
+		local synced = Hands.sync(state, { "item.fire_axe", "item.pipe_pistol" }, ITEMS, CONFIG)
 		TestKit.equal(synced.hands[1].itemId, "item.fire_axe")
+		TestKit.equal(synced.hands[1].gun, nil, "an axe has no magazine")
 		TestKit.equal(synced.hands[2], state.hands[2], "the untouched slot keeps its state")
-		local _, none = Hands.sync(synced, { "item.fire_axe", "item.pipe_pistol" }, ITEMS, CONFIG)
-		TestKit.equal(#none, 0, "no change, nothing returned")
-	end)
-
-	test("loaded rounds across both slots come back at the end of a run", function()
-		local state = Hands.new({ "item.scrap_shotgun", "item.pipe_pistol" }, ITEMS, CONFIG)
-		state = Hands.setGun(state, Combat.newGun(1))
-		state = Hands.swap(state, T0, ITEMS, CONFIG)
-		state = Hands.setGun(state, Combat.newGun(1))
-		TestKit.deepEqual(Hands.loadedRounds(state, ITEMS), {
-			{ itemId = "item.shells", count = 1 },
-			{ itemId = "item.light_rounds", count = 1 },
-		})
+		local back = Hands.sync(synced, { "item.scrap_shotgun", "item.pipe_pistol" }, ITEMS, CONFIG)
+		TestKit.equal(loaded(back, 1), 0, "a newly slotted gun starts empty")
+		local same = Hands.sync(back, { "item.scrap_shotgun", "item.pipe_pistol" }, ITEMS, CONFIG)
+		TestKit.equal(same.hands[1], back.hands[1], "no change, same state")
 	end)
 
 	test("meds are consumables whose main effect is healing", function()

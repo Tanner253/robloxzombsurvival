@@ -23,7 +23,6 @@ local Actions = require("../../Actions")
 local State = require("../../State")
 local Theme = require("../theme")
 local hooks = require("../hooks")
-local mark = require("../mark")
 local format = require("../format")
 local ItemSlot = require("../components/ItemSlot")
 local Glyph = require("../components/Glyph")
@@ -407,32 +406,8 @@ local function weaponSlot(inventory: any, n: number): any
 	return if n == 1 then inventory.equipment.weapon else inventory.equipment.weapon2
 end
 
--- "loaded/carried" for the active gun on a run (State "hands" from Combat), else nil.
-local function gunAmmo(hands: any, activeSlot: any, inventory: any): string?
-	if type(hands) ~= "table" or activeSlot == nil or activeSlot.count <= 0 then
-		return nil
-	end
-	local def = Content.Items[activeSlot.itemId]
-	local weapon = def and def.weapon
-	if weapon == nil or weapon.firearm == nil then
-		return nil
-	end
-	local hand = hands.slots and hands.slots[hands.active]
-	local loaded = if hand and hand.itemId == activeSlot.itemId then hand.loaded or 0 else 0
-	local carried = 0
-	for _, container in { inventory.pockets, inventory.backpack } do
-		for _, slot in container or {} do
-			if slot.itemId == weapon.ammoItemId then
-				carried += slot.count
-			end
-		end
-	end
-	return `{loaded}/{carried}`
-end
-
 local function WeaponBar()
 	local inventory = hooks.useSection("inventory")
-	local hands = hooks.useSection("hands")
 	local run = hooks.useSection("run")
 	if not inventory then
 		return nil
@@ -445,7 +420,6 @@ local function WeaponBar()
 	end
 	local activeSlot, otherSlot = weaponSlot(inventory, active), weaponSlot(inventory, other)
 	local meds, medId = medsCount(inventory)
-	local ammoText = gunAmmo(hands, activeSlot, inventory)
 	local onRun = type(run) == "table"
 	return e("Frame", {
 		Size = UDim2.fromOffset(WEAPON_BIG + WEAPON_SMALL * 2 + 30, WEAPON_BIG + 26),
@@ -533,26 +507,6 @@ local function WeaponBar()
 					{ text = tostring(active), position = UDim2.new(1, 2, 0, -2), anchorPoint = Vector2.new(1, 0) }
 				),
 				Swap = e(KeyChip, { text = "F", position = UDim2.fromOffset(-2, -2), anchorPoint = Vector2.new(0, 0) }),
-				-- Rounds loaded / carried on a gun (13.6).
-				-- An overlay on the weapon circle, like a badge (the UI gate's Overlay).
-				Ammo = ammoText and e("Frame", {
-					Size = UDim2.fromOffset(WEAPON_BIG - 8, 18),
-					Position = UDim2.new(0.5, 0, 0, WEAPON_BIG - 22),
-					AnchorPoint = Vector2.new(0.5, 0),
-					BackgroundTransparency = 1,
-					ZIndex = 6,
-					ref = mark.overlay,
-				}, {
-					Text = e(Label, {
-						text = ammoText,
-						style = "caption",
-						tone = "highlight",
-						size = UDim2.fromScale(1, 1),
-						alignX = Enum.TextXAlignment.Center,
-						stroke = true,
-						zIndex = 6,
-					}),
-				}),
 				Name = e(Label, {
 					text = if activeSlot and activeSlot.count > 0 then format.itemName(activeSlot.itemId) else "Fists",
 					style = "caption",

@@ -10,8 +10,8 @@
 	  else Tuning.hands.swapSeconds). Nothing fires or swings until it is up, and
 	  swapping away cancels a reload in progress.
 	- Each slot keeps its own magazine: rounds stay in a gun you swap away from.
-	  When the paper-doll changes what a slot holds, the old gun's rounds go back
-	  to the bag (`sync` returns them) and a newly slotted gun starts empty.
+	  There are no rounds to carry (DECISIONS 2026-11-08): a reload is free, and a
+	  newly slotted gun starts empty.
 	- The meds button (H) uses the best healing item carried (`bestMeds`): the
 	  smallest heal that covers the missing health, else the biggest there is.
 	  "Meds" are consumables whose health restore is their largest effect, so the
@@ -66,11 +66,9 @@ end
 
 --[[
 	Matches the hands to what the paper-doll holds now. A slot whose weapon
-	changed gives its loaded rounds back (as ammo stacks for the bag) and starts
-	over. Returns the new state and the rounds to return.
+	changed starts over (an empty gun).
 ]]
-function Hands.sync(state: State, itemIds: { string? }, items: ItemLookup, config: Config): (State, { Types.ItemStack })
-	local returned: { Types.ItemStack } = {}
+function Hands.sync(state: State, itemIds: { string? }, items: ItemLookup, config: Config): State
 	local hands: { Hand } = {}
 	for index = 1, config.slots do
 		local id = itemIds[index] or ""
@@ -78,17 +76,10 @@ function Hands.sync(state: State, itemIds: { string? }, items: ItemLookup, confi
 		if current and current.itemId == id then
 			hands[index] = current
 		else
-			if current and current.gun and current.gun.loaded > 0 then
-				local old = items[current.itemId]
-				local ammo = old and old.weapon and old.weapon.ammoItemId
-				if ammo then
-					table.insert(returned, { itemId = ammo, count = current.gun.loaded })
-				end
-			end
 			hands[index] = handFor(id, items)
 		end
 	end
-	return { active = state.active, hands = hands, swapEndsAt = state.swapEndsAt }, returned
+	return { active = state.active, hands = hands, swapEndsAt = state.swapEndsAt }
 end
 
 -- The active slot's hand.
@@ -182,19 +173,6 @@ function Hands.setGun(state: State, gun: Combat.Gun): State
 	local hand = hands[state.active]
 	hands[state.active] = { itemId = hand.itemId, gun = gun }
 	return { active = state.active, hands = hands, swapEndsAt = state.swapEndsAt }
-end
-
--- Every loaded round across both slots, as ammo stacks (unloaded when a run ends).
-function Hands.loadedRounds(state: State, items: ItemLookup): { Types.ItemStack }
-	local stacks: { Types.ItemStack } = {}
-	for _, hand in state.hands do
-		local item = items[hand.itemId]
-		local ammo = item and item.weapon and item.weapon.ammoItemId
-		if hand.gun and hand.gun.loaded > 0 and ammo then
-			table.insert(stacks, { itemId = ammo, count = hand.gun.loaded })
-		end
-	end
-	return stacks
 end
 
 -- Meds button ------------------------------------------------------------------------------

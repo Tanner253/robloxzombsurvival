@@ -432,27 +432,6 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		maxPerPlot = 20,
 		unlock = quest("quest.hold_the_door"),
 	},
-	-- Fog Runs (slice 2): hidden until Tuning.features.fogRuns and its model grades A.
-	["build.ammo_press"] = {
-		id = "build.ammo_press",
-		footprint = { w = 3, d = 2 }, -- quarter cells (2 studs)
-		name = "Ammo Press",
-		kind = "station",
-		tier = 2,
-		hp = 450,
-		cost = {
-			{ itemId = "item.plank", count = 10 },
-			{ itemId = "item.scrap_plate", count = 8 },
-			{ itemId = "item.rivets", count = 6 },
-			{ itemId = "item.coil_spring", count = 2 },
-		},
-		breachCost = 2,
-		stationId = "station.ammo_press",
-		minFoundationTier = 2,
-		maxPerPlot = 1,
-		unlock = quest("quest.the_dense_fog"), -- was level 10 (LDOE_PARITY #49)
-		feature = "fogRuns",
-	},
 	-- Launch content (docs/research/ldoe-mvp-parity-content.md LB-3, LB-4, LB-5) -----------
 	-- Lights: warm pools at night, "light is territory" (checklist 9.9). No fuel in v0.1.
 	["build.pitch_torch"] = {

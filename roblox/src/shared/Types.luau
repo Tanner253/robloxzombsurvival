@@ -35,7 +35,6 @@ export type ItemCategory =
 	| "material"
 	| "tool"
 	| "weapon"
-	| "ammo"
 	| "armor"
 	| "bag"
 	| "consumable"
@@ -63,7 +62,6 @@ export type WeaponStats = {
 	damage: number, -- per hit, before armor
 	attacksPerSecond: number,
 	range: number, -- studs
-	ammoItemId: ItemId?, -- ranged only: consumed one per shot
 	-- Fog Runs (slice 2): exactly one of firearm and bow on ranged weapons; melee may override Tuning.melee.
 	critChance: number?, -- overrides Tuning.combat.critChance
 	swapSeconds: number?, -- raising it into the active hand; overrides Tuning.hands.swapSeconds
@@ -102,7 +100,7 @@ export type ItemDef = {
 	armor: ArmorStats?,
 	consume: ConsumeEffect?,
 	bagSlots: number?, -- bags: backpack slots while equipped
-	flare: FlareStats?, -- ammo that burns as a flare when it lands (Domain/Flare)
+	flare: FlareStats?, -- the Signal Flare the Black-fog flare extract burns (Domain/Flare)
 	feature: FeatureName?, -- only made by recipes of that feature: it need not be earnable while the flag is off
 }
 
@@ -656,12 +654,12 @@ export type FirearmStats = {
 	falloffStart: number?, -- studs; damage drops linearly from here to range
 	falloffMin: number?, -- damage multiplier at full range (default 1: no falloff)
 	knockbackStuds: number?,
+	flare: FlareStats?, -- each round burns as a flare where it lands (the Flare Pistol; Domain/Flare)
 }
 
 export type BowStats = {
 	drawSeconds: number, -- time to full draw
 	minDraw: number, -- draw fraction (0..1) below which a release is a dud
-	recoveryChance: number, -- chance an arrow can be picked up after it lands
 	projectileSpeed: number, -- studs per second at full draw
 }
 

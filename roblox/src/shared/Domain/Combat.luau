@@ -10,10 +10,11 @@
 	- Melee: a light swing, or a heavy one that winds up, hits harder and knocks
 	  back further; each costs stamina. Hit-stop and knockback are data.
 	- Firearms: a magazine, a fire interval, a reload, a spread cone (pellets for
-	  shotguns), range with linear falloff, and a projectile speed. Ammo moves from
-	  the bag into the magazine when a reload completes.
+	  shotguns), range with linear falloff, and a projectile speed. There are no
+	  rounds to carry (DECISIONS 2026-11-08): a reload refills the magazine for free,
+	  a pacing beat, and every shot costs gun durability instead.
 	- Bow: hold to draw; damage and arrow speed scale with the draw, a short draw is a
-	  dud, and arrows may be recovered.
+	  dud. Like a gun, it costs durability per shot and nothing else.
 	- Dodge roll: a stamina cost, a cooldown and an i-frame window.
 	- M2 PvP rule (data in place now): no single hit takes more than
 	  pvpMaxHitFraction of a full-health player, so nobody is one-shot.
@@ -179,7 +180,7 @@ export type Gun = {
 }
 
 export type FireReason = "reloading" | "empty" | "cooldown"
-export type ReloadReason = "full" | "noAmmo" | "reloading"
+export type ReloadReason = "full" | "reloading"
 
 function Combat.newGun(loaded: number?): Gun
 	return { loaded = loaded or 0, lastShotAt = -math.huge, reloadEndsAt = nil }
@@ -213,36 +214,26 @@ function Combat.fire(gun: Gun, now: number): Gun
 	return { loaded = gun.loaded - 1, lastShotAt = now, reloadEndsAt = nil }
 end
 
--- Starts a reload when the magazine has room and the bag holds ammo.
-function Combat.startReload(
-	firearm: Types.FirearmStats,
-	gun: Gun,
-	now: number,
-	ammoCarried: number
-): (Gun?, ReloadReason?)
+-- Starts a reload when the magazine has room. It costs nothing but the time.
+function Combat.startReload(firearm: Types.FirearmStats, gun: Gun, now: number): (Gun?, ReloadReason?)
 	if gun.reloadEndsAt ~= nil then
 		return nil, "reloading"
 	end
 	if gun.loaded >= firearm.magazine then
 		return nil, "full"
 	end
-	if ammoCarried <= 0 then
-		return nil, "noAmmo"
-	end
 	return { loaded = gun.loaded, lastShotAt = gun.lastShotAt, reloadEndsAt = now + firearm.reloadSeconds }, nil
 end
 
 --[[
-	Completes a reload that has run its time. Returns the gun and how many rounds
-	to take from the bag (what fits the magazine, at most what is carried). Before
-	the reload ends it returns the gun unchanged and 0.
+	Completes a reload that has run its time: the magazine is full. Before the
+	reload ends it returns the gun unchanged.
 ]]
-function Combat.finishReload(firearm: Types.FirearmStats, gun: Gun, now: number, ammoCarried: number): (Gun, number)
+function Combat.finishReload(firearm: Types.FirearmStats, gun: Gun, now: number): Gun
 	if gun.reloadEndsAt == nil or now < gun.reloadEndsAt then
-		return gun, 0
+		return gun
 	end
-	local rounds = math.max(0, math.min(firearm.magazine - gun.loaded, ammoCarried))
-	return { loaded = gun.loaded + rounds, lastShotAt = gun.lastShotAt, reloadEndsAt = nil }, rounds
+	return { loaded = firearm.magazine, lastShotAt = gun.lastShotAt, reloadEndsAt = nil }
 end
 
 -- Switching away or rolling cancels a reload; nothing was spent.
@@ -288,10 +279,6 @@ function Combat.release(bow: Types.BowStats, drawStartedAt: number, now: number)
 		return nil
 	end
 	return fraction
-end
-
-function Combat.arrowRecovered(bow: Types.BowStats, rng: Rng.Source): boolean
-	return rng:NextNumber() < bow.recoveryChance
 end
 
 -- Dodge roll -------------------------------------------------------------------------------------

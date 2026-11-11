@@ -432,7 +432,7 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 			{ kind = "equip", itemId = "item.padded_leggings", flag = "fogRuns" },
 			{ kind = "equip", itemId = "item.padded_boots", flag = "fogRuns" },
 		},
-		-- Dressings and food for the Depot (Black Fog Regular). No ammo: guns run on durability.
+		-- Dressings and food for the Depot (Black Fog Regular). Guns run on durability alone.
 		rewards = {
 			xp = 2000,
 			items = { { itemId = "item.field_dressing", count = 5 }, { itemId = "item.sealed_tin", count = 3 } },

@@ -57,7 +57,6 @@ local TAB_TEXT: { [string]: string } = {
 local CATEGORY_TAB: { [string]: string } = {
 	tool = "tools",
 	weapon = "weapons",
-	ammo = "weapons",
 	armor = "clothing",
 	bag = "clothing",
 	resource = "building",

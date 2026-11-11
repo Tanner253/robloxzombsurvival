@@ -9,7 +9,7 @@
 	- "arrival": the arrival title card; "travelBonus": the "found on the way" panel.
 	- "loot": the open container, pile or bag (the inventory's right pane, #45).
 	- "death": the death screen; "result": the results card (also from "homecoming").
-	- "hands": the two weapon slots with magazines (ammo on the weapon circle).
+	- "hands": the two weapon slots with magazines (durability on the weapon circle).
 	- "hurtAt": the last hit (red vignette and direction).
 
 	The world it dresses on the client:

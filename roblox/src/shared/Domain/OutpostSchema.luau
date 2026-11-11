@@ -24,7 +24,7 @@ local Project = require("./Project")
 
 local OutpostSchema = {}
 
-OutpostSchema.VERSION = 4
+OutpostSchema.VERSION = 5
 
 -- The base piece an upgraded piece was first placed as.
 local function rootOf(pieceId: string): string
@@ -79,6 +79,33 @@ function OutpostSchema.markStarter(layout: any)
 			data[offset + 8] = if upgradedAt > placedAt then upgradedAt - Grid.STARTER_AT else 0
 		end
 	end
+end
+
+--[[
+	Takes every piece whose id is no longer a build piece out of a saved layout
+	(Grid.serialize's fields), so Grid.deserialize (which calls an unknown piece corrupt)
+	still loads the outpost. v5 uses it for the Ammo Press (F-13). Returns how many went.
+]]
+function OutpostSchema.dropUnknownPieces(layout: any): number
+	if type(layout) ~= "table" or type(layout.d) ~= "table" or type(layout.p) ~= "table" then
+		return 0
+	end
+	local fields = 8
+	local data: { number } = layout.d
+	local kept: { number } = {}
+	local dropped = 0
+	for offset = 0, #data - fields, fields do
+		local pieceId = layout.p[data[offset + 2]]
+		if type(pieceId) == "string" and BuildPieces[pieceId] == nil then
+			dropped += 1
+			continue
+		end
+		for field = 1, fields do
+			table.insert(kept, data[offset + field])
+		end
+	end
+	layout.d = kept
+	return dropped
 end
 
 export type Data = {
@@ -141,6 +168,11 @@ OutpostSchema.migrations = {
 		if data.seeded == true then
 			OutpostSchema.markStarter(data.layout)
 		end
+	end,
+	-- v5: no ammo (the flow review's F-13): a placed Ammo Press is taken off the plot. Its
+	-- station record and contents are settled by PlayerSchema v11.
+	[4] = function(data)
+		OutpostSchema.dropUnknownPieces(data.layout)
 	end,
 } :: Migrations.Steps
 

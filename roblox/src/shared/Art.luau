@@ -38,7 +38,6 @@ Art.pieces = {
 	["build.recycler"] = { "EO_RecyclerStation", "Recycler" },
 	["build.crate_wood"] = { "EO_StorageCrate", "Crate" },
 	["build.crate_banded"] = { "CrateBanded", "Crate" },
-	["build.ammo_press"] = { "EO_AmmoPress" }, -- press on a scrap bench (Studio mesh generator)
 	-- Launch content (docs/research/ldoe-mvp-parity-content.md LB-3, LB-5): the camp family's
 	-- wrapped torch and lantern post, its rain collector, and the smoke rack (Studio mesh
 	-- generator), graded in the lineup beside the Campfire and Crate.
@@ -227,8 +226,6 @@ Art.approved = {
 	-- one piece each, 0 floater flags.
 	EO_Smelter = true,
 	EO_Stonecutter = true,
-	-- Ammo Press (13.12): cast-iron press, lever and powder can on a plank bench (slice 2B).
-	EO_AmmoPress = true,
 	-- Fog Run props from the slice 2 family sheets (lineup 2026-11-08: weathered, rusted,
 	-- floater gate clean).
 	EO_SedanWreck = true,
@@ -296,7 +293,6 @@ Art.uploaded = {
 	-- long side face the front, sized to their 6 x 6 and 6 x 4 footprints.
 	EO_Smelter = { id = 134220739947756, yaw = 90, axis = "X", size = 5.8 },
 	EO_Stonecutter = { id = 96553555280227, yaw = 90, axis = "X", size = 5.6 },
-	EO_AmmoPress = { id = 71241404323624, yaw = 0, axis = "X", size = 5.2 },
 	-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
 	EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
 	EO_PickupWreck = { id = 112415392425301, yaw = 90, axis = "X", size = 16 },
@@ -606,7 +602,7 @@ Art.sounds = {
 	), -- PSE "Pistol Single Shots 1/11"
 	shotgunShot = snd(9112912106, 1.2, { region = { 0, 1.1 } }), -- PSE "12 Gauge Shotgun 1", the first blast only
 	flareLaunch = snd(9118591402, 1, { region = { 0, 1.4 } }), -- PSE "Rocket Flare Out 1"
-	reload = snd(9113104516, 1, { region = { 0, 1.4 } }), -- PSE "Ammo Magazine 4"
+	reload = snd(9113104516, 1, { region = { 0, 1.4 } }), -- PSE magazine clip, "Magazine 4" (the reload beat)
 	dryClick = snd(9117396530, 1, { region = { 0, 0.3 } }), -- PSE "Pistol Handling 1", one click
 	meleeSwing = snd(9120972321, 0.9, { variants = { snd(9120728815, 0.8, { region = { 0, 0.6 } }) } }), -- PSE whooshes
 	hitThud = snd(

@@ -95,9 +95,10 @@ return function(test: TestKit.Register)
 			["item.padded_vest"] = 100,
 			["item.machete"] = 70,
 			["item.fire_axe"] = 50,
-			["item.pipe_pistol"] = 50,
-			["item.scrap_shotgun"] = 30,
-			["item.flare_pistol"] = 24,
+			-- F-14: with no ammo a gun's durability is its shot count, so the floors went up.
+			["item.pipe_pistol"] = 150,
+			["item.scrap_shotgun"] = 90,
+			["item.flare_pistol"] = 72,
 		}
 		for itemId, durability in expected do
 			TestKit.equal(Items[itemId].durability, durability, itemId)
@@ -105,18 +106,22 @@ return function(test: TestKit.Register)
 		TestKit.equal(Items["item.forged_hatchet"].tool and Items["item.forged_hatchet"].tool.tier, 2, "forged tier")
 	end)
 
-	test("§8.2-8.3: re-craft sinks and hand-made ammo", function()
+	test("§8.2-8.3: re-craft sinks; no ammo, and the Signal Flare is hand-made", function()
 		TestKit.equal(costOf(Recipes["recipe.shortbow"].inputs)["item.pitch_glue"], 2, "Shortbow glue")
 		for _, recipeId in { "recipe.scrapblade", "recipe.machete", "recipe.padded_vest" } do
 			TestKit.equal(costOf(Recipes[recipeId].inputs)["item.pitch_glue"], 1, `{recipeId} glue`)
 		end
 		TestKit.equal(costOf(Recipes["recipe.field_dressing"].inputs)["item.cloth"], 5, "Field Dressing cloth")
-		TestKit.equal(Recipes["recipe.blackpowder"].outputs[1].count, 1, "2 niter make 1 powder")
-		TestKit.equal(Recipes["recipe.light_rounds"].outputs[1].count, 4, "Light Rounds")
-		TestKit.equal(Recipes["recipe.shells"].outputs[1].count, 3, "Scrap Shells")
-		for _, recipeId in { "recipe.light_rounds", "recipe.shells", "recipe.flare" } do
-			TestKit.equal(Recipes[recipeId].stationId, nil, `{recipeId} is made by hand`)
+		-- DECISIONS 2026-11-08 (F-13): guns and the bow run on durability; no rounds, no press.
+		for _, recipeId in { "recipe.blackpowder", "recipe.light_rounds", "recipe.shells", "recipe.arrow" } do
+			TestKit.equal(Recipes[recipeId], nil, `{recipeId} is gone`)
 		end
+		TestKit.equal(Stations["station.ammo_press"], nil, "no Ammo Press station")
+		TestKit.equal(BuildPieces["build.ammo_press"], nil, "no Ammo Press piece")
+		-- The flare extract's Signal Flare keeps its raw cost: 2 niter a flare, by hand.
+		TestKit.equal(Recipes["recipe.flare"].stationId, nil, "the Signal Flare is made by hand")
+		TestKit.equal(costOf(Recipes["recipe.flare"].inputs)["item.niter"], 4, "4 niter")
+		TestKit.equal(Recipes["recipe.flare"].outputs[1].count, 2, "make 2 flares")
 	end)
 
 	test("§1: node hits and yields; the home plot", function()
@@ -381,7 +386,7 @@ return function(test: TestKit.Register)
 	test("v7 -> v8: durability over the new maximum is clamped everywhere; stacks never change", function()
 		local data: any = PlayerSchema.template()
 		data.version = 7
-		data.inventory.equipment.weapon = { itemId = "item.pipe_pistol", count = 1, durability = 120 }
+		data.inventory.equipment.weapon = { itemId = "item.pipe_pistol", count = 1, durability = 200 }
 		data.inventory.pockets[1] = { itemId = "item.stone_hatchet", count = 1, durability = 30 }
 		data.inventory.pockets[2] = { itemId = "item.timber", count = 17 }
 		data.storage = { c1 = { { itemId = "item.scrapblade", count = 1, durability = 110 } } }
@@ -390,7 +395,11 @@ return function(test: TestKit.Register)
 		data.inboxSeq = 1
 		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
 		TestKit.truthy(ok, reason)
-		TestKit.equal(data.inventory.equipment.weapon.durability, 50, "a Pipe Pistol at 120 of 140 becomes 50 of 50")
+		TestKit.equal(
+			data.inventory.equipment.weapon.durability,
+			150,
+			"a Pipe Pistol over its maximum is clamped to it"
+		)
 		TestKit.equal(data.inventory.pockets[1].durability, 30, "already under the maximum")
 		TestKit.equal(data.inventory.pockets[2].count, 17, "stack untouched")
 		TestKit.equal(data.storage.c1[1].durability, 80, "crate")
@@ -415,6 +424,79 @@ return function(test: TestKit.Register)
 		TestKit.equal(data.nodes["node.boulder#1"], nil, "whole: no save")
 		TestKit.equal(data.nodes["node.boulder#2"].hitsLeft, 2, "partly mined stays")
 		TestKit.equal(data.nodes["node.pine_tree#3"].hitsLeft, 0, "depleted stays depleted")
+	end)
+
+	test("v10 -> v11: no ammo; every removed round becomes scrap one for one, nothing is lost", function()
+		local data: any = PlayerSchema.template()
+		data.version = 10
+		data.inventory.pockets[1] = { itemId = "item.light_rounds", count = 60 }
+		data.inventory.pockets[2] = { itemId = "item.arrow", count = 20 }
+		data.inventory.backpack[1] = { itemId = "item.shells", count = 30 }
+		data.inventory.backpack[2] = { itemId = "item.flare", count = 4 } -- a signal, not a round: kept
+		data.storage = { c1 = { { itemId = "item.blackpowder", count = 45 }, { itemId = "item.timber", count = 7 } } }
+		data.inbox = { { id = "i1", itemId = "item.light_rounds", count = 120, source = "Shop", at = 0 } }
+		data.inboxSeq = 1
+		local press = Converter.new(Stations["station.smelter"], T0)
+		press.stationId = "station.ammo_press" -- a v10 Ammo Press, mid-batch
+		press.input = { itemId = "item.niter", count = 6 }
+		press.fuel = { itemId = "item.fatwood", count = 3 }
+		press.output[1] = { itemId = "item.blackpowder", count = 5 }
+		local fire = Converter.new(Stations["station.campfire"], T0)
+		fire.input = { itemId = "item.murky_water", count = 2 }
+		data.stations = { s1 = press, s2 = fire }
+		data.unlocks.recipes = { ["recipe.light_rounds"] = true, ["recipe.flare"] = true }
+		data.recipeMarks.favourites = { ["recipe.shells"] = true }
+		local ok, reason = Migrations.run(data, PlayerSchema.migrations, PlayerSchema.VERSION)
+		TestKit.truthy(ok, reason)
+		TestKit.equal(data.version, PlayerSchema.VERSION, "version")
+		local scrapStack = Items["item.scrap"].stackSize
+		TestKit.deepEqual(data.inventory.pockets[1], { itemId = "item.scrap", count = scrapStack }, "rounds, capped")
+		TestKit.deepEqual(data.inventory.pockets[2], { itemId = "item.scrap", count = 20 }, "arrows")
+		TestKit.deepEqual(data.inventory.backpack[1], { itemId = "item.scrap", count = 30 }, "shells")
+		TestKit.deepEqual(data.inventory.backpack[2], { itemId = "item.flare", count = 4 }, "Signal Flares stay")
+		TestKit.deepEqual(data.storage.c1[1], { itemId = "item.scrap", count = 45 }, "crate powder")
+		TestKit.deepEqual(data.storage.c1[2], { itemId = "item.timber", count = 7 }, "other stacks untouched")
+		TestKit.equal(data.stations.s1, nil, "the Ammo Press record goes")
+		TestKit.equal(data.stations.s2.input.count, 2, "other stations keep running")
+		local got: { [string]: number } = {}
+		for _, entry in data.inbox do
+			got[entry.itemId] = (got[entry.itemId] or 0) + entry.count
+			TestKit.equal(entry.durability, nil, "no durability on scrap")
+		end
+		-- The inbox: the old row (120), the pocket's overflow and the press's powder (5).
+		TestKit.equal(got["item.scrap"], 120 + (60 - scrapStack) + 5, "scrap in the inbox")
+		TestKit.equal(got["item.niter"], 6, "the press's input comes back")
+		TestKit.equal(got["item.fatwood"], 3, "and its fuel")
+		TestKit.equal(got["item.light_rounds"], nil, "no rounds left anywhere")
+		TestKit.equal(data.unlocks.recipes["recipe.light_rounds"], nil, "removed recipe unlock dropped")
+		TestKit.equal(data.unlocks.recipes["recipe.flare"], true, "the flare recipe stays unlocked")
+		TestKit.equal(data.recipeMarks.favourites["recipe.shells"], nil, "removed favourite dropped")
+		local held = 0
+		for _, stack in
+			{ data.inventory.pockets[1], data.inventory.pockets[2], data.inventory.backpack[1], data.storage.c1[1] }
+		do
+			held += stack.count
+		end
+		TestKit.equal(held + got["item.scrap"], 60 + 20 + 30 + 45 + 120 + 5, "one scrap for every round")
+	end)
+
+	test("outpost v4 -> v5: a placed Ammo Press comes off the plot; other pieces stay", function()
+		local data: any = {
+			version = 4,
+			layout = {
+				v = OutpostSchema.template().layout.v,
+				n = 3,
+				t = T0,
+				p = { "build.ammo_press", "build.pitch_torch" },
+				d = { 1, 1, 0, 0, 0, 450, 0, 0, 2, 2, 0, 4, 4, 100, 5, 0 },
+			},
+			seeded = true,
+			nodes = {},
+			projects = {},
+		}
+		local ok, reason = Migrations.run(data, OutpostSchema.migrations, OutpostSchema.VERSION)
+		TestKit.truthy(ok, reason)
+		TestKit.deepEqual(data.layout.d, { 2, 2, 0, 4, 4, 100, 5, 0 }, "only the torch is left")
 	end)
 
 	-- Validator ------------------------------------------------------------------------------------

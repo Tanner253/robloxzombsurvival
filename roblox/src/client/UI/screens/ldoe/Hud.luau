@@ -460,45 +460,9 @@ end
 
 -- Bottom right: the action cluster (#1) -------------------------------------------------------------------
 
--- "loaded/carried" for a gun in hand on a run (the "hands" section from Combat), else nil.
-local function gunAmmo(hands: any, slot: any, inventory: any): string?
-	if type(hands) ~= "table" or slot == nil or slot.count <= 0 then
-		return nil
-	end
-	local def = Content.Items[slot.itemId]
-	local weapon = def and def.weapon
-	if weapon == nil or weapon.firearm == nil then
-		return nil
-	end
-	local hand = hands.slots and hands.slots[hands.active]
-	local loaded = if hand and hand.itemId == slot.itemId then hand.loaded or 0 else 0
-	local carried = 0
-	for _, container in { inventory.pockets, inventory.backpack } do
-		for _, each in container or {} do
-			if each.itemId == weapon.ammoItemId then
-				carried += each.count
-			end
-		end
-	end
-	return `{loaded}/{carried}`
-end
-
-local function weaponIcon(slot: any, durability: number?, ammo: string?): { [string]: any }
+-- A gun shows its durability ring like any weapon: there are no rounds to count (13.6).
+local function weaponIcon(slot: any, durability: number?): { [string]: any }
 	local children: { [string]: any } = {}
-	if ammo then
-		children.Ammo = e("TextLabel", {
-			Size = UDim2.new(1, -8, 0, 18),
-			Position = UDim2.new(0.5, 0, 1, -24),
-			AnchorPoint = Vector2.new(0.5, 0),
-			BackgroundTransparency = 1,
-			FontFace = Theme.fonts.header,
-			Text = ammo,
-			TextSize = Theme.textSize.caption,
-			TextColor3 = Theme.colors.highlight,
-			TextStrokeTransparency = 0.4,
-			ZIndex = 3,
-		})
-	end
 	if slot and slot.count > 0 then
 		children.Item = e("Frame", {
 			Size = UDim2.fromScale(0.7, 0.7),
@@ -591,7 +555,6 @@ end
 local function Cluster(props: { touchRight: number })
 	local ui = hooks.useUi()
 	local inventory = hooks.useSection("inventory")
-	local hands = hooks.useSection("hands")
 	local run = hooks.useSection("run")
 	local onRun = type(run) == "table"
 	if type(inventory) ~= "table" then
@@ -671,7 +634,7 @@ local function Cluster(props: { touchRight: number })
 					end
 					Actions.setGathering(false)
 				end,
-				children = weaponIcon(activeSlot, durabilityOf(activeSlot), gunAmmo(hands, activeSlot, inventory)),
+				children = weaponIcon(activeSlot, durabilityOf(activeSlot)),
 			}),
 			Bottom = e(Layout.Stack, {
 				direction = "row",

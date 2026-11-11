@@ -39,10 +39,10 @@ export type Props = {
 -- Which Theme.itemKind backplate an item gets.
 local function kindOf(def: any): string
 	local category = def.category
-	if category == "consumable" then
+	if category == "consumable" and def.flare == nil then
 		local effect = def.consume or {}
 		return if (effect.hunger or 0) > 0 or (effect.thirst or 0) > 0 then "food" else "medical"
-	elseif category == "tool" or category == "weapon" or category == "ammo" then
+	elseif category == "tool" or category == "weapon" or def.flare then -- the Signal Flare keeps its old plate
 		return "tool"
 	elseif category == "armor" or category == "bag" then
 		return "gear"

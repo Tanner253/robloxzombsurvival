@@ -37,14 +37,13 @@ Slots.EQUIP_ORDER = { "head", "body", "legs", "feet", "weapon", "weapon2", "bag"
 -- What the quick slot takes: food, drink, healing, a weapon or a tool (a stack of meds too).
 Slots.QUICK_CATEGORIES = { consumable = true, weapon = true, tool = true } :: { [string]: boolean }
 
--- Categories "Put all" leaves in the inventory: gear, food and ammo stay with you.
+-- Categories "Put all" leaves in the inventory: gear, food and supplies stay with you.
 Slots.KEEP_ON_PUT_ALL = {
 	tool = true,
 	weapon = true,
 	armor = true,
 	bag = true,
 	consumable = true,
-	ammo = true,
 } :: { [string]: boolean }
 
 local function empty(): Slot
@@ -268,7 +267,7 @@ function Slots.transfer(
 	return newSources, newTargets, moved
 end
 
--- The "Put all" filter: everything except gear, food and ammo.
+-- The "Put all" filter: everything except gear, food and supplies.
 function Slots.putAllFilter(items: ItemLookup): (slot: Slot) -> boolean
 	return function(slot: Slot): boolean
 		local def = items[slot.itemId]
@@ -285,7 +284,6 @@ end
 local SORT_ORDER: { [string]: number } = {
 	tool = 1,
 	weapon = 2,
-	ammo = 3,
 	armor = 4,
 	bag = 5,
 	consumable = 6,

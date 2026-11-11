@@ -3,7 +3,8 @@
 	The economy pacing simulation (docs/ECONOMY.md §9 and §11.4), on the real data.
 
 	Domain/PacingSim plays one free player through three weeks with every §8 sink on:
-	hunger and thirst, melee, armor and gun wear with re-crafts, dressings and ammo. The
+	hunger and thirst, melee, armor and gun wear with re-crafts, and dressings (no ammo:
+	guns run on durability, DECISIONS 2026-11-08). The
 	model below is §9.1's assumptions as parameters, ported from tools/economy/pacing.py
 	(the reference model the spec's numbers come from): sessions, run choice, run costs, the
 	Forest, Mine and POI locations and their container tables (ECONOMY §6-7, generated from
@@ -191,7 +192,7 @@ local LOOT: { [string]: Types.LootTableDef } = {
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.forged_pick", weight = 4, min = 1, max = 1 },
 			{ tableId = "loot.junk", weight = 8, min = 1, max = 1 },
-			{ itemId = "item.blackpowder", weight = 2, min = 1, max = 2 },
+			{ itemId = "item.scrap", weight = 2, min = 2, max = 4 },
 		},
 	},
 	["loot.pine_pack"] = {
@@ -232,9 +233,8 @@ local LOOT: { [string]: Types.LootTableDef } = {
 			{ itemId = "item.cloth", weight = 25, min = 1, max = 2 },
 			{ itemId = "item.rope", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.sealed_tin", weight = 15, min = 1, max = 1 },
-			{ itemId = "item.arrow", weight = 15, min = 2, max = 4 },
+			{ itemId = "item.scrap", weight = 25, min = 2, max = 4 },
 			{ itemId = "item.field_dressing", weight = 10, min = 1, max = 1 },
-			{ itemId = "item.light_rounds", weight = 10, min = 1, max = 3 },
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
 		},
 	},
@@ -242,9 +242,8 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		id = "loot.pine_band3",
 		rolls = { min = 1, max = 1 },
 		entries = {
-			{ itemId = "item.scrap", weight = 25, min = 3, max = 5 },
+			{ itemId = "item.scrap", weight = 43, min = 3, max = 5 },
 			{ itemId = "item.rivets", weight = 20, min = 1, max = 2 },
-			{ itemId = "item.light_rounds", weight = 18, min = 2, max = 4 },
 			{ itemId = "item.coil_spring", weight = 12, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.ember_tonic", weight = 8, min = 1, max = 1 },
@@ -255,12 +254,11 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		id = "loot.quarry_toolbox",
 		rolls = { min = 2, max = 3 },
 		entries = {
-			{ itemId = "item.scrap", weight = 25, min = 3, max = 6 },
+			{ itemId = "item.scrap", weight = 35, min = 3, max = 6 },
 			{ itemId = "item.iron_ingot", weight = 15, min = 1, max = 2 },
 			{ itemId = "item.scrap_plate", weight = 10, min = 1, max = 2 },
 			{ itemId = "item.rivets", weight = 15, min = 1, max = 3 },
 			{ tableId = "loot.junk", weight = 22, min = 1, max = 1 },
-			{ itemId = "item.arrow", weight = 10, min = 4, max = 8 },
 			{ itemId = "item.coil_spring", weight = 6, min = 1, max = 1 },
 			{ itemId = "item.copper_wire", weight = 4, min = 1, max = 2 },
 			{ itemId = "item.stone_pick", weight = 5, min = 1, max = 1 },
@@ -286,12 +284,10 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 1 },
 		entries = {
 			{ itemId = "item.niter", weight = 22, min = 1, max = 3 },
-			{ itemId = "item.blackpowder", weight = 16, min = 1, max = 2 },
-			{ itemId = "item.light_rounds", weight = 16, min = 2, max = 5 },
+			{ itemId = "item.scrap", weight = 38, min = 2, max = 4 },
 			{ itemId = "item.steel_pipe", weight = 14, min = 1, max = 1 },
 			{ itemId = "item.rivets", weight = 14, min = 1, max = 3 },
 			{ itemId = "item.trigger_group", weight = 3, min = 1, max = 1 },
-			{ itemId = "item.shells", weight = 6, min = 1, max = 2 },
 			{ itemId = "item.machete", weight = 4, min = 1, max = 1 },
 		},
 	},
@@ -299,13 +295,12 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		id = "loot.quarry_band3",
 		rolls = { min = 1, max = 2 },
 		entries = {
-			{ itemId = "item.blackpowder", weight = 20, min = 2, max = 3 },
+			{ itemId = "item.scrap_plate", weight = 18, min = 1, max = 2 },
 			{ itemId = "item.steel_pipe", weight = 16, min = 1, max = 2 },
 			{ itemId = "item.trigger_group", weight = 5, min = 1, max = 1 },
-			{ itemId = "item.light_rounds", weight = 14, min = 3, max = 6 },
-			{ itemId = "item.shells", weight = 10, min = 2, max = 3 },
+			{ itemId = "item.rivets", weight = 14, min = 1, max = 3 },
 			{ itemId = "item.flare", weight = 10, min = 1, max = 2 },
-			{ itemId = "item.coil_spring", weight = 8, min = 1, max = 2 },
+			{ itemId = "item.coil_spring", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.fire_axe", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.machete", weight = 4, min = 1, max = 1 },
 		},
@@ -322,7 +317,7 @@ local LOOT: { [string]: Types.LootTableDef } = {
 			{ itemId = "item.iron_ingot", weight = 10, min = 2, max = 4 },
 			{ itemId = "item.ironbark_plank", weight = 6, min = 2, max = 3 },
 			{ itemId = "item.copper_ingot", weight = 4, min = 1, max = 1 },
-			{ itemId = "item.arrow", weight = 10, min = 6, max = 10 },
+			{ itemId = "item.scrap", weight = 10, min = 3, max = 6 },
 			{ itemId = "item.sealed_tin", weight = 10, min = 1, max = 2 },
 			{ itemId = "item.hearth_stew", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
@@ -348,11 +343,9 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 2 },
 		entries = {
 			{ itemId = "item.niter", weight = 20, min = 2, max = 4 },
-			{ itemId = "item.blackpowder", weight = 18, min = 2, max = 3 },
+			{ itemId = "item.scrap", weight = 42, min = 3, max = 6 },
 			{ itemId = "item.trigger_group", weight = 14, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 14, min = 1, max = 2 },
-			{ itemId = "item.shells", weight = 12, min = 2, max = 4 },
-			{ itemId = "item.light_rounds", weight = 12, min = 4, max = 8 },
 			{ itemId = "item.flare", weight = 10, min = 1, max = 2 },
 		},
 	},
@@ -361,8 +354,8 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		rolls = { min = 1, max = 2 },
 		entries = {
 			{ itemId = "item.trigger_group", weight = 20, min = 1, max = 2 },
-			{ itemId = "item.blackpowder", weight = 18, min = 3, max = 5 },
-			{ itemId = "item.shells", weight = 14, min = 3, max = 6 },
+			{ itemId = "item.coil_spring", weight = 18, min = 1, max = 2 },
+			{ itemId = "item.steel_pipe", weight = 14, min = 1, max = 1 },
 			{ itemId = "item.flare", weight = 12, min = 2, max = 3 },
 			{ itemId = "item.brass_gear", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.fire_axe", weight = 8, min = 1, max = 1 },
@@ -742,7 +735,6 @@ local function goals(fallback: boolean): { PacingSim.Goal }
 				count("upgrade:station.woodworking_bench", 2),
 				count("upgrade:station.smelter", 1),
 				count("gate:tower_black", 1),
-				count("build.ammo_press", 1),
 			}, room("reinforced", 16, 13))),
 			flags = { "item.bp_reinforced" },
 		},
@@ -785,8 +777,6 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 		gunHitShare = 0.7,
 		gunShotsPerRun = { 0, 0, 15 }, -- the Pipe Pistol on Black runs
 		gunRecipe = "recipe.pipe_pistol",
-		roundsRecipe = "recipe.light_rounds",
-		roundsReserve = 45,
 		earlyWeapon = "recipe.spiked_club",
 		lateWeapon = "recipe.scrapblade",
 		lateWeaponFromGoal = 3,
@@ -885,7 +875,6 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			["item.hearth_stew"] = 4,
 			["item.emberberry"] = 0.3,
 			["item.cloth"] = 1,
-			["item.blackpowder"] = 2,
 			["item.niter"] = 1,
 		},
 		valueDefault = 0.05,
@@ -982,10 +971,12 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			["item.boiled_water"] = 30,
 			["item.roasted_ashroot"] = 10,
 			["item.ember_tea"] = 10,
-			["item.blackpowder"] = 20,
 		},
 		lineBoost = { ["item.cooked_meat"] = 5, ["item.boiled_water"] = 5 },
 		questBoost = 1e6, -- a quest's own craft (Copper Lines' ingots) goes in ahead of the grind
+		-- A quest's own run (the Stranded Caravan's Dense run) is taken once it opens. Before F-13
+		-- Dense runs came anyway for niter and powder; with no ammo nothing else sends you back.
+		questRunValue = 1e6,
 		plankFloat = { below = 30, extra = 10, yieldsTo = { "item.stone_block" } },
 		glue = { early = 2, late = 8, fromGoal = 3 },
 		coal = { stock = 30, below = 60, stationLevel = 2 },
@@ -993,15 +984,12 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			cord = "item.rope",
 			cordRecipe = "recipe.rope",
 			fuelStation = "station.campfire",
-			ammoStation = "build.ammo_press",
 			fiber = "item.fiber",
 			plank = "item.plank",
 			timber = "item.timber",
 			murky = "item.murky_water",
 			rawMeat = "item.raw_meat",
 			fatwood = "item.fatwood",
-			powder = "item.blackpowder",
-			rounds = "item.light_rounds",
 			dressing = "item.field_dressing",
 			cloth = "item.cloth",
 			glue = "item.pitch_glue",
@@ -1267,11 +1255,12 @@ return function(test: TestKit.Register)
 		end
 	end)
 
-	test("ECONOMY §8.1: guns break fast; a Pipe Pistol lasts at most 4 Black runs", function()
-		TestKit.equal(Items["item.pipe_pistol"].durability, 50, "Pipe Pistol shots")
-		TestKit.equal(Items["item.scrap_shotgun"].durability, 30, "Scrap Shotgun shells")
+	test("F-14: with no ammo a gun is its shots; a Pipe Pistol lasts about 10 Black runs", function()
+		TestKit.equal(Items["item.pipe_pistol"].durability, 150, "Pipe Pistol shots")
+		TestKit.equal(Items["item.scrap_shotgun"].durability, 90, "Scrap Shotgun shots")
+		TestKit.equal(Items["item.flare_pistol"].durability, 72, "Flare Pistol shots")
 		local shots = model(75, false).gunShotsPerRun[3]
-		TestKit.truthy((Items["item.pipe_pistol"].durability :: number) / shots <= 4, "runs per pistol")
+		TestKit.truthy((Items["item.pipe_pistol"].durability :: number) / shots <= 10, "runs per pistol")
 	end)
 
 	-- The simulation ---------------------------------------------------------------------------
@@ -1296,10 +1285,14 @@ return function(test: TestKit.Register)
 		local stats = result.stats
 		TestKit.equal(stats.starvingMinutes, 0, "starving minutes")
 		TestKit.truthy(stats.foodMinutes <= 0.15 * stats.runMinutes, "food time at most 15% of run time")
-		TestKit.truthy(stats.brokenRuns >= 0.1 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
+		-- F-13 and F-14 move this: the pine bands' ammo rows became scrap (earlier Scrapblades)
+		-- and the Pistol's 150 shots carry more of a Black run, so melee breaks about 1 run in
+		-- 20 (it was 1 in 4). It must still break.
+		TestKit.truthy(stats.brokenRuns >= 0.05 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
 		TestKit.truthy(stats.gunsCrafted > 0 and stats.gunRuns > 0, "the Pipe Pistol is used on Black runs")
+		-- 150 shots at 15 a Black run: a pistol lasts at most 10 runs, then it is re-crafted.
 		TestKit.truthy(
-			stats.gunRuns <= 4 * stats.gunsCrafted,
+			stats.gunRuns <= 10 * stats.gunsCrafted,
 			`{stats.gunRuns} gun runs on {stats.gunsCrafted} pistols`
 		)
 		-- At least a Scrapblade a day once the Scrap tier is done, on average: on a day the

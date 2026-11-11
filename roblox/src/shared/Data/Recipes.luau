@@ -3,7 +3,7 @@
 	Recipe definitions, keyed by permanent ID. MVP content; see docs/CONTENT_MVP.md.
 
 	Hand recipes (no stationId) are the crafting catalogue: every tool, weapon, armor piece,
-	bag, food mix and round of ammo is made by hand (LDOE_PARITY #20). Station recipes are
+	bag, food mix and Signal Flare is made by hand (LDOE_PARITY #20). Station recipes are
 	converter lines (#18): one input stack -> one output stack, one batch per craftSeconds.
 
 	Economy (docs/ECONOMY.md §2, binding): every refinement is LDoE's ratio and timer or
@@ -116,17 +116,6 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		},
 		outputs = { { itemId = "item.shortbow", count = 1 } },
 		craftSeconds = 10,
-		unlock = quest("quest.stand_your_ground"),
-	},
-	["recipe.arrow"] = {
-		id = "recipe.arrow",
-		inputs = {
-			{ itemId = "item.sticks", count = 2 },
-			{ itemId = "item.scrap", count = 2 },
-			{ itemId = "item.fiber", count = 1 },
-		},
-		outputs = { { itemId = "item.arrow", count = 5 } },
-		craftSeconds = 5,
 		unlock = quest("quest.stand_your_ground"),
 	},
 	["recipe.padded_vest"] = {
@@ -404,51 +393,19 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		feature = "fogRuns",
 	},
 
-	-- Ammo (ECONOMY §8.3): the Ammo Press stays a converter (niter -> powder); rounds, shells
-	-- and flares are hand recipes, so no multi-input recipe sits on a one-input station.
-	-- Every shot costs a round and a point of gun durability: two sinks.
-	["recipe.blackpowder"] = {
-		id = "recipe.blackpowder",
-		inputs = { { itemId = "item.niter", count = 2 } }, -- fatwood is the press fuel now
-		outputs = { { itemId = "item.blackpowder", count = 1 } }, -- was 2 -> 2
-		stationId = "station.ammo_press",
-		craftSeconds = 6 * 60,
-		unlock = quest("quest.the_dense_fog"), -- was level 10: recipes unlock on the Ember Trail (LDOE_PARITY #49)
-		feature = "fogRuns",
-	},
-	["recipe.light_rounds"] = {
-		id = "recipe.light_rounds",
-		inputs = {
-			{ itemId = "item.scrap", count = 2 },
-			{ itemId = "item.blackpowder", count = 1 },
-		},
-		outputs = { { itemId = "item.light_rounds", count = 4 } }, -- was 6
-		craftSeconds = 10,
-		unlock = quest("quest.the_dense_fog"), -- was level 11: recipes unlock on the Ember Trail (LDOE_PARITY #49)
-		feature = "fogRuns",
-	},
+	-- Guns and the bow run on durability alone (DECISIONS 2026-11-08): there are no rounds and
+	-- no press to make them. The Signal Flare stays: it is what the Black-fog flare extract burns, not a
+	-- round. It keeps its raw cost (2 niter a flare) now that Blackpowder is gone.
 	["recipe.flare"] = {
 		id = "recipe.flare",
 		inputs = {
-			{ itemId = "item.blackpowder", count = 2 },
+			{ itemId = "item.niter", count = 4 },
 			{ itemId = "item.pitch_glue", count = 1 },
 			{ itemId = "item.cloth", count = 1 },
 		},
 		outputs = { { itemId = "item.flare", count = 2 } },
 		craftSeconds = 10,
 		unlock = quest("quest.the_dense_fog"), -- was level 12: recipes unlock on the Ember Trail (LDOE_PARITY #49)
-		feature = "fogRuns",
-	},
-	["recipe.shells"] = {
-		id = "recipe.shells",
-		inputs = {
-			{ itemId = "item.scrap", count = 3 },
-			{ itemId = "item.blackpowder", count = 2 },
-			{ itemId = "item.cloth", count = 1 },
-		},
-		outputs = { { itemId = "item.shells", count = 3 } }, -- was 4
-		craftSeconds = 10,
-		unlock = quest("quest.the_dense_fog"), -- was level 14: recipes unlock on the Ember Trail (LDOE_PARITY #49)
 		feature = "fogRuns",
 	},
 
