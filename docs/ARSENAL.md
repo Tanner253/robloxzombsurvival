@@ -59,6 +59,8 @@ These come from the mesh repair and lineup review: every model graded from side 
 
 **Orientation of the v2 and v3 GLBs:** muzzle +X, top +Y, right +Z, in metres, centred on the bounding box. Confirm how Roblox maps the axes on import for `Art.held`.
 
+**Confirmed in Studio (2026-11-11):** as loaded by `InsertService`, every upload above has its muzzle along **−X** and its top up (the import turns the GLB half a turn about Y), except the Duty Pistol, whose muzzle is along **−Z**. The first five are wired (Duty Pistol, Pump Shotgun, Hunting Rifle, Assault Rifle, Anti-Materiel Rifle; DECISIONS 2026-11-11), with durability at this spec's shot counts × 3.
+
 **Dead uploads; never reference them:**
 - 87273802704697, 112557069701253, 99838449574262, 124307241329393, 109217049271999, 101143506328630 (v1, broken)
 - 107836528763914 (break-action)

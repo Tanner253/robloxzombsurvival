@@ -149,6 +149,7 @@ The art credit pool is nearly spent: about 0–50 of 800 credits are left.
 ## 5. Current state: branches (all pushed to origin)
 
 > **Update 2026-11-11: §6 step 1 is done.** `main` is at 1788203 with all checks green (489 Lune tests, Selene, StyLua, luau-lsp, `rojo build`).
+> Later the same day `main` took the five blocker fixes, no-ammo and the first five guns (§6 update block): 509 Lune tests, all five checks green (`bash roblox/tools/check.sh`).
 > - **Merged:** `claude/m1-launch-home-platform`, `claude/m1-slice2b-fog-runs-9a5388` (at a941de9, which finished the Hollow movement WIP), `worktree-agent-a0101ba2e6be467ea` (F-02, F-04, F-05, F-06, F-07 and the F-08 offer hooks), `worktree-agent-a52ab36a54b0f4f87` (minimap 8.11).
 > - **Parked, not merged (post-launch, §6 step 7):**
 >   - `worktree-agent-a3808d71e6cf77897` (Haven VIP): built on the Haven from before the density pass, so `World/Haven.luau` conflicts in 9 hunks; it re-adds the VIP particle aura the developer rejected; its four props were never graded; it bumps the save schema to v11. Port it onto main's Haven and grade it in Studio before merging. Keep main's side of the aura conflict.
@@ -198,7 +199,13 @@ Run all checks after each merge.
 >   - **Open tuning item, do it after the guns are wired:** the removed ammo rows became scrap, and in the pacing model melee now breaks in about 5% of runs (it was 26%; `Pacing.spec` floor lowered from 10% to 5%) and the hook sits at 57 of 60 play-minutes. Levers: `loot.junk` instead of scrap in `loot.pine_band2` and `loot.pine_band3`, or melee durability. Restore the 10% floor if a lever allows it.
 >   - The parked Haven VIP branch also claims player schema v11: renumber it to v12 when it is ported.
 >   - ECONOMY.md, CONTENT_S2 and MVP_LAUNCH still mention ammo in places; DECISIONS and the checklist are current.
-> - **Next: step 3, second half** (wire in 4–5 guns from ARSENAL §0: items, loot, held pose, firing), then step 4.
+> - **Step 3, second half, is done: five guns** (2026-11-11, branch `guns-first-five`, merged). Duty Pistol, Pump Shotgun, Hunting Rifle, Assault Rifle and Anti-Materiel Rifle: items, recipes (chapter-3 quests; the Assault Rifle Schematic; the Anti-Materiel Rifle is loot only), ARSENAL §3.4 loot rows, graded models, credits, held and firing poses. Durability is ARSENAL's shots × 3. 509 Lune specs (`tests/Arsenal.spec.luau` is new). Calls are in the 2026-11-11 DECISIONS row.
+>   - **Verified in play** (the cloud place "Ember", Studio simulation, a Fog Run to Pine Hollow): each of the five was put in hand, fired at a Shambler through the real fire path, and showed the hit, one durability a shot, and the break at zero with the hand-over to the other slot. Numbers: Duty Pistol 40 → 18 HP, 270 → 269; Pump Shotgun 40 → 0, 84 → 83; Hunting Rifle 40 → 0, 95 → 94; Assault Rifle 40 → 23, 480 → 479; Anti-Materiel Rifle 40 → 0, 45 → 44. With the mouse button held, the Assault Rifle put out 83 rounds across two self-reloads, and the pistol and long-gun stances were captured from the side (`docs/milestones/m1-launch/G01_guns_held_vs_rec6_05.jpg`).
+>   - How to repeat it: `ServerStorage.EO_Dev:Invoke("equip", itemId, slot, durability?)`, `("shoot", studs?)` (fires once at the nearest Hollow and returns its health and the gun's durability before and after, and what blocked the shot), `("heal")`.
+>   - **Not verified in play:** finding a gun in a container or crafting one (the loot rows and recipes are held by specs only); the Anti-Materiel Rifle's pierce (no two Hollow stood in line); how the shots sound; touch input.
+>   - **Seen, not fixed:** the four black guns read dim in the weapon circle (a model-rendered icon on a near-black disc; they have no painted icon, and that is art spend). A shot is a level ray at chest height, so tree hulls and rising ground stop it: an apple tree blocked shots at a Shambler 6 studs away, and the 120 to 160 stud rifle ranges will rarely be clear. A gun starts a run empty, so the first pull is a reload.
+>   - **Still open:** the melee-wear tuning item above. The pacing numbers did not move with the gun rows. The junk lever does nothing by itself because `Pacing.spec` rolls its own copy of the pine band tables: turn it in the fixture and in `Data/LootTables` together.
+> - **Next: step 4**, the moment-of-need offers (F-08 and F-09).
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
