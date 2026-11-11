@@ -405,7 +405,7 @@ return function(test: TestKit.Register)
 		TestKit.truthy(table.find(pieces, "build.workbench") ~= nil, "workbench")
 	end)
 
-	test("only the hatchet, pick, stake, satchel, its cord and the small crate start unlocked", function()
+	test("only the hatchet, pick, stake, satchel, its cord, the small crate and cooking meat start unlocked", function()
 		local starters: { string } = {}
 		for id, recipe in Content.Recipes do
 			if recipe.unlock.kind == "default" then
@@ -420,6 +420,7 @@ return function(test: TestKit.Register)
 		table.sort(starters)
 		TestKit.deepEqual(starters, {
 			"build.crate_wood",
+			"recipe.cooked_meat", -- at the starter Campfire, once a run brings meat home
 			"recipe.rope",
 			"recipe.satchel",
 			"recipe.sharpened_stake",
@@ -548,8 +549,9 @@ return function(test: TestKit.Register)
 	end)
 
 	test("flags: defaults on live servers, Workspace overrides only in Studio", function()
-		TestKit.equal(Flags.resolve("fogRuns", false, true), false, "live ignores overrides")
-		TestKit.equal(Flags.resolve("fogRuns", true, true), true, "Studio override")
+		TestKit.equal(Flags.resolve("vehicleFrame", false, true), false, "live ignores overrides")
+		TestKit.equal(Flags.resolve("vehicleFrame", true, true), true, "Studio override")
+		TestKit.equal(Flags.resolve("fogRuns", true, false), false, "Studio can switch a default off")
 		TestKit.equal(Flags.resolve("ldoeStations", true, nil), true, "default on")
 		TestKit.equal(Flags.on("ldoeHud"), Flags.DEFAULTS.ldoeHud, "Lune runs the defaults")
 		TestKit.equal(Flags.on("vehicleFrame"), false, "the hauler is cut from v0.1")

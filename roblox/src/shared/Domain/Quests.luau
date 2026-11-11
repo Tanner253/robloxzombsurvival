@@ -196,6 +196,21 @@ local function matches(objective: Types.QuestObjective, event: Event): boolean
 	return false
 end
 
+--[[
+	What a finished search on a run reports (Services/Containers.looted's `source`): a placed
+	container is "loot", the pile a Hollow left is "lootBody" (the trail's first drop, #57),
+	and any other pile (a craft that didn't fit, a spent arrow) is nothing, so nobody farms
+	"search a container" by picking their own things back up.
+]]
+function Quests.lootEvent(source: string, locationId: string): Event?
+	if source == "container" then
+		return { kind = "loot", locationId = locationId, count = 1 }
+	elseif source == "hollowDrop" then
+		return { kind = "lootBody", locationId = locationId, count = 1 }
+	end
+	return nil
+end
+
 local function opened(def: Types.QuestDef, state: State): boolean
 	return state.completed[def.id] == nil and (def.prerequisite == nil or state.completed[def.prerequisite] ~= nil)
 end

@@ -5,7 +5,7 @@
 	1. Run play events for the Ember Trail (Events.played): "travel" on arriving in a run
 	   (with the location's fog tier, so `{ kind = "travel", fogTier = 3 }` matches any
 	   Black location), "kill" for a Hollow the player killed, "loot" for a container they
-	   opened. Without these the trail's Fog Run quests could never finish.
+	   opened, "lootBody" for a Hollow's drop they picked up (Domain/Quests.lootEvent). Without these the trail's Fog Run quests could never finish.
 	2. Location quests (LDOE_PARITY #45, ECONOMY §6.2): each location's `run.quests`,
 	   counted from those events and from gathering during a run there, and paid once per
 	   Tuning.locationQuests period per player (Domain/Quests.locationQuestOpen,
@@ -161,8 +161,11 @@ function LocationQuests.start()
 			report(killer, { kind = "kill", enemyId = enemy.id, locationId = hosted.location.id, count = 1 })
 		end
 	end)
-	Containers.looted:Connect(function(player: Player, hosted: Lobby.Hosted)
-		report(player, { kind = "loot", locationId = hosted.location.id, count = 1 })
+	Containers.looted:Connect(function(player: Player, hosted: Lobby.Hosted, source: string?)
+		local event = QuestsMath.lootEvent(source or "container", hosted.location.id)
+		if event then
+			report(player, event)
+		end
 	end)
 	Lobby.addRunState("locationQuests", function(player: Player, run: Lobby.Run): any
 		local location = run.hosted.location

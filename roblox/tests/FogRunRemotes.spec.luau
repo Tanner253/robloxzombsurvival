@@ -23,9 +23,9 @@ return function(test: TestKit.Register)
 		TestKit.truthy(count >= 20, "the whole feature is declared")
 	end)
 
-	test("with the flag off, none of them exist", function()
-		for name in Remotes.fogRuns do
-			TestKit.equal(Remotes.list[name], nil, name)
+	test("with Fog Runs on (F-01), every one of them is a live remote", function()
+		for name, decl in Remotes.fogRuns do
+			TestKit.equal(Remotes.list[name], decl, name)
 		end
 	end)
 

@@ -43,7 +43,9 @@ local Containers = {}
 
 -- (player) a search started: looting breaks sneak (LDOE_PARITY #44).
 Containers.searched = Signal.new()
-Containers.looted = Signal.new() -- (player, hosted): a search finished and the container opened
+-- (player, hosted, source): a search finished and it opened. `source` is "container" (a
+-- placed container), "hollowDrop" (the pile a Hollow left) or "pile" (any other pile).
+Containers.looted = Signal.new()
 
 local tuning = Content.Tuning
 local config = tuning.containers
@@ -57,6 +59,7 @@ type World = {
 	positions: { [string]: Vector3 },
 	markers: { [string]: BasePart },
 	piles: { [string]: Model }, -- the visible loot piles (FogRuns/Props)
+	hollowDrops: { [string]: boolean }, -- the piles a Hollow left (the trail's "lootBody")
 	rng: Rng.Source,
 	pity: { [number]: Loot.PityState },
 	seq: number,
@@ -97,6 +100,7 @@ local function open(hosted: Lobby.Hosted)
 		positions = {},
 		markers = {},
 		piles = {},
+		hollowDrops = {},
 		rng = Rng.new(hosted.state.seed + 1),
 		pity = {},
 		seq = 0,
@@ -139,7 +143,8 @@ function Containers.spawnPile(
 	hosted: Lobby.Hosted,
 	position: Vector3,
 	stacks: { Types.ItemStack },
-	ownerUserId: number?
+	ownerUserId: number?,
+	fromHollow: boolean?
 ): string?
 	local world = worlds[hosted.id]
 	if world == nil or #stacks == 0 then
@@ -161,6 +166,9 @@ function Containers.spawnPile(
 	end
 	world.states[id] = state
 	world.positions[id] = position
+	if fromHollow then
+		world.hollowDrops[id] = true
+	end
 	local model =
 		Props.pile(hosted.map or workspace, position, id, if state.mode == "personal" then ownerUserId else nil)
 	if model then
@@ -228,7 +236,8 @@ local function complete(player: Player, active: Active)
 	end
 	world.pity[player.UserId] = pity
 	Lobby.recordSearch(player)
-	Containers.looted:Fire(player, world.hosted)
+	local source = if state.kind ~= "pile" then "container" elseif world.hollowDrops[id] then "hollowDrop" else "pile"
+	Containers.looted:Fire(player, world.hosted, source)
 	local marker = world.markers[id]
 	if marker then
 		marker:SetAttribute("Opened", true)
@@ -331,7 +340,7 @@ function Containers.start()
 			return
 		end
 		local result = Loot.roll(Tables, enemy.lootTableId, world.rng, { items = Items })
-		Containers.spawnPile(hosted, position, result.items, if killer then killer.UserId else nil)
+		Containers.spawnPile(hosted, position, result.items, if killer then killer.UserId else nil, true)
 	end)
 	Lobby.addRunState("search", function(player: Player): any
 		local active = searching[player]

@@ -205,10 +205,11 @@ local Tuning: Types.TuningDef = {
 	hollowTierScale = { health = { 1, 1.2, 1.4 }, damage = { 1, 1.15, 1.3 } },
 
 	-- Fog Runs (M1 slice 2) -------------------------------------------------------------
-	-- Hidden until the art grades A (PLAYER_EXPERIENCE_CHECKLIST §0): with fogRuns off, the
-	-- recipes, station and remotes tagged with it are left out of the game entirely.
+	-- A feature that is off is left out of the game entirely: the recipes, stations, pieces
+	-- and remotes tagged with it (Features.strip). fogRuns is on for launch (the flow
+	-- review's F-01; tests/Launch.spec holds it on and checks no quest is left dormant).
 	features = {
-		fogRuns = false,
+		fogRuns = true,
 		aiRaiders = false, -- M2
 		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
 		-- M4 (docs/MVP_LAUNCH.md): built and tested on the server, no client UI yet. Off, Dense

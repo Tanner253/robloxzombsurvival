@@ -145,7 +145,7 @@ local function devCommand(command: string, ...: any): any
 			return "no run"
 		end
 		for _ = 1, args[1] or 1 do
-			require("./Containers").looted:Fire(player, run.hosted)
+			require("./Containers").looted:Fire(player, run.hosted, "container")
 		end
 		return "ok"
 	elseif command == "die" then
