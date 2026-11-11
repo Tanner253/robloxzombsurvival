@@ -148,6 +148,13 @@ The art credit pool is nearly spent: about 0–50 of 800 credits are left.
 
 ## 5. Current state: branches (all pushed to origin)
 
+> **Update 2026-11-11: §6 step 1 is done.** `main` is at 1788203 with all checks green (489 Lune tests, Selene, StyLua, luau-lsp, `rojo build`).
+> - **Merged:** `claude/m1-launch-home-platform`, `claude/m1-slice2b-fog-runs-9a5388` (at a941de9, which finished the Hollow movement WIP), `worktree-agent-a0101ba2e6be467ea` (F-02, F-04, F-05, F-06, F-07 and the F-08 offer hooks), `worktree-agent-a52ab36a54b0f4f87` (minimap 8.11).
+> - **Parked, not merged (post-launch, §6 step 7):**
+>   - `worktree-agent-a3808d71e6cf77897` (Haven VIP): built on the Haven from before the density pass, so `World/Haven.luau` conflicts in 9 hunks; it re-adds the VIP particle aura the developer rejected; its four props were never graded; it bumps the save schema to v11. Port it onto main's Haven and grade it in Studio before merging. Keep main's side of the aura conflict.
+>   - `worktree-agent-a3c75eb84c6644ce1` (melee polish): four new modules nothing requires, no specs, fails StyLua and luau-lsp (type errors in `MeleePoses`, `MeleeKeys`, `MeleeTiming`). Finish, wire and test it before merging.
+> - The table below is the state before these merges, kept for the branch contents.
+
 | Branch | Head | State | Contents |
 |---|---|---|---|
 | `main` | 0085468+ | Clean. Checks green at 0e14fa4; later commits are docs, assets and tools only | Everything merged so far, plus ARSENAL, SHOP_CATALOG, the flow review, the Zona catalog, the gun tools and GLBs |
