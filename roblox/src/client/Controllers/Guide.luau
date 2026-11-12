@@ -142,7 +142,10 @@ local function toTrailhead(key: string?): ({ Instance }, string?)
 	if atTrailhead(sign) then
 		local toggleFogMap: any = (Actions :: any).toggleFogMap
 		if openedFor ~= key and type(toggleFogMap) == "function" then
-			openedFor = key;
+			openedFor = key
+			if key and Content.Locations[key] then
+				State.patch({ guideLocation = key }) -- the map opens on this pin (Actions.toggleFogMap)
+			end
 			(toggleFogMap :: () -> ())()
 		end
 		return {}, "map"

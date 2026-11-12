@@ -53,11 +53,15 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		name = "First Light",
 		description = "The fog thins at dawn. Gather branches and stones, twist reeds into a cord, and sharpen a stake to keep in hand.",
 		-- Home only, with or without Fog Runs (the flow review's F-02): every objective is
-		-- something the plot reports. The stake takes 4 of the sticks; the other 6 and the
-		-- stones make Tools of Survival. The first Hollow waits in Into the Fog.
+		-- something the plot reports. The stake takes 4 of the sticks and a rope; the other 6
+		-- sticks and the stones make Tools of Survival. The first Hollow waits in Into the Fog.
+		-- The reeds and the rope are steps of their own (launch playtest, 2026-11-11): a new
+		-- player has no rope, and the Guide only points at a listed objective.
 		objectives = {
 			{ kind = "gather", itemId = "item.sticks", count = 10 },
 			{ kind = "gather", itemId = "item.stone", count = 6 },
+			{ kind = "gather", itemId = "item.fiber", count = 2 },
+			{ kind = "craft", recipeId = "recipe.rope", count = 1 },
 			{ kind = "craft", recipeId = "recipe.sharpened_stake", count = 1 },
 			{ kind = "equip", itemId = "item.sharpened_stake" },
 		},

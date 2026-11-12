@@ -249,7 +249,8 @@ return function(test: TestKit.Register)
 		local facts: Quests.Facts =
 			{ level = 1, equipped = { ["item.sharpened_stake"] = true }, made = made, placed = placed }
 		for _, objective in Content.Quests["quest.first_light"].objectives do
-			if objective.kind == "gather" then
+			-- Gathering and the rope (a material: only its craft counts, not holding one).
+			if objective.kind == "gather" or (objective.kind == "craft" and objective.recipeId == "recipe.rope") then
 				state = Quests.record(state, Content.Quests, flags, table.clone(objective :: any))
 			end
 		end

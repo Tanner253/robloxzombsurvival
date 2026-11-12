@@ -431,16 +431,24 @@ local function QuestDone()
 	local payload = shown.payload
 	local quest = Content.Quests[payload.questId]
 	local names: { string } = {}
+	local listed: { [string]: boolean } = {}
+	-- Two recipes can make one item (Iron Ingot from ore and from scrap): name it once.
+	local function list(name: string)
+		if not listed[name] then
+			listed[name] = true
+			table.insert(names, name)
+		end
+	end
 	for _, recipeId in payload.recipes or {} do
 		local recipe = Content.Recipes[recipeId]
 		if recipe then
-			table.insert(names, format.itemName(recipe.outputs[1].itemId))
+			list(format.itemName(recipe.outputs[1].itemId))
 		end
 	end
 	for _, pieceId in payload.pieces or {} do
 		local piece = Content.BuildPieces[pieceId]
 		if piece then
-			table.insert(names, piece.name)
+			list(piece.name)
 		end
 	end
 	local rewards: { [string]: any } = {}
