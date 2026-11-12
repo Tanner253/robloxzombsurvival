@@ -224,9 +224,9 @@ local Tuning: Types.TuningDef = {
 		-- drops enough Raw Venison to feed them (the flow review's F-21).
 		wildlife = false,
 		-- 2.0 batch 4 (docs/CONTENT_2_0.md): the Fortified tier, chapter 4 and the Zona item
-		-- depth. Off until the Studio pass has uploaded, graded and gripped every model and icon
-		-- (tests/Content2.spec: off, nothing new appears; on, the bundle validates).
-		content2 = false,
+		-- depth. On since batch 4b's Studio pass uploaded, graded and gripped every model and
+		-- icon (tests/Content2.spec: off, nothing new appears; on, the bundle validates).
+		content2 = true,
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby

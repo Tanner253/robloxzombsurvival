@@ -73,8 +73,9 @@ return function(test: TestKit.Register)
 		-- The launch cap is 30 (the content parity audit's BR-8: 20 ran out on day 12).
 		TestKit.equal(#Content.Levels, 30, "player levels")
 		-- The Ember Trail: 10 starter quests, ECONOMY §11.2's three tier-2 quests, then
-		-- chapter 3's twelve ("Hold the Line", the audit's SH-10 and BR-8).
-		TestKit.equal(count(Content.Quests), 25, "Ember Trail quests")
+		-- chapter 3's twelve ("Hold the Line", the audit's SH-10 and BR-8), then Content 2.0's
+		-- chapter 4 ("Iron Lungs", eight; on since batch 4b).
+		TestKit.equal(count(Content.Quests), 33, "Ember Trail quests")
 		-- v0.1's ten, then the Equipment tab's six and the Building tab's two (MVP_LAUNCH).
 		TestKit.equal(count(Content.Products), 18, "shop products (MVP_LAUNCH Monetization v0.1)")
 

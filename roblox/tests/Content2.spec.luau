@@ -1,10 +1,11 @@
 --!strict
 --[[
-	Content 2.0, batch 4 (docs/CONTENT_2_0.md): everything ships behind
-	Tuning.features.content2. With the flag off, nothing new reaches a player: no recipe,
-	station, build piece, quest or loot row names any of it, and the items are dormant. With
-	it on, the bundle validates and every new item can be earned. The rules it adds are pure
-	(Domain/Gear, Domain/Meds, FogExposure.filterWear, Combat.backstab) and checked here too.
+	Content 2.0, batch 4 (docs/CONTENT_2_0.md): everything is behind
+	Tuning.features.content2, on since batch 4b's Studio pass graded its models. With the flag
+	off, nothing new reaches a player: no recipe, station, build piece, quest or loot row names
+	any of it, and the items are dormant. With it on, the bundle validates and every new item
+	can be earned. The rules it adds are pure (Domain/Gear, Domain/Meds,
+	FogExposure.filterWear, Combat.backstab) and checked here too.
 ]]
 
 local TestKit = require("./TestKit")
@@ -89,14 +90,31 @@ local function withContent2(): any
 	return Features.strip(content)
 end
 
+-- The bundle as it would ship with the flag off (the rollback switch).
+local function withoutContent2(): any
+	local content = rawContent()
+	content.Tuning.features.content2 = false
+	return Features.strip(content)
+end
+
 local function slot(itemId: string): Types.Slot
 	return { itemId = itemId, count = 1, durability = 100 }
 end
 
 return function(test: TestKit.Register)
 	-- The flag -----------------------------------------------------------------------------
-	test("content2 ships off until the Studio pass grades its models", function()
-		TestKit.equal(Content.Tuning.features.content2, false, "flag")
+	test("content2 ships on: batch 4b's Studio pass graded its models", function()
+		TestKit.equal(Content.Tuning.features.content2, true, "flag")
+		for id, kind in newIds() do
+			local tables = {
+				item = Content.Items,
+				recipe = Content.Recipes,
+				station = Content.Stations,
+				piece = Content.BuildPieces,
+				quest = Content.Quests,
+			} :: { [string]: any }
+			TestKit.truthy(tables[kind][id], `{id} ships`)
+		end
 	end)
 
 	test("the batch adds 23 items, 18 recipes, 2 stations, 7 pieces, 8 quests and 32 loot rows", function()
@@ -117,10 +135,11 @@ return function(test: TestKit.Register)
 		TestKit.equal(rows, 32, "loot rows")
 	end)
 
-	test("flag off: nothing in the shipped bundle names anything new; the items are dormant", function()
+	test("flag off: nothing in the bundle names anything new; the items are dormant", function()
 		local ids = newIds()
 		local found: { string } = {}
-		for name, section in Content :: any do
+		local stripped = withoutContent2()
+		for name, section in stripped :: any do
 			if name ~= "Items" then
 				mentions(section, ids, name, found)
 			end
@@ -128,19 +147,19 @@ return function(test: TestKit.Register)
 		TestKit.deepEqual(found, {}, "references to content2 outside Items")
 		for id, kind in ids do
 			if kind == "item" then
-				TestKit.truthy(Content.Items[id], `{id} stays as a dormant item`)
+				TestKit.truthy(stripped.Items[id], `{id} stays as a dormant item`)
 			else
 				local tables = {
-					recipe = Content.Recipes,
-					station = Content.Stations,
-					piece = Content.BuildPieces,
-					quest = Content.Quests,
+					recipe = stripped.Recipes,
+					station = stripped.Stations,
+					piece = stripped.BuildPieces,
+					quest = stripped.Quests,
 				} :: { [string]: any }
 				TestKit.equal(tables[kind][id], nil, `{id} is left out`)
 			end
 		end
 		-- The Reinforced tier tops out: its link up to Fortified is dropped with Fortified.
-		TestKit.equal(Content.BuildPieces["build.wall_reinforced"].upgradesTo, nil, "Reinforced Wall upgrade")
+		TestKit.equal(stripped.BuildPieces["build.wall_reinforced"].upgradesTo, nil, "Reinforced Wall upgrade")
 		TestKit.equal(RawPieces["build.wall_reinforced"].upgradesTo, "build.wall_fortified", "raw data keeps it")
 	end)
 
