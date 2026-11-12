@@ -21,12 +21,14 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
+local Interior = require(ReplicatedStorage.Shared.Domain.Interior)
 local Sfx = require("../Sfx")
 local flyIcon = require("../UI/flyIcon")
 local State = require("../State")
 local Theme = require("../UI/theme")
 local format = require("../UI/format")
 local Camera = require("./Camera")
+local RoofFade = require("./RoofFade")
 
 local WorldFx = {}
 
@@ -705,8 +707,8 @@ end
 local function stepFades(dt: number)
 	local step = dt / FADE_SECONDS
 	for part, fade in fades do
-		if part.Parent == nil then
-			fades[part] = nil
+		if part.Parent == nil or RoofFade.holds(part) then
+			fades[part] = nil -- gone, or RoofFade has it (a camera-side wall of the room you're in)
 			continue
 		end
 		local diff = fade.target - fade.now
@@ -857,14 +859,24 @@ end
 -- Occlusion fade ------------------------------------------------------------------------------------
 -- Walls, doors and windows between the camera and the survivor fade (with the
 -- corner posts at their ends), so you can always see yourself inside a base.
+-- Roofs belong to RoofFade (tagged EO_InteriorRoof): they're looked past here, and so
+-- are the walls RoofFade is holding while you're inside their building.
 
 local OCCLUDE_ALPHA = 0.6 -- partial and eased, like the canopy (S1b leftover 2)
 local OCCLUDE_LAYERS: { [string]: boolean } = { frame = true, fill = true, roof = true }
 local occluded: { [BasePart]: boolean } = {}
 
+-- Whether RoofFade owns the part: a roof, or a wall it is holding.
+local function roofFaded(part: BasePart): boolean
+	return RoofFade.holds(part) or CollectionService:HasTag(part, Interior.ROOF_TAG)
+end
+
 local function pieceOf(part: Instance): Model?
 	local current: Instance? = part
 	while current and current ~= workspace do
+		if CollectionService:HasTag(current, Interior.ROOF_TAG) then
+			return nil -- a roof: RoofFade's
+		end
 		if current:IsA("Model") and current:GetAttribute("Layer") ~= nil then
 			return current
 		end
@@ -904,7 +916,7 @@ local function updateOcclusion()
 		end
 		for wall in walls do
 			for _, descendant in wall:GetDescendants() do
-				if descendant:IsA("BasePart") then
+				if descendant:IsA("BasePart") and not roofFaded(descendant) then
 					hidden[descendant] = true
 				end
 			end
@@ -917,7 +929,7 @@ local function updateOcclusion()
 					if partInSeams:IsA("BasePart") then
 						for _, at in ends do
 							local d = partInSeams.Position - at
-							if Vector2.new(d.X, d.Z).Magnitude < 1.6 then
+							if Vector2.new(d.X, d.Z).Magnitude < 1.6 and not roofFaded(partInSeams) then
 								hidden[partInSeams] = true
 							end
 						end
