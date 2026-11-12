@@ -460,17 +460,19 @@ local Tuning: Types.TuningDef = {
 		speedUpFactor = 3.9, -- Embers = max(speedUpMin, ceil(3.9 x sqrt(minutes left)))
 		speedUpMin = 2,
 		speedUpMinSeconds = 120, -- speed-ups show from 2 minutes left
-		-- Embers a missing unit: max(1, round(40 x free minutes / 60)), the minutes as in
-		-- Data/Products' header (docs/ECONOMY.md chains; rebalance with the pacing sim).
+		-- Embers a missing unit: round(40 x free minutes / 60), the minutes as in Data/Products'
+		-- header (docs/ECONOMY.md chains; rebalance with the pacing sim). A buy is rounded up
+		-- once (Offers.fillUpPrice). The flow review's F-25: tier-1 raw materials (under a
+		-- minute each) cost a third of an Ember, not 1, which was 3-4x the plate rate.
 		fillUp = {
-			["item.sticks"] = 1,
-			["item.timber"] = 1,
-			["item.stone"] = 1,
-			["item.fiber"] = 1,
-			["item.scrap"] = 1,
-			["item.emberberry"] = 1,
+			["item.sticks"] = 1 / 3,
+			["item.timber"] = 1 / 3,
+			["item.stone"] = 1 / 3,
+			["item.fiber"] = 1 / 3,
+			["item.scrap"] = 1 / 3,
+			["item.emberberry"] = 1 / 3,
+			["item.ironstone"] = 1 / 3,
 			["item.rope"] = 1,
-			["item.ironstone"] = 1,
 			["item.malachite"] = 1,
 			["item.ironbark_log"] = 1,
 			["item.embercoal"] = 1,

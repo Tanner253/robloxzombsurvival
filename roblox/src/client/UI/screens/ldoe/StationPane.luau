@@ -511,7 +511,11 @@ local function StationPane(props: Props)
 	if def.fuel then
 		left = math.min(left, status.fuelSeconds)
 	end
-	local speedPrice = Offers.speedUpPrice(left, Content.Tuning.embers :: any)
+	-- Capped at the Fill Up value of what it makes (F-25), as the server prices it.
+	local makes = if line and line.recipeId
+		then Offers.speedUpMakes(line.outputs, status.batchRemaining, status.batchSeconds, left)
+		else nil
+	local speedPrice = Offers.speedUpPrice(left, Content.Tuning.embers :: any, makes)
 	local bar = speedPrice
 		and e(Parts.Bar, {
 			alignX = Enum.HorizontalAlignment.Center,

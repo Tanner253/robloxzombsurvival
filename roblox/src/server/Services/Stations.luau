@@ -329,14 +329,22 @@ local function takeOutput(player: Player, uid: string, index: number)
 end
 
 -- Speed up (MVP_LAUNCH v0.1): Embers finish the work the station would do now, the batches
--- in its input as far as its fuel goes, priced by the time skipped (Domain/Offers).
-local function workLeft(c: Context): number
+-- in its input as far as its fuel goes, priced by the time skipped and capped at the Fill Up
+-- value of what it makes (Domain/Offers, F-25).
+local function workLeft(c: Context): (number, { Types.ItemStack }?)
 	local status = Converter.status(c.station, c.ctx)
-	if status.activity ~= "working" or status.line == nil then
-		return 0
+	local line = status.line
+	if status.activity ~= "working" or line == nil then
+		return 0, nil
 	end
 	local left = status.batchRemaining + math.max(0, status.batchesLeft - 1) * status.batchSeconds
-	return if c.def.fuel then math.min(left, status.fuelSeconds) else left
+	if c.def.fuel then
+		left = math.min(left, status.fuelSeconds)
+	end
+	local makes = if line.recipeId
+		then Offers.speedUpMakes(line.outputs, status.batchRemaining, status.batchSeconds, left)
+		else nil
+	return left, makes
 end
 
 local function speedUp(player: Player, uid: string)
@@ -344,8 +352,8 @@ local function speedUp(player: Player, uid: string)
 	if c == nil then
 		return
 	end
-	local seconds = workLeft(c)
-	local price = Offers.speedUpPrice(seconds, tuning.embers :: any)
+	local seconds, makes = workLeft(c)
+	local price = Offers.speedUpPrice(seconds, tuning.embers :: any, makes)
 	if price == nil then
 		Sync.notice(player, "Less than 2 minutes left")
 		return
