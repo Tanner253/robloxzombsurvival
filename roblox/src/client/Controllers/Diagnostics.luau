@@ -6,13 +6,17 @@
 	of State.ui(), ("state", section) returns a synced section, ("panel", name,
 	stationUid?) opens a panel, ("action", name, ...) calls an Actions function,
 	("section", name) reads any section (Fog Run ones too) and ("fixture", name, value)
-	sets one locally.
+	sets one locally. ("aimAt", x, y, z) holds the combat aim on a world point in place of the
+	mouse (no arguments: back to the mouse); ("stance") reads Controllers/Stance (facing,
+	waist, leg cycle, ground and leg speed).
 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Actions = require("../Actions")
+local CombatControl = require("./CombatControl")
+local Stance = require("./Stance")
 local Net = require("../Net")
 local State = require("../State")
 
@@ -58,6 +62,12 @@ local function devCommand(command: string, ...: any): any
 		local args = { ... }
 		State.patch({ selected = { ref = args[1], index = args[2] } })
 		return "ok"
+	elseif command == "aimAt" then
+		local args = { ... }
+		CombatControl.devAim(if type(args[1]) == "number" then Vector3.new(args[1], args[2], args[3]) else nil)
+		return "ok"
+	elseif command == "stance" then
+		return Stance.read()
 	elseif command == "action" then
 		local args = { ... }
 		local fn: any = (Actions :: any)[args[1]]

@@ -23,6 +23,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Throw = require(ReplicatedStorage.Shared.Domain.Throw)
+local Trigger = require(ReplicatedStorage.Shared.Domain.Trigger)
 local Clips = require("../Clips")
 local Net = require("../Net")
 local Sfx = require("../Sfx")
@@ -30,6 +31,7 @@ local State = require("../State")
 local Camera = require("./Camera")
 local FogRun = require("./FogRun")
 local HollowView = require("./HollowView")
+local Stance = require("./Stance")
 
 local Throwing = {}
 
@@ -55,6 +57,7 @@ local preview: Folder? = nil
 local dots: { BasePart } = {}
 local ring: BasePart? = nil
 local landing: Vector3? = nil
+local lastThrowAt: number? = nil
 
 -- The throwable in the active hand and its stats, or nil.
 local function inHand(): (string?, any)
@@ -263,11 +266,18 @@ function Throwing.step()
 	end
 	local path, land = arcFor(root, stats)
 	drawPreview(path, land)
-	-- Face the throw, as a gun faces its aim.
-	local flat = Vector3.new(land.X, root.Position.Y, land.Z)
-	if (flat - root.Position).Magnitude > 0.5 then
-		root.CFrame = CFrame.lookAt(root.Position, flat)
+	-- The chest turns to the throw, as to a gun's aim; the legs keep running (Stance).
+	local flat = Vector3.new(land.X - root.Position.X, 0, land.Z - root.Position.Z)
+	if flat.Magnitude > 0.5 then
+		Stance.engage(math.atan2(flat.X, flat.Z))
 	end
+end
+
+-- A hold that ended without a throw (the hand changed): the preview goes.
+function Throwing.cancel()
+	aiming = false
+	aimTouch = nil
+	clearPreview()
 end
 
 function Throwing.release()
@@ -279,10 +289,16 @@ function Throwing.release()
 	aimTouch = nil
 	local land = landing
 	clearPreview()
-	if land == nil or inHand() == nil then
+	local _, stats = inHand()
+	if land == nil or stats == nil then
 		return
 	end
-	Clips.play(player.Character, "throw")
+	-- One throw per interval, as the server keeps it: a press in its cool-down draws nothing.
+	if not Trigger.throwReady(lastThrowAt, os.clock(), stats.intervalSeconds) then
+		return
+	end
+	lastThrowAt = os.clock()
+	Clips.play(player.Character, "throw", nil, nil, nil, "upper")
 	task.delay(math.max(0, Clips.hit("throw") - 0.12), Sfx.play, "meleeSwing", nil)
 	Net.fire("CombatThrow", land.X, land.Y, land.Z)
 end

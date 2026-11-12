@@ -16,6 +16,12 @@
 	Feedback: custom swing, aim, recoil, reload, draw, roll, hit-react and collapse
 	animations (keyframes built here, never Roblox defaults); muzzle flash and light,
 	tracer, shell eject, impact dust; real sounds per weapon; screen shake.
+
+	Moving while fighting (Controllers/Stance): every attack engages the stance toward its aim,
+	so the chest turns to the target while the legs run on; swings and flinches play above the
+	waist only. The trigger is Domain/Trigger: a hold belongs to what was in hand at its press,
+	so one press throws one grenade, and a gun that comes into the hand mid-hold waits for a
+	new press.
 ]]
 
 local Debris = game:GetService("Debris")
@@ -35,7 +41,9 @@ local State = require("../State")
 local Camera = require("./Camera")
 local FogRun = require("./FogRun")
 local HollowView = require("./HollowView")
+local Stance = require("./Stance")
 local Throwing = require("./Throwing")
+local Trigger = require(ReplicatedStorage.Shared.Domain.Trigger)
 
 local CombatControl = {}
 
@@ -51,11 +59,11 @@ local HEAVY_AFTER = tuning.melee.heavyWindupSeconds or 0.45
 -- Every clip comes from Data/Holds by the held item's class (client/Clips plays them): the
 -- class's swing and heavy, the gun's aim, kick and reload, the bow's draw; and the body's
 -- roll, hit-react and collapse.
-local function play(character: Model?, name: string?, speed: number?): AnimationTrack?
+local function play(character: Model?, name: string?, speed: number?, mask: "upper"?): AnimationTrack?
 	if name == nil then
 		return nil
 	end
-	local track = Clips.play(character, name, speed)
+	local track = Clips.play(character, name, speed, nil, nil, mask)
 	if track and name == "collapse" then
 		-- The fall holds its last pose rather than springing back up.
 		local t = track
@@ -117,8 +125,17 @@ local function rootPart(): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
+-- Scripted checks (Diagnostics "aimAt"): a fixed world point stands in for the mouse.
+local devAimPoint: Vector3? = nil
+function CombatControl.devAim(point: Vector3?)
+	devAimPoint = point
+end
+
 -- The ground point under the mouse (PC), at the survivor's height.
 local function mouseGround(root: BasePart): Vector3?
+	if devAimPoint then
+		return Vector3.new(devAimPoint.X, root.Position.Y, devAimPoint.Z)
+	end
 	local camera = workspace.CurrentCamera
 	if camera == nil then
 		return nil
@@ -152,7 +169,7 @@ local function aim(): (number?, HollowView.Target?)
 	end
 	local targets = HollowView.targets()
 	local yaw: number? = nil
-	if not State.ui().touch then
+	if not State.ui().touch or devAimPoint then
 		local ground = mouseGround(root)
 		if ground then
 			yaw = yawTo(root.Position, ground)
@@ -185,24 +202,26 @@ local function aim(): (number?, HollowView.Target?)
 	return yaw, best
 end
 
+-- An attack toward `yaw`: the chest turns to it, the legs keep the movement (Stance).
 local function face(yaw: number)
-	local root = rootPart()
-	if root then
-		local look = root.Position + Vector3.new(math.sin(yaw), 0, math.cos(yaw))
-		root.CFrame = CFrame.lookAt(root.Position, look)
-	end
+	Stance.engage(yaw)
 end
 
 -- Effects -------------------------------------------------------------------------------------------------
 
--- Where a shot leaves the gun: ahead of the fist by the barrel's length past the grip.
-local function muzzleOf(character: Model, itemId: string?): Vector3
+-- Where a shot leaves the gun: ahead of the fist by the barrel's length past the grip, along
+-- the shot (the chest turns to it while the legs may face elsewhere).
+local function muzzleOf(character: Model, itemId: string?, yaw: number?): Vector3
 	local hand = character:FindFirstChild("RightHand") :: BasePart?
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if hand then
 		local held = if itemId then Art.held[itemId] else nil
 		local ahead = if held then math.max(1.4, held.length * (1 - held.grip)) else 1.4
-		return hand.Position + (if root then root.CFrame.LookVector * ahead else Vector3.zero)
+		local along = if yaw
+			then Vector3.new(math.sin(yaw), 0, math.cos(yaw))
+			elseif root then root.CFrame.LookVector
+			else Vector3.zero
+		return hand.Position + along * ahead
 	end
 	return if root then root.Position + Vector3.new(0, 1.2, 0) else Vector3.zero
 end
@@ -378,8 +397,11 @@ local function onShot(payload: any)
 	end
 	local def = Items[payload.itemId]
 	local weapon = def and def.weapon
-	local from = muzzleOf(character, payload.itemId)
 	local yaw: number = payload.yaw
+	local from = muzzleOf(character, payload.itemId, yaw)
+	if payload.userId ~= player.UserId then
+		Stance.remoteAim(character, yaw)
+	end
 	if weapon and weapon.bow then
 		Sfx.play("bowRelease", from)
 		stop(character, clipOf(payload.itemId, "aim"))
@@ -435,7 +457,10 @@ local function onSwing(payload: any)
 		return -- your own swing animates on input
 	end
 	local name = clipOf(payload.itemId, if payload.heavy then "heavy" else "swing")
-	play(character, name)
+	play(character, name, nil, "upper")
+	if type(payload.yaw) == "number" then
+		Stance.remoteAim(character, payload.yaw)
+	end
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	whoosh(name, if root then root.Position else nil)
 end
@@ -448,6 +473,7 @@ local function roll(yaw: number, seconds: number)
 		return
 	end
 	rolling = true
+	Stance.pause(seconds) -- the roll owns the body
 	play(character, "roll", 0.5 / math.max(seconds, 0.2))
 	impactDust(root.Position - Vector3.new(0, 2.6, 0))
 	local dir = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
@@ -479,7 +505,7 @@ end
 
 -- Input --------------------------------------------------------------------------------------------------
 
-local holding = false
+local trigger = Trigger.new()
 local pressedAt = 0
 local lastShot = 0
 local drawing = false
@@ -526,9 +552,11 @@ function CombatControl.press()
 	if not FogRun.active() or State.ui().panel ~= "none" then
 		return
 	end
-	holding = true
-	pressedAt = os.clock()
 	local kind = weaponKind()
+	if not Trigger.press(trigger, kind) then
+		return -- the same press, from another input path
+	end
+	pressedAt = os.clock()
 	local character = player.Character
 	if kind == "gun" then
 		play(character, clipFor("aim"))
@@ -554,12 +582,21 @@ function CombatControl.press()
 end
 
 function CombatControl.release()
-	if not holding then
+	local kind = weaponKind()
+	local pressedKind = trigger.kind
+	local done = Trigger.release(trigger, kind)
+	local character = player.Character
+	if done == nil then
+		-- A hold that ends with something else in hand completes nothing; a gun's stance still
+		-- comes down and a throw's preview clears.
+		if pressedKind == "throw" then
+			Throwing.cancel()
+		elseif pressedKind == "gun" then
+			stop(character, HoldRules.clip("long", "aim"))
+			stop(character, HoldRules.clip("pistol", "aim"))
+		end
 		return
 	end
-	holding = false
-	local kind = weaponKind()
-	local character = player.Character
 	if kind == "melee" then
 		local yaw, target = aim()
 		if yaw == nil then
@@ -568,7 +605,7 @@ function CombatControl.release()
 		face(yaw)
 		local heavy = os.clock() - pressedAt >= HEAVY_AFTER
 		local name = clipFor(if heavy then "heavy" else "swing")
-		play(character, name)
+		play(character, name, nil, "upper")
 		whoosh(name, nil)
 		Net.fire("CombatMelee", heavy, yaw, lockedId(target))
 	elseif kind == "bow" and drawing then
@@ -582,7 +619,7 @@ function CombatControl.release()
 		local wait = if burstLeft > 0 and firearm then burstLeft * firearm.fireInterval + 0.1 else 0
 		local aimName = clipFor("aim")
 		task.delay(wait, function()
-			if not holding then
+			if not trigger.down then
 				stop(character, aimName)
 			end
 		end)
@@ -628,7 +665,7 @@ function CombatControl.start()
 			-- An empty magazine reloads itself (LDoE has no reload button): the beat is the wait.
 			CombatControl.reload()
 		elseif kind == "hurt" then
-			play(player.Character, "hitReact")
+			play(player.Character, "hitReact", nil, "upper")
 			Sfx.play("hitThud", nil, 0.8)
 		elseif kind == "runDeath" then
 			play(player.Character, "collapse")
@@ -642,7 +679,23 @@ function CombatControl.start()
 			targetClock = 0
 			updateTarget()
 		end
-		if (holding or burstLeft > 0) and FogRun.active() and weaponKind() == "gun" then
+		local kind = weaponKind()
+		local holding = Trigger.firing(trigger, kind)
+		if trigger.down and (State.ui().panel ~= "none" or not FogRun.active()) then
+			Trigger.cancel(trigger)
+		end
+		-- The chest follows the aim while the stance holds (Stance).
+		if trigger.down or Stance.engaged() then
+			local yaw = aim()
+			if yaw then
+				if trigger.down and kind ~= "melee" then
+					Stance.engage(yaw) -- aiming a gun, a bow or a throw holds the stance
+				else
+					Stance.aim(yaw)
+				end
+			end
+		end
+		if (holding or burstLeft > 0) and FogRun.active() and kind == "gun" then
 			local firearm = activeFirearm()
 			local burst = firearm and firearm.burst
 			-- The server keeps the beat (Domain/Combat.shotTime); this only asks on it. A frame
@@ -662,7 +715,7 @@ function CombatControl.start()
 					fireOnce()
 				end
 			end
-		elseif burstLeft > 0 and weaponKind() ~= "gun" then
+		elseif burstLeft > 0 and kind ~= "gun" then
 			burstLeft = 0
 		end
 		Throwing.step()
