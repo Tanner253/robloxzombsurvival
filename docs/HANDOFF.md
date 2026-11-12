@@ -424,7 +424,7 @@ Run all checks after each merge.
 >     - The economy batch's play-check list.
 >     - Batch 5: more guns and the full SHOP_CATALOG.
 >     - M2: raids, PvP and guilds.
-> - **Update 2026-11-12, batch 5 finished and arms out of the body: branch `guns-and-grenades`, pushed, not merged.** main (god mode) merged in; 592 Lune specs, six checks green. Calls are in the 2026-11-12 DECISIONS row.
+> - **Update 2026-11-12, batch 5 finished and arms out of the body: branch `guns-and-grenades`, pushed, reviewed and merged.** main (god mode) merged in; 592 Lune specs, six checks green. Calls are in the 2026-11-12 DECISIONS row.
 >   - **How the clipping was measured:** a Studio script on the play client, deterministic, no eyeballing. Each arm part's mesh vertices (from the StarterCharacter's own meshes, read in Edit with EditableMesh) are tested against a 0.03-stud inside-depth grid of the UpperTorso, LowerTorso and Head meshes, plus the worn Hide Rucksack's hull (the widest bag). Upper-arm vertices within 0.5 studs of the shoulder pivot are left out against the upper torso (the joint's cap overlaps by rig design). Numbers are the deepest overlap in studs, sampled every frame through each pose. The data folder was a temporary `ReplicatedStorage.EO_MeasureData` and has been removed from the place.
 >   - **Floor:** this rig overlaps itself with nothing in hand: idle 0.08 (upper arm on the flank), walk 0.11 (hand on the hip). Any free arm swinging with the walk sits at that floor.
 >   - **Before → after, deepest overlap (studs):**
@@ -442,7 +442,7 @@ Run all checks after each merge.
 >   - **Not done:** the G20 front and side captures. The capture script never saw the viewport (screen grab found no sentinel), and the session stopped at its tool-call budget. Take them from a fresh play: equip each class, `Clips.play` the aim, a `ZZ_PoseCam` render-step camera.
 >   - **Seen, not fixed:** the shoulder stays bladed only 30 degrees and the off hand sits at the grip, not the handguard: at 1.3x gun scale this rig's arms (1.38 studs shoulder to wrist) can't reach a handguard without crossing the chest. The reload's left hand still brushes the hip (up to 0.16). Pine Hollow's Farmhouse roof panel stops rounds and throws from 8 to 13 studs out.
 
-> - **Update 2026-11-12, moving combat and the throw bugs: branch `moving-combat`, pushed, not merged.** The developer: attacking or shooting while moving (behind, sideways) looked bad. 609 Lune specs, six checks green, UI gate 0 flags (22,551 elements). Calls are in the 2026-11-12 DECISIONS row.
+> - **Update 2026-11-12, moving combat and the throw bugs: branch `moving-combat`, pushed, reviewed and merged.** The developer: attacking or shooting while moving (behind, sideways) looked bad. 609 Lune specs, six checks green, UI gate 0 flags (22,551 elements). Calls are in the 2026-11-12 DECISIONS row.
 >   - **The facing rules** (`Domain/Facing`, pure, `tests/Facing.spec`; applied by the new `Controllers/Stance`):
 >     - Moving within 65 degrees of the target: the legs keep the movement (the rig's own run) and the waist turns the chest onto the target.
 >     - Past that, the whole body turns toward the target, to the facing that leaves the movement exactly 45 off ahead, 45 off behind or straight behind. The legs then play a strafe (`legsAheadLeft/Right`), back-diagonal (`legsBackLeft/Right`) or backpedal (`legsBack`) cycle along it, and the waist turns the rest. Bands hold 6 degrees past their edges (no flicker); the waist's hard stop is 75 degrees.
@@ -470,7 +470,7 @@ Run all checks after each merge.
 >     - Marksman Rifle: 40 → 0 HP, durability 78 → 77. The first try straight after the hand switch fired nothing (still in the swap or reload window); the retry hit.
 >   - **Not verified:** touch input; another survivor's legs and waist as seen by a second client (one-player sessions only); the bow and the pistol stances on the move (the rifle and the axe were measured); real-mouse input for the trigger fix; how the cycles look at the 22 studs/s sprint (rates scale, not captured); night captures.
 >   - **Seen, not fixed:** the frame-by-frame foot plant is held by the spec, not measured on the play client (the play check compares ground and leg-cycle speed). The `M01_` prefix is shared with the older minimap captures.
-> - **Update 2026-11-12, roof fade (developer: "when im in a building the roof should dissapear"): done on branch `roof-fade`, pushed, not merged.** 590 Lune specs, six checks green. No Studio was used.
+> - **Update 2026-11-12, roof fade (developer: "when im in a building the roof should dissapear"): done on branch `roof-fade`, pushed, reviewed and merged.** 590 Lune specs, six checks green. No Studio was used.
 >   - **Why it looked broken before:** FogRun lifted the roof instantly to 1, then WorldFx's wall occlusion caught the same roof on its camera ray and held it at 0.6, so the roof never left. Haven had no roof handling at all.
 >   - **What fades now** (`Controllers/RoofFade`, rules in `Domain/Interior`): in the building you're in, the roof, chimney, gable ends, porch awning and eave sign ease to 0.97 in 0.25 s. The walls and corner posts that face the camera ease to a 0.6 ghost. The far walls stay solid, as in LDoE (frames rec4 120 s and rec8 17 s: open-topped rooms, walls standing). A roof that hides you from outside ghosts to 0.6, found with one ray. The check runs 10 times a second, for buildings within 70 studs. Doorway hysteresis: you're in 0.3 studs past the inner wall line, and out only 1.5 studs beyond it.
 >   - **Where the tags come from** (server, at build time, `World/Interiors`): `EO_Interior` with `InteriorFloor` and `InteriorSize` on the building, `EO_InteriorRoof` on roofs, and `EO_InteriorWall` with `Facing` on wall sides. Set in `Maps/Builder` (every enterable building, its porch awning and its corner posts), `ZoneDress.tower` (lookout decks), Rustwater's gas canopy, and Haven's two stalls and two sheds. `EO_Roof` and the `Interior` box stay for the Radar.
@@ -483,6 +483,10 @@ Run all checks after each merge.
 >     4. **Rustwater**, under the gas canopy: the deck and band lift and the pillars stay. **Bracken Edge's Hunter's Stand** or **Gloaming Deep's Fire Lookout**: on the deck, the plank roof lifts.
 >     5. **Lighting:** inside a house at noon (ClockOverride 12), the floor should stay in the roof's shade. If it goes sunlit, LocalTransparencyModifier drops shadows in this lighting mode. Then decide whether a sunlit room is acceptable, since `ROOF_ALPHA` alone can't fix it.
 >     6. **Cost:** RoofFade's Heartbeat should be under 0.1 ms in the MicroProfiler with a Fog Run map loaded.
+>   - **Orchestrator Studio check 2026-11-12** (main after the merge, Pine Hollow, scripted):
+>     - The Farmhouse's 12 roof parts read 0 outside, 0.97 inside and 0 again after leaving. The capture shows the room clear, the camera-side wall ghosted, and the floor shaded.
+>     - That check found a bare 0.6-stud lamp cube floating in the room once the roof faded. `Builder.lamp`'s holder is now invisible; the glow stays.
+>     - Haven, Rustwater, the towers and the doorway flicker were not checked in play.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
