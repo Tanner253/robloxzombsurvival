@@ -93,18 +93,21 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 	["product.resource_pack"] = {
 		id = "product.resource_pack",
 		name = "Supply Bundle",
-		description = "Timber, stone, ironstone, planks and two plates: an evening of gathering for a bigger base.",
+		description = "Timber, stone, ironstone, planks and a plate: an evening of gathering for a bigger base.",
 		kind = "devProduct",
 		robloxId = 3729832298,
 		icon = "rbxassetid://88547464179013",
 		defaultPriceRobux = price["product.resource_pack"],
 		tab = "supplies",
-		grants = items({ -- about 1.7 grind-hours
-			{ itemId = "item.timber", count = 60 },
-			{ itemId = "item.stone", count = 60 },
+		-- About 1.4 grind-hours, 65 Embers at Fill Up. The flow review's F-25: it was 1.7 h and
+		-- 196 Embers (96 at the new raw rate), 2.7x the Builder's Crate per Robux; the small pack
+		-- is now the worst rate of the three resource packs (tests/Shop.spec).
+		grants = items({
+			{ itemId = "item.timber", count = 45 },
+			{ itemId = "item.stone", count = 45 },
 			{ itemId = "item.ironstone", count = 30 },
-			{ itemId = "item.plank", count = 10 },
-			{ itemId = "item.scrap_plate", count = 2 },
+			{ itemId = "item.plank", count = 6 },
+			{ itemId = "item.scrap_plate", count = 1 },
 		}),
 	},
 	["product.builders_crate"] = {

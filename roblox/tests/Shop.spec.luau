@@ -190,16 +190,73 @@ return function(test: TestKit.Register)
 				{ { itemId = "item.scrap_plate", count = 2 }, { itemId = "item.timber", count = 5 } },
 				embers
 			),
-			2 * embers.fillUp["item.scrap_plate"] + 5 * embers.fillUp["item.timber"]
+			math.ceil(2 * embers.fillUp["item.scrap_plate"] + 5 * embers.fillUp["item.timber"])
 		)
 		TestKit.equal(Offers.fillUpPrice({ { itemId = "item.blueprint_nope", count = 1 } }, embers), nil)
 		for itemId, unit in embers.fillUp do
 			TestKit.truthy(Content.Items[itemId] ~= nil, `Fill Up prices a real item: {itemId}`)
-			TestKit.truthy(unit >= 1 and unit == math.floor(unit), `{itemId} costs whole Embers`)
+			local thirds = unit * 3
+			TestKit.truthy(
+				unit >= 1 / 3 and math.abs(thirds - math.round(thirds)) < 1e-9,
+				`{itemId}: thirds of an Ember`
+			)
 		end
+		-- F-25: raw materials are a third of an Ember a unit, rounded up once per buy.
+		TestKit.equal(Offers.fillUpPrice({ { itemId = "item.timber", count = 30 } }, embers), 10)
+		TestKit.equal(Offers.fillUpPrice({ { itemId = "item.timber", count = 1 } }, embers), 1, "never free")
+		TestKit.equal(
+			Offers.fillUpPrice({ { itemId = "item.stone", count = 4 }, { itemId = "item.timber", count = 3 } }, embers),
+			3
+		)
 		TestKit.equal(Offers.rationsPrice(1, embers), 20)
 		TestKit.equal(Offers.rationsPrice(5, embers), 90)
 		TestKit.equal(Offers.rationsPrice(7, embers), 130)
+	end)
+
+	test("F-25: a speed-up never costs more than buying what it makes", function()
+		local plate = Content.Recipes["recipe.scrap_plate"]
+		local seconds = plate.craftSeconds
+		-- One 20-minute plate: 18 by time, 13 by Fill Up (the review's example).
+		local one = Offers.speedUpMakes(plate.outputs, seconds, seconds, seconds)
+		TestKit.deepEqual(one, { { itemId = "item.scrap_plate", count = 1 } })
+		TestKit.equal(Offers.speedUpPrice(seconds, embers), 18, "by time alone")
+		TestKit.equal(Offers.speedUpPrice(seconds, embers, one), embers.fillUp["item.scrap_plate"], "capped")
+		-- A long queue still prices by time (78 for 20 plates, under their 260).
+		local queue = Offers.speedUpMakes(plate.outputs, seconds, seconds, 20 * seconds)
+		TestKit.equal(queue[1].count, 20)
+		TestKit.equal(Offers.speedUpPrice(20 * seconds, embers, queue), 78)
+		-- A batch the fuel won't finish makes nothing; then only time prices it.
+		TestKit.deepEqual(Offers.speedUpMakes(plate.outputs, seconds, seconds, seconds - 60), {})
+		-- The minimum still holds when what it makes is cheap.
+		local timber = { { itemId = "item.timber", count = 1 } }
+		TestKit.equal(Offers.speedUpPrice(10 * 60, embers, timber), embers.speedUpMin)
+		-- Every station recipe: the capped price is at most its output's Fill Up value.
+		for id, recipe in Content.Recipes do
+			if recipe.stationId and recipe.craftSeconds >= embers.speedUpMinSeconds then
+				local value = Offers.fillUpPrice(recipe.outputs, embers)
+				local price = Offers.speedUpPrice(recipe.craftSeconds, embers, recipe.outputs) :: number
+				if value then
+					TestKit.truthy(price <= math.max(embers.speedUpMin, value), `{id}: {price} > {value}`)
+				end
+			end
+		end
+	end)
+
+	test("F-25: the bigger resource pack is the better rate, at Fill Up prices per Robux", function()
+		local packs = { "product.resource_pack", "product.builders_crate", "product.room_kit_reinforced" }
+		local last = 0
+		for _, id in packs do
+			local product = Products[id]
+			local stacks = {}
+			for _, grant in product.grants do
+				TestKit.equal(grant.kind, "item", id)
+				table.insert(stacks, { itemId = (grant :: any).itemId, count = (grant :: any).count })
+			end
+			local value = Offers.fillUpPrice(stacks, embers) :: number
+			local rate = value / product.defaultPriceRobux
+			TestKit.truthy(rate > last, `{id}: {value} Embers for {product.defaultPriceRobux} is not a better rate`)
+			last = rate
+		end
 	end)
 
 	test("sales are genuine 72 h windows and never restart; nothing sells stash capacity", function()

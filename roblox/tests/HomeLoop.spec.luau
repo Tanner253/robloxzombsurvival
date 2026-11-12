@@ -140,12 +140,24 @@ return function(test: TestKit.Register)
 		local tree = Content.Nodes["node.pine_tree"]
 		local pockets = container(slot("item.pick", 1, 50), slot("item.axe", 1, 50))
 		local backpack = container(E, slot("item.axe2", 1, 80))
-		-- Tools never take a weapon slot (4.9): the best one anywhere in the bag is used.
+		-- Tools never take a weapon slot (4.9): one anywhere in the bag is used, the lowest tier
+		-- that can do the job (F-18: the forged axe is kept for the trees that need it).
 		TestKit.equal((Gathering.pickTool(tree, { pockets = pockets, backpack = {} }, ITEMS)), "p2", "the pocket axe")
 		TestKit.equal(
 			(Gathering.pickTool(tree, { pockets = pockets, backpack = backpack }, ITEMS)),
+			"p2",
+			"a pine takes the stone axe, not the forged one"
+		)
+		local ironbark = Content.Nodes["node.ironbark_tree"]
+		TestKit.equal(
+			(Gathering.pickTool(ironbark, { pockets = pockets, backpack = backpack }, ITEMS)),
 			"b2",
-			"the better axe in the backpack"
+			"Ironbark needs the forged axe"
+		)
+		TestKit.equal(
+			(Gathering.pickTool(tree, { pockets = container(E), backpack = backpack }, ITEMS)),
+			"b2",
+			"with only the forged axe, it is used"
 		)
 		local none, why = Gathering.pickTool(tree, { pockets = container(slot("item.pick", 1, 50)) }, ITEMS)
 		TestKit.equal(none, nil)

@@ -12,17 +12,21 @@ local Tuning: Types.TuningDef = {
 	-- (Shared/DevSpeed). Live servers always run at 1.
 	devSpeed = 1, -- timers only, opt-in: Workspace attribute "DevSpeed" in Studio (Shared/DevSpeed)
 	energy = {
-		-- LDOE_PARITY #38 (binding): cap 200 at 1 per 5 min, as LDoE; Runs cost 15/22/33
-		-- by fog tier (Data/Locations). Food restoring Energy goes in slice 1 (#33).
-		cap = 200,
+		-- LDOE_PARITY #38: 1 per 5 min, as LDoE; Runs cost 15/22/33 by fog tier (Data/Locations).
+		-- The cap is 120, not LDoE's 200 (the flow review's F-16): at 200 a night's regen was
+		-- all banked and a 2.5 h-a-day player never ran dry (5 short moments in 233 runs in
+		-- Pacing.spec); at 120 the night tops out, the Black-heavy sessions run short (33) and
+		-- the Refill, Rations and VIP's +40 cap have a moment. A new player starts full.
+		cap = 120,
 		secondsPerPoint = 5 * 60,
 		hardCap = 400,
 		levelUpRestore = 20,
 		foodDailyCap = 40,
 		-- The content parity audit's BR-9: all location quests together pay at most this many
-		-- Trail Rations (60 Energy each) a UTC day per player, whatever their data says, so
-		-- the dailies can't out-earn the day's regen (Domain/Quests.payLocationQuest).
-		locationQuestRations = { itemId = "item.rations", perDay = 2 },
+		-- Trail Rations (60 Energy each) a UTC day per player, whatever their data says
+		-- (Domain/Quests.payLocationQuest). 0 since F-16: 2 a day was 120 free Energy, a whole
+		-- cap, and the dailies kept the Refill idle. They still pay their XP and other items.
+		locationQuestRations = { itemId = "item.rations", perDay = 0 },
 	},
 	inventory = {
 		pocketSlots = 10, -- LDoE's 10 pockets
@@ -346,8 +350,9 @@ local Tuning: Types.TuningDef = {
 		killShare = 0.5,
 	},
 	airdrops = {
-		-- LDOE_PARITY #43: up to three a day, as Energy falls below 140, 80 and 20.
-		thresholds = { 140, 80, 20 },
+		-- LDOE_PARITY #43: up to three a day, as Energy falls below 140, 80 and 20 of LDoE's 200
+		-- (70%, 40% and 10%); the same shares of our 120 cap (F-16).
+		thresholds = { 84, 48, 12 },
 		locationId = "loc.supply_drop",
 		pinSeconds = 2 * 60 * 60,
 	},
@@ -379,11 +384,16 @@ local Tuning: Types.TuningDef = {
 		},
 	},
 	fogExposure = {
-		-- LDOE_PARITY #37: unprotected, Dense fog fills the meter in about 10 min and
-		-- Black in 4, inside a 15 min run; padded gear stretches that, sets will gate it.
+		-- LDOE_PARITY #37: unprotected, Dense fog fills the meter in about 10 min and Black in
+		-- 6.3, inside a 15 min run. The flow review's F-15: Black was 4 min, so a full Padded
+		-- set filled at 7.3 and band 3 (11.8 min) cost over 500 HP; at 380 s it fills at 11.5,
+		-- about one dressing short of band 3. Hidebound (12.2) and Riveted (12.9) buy a little
+		-- more. maxResist 0.56 is reached only with a Gas Mask's filter (14.4 min), so even
+		-- the best kit still bleeds before the lobby closes (it was 0.8: a geared player
+		-- never filled the meter, and Black stopped being a pay-or-prepare tier).
 		max = 100,
-		ratePerTier = { 0, 100 / 600, 100 / 240 },
-		maxResist = 0.8,
+		ratePerTier = { 0, 100 / 600, 100 / 380 },
+		maxResist = 0.56,
 		damagePerSecond = 2,
 	},
 	deathRecovery = {
@@ -411,6 +421,9 @@ local Tuning: Types.TuningDef = {
 		fleeSeconds = 3,
 		maxActive = 60,
 		spawnSpreadStuds = 40,
+		-- F-19: band 1 spawns one more Shambler for every seated survivor past two, topped up
+		-- as they join (HollowAI.crowdExtra): Pine Hollow's 6-9 become 16-19 at 12.
+		crowd = { freePlayers = 2, perPlayer = 1 },
 		hitRadiusStuds = 1.6,
 	},
 	-- Robux prices of the v0.1 shop (MVP_LAUNCH Monetization v0.1; the ladder is
@@ -450,17 +463,19 @@ local Tuning: Types.TuningDef = {
 		speedUpFactor = 3.9, -- Embers = max(speedUpMin, ceil(3.9 x sqrt(minutes left)))
 		speedUpMin = 2,
 		speedUpMinSeconds = 120, -- speed-ups show from 2 minutes left
-		-- Embers a missing unit: max(1, round(40 x free minutes / 60)), the minutes as in
-		-- Data/Products' header (docs/ECONOMY.md chains; rebalance with the pacing sim).
+		-- Embers a missing unit: round(40 x free minutes / 60), the minutes as in Data/Products'
+		-- header (docs/ECONOMY.md chains; rebalance with the pacing sim). A buy is rounded up
+		-- once (Offers.fillUpPrice). The flow review's F-25: tier-1 raw materials (under a
+		-- minute each) cost a third of an Ember, not 1, which was 3-4x the plate rate.
 		fillUp = {
-			["item.sticks"] = 1,
-			["item.timber"] = 1,
-			["item.stone"] = 1,
-			["item.fiber"] = 1,
-			["item.scrap"] = 1,
-			["item.emberberry"] = 1,
+			["item.sticks"] = 1 / 3,
+			["item.timber"] = 1 / 3,
+			["item.stone"] = 1 / 3,
+			["item.fiber"] = 1 / 3,
+			["item.scrap"] = 1 / 3,
+			["item.emberberry"] = 1 / 3,
+			["item.ironstone"] = 1 / 3,
 			["item.rope"] = 1,
-			["item.ironstone"] = 1,
 			["item.malachite"] = 1,
 			["item.ironbark_log"] = 1,
 			["item.embercoal"] = 1,

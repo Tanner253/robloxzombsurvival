@@ -375,4 +375,29 @@ function HollowAI.spawnsForBand(spawns: { Types.EnemySpawn }, band: number, rng:
 	return groups
 end
 
+export type CrowdConfig = { freePlayers: number, perPlayer: number }
+
+--[[
+	The flow review's F-19: a lobby's Hollow scale with the survivors in it, so a kill quest
+	(Stand Your Ground's 5, a daily's 3) isn't a race in a full lobby. Band 1 spawns
+	`perPlayer` more for every seated player past `freePlayers`, of its first Hollow kind
+	(never wildlife: they don't count as kills); a player seated after it spawned tops it up
+	to the same number (Services/Hollow). Returns how many extra the band should have, and of
+	what kind (nil when the band spawns no Hollow).
+]]
+function HollowAI.crowdExtra(
+	groups: { SpawnGroup },
+	seated: number,
+	enemies: { [string]: { wildlife: any? } },
+	config: CrowdConfig
+): (number, string?)
+	for _, group in groups do
+		local enemy = enemies[group.enemyId]
+		if enemy and enemy.wildlife == nil then
+			return math.max(0, seated - config.freePlayers) * config.perPlayer, group.enemyId
+		end
+	end
+	return 0, nil
+end
+
 return HollowAI

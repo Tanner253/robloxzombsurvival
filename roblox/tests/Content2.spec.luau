@@ -265,30 +265,39 @@ return function(test: TestKit.Register)
 		TestKit.equal(Gear.armorLevel(RawItems["item.ranger_pack"]), nil)
 	end)
 
-	test("Gas mask: in Black fog, mask plus Padded, Hidebound or Riveted reaches 13, 18 and 20 min", function()
+	-- The economy batch: maxResist 0.56 (was 0.8, where the mask made Black fog harmless to a
+	-- Hidebound or Riveted wearer: 18 and 20 min against a 15 min run).
+	test("Gas mask: only its filter reaches the fog cap, and at the cap Black fog still bleeds you", function()
 		local config = Content.Tuning.fogExposure
-		local function minutes(prefix: { string }): number
-			local equipment = { head = slot("item.gas_mask") } :: { [string]: Types.Slot }
-			for index, key in { "body", "legs", "feet" } do
-				equipment[key] = slot(prefix[index])
-			end
+		local run = Content.Tuning.lobby.durationSeconds
+		local function minutes(head: string, prefix: string, body: string, legs: string): number
+			local equipment = {
+				head = slot(head),
+				body = slot(`item.{prefix}_{body}`),
+				legs = slot(`item.{prefix}_{legs}`),
+				feet = slot(`item.{prefix}_boots`),
+			} :: { [string]: Types.Slot }
 			local resist = FogExposure.resist(equipment, RawItems, config)
 			return FogExposure.secondsToFull(0, 3, resist, config) / 60
 		end
-		local padded = minutes({ "item.padded_vest", "item.padded_leggings", "item.padded_boots" })
-		local hidebound = minutes({ "item.hidebound_coat", "item.hidebound_leggings", "item.hidebound_boots" })
-		local riveted = minutes({ "item.riveted_cuirass", "item.riveted_legguards", "item.riveted_boots" })
-		TestKit.truthy(math.abs(padded - 13.33) < 0.05, `Padded {padded}`)
-		TestKit.truthy(math.abs(hidebound - 18.18) < 0.05, `Hidebound {hidebound}`)
-		TestKit.truthy(math.abs(riveted - 20) < 0.05, `Riveted {riveted} (the 0.8 cap)`)
-		-- Without the mask the Riveted Helm gives 12.1 (ARSENAL §5).
-		local helm = FogExposure.resist({
-			head = slot("item.riveted_helm"),
-			body = slot("item.riveted_cuirass"),
-			legs = slot("item.riveted_legguards"),
-			feet = slot("item.riveted_boots"),
-		}, RawItems, config)
-		TestKit.truthy(math.abs(FogExposure.secondsToFull(0, 3, helm, config) / 60 - 12.12) < 0.05, "Riveted set")
+		local sets = {
+			{ "padded", "item.padded_hood", "vest", "leggings", 11.52 },
+			{ "hidebound", "item.hidebound_cap", "coat", "leggings", 12.18 },
+			{ "riveted", "item.riveted_helm", "cuirass", "legguards", 12.93 },
+		}
+		local capped = config.max / config.ratePerTier[3] / (1 - config.maxResist) / 60
+		TestKit.truthy(math.abs(capped - 14.39) < 0.05, `the cap fills at {capped} min`)
+		TestKit.truthy(capped * 60 < run, "the cap still fills inside a run")
+		local last = 0
+		for _, set in sets do
+			local name, helm, body, legs, expected = set[1], set[2], set[3], set[4], set[5]
+			local bare = minutes(helm, name, body, legs)
+			TestKit.truthy(math.abs(bare - expected) < 0.05, `{name} set: {bare} min`)
+			TestKit.truthy(bare > last and bare < capped, `{name}: better than the set below, under the cap`)
+			last = bare
+			local masked = minutes("item.gas_mask", name, body, legs)
+			TestKit.truthy(math.abs(masked - capped) < 1e-6, `{name} with the mask: {masked} min, the cap`)
+		end
 	end)
 
 	test("Gas mask: the filter wears 1 a second in Dense and Black fog, never in Light", function()

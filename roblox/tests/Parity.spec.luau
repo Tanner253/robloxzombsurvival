@@ -190,10 +190,10 @@ return function(test: TestKit.Register)
 	end)
 
 	-- #37 fog exposure ---------------------------------------------------------------------------
-	test("#37 Dense fog fills the meter in about 10 min, Black in 4; armor slows it", function()
+	test("#37 Dense fog fills the meter in about 10 min, Black in 6.3; armor slows it", function()
 		local config = TUNING.fogExposure
 		near(FogExposure.secondsToFull(0, 2, 0, config), 600, "Dense, unprotected")
-		near(FogExposure.secondsToFull(0, 3, 0, config), 240, "Black, unprotected")
+		near(FogExposure.secondsToFull(0, 3, 0, config), 380, "Black, unprotected (F-15: was 240)")
 		TestKit.equal(FogExposure.secondsToFull(0, 1, 0, config), math.huge, "Light fog never fills")
 		local equipment = {
 			head = { itemId = "item.padded_hood", count = 1 },
@@ -214,6 +214,56 @@ return function(test: TestKit.Register)
 		near(FogExposure.step(config.max - 1, 100, 3, 0, config), config.max, "clamped")
 	end)
 
+	-- The flow review's F-15: Black fog stays deadly, a full Padded set reaches band 3 for about
+	-- a dressing, and nothing keeps the fog out for a whole run.
+	test("F-15: Black fog kills the unprepared, Padded reaches band 3, the best kit still bleeds", function()
+		local config = TUNING.fogExposure
+		local lobby = TUNING.lobby
+		local function bandAt(band: number): number
+			return lobby.durationSeconds * lobby.bands[band].from ^ (1 / lobby.meterExponent)
+		end
+		-- Fog HP lost by the time `seconds` into a Black run, at this resist.
+		local function lost(resist: number, seconds: number): number
+			return math.max(0, seconds - FogExposure.secondsToFull(0, 3, resist, config)) * config.damagePerSecond
+		end
+		local health = TUNING.player.maxHealth
+		local dressing = (Content.Items["item.field_dressing"].consume :: any).health :: number
+		local function wearing(ids: { [string]: string }): number
+			local equipment: { [string]: any } = {}
+			for key, itemId in ids do
+				equipment[key] = { itemId = itemId, count = 1 }
+			end
+			return FogExposure.resist(equipment :: any, ITEMS, config)
+		end
+		local padded = wearing({
+			head = "item.padded_hood",
+			body = "item.padded_vest",
+			legs = "item.padded_leggings",
+			feet = "item.padded_boots",
+		})
+		near(padded, 0.45, "the full Padded set")
+		local hoodAndVest = wearing({ head = "item.padded_hood", body = "item.padded_vest" })
+		local band3 = bandAt(3)
+		TestKit.truthy(lost(0, bandAt(2) + 30) >= health, "unprotected: dead by band 2")
+		TestKit.truthy(lost(hoodAndVest, band3) > health, "hood and vest: band 3 is out of reach")
+		TestKit.truthy(lost(padded, band3) <= dressing, `full Padded: band 3 costs {lost(padded, band3)} HP`)
+		TestKit.truthy(lost(padded, lobby.durationSeconds) > health, "full Padded: staying to the close kills")
+		-- The cap: even at maxResist the meter fills before the lobby closes.
+		TestKit.truthy(lost(config.maxResist, lobby.durationSeconds) > 0, "the best kit still loses health")
+		TestKit.truthy(lost(config.maxResist, band3) == 0, "the best kit holds through band 3")
+	end)
+
+	-- #15 stacks ----------------------------------------------------------------------------------
+	test("#15 every stack is 20, scrap 50, gear 1 (the flow review's F-31)", function()
+		for id, item in Content.Items do
+			if id == "item.scrap" then
+				TestKit.equal(item.stackSize, 50, id)
+			elseif item.stackSize ~= 1 then
+				TestKit.equal(item.stackSize, 20, id)
+			end
+		end
+	end)
+
 	-- #40 travel bonus prices --------------------------------------------------------------------
 	test("#40 TAKE is an ad per item; TAKE ALL is Rations", function()
 		TestKit.deepEqual(TravelBonus.price("one", TUNING.travelBonus), { method = "ad", count = 1 })
@@ -221,18 +271,44 @@ return function(test: TestKit.Register)
 	end)
 
 	-- #43 airdrops, gates, hurry ------------------------------------------------------------------
-	test("#43 airdrops land as Energy falls below 140, 80 and 20, once each a day", function()
+	test("#43 airdrops land as Energy falls below 70%, 40% and 10% of the cap, once each a day", function()
 		local config = TUNING.airdrops
+		-- LDoE's 140, 80 and 20 of its 200, on our 120 cap (the flow review's F-16).
+		TestKit.deepEqual(config.thresholds, { 84, 48, 12 })
 		local day = { day = 0, fired = {} }
-		local crossed, day1 = FogMap.airdropsCrossed(150, 130, day, T0, config)
-		TestKit.deepEqual(crossed, { 140 })
-		local again = FogMap.airdropsCrossed(150, 130, day1, T0 + 60, config)
+		local crossed, day1 = FogMap.airdropsCrossed(100, 80, day, T0, config)
+		TestKit.deepEqual(crossed, { 84 })
+		local again = FogMap.airdropsCrossed(100, 80, day1, T0 + 60, config)
 		TestKit.deepEqual(again, {}, "not twice in a day")
-		local both = FogMap.airdropsCrossed(100, 10, day1, T0 + 120, config)
-		TestKit.deepEqual(both, { 80, 20 }, "a big spend crosses two")
-		local tomorrow = FogMap.airdropsCrossed(150, 130, day1, T0 + DAY, config)
-		TestKit.deepEqual(tomorrow, { 140 }, "a new day")
-		TestKit.deepEqual((FogMap.airdropsCrossed(130, 150, day, T0, config)), {}, "regen never triggers")
+		local both = FogMap.airdropsCrossed(60, 5, day1, T0 + 120, config)
+		TestKit.deepEqual(both, { 48, 12 }, "a big spend crosses two")
+		local tomorrow = FogMap.airdropsCrossed(100, 80, day1, T0 + DAY, config)
+		TestKit.deepEqual(tomorrow, { 84 }, "a new day")
+		TestKit.deepEqual((FogMap.airdropsCrossed(80, 100, day, T0, config)), {}, "regen never triggers")
+	end)
+
+	-- The flow review's F-23: the ad caps, airdrop day, pins and tower parts live in the profile
+	-- (PlayerSchema v13), since every run is a new server.
+	test("F-23: airdrop days save as a list and load back; the caps and towers live in the profile", function()
+		local _, day = FogMap.airdropsCrossed(60, 5, { day = 0, fired = {} }, T0, TUNING.airdrops)
+		local saved = FogMap.saveDay(day)
+		TestKit.deepEqual(saved.fired, { 12, 48 }, "a sorted list, no sparse keys")
+		TestKit.deepEqual(FogMap.loadDay(saved), day, "round trip")
+		local again = FogMap.airdropsCrossed(60, 5, FogMap.loadDay(saved), T0 + 60, TUNING.airdrops)
+		TestKit.deepEqual(again, {}, "a new server remembers today's drops")
+		TestKit.deepEqual(FogMap.loadDay(nil), { day = 0, fired = {} }, "nothing saved")
+		TestKit.deepEqual(FogMap.loadDay({ day = 3, fired = { "x", 84 } }), { day = 3, fired = { [84] = true } })
+		local fs = require("@lune/fs")
+		local travel = fs.readFile("src/server/Services/Travel.luau")
+		local lobby = fs.readFile("src/server/Services/Lobby.luau")
+		for _, gone in { "autoDaily", "airdropDays", "local pins:", "local repaired:", "local contributed:" } do
+			TestKit.equal(string.find(travel, gone, 1, true), nil, `Travel keeps {gone} in memory`)
+		end
+		TestKit.equal(string.find(lobby, "recoverDaily[player] =", 1, true), nil, "Lobby keeps the ad cap in memory")
+		for _, needle in { "limits(player).autoAds", "saved.autoAds = used", "FogMap.loadDay(limits(player).airdrops)" } do
+			TestKit.truthy(string.find(travel, needle, 1, true), `Travel: {needle}`)
+		end
+		TestKit.truthy(string.find(lobby, "data.limits.recoverAds = ", 1, true), "Lobby saves the Recover-all ad cap")
 	end)
 
 	test("#43 an airdrop pin opens the drop location, once", function()

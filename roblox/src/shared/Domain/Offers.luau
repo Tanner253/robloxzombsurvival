@@ -75,15 +75,56 @@ function Offers.stripOffer(rows: any, now: number): (string?, number)
 	return best, if best then bestEnds else 0
 end
 
--- Embers to finish `seconds` of a station's work now; nil when under the minimum.
-function Offers.speedUpPrice(seconds: number, tuning: EmberTuning): number?
+--[[
+	Embers to finish `seconds` of a station's work now; nil when under the minimum. `makes`
+	is what that work turns out (speedUpMakes): the price never tops the Fill Up value of it
+	(the flow review's F-25: skipping a 20-minute Scrap Plate cost 18 Embers when buying the
+	plate outright cost 13), and never falls under speedUpMin.
+]]
+function Offers.speedUpPrice(
+	seconds: number,
+	tuning: EmberTuning,
+	makes: { { itemId: string, count: number } }?
+): number?
 	if seconds < tuning.speedUpMinSeconds then
 		return nil
 	end
-	return math.max(tuning.speedUpMin, math.ceil(tuning.speedUpFactor * math.sqrt(seconds / 60)))
+	local price = math.max(tuning.speedUpMin, math.ceil(tuning.speedUpFactor * math.sqrt(seconds / 60)))
+	local value = if makes and #makes > 0 then Offers.fillUpPrice(makes, tuning) else nil
+	if value then
+		price = math.min(price, math.max(tuning.speedUpMin, value))
+	end
+	return price
 end
 
--- Embers to Fill Up `stacks`; nil when any item can't be bought this way (rare parts and
+--[[
+	What `seconds` of a station's work makes: the whole batches of `outputs` that finish in
+	it, the current one first (`batchRemaining` left on it, `batchSeconds` a batch after).
+]]
+function Offers.speedUpMakes(
+	outputs: { { itemId: string, count: number } },
+	batchRemaining: number,
+	batchSeconds: number,
+	seconds: number
+): { { itemId: string, count: number } }
+	local batches = 0
+	if seconds >= batchRemaining - 1e-6 then
+		batches = 1
+		if batchSeconds > 0 then
+			batches += math.floor((seconds - batchRemaining) / batchSeconds + 1e-6)
+		end
+	end
+	local makes: { { itemId: string, count: number } } = {}
+	if batches > 0 then
+		for _, output in outputs do
+			table.insert(makes, { itemId = output.itemId, count = output.count * batches })
+		end
+	end
+	return makes
+end
+
+-- Embers to Fill Up `stacks`, rounded up once for the whole buy (raw materials cost a third
+-- of an Ember a unit, F-25); nil when any item can't be bought this way (rare parts and
 -- blueprints come only from play).
 function Offers.fillUpPrice(stacks: { { itemId: string, count: number } }, tuning: EmberTuning): number?
 	local total = 0
@@ -94,7 +135,7 @@ function Offers.fillUpPrice(stacks: { { itemId: string, count: number } }, tunin
 		end
 		total += unit * stack.count
 	end
-	return if total > 0 then total else nil
+	return if total > 0 then math.ceil(total - 1e-9) else nil
 end
 
 --[[

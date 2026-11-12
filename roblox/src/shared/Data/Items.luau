@@ -591,7 +591,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "resource",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 40,
+		stackSize = 20,
 		icon = "rbxassetid://80428196242848",
 	},
 	["item.steel_pipe"] = {
@@ -601,7 +601,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "part",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://72156251315237",
 	},
 	["item.trigger_group"] = {
@@ -611,7 +611,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "part",
 		tier = 3,
 		rarity = "rare",
-		stackSize = 5,
+		stackSize = 20,
 		icon = "rbxassetid://124143273069872",
 	},
 	["item.flare"] = {
@@ -621,7 +621,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable", -- a signal, not a round: the flare extract burns one (Services/Extraction)
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://134545820926313",
 		-- Checklist 13.8: lights an area for 20 s, burns what it hits, the Hollow flee it.
 		flare = { lightRadius = 24, seconds = 20, burnDps = 6, burnSeconds = 5, fleeRadius = 18 },
@@ -936,7 +936,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "misc",
 		tier = 3,
 		rarity = "epic",
-		stackSize = 3,
+		stackSize = 20,
 		icon = "rbxassetid://107210408612375",
 		flags = { reanimator = true },
 	},
@@ -961,7 +961,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://109001681213314",
 		consume = { hunger = 6 },
 	},
@@ -972,7 +972,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "consumable",
 		tier = 1,
 		rarity = "common",
-		stackSize = 10,
+		stackSize = 20,
 		icon = "rbxassetid://94155123618788",
 		consume = { health = 10, hunger = 40 },
 		feature = "fogRuns",
@@ -994,7 +994,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		category = "material",
 		tier = 2,
 		rarity = "uncommon",
-		stackSize = 30,
+		stackSize = 20,
 		icon = "rbxassetid://126927438693240",
 		feature = "fogRuns",
 	},
@@ -1243,7 +1243,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "head",
-		armor = { defense = 4, fogResist = 0.12 },
+		armor = { defense = 4, fogResist = 0.1 },
 		feature = "content2",
 	},
 	["item.hidebound_coat"] = {
@@ -1257,7 +1257,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "body",
-		armor = { defense = 8, fogResist = 0.18 },
+		armor = { defense = 8, fogResist = 0.16 },
 		feature = "content2",
 	},
 	["item.hidebound_leggings"] = {
@@ -1271,7 +1271,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "legs",
-		armor = { defense = 6, fogResist = 0.15 },
+		armor = { defense = 6, fogResist = 0.13 },
 		feature = "content2",
 	},
 	["item.hidebound_boots"] = {
@@ -1285,7 +1285,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "feet",
-		armor = { defense = 3, fogResist = 0.1 },
+		armor = { defense = 3, fogResist = 0.09 },
 		feature = "content2",
 	},
 
@@ -1301,7 +1301,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "head",
-		armor = { defense = 5, fogResist = 0.15 },
+		armor = { defense = 5, fogResist = 0.11 },
 		feature = "content2",
 	},
 	["item.riveted_cuirass"] = {
@@ -1315,7 +1315,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "body",
-		armor = { defense = 10, fogResist = 0.22 },
+		armor = { defense = 10, fogResist = 0.17 },
 		feature = "content2",
 	},
 	["item.riveted_legguards"] = {
@@ -1329,7 +1329,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "legs",
-		armor = { defense = 9, fogResist = 0.18 },
+		armor = { defense = 9, fogResist = 0.14 },
 		feature = "content2",
 	},
 	["item.riveted_boots"] = {
@@ -1343,7 +1343,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "feet",
-		armor = { defense = 4, fogResist = 0.12 },
+		armor = { defense = 4, fogResist = 0.09 },
 		feature = "content2",
 	},
 

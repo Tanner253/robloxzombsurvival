@@ -10,8 +10,8 @@
 	finite (LDOE_PARITY #30): their last hit sets respawnAt to Gathering.NEVER and
 	they stay depleted for good.
 
-	Tool choice: the carried tool (pockets or backpack) with the highest tier that
-	can harvest the node (LDoE's context button that switches to the axe).
+	Tool choice: the carried tool (pockets or backpack) with the lowest tier that can
+	harvest the node (LDoE's context button that switches to the axe; F-18).
 ]]
 
 local Types = require("../Types")
@@ -70,9 +70,11 @@ end
 
 --[[
 	The tool to use, as a slot ref: "" when the node needs no tool (bare hands), else
-	"p<i>" (pockets) or "b<i>" (backpack) for the best-tier tool that can harvest it.
-	Tools never take a weapon slot (4.9): they are found in the bag and only held while
-	working. Returns nil and a reason when nothing carried can harvest it.
+	"p<i>" (pockets) or "b<i>" (backpack) for the lowest-tier tool that can harvest it (the
+	flow review's F-18: a Forged Hatchet carried for Ironbark is not worn down on pines while a
+	Stone Hatchet is in the bag; the first found wins a tie). Tools never take a weapon slot
+	(4.9): they are found in the bag and only held while working. Returns nil and a reason
+	when nothing carried can harvest it.
 ]]
 function Gathering.pickTool(
 	def: Types.ResourceNodeDef,
@@ -83,7 +85,7 @@ function Gathering.pickTool(
 		return "", nil
 	end
 	local best: string? = nil
-	local bestTier = -1
+	local bestTier = math.huge
 	local reason: Reason = "needsTool"
 	local groups: { { prefix: string, slots: Types.Container } } = {
 		{ prefix = "p", slots = carried.pockets },
@@ -95,7 +97,7 @@ function Gathering.pickTool(
 			local item = if slot.count > 0 then items[slot.itemId] else nil
 			local tool = if item then item.tool else nil
 			local ok, why = Gathering.canHarvest(def, tool)
-			if ok and tool and tool.tier > bestTier then
+			if ok and tool and tool.tier < bestTier then
 				best, bestTier = `{prefix}{index}`, tool.tier
 			elseif why == "toolTier" then
 				reason = "toolTier"

@@ -342,7 +342,7 @@ The new pieces fill gaps without topping the Machete:
 
 **Rules:**
 - Durability counts hits taken (1 per hit, on every equipped piece).
-- Fog resist sums across pieces and is capped at `Tuning.fogExposure.maxResist = 0.8`.
+- Fog resist sums across pieces and is capped at `Tuning.fogExposure.maxResist = 0.56` (0.8 until the 2.0 economy batch; Hidebound and Riveted now sum to 0.48 and 0.51, and only the Gas Mask reaches the cap).
 - Each higher piece **consumes the matching lower piece** at any durability, as LDoE's Reinforced Jacket consumes a Thick Jacket (ECONOMY §4.2).
 
 | Set (tier) | Piece (ID) | Slot | Defense | Fog resist | Durability | Recipe (hand) | Unlock |

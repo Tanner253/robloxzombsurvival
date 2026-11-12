@@ -62,15 +62,15 @@ Haven.npcs = {
 } :: { [string]: Types.HavenNpc }
 
 Haven.trader = {
-	-- What she sells, for coins.
+	-- What she sells, for coins: survival basics only. The flow review's F-17: Rivets at 18
+	-- and Planks at 12 with no stock limit beat both the Workbench throttle and Fill Up, so
+	-- the building tiers' refined materials come from stations, loot or Embers, never her.
 	buy = {
 		{ itemId = "item.boiled_water", coins = 15 },
 		{ itemId = "item.sealed_tin", coins = 25 },
 		{ itemId = "item.field_dressing", coins = 40 },
 		{ itemId = "item.rope", coins = 20 },
 		{ itemId = "item.cloth", coins = 15 },
-		{ itemId = "item.plank", coins = 12 },
-		{ itemId = "item.rivets", coins = 18 },
 		{ itemId = "item.fatwood", coins = 10 },
 	} :: { Types.HavenPrice },
 	-- What she buys from you, for coins.

@@ -182,4 +182,41 @@ return function(test: TestKit.Register)
 		TestKit.equal(state.name, "idle")
 		TestKit.equal(state.targetId, nil)
 	end)
+
+	-- The flow review's F-19: kill objectives aren't a race in a full lobby.
+	test("F-19: a band's Hollow grow by one a survivor past two, of its first Hollow kind", function()
+		local enemies = Content.Enemies :: any
+		local crowd = TUNING.crowd
+		local pine = Content.Locations["loc.pine_hollow"].enemySpawns
+		local groups = HollowAI.spawnsForBand(pine, 1, Rng.new(4))
+		for seated, expected in { [1] = 0, [2] = 0, [3] = 1, [8] = 6, [12] = 10 } do
+			local extra, kind = HollowAI.crowdExtra(groups, seated, enemies, crowd)
+			TestKit.equal(extra, expected, `{seated} seated`)
+			TestKit.equal(kind, "enemy.shambler")
+		end
+		local lowest = 0
+		for _, spawn in pine do
+			if (spawn.minBand or 1) == 1 and spawn.enemyId == "enemy.shambler" then
+				lowest = spawn.count.min
+			end
+		end
+		local capacity = Content.Tuning.lobby.capacity
+		local full = HollowAI.crowdExtra(groups, capacity, enemies, crowd)
+		TestKit.truthy(lowest + full >= capacity, "at least a Shambler a survivor when full")
+		-- Wildlife never counts as the crowd (it isn't a kill).
+		local wild = { { enemyId = "enemy.deer", count = 2 }, { enemyId = "enemy.runner", count = 1 } }
+		TestKit.deepEqual({ HollowAI.crowdExtra(wild, 5, enemies, crowd) }, { 3, "enemy.runner" })
+		TestKit.deepEqual({ HollowAI.crowdExtra({ { enemyId = "enemy.deer", count = 2 } }, 5, enemies, crowd) }, { 0 })
+		-- Every map's band-1 crowd is Shamblers.
+		for id, location in Content.Locations do
+			local first = HollowAI.spawnsForBand(location.enemySpawns or {}, 1, Rng.new(1))
+			local _, kind = HollowAI.crowdExtra(first, 5, enemies, crowd)
+			TestKit.truthy(kind == nil or kind == "enemy.shambler", `{id}: the crowd is {kind}`)
+		end
+		-- The service spawns it with band 1 and tops it up when someone joins late.
+		local source = require("@lune/fs").readFile("src/server/Services/Hollow.luau")
+		for _, needle in { "HollowAI.crowdExtra(groups, seated(world)", "topUp(world)" } do
+			TestKit.truthy(string.find(source, needle, 1, true), `Services/Hollow: {needle}`)
+		end
+	end)
 end

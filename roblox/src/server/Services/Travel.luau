@@ -30,6 +30,7 @@ local Domain = ReplicatedStorage.Shared.Domain
 local AutoClear = require(Domain.AutoClear)
 local EnergyMath = require(Domain.Energy)
 local FogMap = require(Domain.FogMap)
+local PlayerSchema = require(Domain.PlayerSchema)
 local GatheringMath = require(Domain.Gathering)
 local Rng = require(Domain.Rng)
 local TravelBonus = require(Domain.TravelBonus)
@@ -67,12 +68,23 @@ local bonuses: { [Player]: TravelBonus.Bonus } = {}
 local lastSpend: { [Player]: { amount: number, at: number } } = {}
 local rng = Rng.new(Random.new():NextInteger(1, 2 ^ 31 - 2))
 
--- LDoE parity state, in memory for Phase A (Phase B saves it with slice 1's schema).
-local pins: { [Player]: { FogMap.Pin } } = {} -- #43 airdrops
-local airdropDays: { [Player]: FogMap.AirdropDay } = {}
-local repaired: { [Player]: { [string]: boolean } } = {} -- #43 signal towers
-local contributed: { [Player]: { [string]: FogMap.Contributed } } = {}
-local autoDaily: { [Player]: AutoClear.DailyState } = {} -- #31 ad clears
+-- LDoE parity state: #43 airdrops and signal towers, #31 ad clears. It lives in the profile
+-- (PlayerSchema v13, the flow review's F-23), since every run is a new server; in memory
+-- the caps and tower parts reset on each hop. A profile not loaded yet reads as fresh.
+local FRESH = PlayerSchema.freshLimits()
+
+local function limits(player: Player): PlayerSchema.Limits
+	local data = PlayerData.get(player)
+	return if data and data.limits then data.limits else FRESH
+end
+
+-- Writes go to the loaded profile only (never to the shared fresh table).
+local function saveLimits(player: Player, write: (PlayerSchema.Limits) -> ())
+	local data = PlayerData.get(player)
+	if data and data.limits then
+		write(data.limits)
+	end
+end
 
 local REASONS: { [string]: string } = {
 	level = "You need a higher level for that fog",
@@ -137,8 +149,8 @@ local function context(player: Player): TravelMath.Context?
 		config = travelConfig,
 		-- The signal towers (M4) gate Dense and Black only once their UI ships.
 		gates = if Features.on(tuning, "regionGates") then tuning.regionGates else nil,
-		repairedGates = repaired[player] or {},
-		airdropPin = #FogMap.livePins(pins[player] or {}, stamp) > 0,
+		repairedGates = limits(player).towers.repaired,
+		airdropPin = #FogMap.livePins(limits(player).pins, stamp) > 0,
 	}
 end
 
@@ -165,13 +177,17 @@ local function spendEnergy(
 		return
 	end
 	local crossed, day =
-		FogMap.airdropsCrossed(was, after.value, airdropDays[player] or { day = 0, fired = {} }, stamp, tuning.airdrops)
-	airdropDays[player] = day
+		FogMap.airdropsCrossed(was, after.value, FogMap.loadDay(limits(player).airdrops), stamp, tuning.airdrops)
+	saveLimits(player, function(saved)
+		saved.airdrops = FogMap.saveDay(day)
+	end)
 	for _, threshold in crossed do
-		local list = FogMap.livePins(pins[player] or {}, stamp)
+		local list = FogMap.livePins(limits(player).pins, stamp)
 		local pin = FogMap.pin(threshold, stamp, tuning.airdrops)
 		table.insert(list, pin)
-		pins[player] = list
+		saveLimits(player, function(saved)
+			saved.pins = list
+		end)
 		Sync.fx(player, "airdrop", { locationId = pin.locationId, expiresAt = pin.expiresAt })
 	end
 end
@@ -236,7 +252,10 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 	for _, member in members do
 		local plan = plans[member]
 		if location.availability.kind == "airdrop" then
-			pins[member] = FogMap.usePin(pins[member] or {}, now()) or {} -- the crate is yours once
+			local left = FogMap.usePin(limits(member).pins, now()) or {} -- the crate is yours once
+			saveLimits(member, function(saved)
+				saved.pins = left
+			end)
 		end
 		spendEnergy(member, plan.before, plan.energy, plan.trip.energySpent, "Run")
 		record.spent[member] = plan.trip.energySpent
@@ -421,7 +440,7 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 		end
 		return
 	end
-	local daily = autoDaily[player] or { day = 0, adsUsed = 0 }
+	local daily = limits(player).autoAds
 	local ok, refusal = AutoClear.canPay(method, location.fogTier, ctx.level, daily, rationsCarried, ctx.now, config)
 	if not ok then
 		Sync.notice(
@@ -440,7 +459,10 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 		return
 	end
 	if method == "ad" then
-		autoDaily[player] = AutoClear.useAd(daily, ctx.now)
+		local used = AutoClear.useAd(daily, ctx.now)
+		saveLimits(player, function(saved)
+			saved.autoAds = used
+		end)
 	end
 	spendEnergy(player, ctx.energy, energy, trip.energySpent, "AutoClear")
 	local carried = Inventory.view(player)
@@ -477,27 +499,27 @@ local function gateOf(gateId: string): Types.RegionGate?
 end
 
 local function sendGate(player: Player, gate: Types.RegionGate)
-	local rows, complete = FogMap.checklist(gate, (contributed[player] or {})[gate.id] or {})
+	local rows, complete = FogMap.checklist(gate, limits(player).towers.contributed[gate.id] or {})
 	Sync.fx(player, "gate", {
 		id = gate.id,
 		rows = rows,
 		complete = complete,
-		repaired = (repaired[player] or {})[gate.id] == true,
+		repaired = limits(player).towers.repaired[gate.id] == true,
 	})
 end
 
 local function gateFill(player: Player, gateId: string)
 	local gate = gateOf(gateId)
 	local view = Inventory.view(player)
-	if gate == nil or view == nil or (repaired[player] or {})[gateId] then
+	if gate == nil or view == nil or limits(player).towers.repaired[gateId] then
 		return
 	end
-	local mine = contributed[player] or {}
-	local after, nextContributed, taken = FogMap.fillUp(gate, mine[gateId] or {}, view)
+	local after, nextContributed, taken = FogMap.fillUp(gate, limits(player).towers.contributed[gateId] or {}, view)
 	if #taken > 0 then
 		Inventory.commit(player, after)
-		mine[gateId] = nextContributed
-		contributed[player] = mine
+		saveLimits(player, function(saved)
+			saved.towers.contributed[gateId] = nextContributed
+		end)
 	end
 	sendGate(player, gate)
 end
@@ -507,12 +529,15 @@ local function gateFinalize(player: Player, gateId: string)
 	if gate == nil then
 		return
 	end
-	local done = FogMap.finalize(gate, (contributed[player] or {})[gateId] or {}, repaired[player] or {})
+	local towers = limits(player).towers
+	local done = FogMap.finalize(gate, towers.contributed[gateId] or {}, towers.repaired)
 	if done == nil then
 		Sync.notice(player, "The tower still needs parts")
 		return
 	end
-	repaired[player] = done
+	saveLimits(player, function(saved)
+		saved.towers.repaired = done
+	end)
 	Sync.notice(player, `{gate.name} repaired: the {tuning.travel.fogTierNames[gate.fogTier]} fog is open`, "good")
 	sendGate(player, gate)
 end

@@ -99,6 +99,9 @@ type World = {
 	seq: number,
 	lastSync: number,
 	strength: number,
+	-- F-19: band 1's crowd kind and how many extra of it are out (HollowAI.crowdExtra).
+	crowdKind: string?,
+	crowd: number,
 }
 
 local worlds: { [string]: World } = {}
@@ -214,9 +217,41 @@ local function spawn(world: World, enemyId: string, amount: number)
 	end
 end
 
+local function seated(world: World): number
+	local total = 0
+	for _ in world.hosted.players do
+		total += 1
+	end
+	return total
+end
+
+-- A band's spawn. Band 1 (where the kill quests are done) adds one more of its first Hollow
+-- kind, the Shambler, per survivor past two (F-19); the later bands' sets stay as written.
 local function spawnBand(world: World, band: number)
-	for _, group in HollowAI.spawnsForBand(world.hosted.location.enemySpawns, band, world.rng) do
+	local groups = HollowAI.spawnsForBand(world.hosted.location.enemySpawns, band, world.rng)
+	for _, group in groups do
 		spawn(world, group.enemyId, group.count)
+	end
+	if band == 1 then
+		local extra, kind = HollowAI.crowdExtra(groups, seated(world), Content.Enemies :: any, config.crowd)
+		if kind and extra > 0 then
+			spawn(world, kind, extra)
+		end
+		world.crowdKind, world.crowd = kind, extra
+	end
+end
+
+-- A survivor seated after band 1 woke: top its crowd up to the new head count (F-19).
+local function topUp(world: World)
+	local kind = world.crowdKind
+	if kind == nil then
+		return
+	end
+	local target =
+		HollowAI.crowdExtra({ { enemyId = kind, count = 1 } }, seated(world), Content.Enemies :: any, config.crowd)
+	if target > world.crowd then
+		spawn(world, kind, target - world.crowd)
+		world.crowd = target
 	end
 end
 
@@ -953,6 +988,8 @@ function Hollow.start()
 			seq = 0,
 			lastSync = 0,
 			strength = 1,
+			crowdKind = nil,
+			crowd = 0,
 		}
 		worlds[hosted.id] = world
 	end)
@@ -968,6 +1005,8 @@ function Hollow.start()
 			local world = worlds[run.hosted.id]
 			if world and next(world.hollows) == nil and world.seq == 0 then
 				spawnBand(world, 1)
+			elseif world then
+				topUp(world)
 			end
 		end)
 	end)

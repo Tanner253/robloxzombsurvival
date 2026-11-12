@@ -90,6 +90,36 @@ return function(test: TestKit.Register)
 		TestKit.equal(Contracts.dayOf(86400 * 5 + 10), 5)
 	end)
 
+	test("F-17: the Trader sells survival basics only, never the building tiers' station materials", function()
+		-- The flow review's list: water, tins, dressings, cord, cloth (2 fiber, 2 min) and fatwood.
+		local basics = {
+			["item.boiled_water"] = true,
+			["item.sealed_tin"] = true,
+			["item.field_dressing"] = true,
+			["item.rope"] = true,
+			["item.cloth"] = true,
+			["item.fatwood"] = true,
+		}
+		for _, price in Haven.trader.buy do
+			TestKit.truthy(basics[price.itemId], `{price.itemId}: the Trader undercuts a station or Fill Up`)
+		end
+		-- What she used to sell: each is a station material a build piece or a tower asks for.
+		for _, itemId in { "item.rivets", "item.plank" } do
+			local asked = false
+			for _, piece in Content.BuildPieces do
+				for _, stack in piece.cost do
+					asked = asked or stack.itemId == itemId
+				end
+			end
+			for _, gate in Content.Tuning.regionGates do
+				for _, stack in gate.parts do
+					asked = asked or stack.itemId == itemId
+				end
+			end
+			TestKit.truthy(asked, `{itemId} is a building material`)
+		end
+	end)
+
 	test("Haven data names real items, and the Trader buys for less than she sells", function()
 		local Items: any = Content.Items
 		local sells: { [string]: number } = {}
