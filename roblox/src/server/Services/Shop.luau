@@ -65,7 +65,23 @@ local DAY = 24 * 60 * 60
 local Products = Content.Products :: { [string]: Types.ProductDef }
 local emberTuning = Content.Tuning.embers :: any
 local prices: { [string]: number } = {} -- live Robux prices, read once at start
+-- Products Roblox says are off sale (GetProductInfo answered, IsForSale false): never
+-- prompted, and their cards are hidden (reason "notListed", as for a robloxId of 0). A read
+-- that fails leaves the product listed, so a Roblox API hiccup at boot can't empty the shop.
+local offSale: { [string]: boolean } = {}
 local joinedAt: { [Player]: number } = {}
+
+-- Receipts.canOffer, plus the live listing: a product Roblox has off sale is "notListed".
+local function canOffer(
+	product: Types.ProductDef,
+	data: any,
+	context: Receipts.OfferContext
+): (boolean, string?, number)
+	if offSale[product.id] then
+		return false, "notListed", 0
+	end
+	return Receipts.canOffer(product, data.purchases :: any, data.progression.level, context)
+end
 
 local function slotsOf(items: { Types.ItemStack }): { Types.Slot }
 	local slots: { Types.Slot } = {}
@@ -107,7 +123,7 @@ local function view(player: Player): any
 	local context = offerContext(player, data)
 	for id, product in Products do
 		local purchases = data.purchases :: any
-		local available, reason, endsAt = Receipts.canOffer(product, purchases, data.progression.level, context)
+		local available, reason, endsAt = canOffer(product, data, context)
 		result[id] = {
 			price = prices[id] or product.defaultPriceRobux,
 			bought = purchases.counts[id] or 0,
@@ -159,7 +175,7 @@ local function buy(player: Player, productId: string)
 		return
 	end
 	local context = offerContext(player, data)
-	local available, reason = Receipts.canOffer(product, data.purchases :: any, data.progression.level, context)
+	local available, reason = canOffer(product, data, context)
 	if not available then
 		local lock = Receipts.lockLine(product, reason, context, NAMES, Content.BuildPieces :: any)
 		Sync.notice(
@@ -184,8 +200,11 @@ local function readPrices()
 			local ok, info = pcall(function()
 				return MarketplaceService:GetProductInfoAsync(product.robloxId, infoType)
 			end)
-			if ok and type(info) == "table" and type(info.PriceInRobux) == "number" then
-				prices[id] = info.PriceInRobux
+			if ok and type(info) == "table" then
+				if type(info.PriceInRobux) == "number" then
+					prices[id] = info.PriceInRobux
+				end
+				offSale[id] = info.IsForSale == false
 			end
 		end
 	end
