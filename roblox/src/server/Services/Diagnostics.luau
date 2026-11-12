@@ -23,7 +23,7 @@
 	  survivor between checks, ("wear", itemId) puts armor in its
 	  slot, ("energy", n) sets Energy,
 	  ("embers", n) sets the Ember balance, ("deathstate") reports the death screen's wait
-  (F-09: holding, Embers, inbox size, Energy, the body), ("meter", seconds) ages your lobby by that long, ("looted", n) counts n container
+  (F-09: holding, Embers, inbox size, Energy, the body), ("meter", seconds) ages your lobby (or, on the death screen, the one you died in) by that long, ("looted", n) counts n container
 	  searches toward the location quests. ("npcfeet") reports each Haven NPC's
 	  foot-to-ground gap (seated settlers report their seat height).
 	  ("navprobe", locationId, enemyId?, trips?) walks virtual Hollow over a built map
@@ -350,11 +350,13 @@ local function devCommand(command: string, ...: any): any
 			anchored = root ~= nil and root.Anchored,
 		}
 	elseif command == "meter" then
+		-- Your lobby, or the one you died in while you are still on the death screen.
 		local run = Lobby.runOf(player)
-		if run == nil then
+		local hosted = if run then run.hosted else Lobby.heldIn(player)
+		if hosted == nil then
 			return "no run"
 		end
-		local state: any = run.hosted.state
+		local state: any = hosted.state
 		for key, value in state do
 			if type(value) == "number" and (string.find(key, "At$") or key == "now") then
 				state[key] = value - args[1]

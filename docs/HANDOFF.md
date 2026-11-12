@@ -218,7 +218,43 @@ Run all checks after each merge.
 >   - **UI gate is at zero** (21,938 elements, all four profiles): the fog meter's band name and time overlapped by 6 px; the label widths are now set from measured text ("FOG: CLOSING" 79 px, "59:59" 30 px).
 >   - `Pacing.spec` passed 6 runs in a row on merged main; the flake was not reproduced. If it shows again, look for iteration order over table-keyed maps in `Domain/PacingSim`.
 >   - **Seen, not fixed:** a held player's respawned body stands anchored on the run map until they choose; in a shared (Dense or Black fog) lobby, others can see it. Hollows ignore it (the player has left `hosted.players`). The console shows `rbxassetid://203785492` failing with "Asset type does not match" three times at boot: find which Data entry uses it.
-> - **Next: step 5**, one scripted launch playtest.
+> - **Update 2026-11-11, step 5 (the scripted launch playtest): pass after 3 fixes.** Branch `launch-playtest`, pushed, **not merged**. Run in the cloud place "Ember" (Studio simulation, Rojo connected) over two play sessions. Studio has no API access, so ProfileStore uses its mock: every play start is a fresh profile (Level 1, 0 Embers, 200 Energy).
+>   - **Passed:**
+>     - **Gather:** sticks, stones, reeds and pines through the real `Gather` remote; 40 pine swings gave 39 timber. Quests 1–3 tick from real events, and their rewards land in the inbox and count at home.
+>     - **Craft and equip:** rope, stake, hatchet, pick and satchel through `HandCraft`; equipped through `InventoryMove`.
+>     - **Build:** 2 foundations and 2 walls (36 timber and 2 rope) and the Saw Bench (10 timber and 6 stone) through `Building.place`, at real costs.
+>     - **Run:** `TravelStart` at the Trailhead charged 15 Energy (221 → 206), and the player arrived about 19 s later (the map was built fresh). Quest 6's travel, kill and Hollow-drop objectives ticked, and the quest completed with a level-up.
+>     - **F-03:** on the run, crafting a rope was refused ("Not enough materials") while the fiber was only in the inbox.
+>     - **F-04:**
+>       - `InboxTakeAll` on the run was refused with "Your inbox waits at home…".
+>       - With the bag full, a crafted rope dropped 3 studs away with "Your bag is full. The rest dropped on the ground." `PickupDrop` took it back.
+>     - **F-05:** a home death with 5 sticks and 7 timber carried dropped them in a bag 5 studs away. The player woke at 50 HP after 3.9 s, and Food and Water read 38 a few seconds later.
+>     - **Death screen** (an idle survivor was killed by a Hollow): the bag list, "Go back in: 8 Energy", Recover all 100, Continue, and the Scavenger's Kit at 79 (`P04`).
+>     - **"Go back in" all the way:** back in the same lobby within 2 s, Energy 226 → 218. `BagTakeAll` got the bag back.
+>     - **The lobby closing while held:** the hold was released within 0.5 s of the close, and the player woke at home 0.5 s later. The dev command `meter` now ages the lobby a held player died in, which made this check possible.
+>     - **Extract:** the results card reads "YOU MADE IT OUT", 0:37, 1 Hollow, 1 searched, +40 XP, with 3 items (`P05`).
+>     - **UI gate:** 0 flags across 21,958 elements, run after the fixes.
+>   - **Fixed (3):**
+>     - **Quest 1 stranded a new player at "Craft a Sharpened Stake":** the stake needs a rope, a new player has none, and the Guide only points at listed objectives. First Light now lists "gather 2 Fiber" and "craft a Rope" before the stake. In the replay, the Guide outlined the reeds and all six objectives counted. The stake and equip objectives moved from indexes 3–4 to 5–6; there are no live saves yet.
+>     - **The Fog map never marked the Guide's destination:** `guideLocation` was set but nothing read it, and it cleared when the map opened. `Actions.toggleFogMap` now opens the map on that pin. In the replay, it opened on Pine Hollow with RUN 15, WALK and the route (`P03`).
+>     - **The quest-complete note read "Iron Ingot, Iron Ingot":** two recipes make the ingot. Each name is now listed once.
+>   - **Not verified in play:**
+>     - **A gun found in a container.** Pine Hollow's loot tables hold no guns by design. I made two tries at the Stranded Caravan at band 3:
+>       - The first ended when the band-3 Hollows killed the player, and the lobby then closed and took the bag.
+>       - In the second, my script took the loot before the 6 s trunk search ended. Wait 6.5 s per trunk next time.
+>     - **The station timers:** quest 4's plank (4 min) and quest 5's boiled water (2 min) were skipped with `("quests", 5)`.
+>     - **A live teleport home from a reserved server.** In Studio the death screen stays up after a release by the server; a live teleport resets it.
+>     - **Real purchases and touch input.**
+>   - **Seen, not fixed:**
+>     - At boot the console shows 20+ "Requester does not have permission for Asset" errors (`rbxassethash://`) and `rbxassetid://203785492` three times. Check them before publishing.
+>     - A searched container's panel stays open behind the death screen and the results card.
+>   - **Captures:** `docs/milestones/m1-launch/P01`–`P05`.
+>   - **How to repeat it:**
+>     - Start play, then wait about 5 s before setting the UI gate attribute. If the first trigger is missed, set it again once.
+>     - On the Client, fire `Gather`, `HandCraft`, `InventoryMove(ref, i, "equipment", 5 or 7)`, `TravelStart(loc, "run")`, `ContainerSearch` and `ContainerTakeAll`, and `DeathChoice`.
+>     - On the Server, `EO_Dev` runs `place`, `kill`, `die`, `meter`, `extract` and `queststate`.
+>     - Keep Studio un-minimized: a minimized window captures black, and an unfocused one runs at 15 fps.
+> - **Next:** merge `launch-playtest`, then step 6 (the soft launch).
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):

@@ -217,6 +217,12 @@ function Lobby.holding(player: Player): boolean
 	return holds[player] ~= nil
 end
 
+-- The lobby a player on the death screen died in, while it is open (Studio checks age it).
+function Lobby.heldIn(player: Player): Hosted?
+	local hold = holds[player]
+	return if hold then hostedLobbies[hold.lobbyId] else nil
+end
+
 -- Where a player who died may go back in, while that is still possible.
 function Lobby.reentryOf(player: Player): Reentry?
 	local entry = reentries[player]

@@ -68,8 +68,12 @@ end
 -- The Fog map (M, the HUD's Map button, or the Trailhead): plan and set out (11.1, 11.2).
 function Actions.toggleFogMap()
 	State.toggle("fogmap")
-	if State.ui().panel ~= "fogmap" then
+	local ui = State.ui()
+	if ui.panel ~= "fogmap" then
 		State.clear("fogLocation")
+	elseif ui.fogLocation == nil and ui.guideLocation ~= nil then
+		-- The Guide's travel objective (Controllers/Guide): open on that pin with its Run.
+		State.patch({ fogLocation = ui.guideLocation })
 	end
 	Sfx.play(if State.ui().panel == "fogmap" then "uiOpen" else "uiClose")
 end
