@@ -6,8 +6,9 @@
 	On death, the carried items (backpack, and pockets unless `keepPockets`) move
 	into a DroppedBackpack record at the location where the player fell. Equipment
 	is not part of Types.Inventory, so it is kept by construction. The record
-	expires at `despawnAt`; services may pass an earlier time (for example the
-	location's next reset).
+	expires at the `despawnAt` the caller passes. A bag has two lifetimes, no more (the
+	flow review's F-32): on a run it waits until the lobby closes (Domain/Lobby), at home
+	Tuning.drops.lifetimeSeconds like any ground drop (Services/Deaths).
 
 	Recovery rules: only the owner, only at that location, only before it
 	despawns. Recovery takes what fits; the rest stays in the backpack, which
@@ -32,7 +33,6 @@ export type DroppedBackpack = {
 }
 
 export type Config = {
-	despawnSeconds: number,
 	keepPockets: boolean?, -- true keeps pocket items on death (LDoE drops them)
 }
 
@@ -42,7 +42,7 @@ export type DropContext = {
 	locationId: Types.LocationId,
 	now: number,
 	position: Position?,
-	despawnAt: number?, -- overrides now + despawnSeconds when earlier
+	despawnAt: number, -- when the bag goes: the lobby's close on a run, now + the drop lifetime at home
 }
 
 export type Reason = "notOwner" | "wrongLocation" | "expired"
@@ -75,10 +75,7 @@ function Death.drop(inventory: Types.Inventory, ctx: DropContext, config: Config
 		return result, nil
 	end
 
-	local despawnAt = ctx.now + config.despawnSeconds
-	if ctx.despawnAt then
-		despawnAt = math.min(despawnAt, ctx.despawnAt)
-	end
+	local despawnAt = ctx.despawnAt
 	return result,
 		{
 			id = ctx.id,

@@ -1503,8 +1503,8 @@ local function checkTuning(errors: Errors, content: Types.Content)
 	if tuning.player.maxHealth <= 0 then
 		push(errors, "Tuning.player: maxHealth must be positive")
 	end
-	if tuning.death.despawnSeconds <= 0 then
-		push(errors, "Tuning.death: despawnSeconds must be positive")
+	if tuning.drops.lifetimeSeconds <= 0 then
+		push(errors, "Tuning.drops: lifetimeSeconds must be positive")
 	end
 	if tuning.combat.armorConstant <= 0 then
 		push(errors, "Tuning.combat: armorConstant must be positive")

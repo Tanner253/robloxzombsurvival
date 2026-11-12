@@ -519,7 +519,6 @@ export type TuningDef = {
 		departureStuds: number, -- Fog Runs: how near the Trailhead or the fog wall a trip may start
 	},
 	death: {
-		despawnSeconds: number, -- how long the dropped backpack waits at the location
 		keepPockets: boolean, -- false: pockets drop with the backpack (equipment is always kept)
 	},
 	building: {

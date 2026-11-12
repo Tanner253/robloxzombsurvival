@@ -92,8 +92,9 @@ local Tuning: Types.TuningDef = {
 		reentryEnergyMultiplier = 0.5,
 		departureStuds = 40, -- the Trailhead sign or the fog wall: travel starts only at the edge (GAME_DESIGN)
 	},
+	-- A dropped bag lives until the lobby closes on a run, and drops.lifetimeSeconds at home
+	-- (the flow review's F-32: no third number).
 	death = {
-		despawnSeconds = 2 * 60 * 60,
 		keepPockets = false, -- LDoE drops everything carried; equipment is always kept
 	},
 	building = {
