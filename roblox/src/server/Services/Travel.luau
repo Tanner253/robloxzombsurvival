@@ -376,13 +376,7 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 		Sync.notice(player, "Airdrops have to be looted in person")
 		return
 	end
-	local trip, energy, reason = TravelMath.start(location :: any, "run", ctx)
-	if trip == nil or energy == nil then
-		Sync.notice(player, REASONS[reason or ""] or "Can't clear that now")
-		return
-	end
 	local config = tuning.autoClear
-	local daily = autoDaily[player] or { day = 0, adsUsed = 0 }
 	local rationsCarried = 0
 	for _, container in { view.pockets, view.backpack } do
 		for _, slot in container do
@@ -391,11 +385,32 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 			end
 		end
 	end
+	-- F-20: the refusal names what is missing, the same price the button shows.
+	local runEnergy = TravelMath.plan(location :: any, "run", travelConfig).energyCost
+	local price = AutoClear.price(location.fogTier, runEnergy, config)
+	local trip, energy, reason = TravelMath.start(location :: any, "run", ctx)
+	if trip == nil or energy == nil then
+		if reason == "energy" then
+			local have = EnergyMath.current(ctx.energy, ctx.now, ctx.energyConfig).value
+			Sync.notice(player, AutoClear.shortText({ rations = 0, energy = price.energy }, 0, have) or REASONS.energy)
+			Sync.fx(player, "energyShort", {
+				need = EnergyMath.shortfall(ctx.energy, ctx.now, ctx.energyConfig, price.energy),
+			})
+		else
+			Sync.notice(player, REASONS[reason or ""] or "Can't clear that now")
+		end
+		return
+	end
+	local daily = autoDaily[player] or { day = 0, adsUsed = 0 }
 	local ok, refusal = AutoClear.canPay(method, location.fogTier, ctx.level, daily, rationsCarried, ctx.now, config)
 	if not ok then
 		Sync.notice(
 			player,
-			if refusal == "level" then `Ad clears open at level {config.adMinLevel}` else "You can't pay for that"
+			if refusal == "level"
+				then `Ad clears open at level {config.adMinLevel}`
+				elseif refusal == "rations" then AutoClear.shortText(price, rationsCarried, math.huge)
+					or "You can't pay for that"
+				else "You can't pay for that"
 		)
 		return
 	end
