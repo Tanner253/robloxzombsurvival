@@ -19,6 +19,7 @@ local HoldRules = {}
 type ItemLike = {
 	tool: { kind: string }?,
 	weapon: { kind: string, bow: any?, firearm: { animClass: string? }? }?,
+	throw: any?,
 }
 
 function HoldRules.classOf(itemId: string?, def: ItemLike?): string
@@ -34,6 +35,9 @@ function HoldRules.classOf(itemId: string?, def: ItemLike?): string
 	end
 	if def.tool then
 		return if def.tool.kind == "pick" then "pick" else "axe"
+	end
+	if def.throw then
+		return "throw"
 	end
 	local weapon = def.weapon
 	if weapon and weapon.kind == "ranged" then

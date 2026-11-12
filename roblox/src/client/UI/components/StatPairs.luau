@@ -34,6 +34,15 @@ local function pairsFor(def: any, durability: number?): { Pair }
 		table.insert(list, { silhouette = "weapon", text = `{def.weapon.damage} damage` })
 		table.insert(list, { glyph = "attack", text = `{def.weapon.attacksPerSecond}/s` })
 	end
+	if def.throw then
+		local throw = def.throw
+		if throw.kind == "fire" then
+			table.insert(list, { silhouette = "weapon", text = `{throw.burnDps}/s fire, {throw.burnSeconds} s` })
+		else
+			table.insert(list, { silhouette = "weapon", text = `{throw.damage} damage` })
+		end
+		table.insert(list, { glyph = "attack", text = `{throw.radius} stud radius` })
+	end
 	if def.armor then
 		table.insert(list, { silhouette = def.equipSlot or "body", text = `+{def.armor.defense} defense` })
 	end

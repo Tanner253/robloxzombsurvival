@@ -286,4 +286,13 @@ return {
 	[84883403166096] = "owner",
 	[98047504686491] = "owner",
 	[140483621230288] = "owner",
+	-- 2.0 batch 5: the new guns and throwables (GetProductInfo: the owner's Model assets).
+	[109481505500458] = "owner model",
+	[138864024632624] = "owner model",
+	[75563310459171] = "owner model",
+	[104201434214205] = "owner model",
+	[74935082651837] = "owner model",
+	[78490302802730] = "owner model",
+	[72864434091320] = "owner model",
+	[116760868033182] = "owner model",
 } :: { [number]: string }

@@ -74,6 +74,10 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.duty_pistol", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.pump_shotgun", weight = 2, min = 1, max = 1 },
 			{ itemId = "item.hunting_rifle", weight = 2, min = 1, max = 1 },
+			{ itemId = "item.machine_pistol", weight = 2, min = 1, max = 1 }, -- ARSENAL 3.4 (batch 5)
+			{ tableId = "loot.schematics_advanced", weight = 1, min = 1, max = 1 },
+			{ itemId = "item.frag_grenade", weight = 4, min = 1, max = 2 },
+			{ itemId = "item.molotov", weight = 4, min = 1, max = 2 },
 		},
 		guaranteed = { { itemId = "item.rations", count = 1 } },
 	},
@@ -190,6 +194,11 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.bp_pack_frame", weight = 14, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.bp_reinforced", weight = 14, min = 1, max = 1, rarity = "epic" }, -- 12 -> 14: its share holds (ARSENAL 3.4)
 			{ itemId = "item.bp_assault_rifle", weight = 2, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_patrol_carbine", weight = 2, min = 1, max = 1, rarity = "epic" }, -- batch 5
+			{ itemId = "item.bp_compact_rifle", weight = 2, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_tactical_smg", weight = 2, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_marksman_rifle", weight = 2, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.hand_cannon", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.anti_materiel_rifle", weight = 1, min = 1, max = 1, rarity = "legendary" },
 			{ itemId = "item.shortbow", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.scrapblade", weight = 8, min = 1, max = 1 },
@@ -305,6 +314,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.machete", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.duty_pistol", weight = 2, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.pump_shotgun", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.molotov", weight = 5, min = 1, max = 2 }, -- batch 5
 		},
 	},
 	["loot.depot_band2"] = {
@@ -336,6 +346,17 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.pump_shotgun", weight = 3, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.assault_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.bp_assault_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.hand_cannon", weight = 3, min = 1, max = 1, rarity = "epic" }, -- batch 5
+			{ itemId = "item.machine_pistol", weight = 3, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.patrol_carbine", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.compact_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.tactical_smg", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.marksman_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_patrol_carbine", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_compact_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_tactical_smg", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_marksman_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.frag_grenade", weight = 5, min = 1, max = 2 },
 			{ itemId = "item.anti_materiel_rifle", weight = 1, min = 1, max = 1, rarity = "legendary" },
 		},
 		-- Bad-luck protection: a whole gun at least once in every 10 late Black-fog containers.
@@ -349,6 +370,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.flare", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.steel_pipe", weight = 20, min = 1, max = 1 },
 			{ itemId = "item.trigger_group", weight = 15, min = 1, max = 1 },
+			{ itemId = "item.molotov", weight = 6, min = 1, max = 1 }, -- batch 5
 		},
 	},
 	["loot.caravan_band3"] = {
@@ -363,6 +385,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.machete", weight = 7, min = 1, max = 1 },
 			{ itemId = "item.duty_pistol", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.pump_shotgun", weight = 4, min = 1, max = 1 },
+			{ itemId = "item.hand_cannon", weight = 3, min = 1, max = 1 }, -- ARSENAL 3.4 (batch 5)
+			{ itemId = "item.molotov", weight = 6, min = 1, max = 2 },
+			{ itemId = "item.frag_grenade", weight = 3, min = 1, max = 1 },
 		},
 	},
 
@@ -405,6 +430,18 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 	},
 
 	-- Shared sub-tables (opened through an entry's tableId) ---------------------------------
+	-- ARSENAL 3.4: one of the advanced schematics (the Combat Shotgun's waits for M2).
+	["loot.schematics_advanced"] = {
+		id = "loot.schematics_advanced",
+		rolls = { min = 1, max = 1 },
+		entries = {
+			{ itemId = "item.bp_assault_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_patrol_carbine", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_compact_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_tactical_smg", weight = 1, min = 1, max = 1, rarity = "epic" },
+			{ itemId = "item.bp_marksman_rifle", weight = 1, min = 1, max = 1, rarity = "epic" },
+		},
+	},
 	["loot.junk"] = {
 		id = "loot.junk",
 		rolls = { min = 1, max = 1 },
@@ -590,6 +627,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.forged_pick", weight = 4, min = 1, max = 1 },
 			{ tableId = "loot.junk", weight = 8, min = 1, max = 1 },
+			{ itemId = "item.machine_pistol", weight = 1, min = 1, max = 1 }, -- ARSENAL 3.4 (batch 5)
+			{ itemId = "item.bp_tactical_smg", weight = 1, min = 1, max = 1, rarity = "epic" }, -- §0: replaces the Combat Shotgun's
 			{ itemId = "item.scrap", weight = 2, min = 2, max = 4 }, -- was Blackpowder (F-13)
 		},
 	},

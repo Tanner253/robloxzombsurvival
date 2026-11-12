@@ -475,7 +475,12 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		},
 		rewards = {
 			xp = 4000,
-			items = { { itemId = "item.brass_gear", count = 3 }, { itemId = "item.trigger_group", count = 1 } },
+			-- ARSENAL §3.3: the chapter's end teaches the first advanced gun.
+			items = {
+				{ itemId = "item.brass_gear", count = 3 },
+				{ itemId = "item.trigger_group", count = 1 },
+				{ itemId = "item.bp_patrol_carbine", count = 1 },
+			},
 		},
 	},
 }

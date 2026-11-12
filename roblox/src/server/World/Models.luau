@@ -161,6 +161,14 @@ local function loadUploaded(name: string): Model?
 	local _, size = model:GetBoundingBox()
 	local current = if entry.axis == "X" then size.X elseif entry.axis == "Y" then size.Y else size.Z
 	model:ScaleTo(model:GetScale() * entry.size / current)
+	-- Parts that float off their mount in the source, moved back onto it (studs at `size`).
+	local nudge: { [string]: Vector3 } = entry.nudge or {}
+	for partName, offset in nudge do
+		local stray = model:FindFirstChild(partName, true)
+		if stray and stray:IsA("BasePart") then
+			stray.CFrame += offset
+		end
+	end
 	local centre, fitted = model:GetBoundingBox()
 	model.WorldPivot = CFrame.new(centre.Position - Vector3.new(0, fitted.Y / 2, 0))
 	model:PivotTo(CFrame.new())

@@ -19,7 +19,10 @@
 	  ("runstate") summarises the run, ("extract") gets out, ("die") ends the survivor,
 	  ("equip", itemId, slot, durability?) puts a weapon in hand 1 or 2 (worn down to
 	  `durability` if given), ("shoot", studs?) fires the gun in hand once at the nearest Hollow
-	  and reports its health and the gun's durability before and after, ("heal") restores the
+	  and reports its health and the gun's durability before and after, ("throw", studs?,
+	  wait?) throws the grenade or molotov in hand at the nearest Hollow and reports the stack
+	  and the Hollow near it before and after (an equipped throwable's third argument is the
+	  stack's size), ("heal") restores the
 	  survivor between checks, ("wear", itemId) puts armor in its
 	  slot, ("energy", n) sets Energy,
 	  ("embers", n) sets the Ember balance, ("deathstate") reports the death screen's wait
@@ -267,7 +270,12 @@ local function devCommand(command: string, ...: any): any
 		end
 		local key = if args[2] == 2 then "weapon2" else "weapon"
 		local equipment = data.inventory.equipment :: any
-		equipment[key] = { itemId = item.id, count = 1, durability = args[3] or item.durability }
+		if item.throw then
+			-- A throwable is a stack: `args[3]` of them (default 5), no durability (batch 5).
+			equipment[key] = { itemId = item.id, count = args[3] or 5 }
+		else
+			equipment[key] = { itemId = item.id, count = 1, durability = args[3] or item.durability }
+		end
 		Sync.mark(player, "inventory")
 		Inventory.refreshGear(player) -- the held and holstered models follow
 		return "ok"
@@ -349,6 +357,68 @@ local function devCommand(command: string, ...: any): any
 		end
 		Inventory.setActiveWeapon(player, n)
 		return Inventory.handRef(player)
+	elseif command == "throw" then
+		-- (batch 5) Throws the grenade or molotov in hand at the nearest living Hollow through
+		-- the real throw path, from `args[1]` studs away (default 12), and waits `args[2]`
+		-- seconds after it goes off (default 0.3; a molotov's burn ticks meanwhile). Returns
+		-- the stack before and after, where it landed, and every Hollow near it before and after.
+		local run = Lobby.runOf(player)
+		local character = player.Character
+		local data = PlayerData.get(player)
+		if run == nil or character == nil or data == nil then
+			return "no run"
+		end
+		local HollowService = require("./Hollow")
+		local key = if Inventory.activeWeapon(player) == 2 then "weapon2" else "weapon"
+		local slot = (data.inventory.equipment :: any)[key]
+		local def = slot and slot.count > 0 and Content.Items[slot.itemId]
+		if not def or def.throw == nil then
+			return "no throwable in hand"
+		end
+		local origin = character:GetPivot().Position
+		local nearest = HollowService.inArc(run.hosted, origin, 0, 400, 360)[1]
+		local at = nearest and HollowService.positionOf(run.hosted, nearest.id)
+		if nearest == nil or at == nil then
+			return "no hollow"
+		end
+		local away = Vector3.new(origin.X - at.X, 0, origin.Z - at.Z)
+		away = if away.Magnitude > 0.1 then away.Unit else Vector3.zAxis
+		local stand = at + away * (args[1] or 12)
+		local ground = RaycastParams.new()
+		ground.FilterType = Enum.RaycastFilterType.Exclude
+		ground.FilterDescendantsInstances = { character }
+		local floor = workspace:Raycast(Vector3.new(stand.X, at.Y + 40, stand.Z), Vector3.new(0, -120, 0), ground)
+		local height = (if floor then floor.Position.Y else at.Y) + 3
+		character:PivotTo(CFrame.lookAt(Vector3.new(stand.X, height, stand.Z), Vector3.new(at.X, height, at.Z)))
+		task.wait(0.1)
+		at = HollowService.positionOf(run.hosted, nearest.id) or at
+		local near = HollowService.inArc(run.hosted, at, 0, def.throw.radius + 4, 360)
+		local before: { [string]: number? } = {}
+		for _, candidate in near do
+			before[candidate.id] = HollowService.hpOf(run.hosted, candidate.id)
+		end
+		local stack = slot.count
+		local result, why = require("./Throwables").dev.throw(player, at.X, at.Y, at.Z)
+		if result == nil then
+			return why
+		end
+		task.wait(result.goesOff + (args[2] or 0.3))
+		local hollows: { string } = {}
+		for _, candidate in near do
+			local after = HollowService.hpOf(run.hosted, candidate.id)
+			table.insert(
+				hollows,
+				`{candidate.id} {math.floor(candidate.distance * 10) / 10} studs: {before[candidate.id] or "?"} -> {after or "dead"}`
+			)
+		end
+		local left = (data.inventory.equipment :: any)[key]
+		return {
+			stack = `{stack} -> {if left and left.itemId == def.id then left.count else 0}`,
+			landed = math.floor((result.landing - at).Magnitude * 10) / 10, -- studs from the aim
+			flight = math.floor(result.flight * 100) / 100,
+			goesOff = math.floor(result.goesOff * 100) / 100,
+			hollows = hollows,
+		}
 	elseif command == "shoot" then
 		-- Fires the gun in hand once at the nearest living Hollow through the real fire path
 		-- (reloading first when the magazine is empty), from `args[1]` studs away (default 10).

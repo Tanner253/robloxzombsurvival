@@ -42,6 +42,7 @@
 
 local Types = require("../Types")
 local TableUtil = require("../Util/Table")
+local Combat = require("./Combat")
 local Grid = require("./Grid")
 local Shelter = require("./Shelter")
 
@@ -200,6 +201,33 @@ local function checkFlare(errors: Errors, where: string, flare: Types.FlareStats
 	end
 end
 
+-- Grenades and molotovs (Domain/Throw).
+local function checkThrow(errors: Errors, where: string, throw: Types.ThrowStats)
+	for _, value in { throw.range, throw.flightSpeed, throw.intervalSeconds, throw.radius, throw.noiseRadius } do
+		if value <= 0 then
+			push(errors, `{where}: range, flightSpeed, intervalSeconds, radius and noiseRadius must be positive`)
+		end
+	end
+	if throw.minRange < 0 or throw.minRange >= throw.range or throw.apex < 0 then
+		push(errors, `{where}: need 0 <= minRange < range and apex >= 0`)
+	end
+	if throw.kind == "blast" then
+		if (throw.damage or 0) <= 0 or (throw.fuseSeconds or 0) <= 0 then
+			push(errors, `{where}: a blast needs positive damage and fuseSeconds`)
+		end
+		local edge = throw.edgeMultiplier
+		if edge ~= nil and (edge < 0 or edge > 1) then
+			push(errors, `{where}: edgeMultiplier must be in [0, 1]`)
+		end
+	elseif throw.kind == "fire" then
+		if (throw.burnSeconds or 0) <= 0 or (throw.burnTickSeconds or 0) <= 0 or (throw.burnDps or 0) <= 0 then
+			push(errors, `{where}: a fire needs positive burnSeconds, burnTickSeconds and burnDps`)
+		end
+	else
+		push(errors, `{where}: kind must be blast or fire`)
+	end
+end
+
 local function checkWeaponStats(errors: Errors, where: string, weapon: Types.WeaponStats)
 	if weapon.critChance ~= nil and not isChance(weapon.critChance) then
 		push(errors, `{where}: critChance must be between 0 and 1`)
@@ -270,8 +298,11 @@ local function checkWeaponStats(errors: Errors, where: string, weapon: Types.Wea
 		if gun.falloffStart ~= nil and (gun.falloffStart < 0 or gun.falloffStart >= weapon.range) then
 			push(errors, `{where}.firearm: falloffStart must be at least 0 and below range`)
 		end
+		if gun.burst and (not isPositiveInteger(gun.burst.count) or gun.burst.count < 2 or gun.burst.cooldown <= 0) then
+			push(errors, `{where}.firearm: a burst needs count >= 2 and a positive cooldown`)
+		end
 		-- The item card shows attacksPerSecond: it must be the sustained rate Combat fires at.
-		local cycle = (gun.magazine - 1) * gun.fireInterval + gun.reloadSeconds
+		local cycle = Combat.cycleSeconds(gun)
 		local sustained = if cycle > 0 then gun.magazine / cycle else 0
 		if sustained > 0 and math.abs(weapon.attacksPerSecond - sustained) > sustained * 0.02 then
 			push(errors, `{where}: attacksPerSecond must be the sustained rate {sustained} (Combat.sustainedRate)`)
@@ -303,19 +334,28 @@ local function checkItems(errors: Errors, content: Types.Content)
 			push(errors, `{where}: tier must be a positive integer`)
 		end
 
+		-- A throwable (grenade, molotov) is a weapon held as a stack and spent one a throw.
+		local thrown = item.throw ~= nil
 		local equippable = category == "tool" or category == "weapon" or category == "armor" or category == "bag"
-		if equippable and item.stackSize ~= 1 then
+		if equippable and item.stackSize ~= 1 and not thrown then
 			push(errors, `{where}: {category} items must have stackSize 1`)
 		end
-		if (category == "tool" or category == "weapon" or category == "armor") and (item.durability or 0) <= 0 then
+		local worn = category == "tool" or (category == "weapon" and not thrown) or category == "armor"
+		if worn and (item.durability or 0) <= 0 then
 			push(errors, `{where}: {category} items need a positive durability`)
+		end
+		if thrown then
+			if category ~= "weapon" or item.durability ~= nil then
+				push(errors, `{where}: a throwable is a weapon with no durability`)
+			end
+			checkThrow(errors, `{where}.throw`, item.throw :: Types.ThrowStats)
 		end
 
 		if (item.tool ~= nil) ~= (category == "tool") then
 			push(errors, `{where}: tool stats are required on tools and only allowed on tools`)
 		end
-		if (item.weapon ~= nil) ~= (category == "weapon") then
-			push(errors, `{where}: weapon stats are required on weapons and only allowed on weapons`)
+		if (item.weapon ~= nil) ~= (category == "weapon" and not thrown) then
+			push(errors, `{where}: weapon stats are required on weapons (not throwables) and only allowed on weapons`)
 		end
 		if (item.armor ~= nil) ~= (category == "armor") then
 			push(errors, `{where}: armor stats are required on armor and only allowed on armor`)

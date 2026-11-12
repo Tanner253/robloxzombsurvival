@@ -28,7 +28,18 @@
 
 local Holds = {}
 
-export type Class = "fists" | "blade" | "axe" | "pick" | "blunt" | "heavy" | "stab" | "pistol" | "long" | "bow"
+export type Class =
+	"fists"
+	| "blade"
+	| "axe"
+	| "pick"
+	| "blunt"
+	| "heavy"
+	| "stab"
+	| "pistol"
+	| "long"
+	| "bow"
+	| "throw"
 export type Mount = "fist" | "gun"
 export type Pose = { number } -- { x, y, z } degrees, or { x, y, z, px, py, pz }
 export type Key = { time: number, poses: { [string]: Pose } }
@@ -95,7 +106,18 @@ Holds.items = {
 	["item.hunting_rifle"] = "long",
 	["item.assault_rifle"] = "long",
 	["item.anti_materiel_rifle"] = "long",
+	-- Batch 5. The Hand Cannon is a revolver held out in both hands; both SMGs have stocks and
+	-- shoulder like long guns (HoldRules' default for animClass "smg").
+	["item.hand_cannon"] = "pistol",
+	["item.machine_pistol"] = "long",
+	["item.patrol_carbine"] = "long",
+	["item.compact_rifle"] = "long",
+	["item.tactical_smg"] = "long",
+	["item.marksman_rifle"] = "long",
 	["item.shortbow"] = "bow",
+	-- Throwables: in the fist, thrown overhand (the swing's hit frame is the release).
+	["item.frag_grenade"] = "throw",
+	["item.molotov"] = "throw",
 } :: { [string]: Class }
 
 Holds.classes = {
@@ -115,6 +137,7 @@ Holds.classes = {
 	},
 	long = { mount = "gun", carry = "carryLong", aim = "aimLong", recoil = "recoilLong", reload = "reload" },
 	bow = { mount = "gun", carry = "carryBow", aim = "drawBow" },
+	throw = { mount = "fist", swing = "throw", heavy = "throw" },
 } :: { [string]: ClassDef }
 
 -- Solved stances (see the header): the grip hand on the grip, the bore level ahead.
@@ -200,6 +223,72 @@ local function kick(aim: { [string]: Pose }): Clip
 end
 
 Holds.clips = {
+	-- Throwables (batch 5): an overhand throw. The off arm points at the target while the
+	-- throwing arm winds up behind the head with the right shoulder turned back; the chest
+	-- turns through and the hand lets go above the shoulder at `hit` (Services/Throwables
+	-- releases it then), then follows through across the body.
+	throw = {
+		length = 0.75,
+		hit = 0.3,
+		partial = true,
+		keys = {
+			{
+				time = 0,
+				poses = {
+					UpperTorso = { 0, 0, 0 },
+					Head = { 0, 0, 0 },
+					RightUpperArm = { 0, 0, 0 },
+					RightLowerArm = { 0, 0, 0 },
+					LeftUpperArm = { 0, 0, 0 },
+					LeftLowerArm = { 0, 0, 0 },
+				},
+			},
+			{
+				time = 0.18,
+				poses = {
+					UpperTorso = { -8, -40, 0 },
+					Head = { 0, 34, 0 },
+					RightUpperArm = { 150, 0, 18 },
+					RightLowerArm = { 95, 0, 0 },
+					LeftUpperArm = { 85, 0, 12 },
+					LeftLowerArm = { 10, 0, 0 },
+				},
+			},
+			{
+				time = 0.3,
+				poses = {
+					UpperTorso = { 6, 14, 0 },
+					Head = { 0, -10, 0 },
+					RightUpperArm = { 135, 0, -4 },
+					RightLowerArm = { 20, 0, 0 },
+					LeftUpperArm = { 45, 0, 10 },
+					LeftLowerArm = { 25, 0, 0 },
+				},
+			},
+			{
+				time = 0.45,
+				poses = {
+					UpperTorso = { 14, 30, 0 },
+					Head = { 0, -24, 0 },
+					RightUpperArm = { 70, 0, -32 },
+					RightLowerArm = { 30, 0, 0 },
+					LeftUpperArm = { 15, 0, 8 },
+					LeftLowerArm = { 15, 0, 0 },
+				},
+			},
+			{
+				time = 0.75,
+				poses = {
+					UpperTorso = { 0, 0, 0 },
+					Head = { 0, 0, 0 },
+					RightUpperArm = { 0, 0, 0 },
+					RightLowerArm = { 0, 0, 0 },
+					LeftUpperArm = { 0, 0, 0 },
+					LeftLowerArm = { 0, 0, 0 },
+				},
+			},
+		},
+	},
 	-- Melee -----------------------------------------------------------------------------------
 	-- A quick diagonal slash: wind back, cut across, recover.
 	slash = {

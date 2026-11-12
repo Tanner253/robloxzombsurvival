@@ -177,6 +177,7 @@ export type Gun = {
 	loaded: number,
 	lastShotAt: number,
 	reloadEndsAt: number?, -- set while reloading
+	burstShots: number?, -- a burst gun: rounds fired in the current burst (nil means none)
 }
 
 export type FireReason = "reloading" | "empty" | "cooldown"
@@ -186,10 +187,30 @@ function Combat.newGun(loaded: number?): Gun
 	return { loaded = loaded or 0, lastShotAt = -math.huge, reloadEndsAt = nil }
 end
 
+-- Seconds from the first round of a full magazine to the last, then the reload: one cycle.
+-- A burst gun waits its cooldown, not its fire interval, between bursts.
+function Combat.cycleSeconds(firearm: Types.FirearmStats): number
+	local gaps = firearm.magazine - 1
+	local burst = firearm.burst
+	if burst == nil then
+		return gaps * firearm.fireInterval + firearm.reloadSeconds
+	end
+	local between = math.floor(gaps / burst.count)
+	return (gaps - between) * firearm.fireInterval + between * burst.cooldown + firearm.reloadSeconds
+end
+
 -- Rounds a second, reloads included: what the item card shows (validated in data).
 function Combat.sustainedRate(firearm: Types.FirearmStats): number
-	local cycle = (firearm.magazine - 1) * firearm.fireInterval + firearm.reloadSeconds
-	return firearm.magazine / cycle
+	return firearm.magazine / Combat.cycleSeconds(firearm)
+end
+
+-- The wait before the next round: the fire interval, or a burst's cooldown once it is spent.
+function Combat.interval(firearm: Types.FirearmStats, gun: Gun): number
+	local burst = firearm.burst
+	if burst and (gun.burstShots or 0) >= burst.count then
+		return burst.cooldown
+	end
+	return firearm.fireInterval
 end
 
 function Combat.isReloading(gun: Gun, now: number): boolean
@@ -203,15 +224,27 @@ function Combat.canFire(firearm: Types.FirearmStats, gun: Gun, now: number): (bo
 	if gun.loaded <= 0 then
 		return false, "empty"
 	end
-	if now - gun.lastShotAt < firearm.fireInterval then
+	if now - gun.lastShotAt < Combat.interval(firearm, gun) then
 		return false, "cooldown"
 	end
 	return true, nil
 end
 
--- Fires one round. Call only after canFire.
-function Combat.fire(gun: Gun, now: number): Gun
-	return { loaded = gun.loaded - 1, lastShotAt = now, reloadEndsAt = nil }
+--[[
+	Fires one round. Call only after canFire. With the firearm, a burst gun counts the round
+	into its burst: a new burst starts once the last one is spent or its cooldown has passed.
+]]
+function Combat.fire(gun: Gun, now: number, firearm: Types.FirearmStats?): Gun
+	local burst = firearm and firearm.burst
+	local shots: number? = nil
+	if burst then
+		local prior = gun.burstShots or 0
+		if prior >= burst.count or now - gun.lastShotAt >= burst.cooldown then
+			prior = 0
+		end
+		shots = prior + 1
+	end
+	return { loaded = gun.loaded - 1, lastShotAt = now, reloadEndsAt = nil, burstShots = shots }
 end
 
 --[[
@@ -220,7 +253,7 @@ end
 	`now`. Fed to Combat.fire, it keeps an automatic at fireInterval however the requests bunch.
 ]]
 function Combat.shotTime(firearm: Types.FirearmStats, gun: Gun, now: number): number
-	return math.max(now, gun.lastShotAt + firearm.fireInterval)
+	return math.max(now, gun.lastShotAt + Combat.interval(firearm, gun))
 end
 
 -- Starts a reload when the magazine has room. It costs nothing but the time.

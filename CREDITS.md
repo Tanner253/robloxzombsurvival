@@ -35,6 +35,9 @@ Columns: **Work** is what we use. **By** is the author or owner. **License** is 
 | "Bolt Action Rifle 7.62" (the Hunting Rifle) | Mateusz Sadek | CC0 | polyhaven.com/a/bolt_action_rifle_7_62 |
 | "FPS AK-74m animations" (the Assault Rifle) | Cransh | CC-BY-4.0 | sketchfab.com/3d-models/fps-ak-74m-animations-94be8385c402474cacd39bc096c6ca14 |
 | "Barrett-M82 (Optimized)" (the Anti-Materiel Rifle) | Gintoki1234 | CC-BY-4.0 | sketchfab.com/3d-models/barrett-m82-optimized-af16e974a47e463989311bcda6f51f87 |
+| "Scorpion – First Person Animations (2026 Remake)" (the Machine Pistol) | 1Matzh | CC-BY-4.0 | sketchfab.com/3d-models/scorpion-first-person-animations-2026-remake-f2bdfac775344004ad38d0318f0664a4 |
+| "AR-15" (the Patrol Carbine) | wafla | CC-BY-4.0 | sketchfab.com/3d-models/ar-15-33e225811b404192b89dcd4096603fbe |
+| "MP7A1 Animations" (the Tactical SMG) | TheParaziT | CC-BY-4.0 | sketchfab.com/3d-models/mp7a1-animations-0a55689855594f2496c2debdb7e6f5bc |
 | "Machete" (the Machete) | Ulan Cabanilla | CC0 | polyhaven.com/a/machete |
 | "Crowbar 01" (the Tire Iron) | Alexander Otterbeck | CC0 | polyhaven.com/a/crowbar_01 |
 | "Old Gas Mask" (the Gas Mask) | Michał Wiśniewski | CC0 | polyhaven.com/a/old_gas_mask |

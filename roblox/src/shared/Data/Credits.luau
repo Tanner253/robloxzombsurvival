@@ -76,6 +76,24 @@ local Credits: { Section } = {
 				source = "sketchfab.com/3d-models/barrett-m82-optimized-af16e974a47e463989311bcda6f51f87",
 			},
 			{
+				work = '"Scorpion – First Person Animations (2026 Remake)" (the Machine Pistol)',
+				by = "1Matzh",
+				license = "CC-BY-4.0",
+				source = "sketchfab.com/3d-models/scorpion-first-person-animations-2026-remake-f2bdfac775344004ad38d0318f0664a4",
+			},
+			{
+				work = '"AR-15" (the Patrol Carbine)',
+				by = "wafla",
+				license = "CC-BY-4.0",
+				source = "sketchfab.com/3d-models/ar-15-33e225811b404192b89dcd4096603fbe",
+			},
+			{
+				work = '"MP7A1 Animations" (the Tactical SMG)',
+				by = "TheParaziT",
+				license = "CC-BY-4.0",
+				source = "sketchfab.com/3d-models/mp7a1-animations-0a55689855594f2496c2debdb7e6f5bc",
+			},
+			{
 				work = '"Machete" (the Machete)',
 				by = "Ulan Cabanilla",
 				license = "CC0",

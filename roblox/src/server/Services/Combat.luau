@@ -439,7 +439,7 @@ local function fire(player: Player, yaw: number, lockId: string?)
 		end
 		return
 	end
-	fighter.hands = Hands.setGun(fighter.hands, CombatMath.fire(gun, CombatMath.shotTime(firearm, gun, stamp)))
+	fighter.hands = Hands.setGun(fighter.hands, CombatMath.fire(gun, CombatMath.shotTime(firearm, gun, stamp), firearm))
 	local origin = root.Position + Vector3.new(0, MUZZLE_HEIGHT, 0)
 	local aim = softLock(run, origin, yaw, lockId)
 	local crit = CombatMath.rollCrit(CombatMath.critChance(weapon, combatConfig), rng)
@@ -627,6 +627,47 @@ local function autoFight(player: Player, fighter: Fighter)
 	elseif weapon.kind == "melee" then
 		melee(player, false, yaw, targetId)
 	end
+end
+
+-- Throwables (batch 5, Services/Throwables): the throwable in the active hand of a living
+-- fighter on a run, ready to use (not mid-swap), with its paper-doll slot.
+function Combat.throwHand(player: Player): (string?, string?)
+	local fighter = fighterOf(player)
+	if fighter == nil or Lobby.runOf(player) == nil or not alive(player) or not Hands.ready(fighter.hands, now()) then
+		return nil, nil
+	end
+	local key = SLOT_KEYS[fighter.hands.active]
+	local itemId = Hands.active(fighter.hands).itemId
+	local def = itemId and Items[itemId]
+	if key == nil or def == nil or def.throw == nil then
+		return nil, nil
+	end
+	return itemId, key
+end
+
+-- Spends one from the stack in `key`; the last one empties the hand, which then switches to
+-- the other slot as a broken weapon does (LDOE_PARITY #45). False when there was none.
+function Combat.spendThrown(player: Player, key: string, itemId: string): boolean
+	local data = PlayerData.get(player)
+	local fighter = fighters[player]
+	local slot = data and (data.inventory.equipment :: any)[key]
+	if fighter == nil or slot == nil or slot.itemId ~= itemId or slot.count <= 0 then
+		return false
+	end
+	slot.count -= 1
+	if slot.count <= 0 then
+		(data :: any).inventory.equipment[key] = InventoryMath.emptySlot()
+		local hands, switched = Hands.onBreak(fighter.hands, now(), Items, tuning.hands)
+		fighter.hands = hands
+		if switched then
+			Inventory.setActiveWeapon(player, hands.active)
+		else
+			Inventory.refreshGear(player) -- the empty hand drops the model
+		end
+		sendHands(player, fighter)
+	end
+	Sync.mark(player, "inventory")
+	return true
 end
 
 -- Scripted playtests (Diagnostics "shoot"): the same fire and reload the remotes run, and

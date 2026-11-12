@@ -19,7 +19,9 @@ local Plane = require("./Plane")
 local Noise = {}
 
 export type Config = Types.NoiseTuning
-export type Kind = "gunshot" | "melee" | "bow" | "sprint" | "search" | "bloaterBurst" | "flare" | "walk"
+-- "blast": a grenade or molotov going off (batch 5); its radius is always the throwable's own
+-- noiseRadius (Services/Throwables passes it), so it has no Tuning.noise entry.
+export type Kind = "gunshot" | "melee" | "bow" | "sprint" | "search" | "bloaterBurst" | "flare" | "walk" | "blast"
 
 export type Event = {
 	id: number,

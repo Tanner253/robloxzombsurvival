@@ -1,8 +1,9 @@
 --!strict
 --[[
-	The first five guns of docs/ARSENAL.md (HANDOFF §6 step 3): their stats rows, how each is
-	obtained, the model each shows, and the two rules the gun path gained for them (a
-	piercing round, a held trigger's beat).
+	ARSENAL's roster (docs/ARSENAL.md): the first five (HANDOFF §6 step 3) and the rest (2.0
+	batch 5; the Combat Shotgun waits for M2). Their stats rows, how each is obtained, the model
+	each shows, and the rules the gun path gained for them (a piercing round, a held trigger's
+	beat, the Patrol Carbine's burst).
 ]]
 local fs = require("@lune/fs")
 local TestKit = require("./TestKit")
@@ -28,6 +29,7 @@ type Row = {
 	rarity: string,
 	kit: string,
 	asset: string,
+	credited: boolean?, -- false: Studio's mesh generator made it (ours, no credit row)
 }
 local GUNS: { [string]: Row } = {
 	["item.duty_pistol"] = {
@@ -96,6 +98,97 @@ local GUNS: { [string]: Row } = {
 		kit = "EO_AntiMaterielRifle",
 		asset = "93078334956668",
 	},
+	-- Batch 5
+	["item.hand_cannon"] = {
+		damage = 48,
+		interval = 0.7,
+		magazine = 7,
+		reload = 2,
+		shots = 45,
+		range = 80,
+		class = "pistol",
+		tier = 3,
+		rarity = "uncommon",
+		kit = "EO_HandCannon",
+		asset = "104201434214205",
+		credited = false,
+	},
+	["item.machine_pistol"] = {
+		damage = 9,
+		interval = 0.09,
+		magazine = 20,
+		reload = 1.8,
+		shots = 240,
+		range = 45,
+		class = "smg",
+		tier = 3,
+		rarity = "uncommon",
+		kit = "EO_MachinePistol",
+		asset = "109481505500458",
+	},
+	["item.patrol_carbine"] = {
+		damage = 16,
+		interval = 0.07,
+		magazine = 30,
+		reload = 2.2,
+		shots = 190,
+		range = 95,
+		class = "rifle",
+		tier = 4,
+		rarity = "rare",
+		kit = "EO_PatrolCarbine",
+		asset = "75563310459171",
+	},
+	["item.compact_rifle"] = {
+		damage = 13,
+		interval = 0.1,
+		magazine = 20,
+		reload = 1.8,
+		shots = 200,
+		range = 70,
+		class = "rifle",
+		tier = 4,
+		rarity = "rare",
+		kit = "EO_CompactRifle",
+		asset = "74935082651837",
+		credited = false,
+	},
+	["item.tactical_smg"] = {
+		damage = 11,
+		interval = 0.075,
+		magazine = 40,
+		reload = 2,
+		shots = 240,
+		range = 55,
+		class = "smg",
+		tier = 4,
+		rarity = "rare",
+		kit = "EO_TacticalSMG",
+		asset = "138864024632624",
+	},
+	["item.marksman_rifle"] = {
+		damage = 110,
+		interval = 1.5,
+		magazine = 5,
+		reload = 3,
+		shots = 26,
+		range = 140,
+		class = "rifle",
+		tier = 4,
+		rarity = "rare",
+		kit = "EO_MarksmanRifle",
+		asset = "78490302802730",
+		credited = false,
+	},
+}
+
+-- The advanced guns learned from a Black-fog schematic (ARSENAL §3.3).
+local SCHEMATICS = {
+	["recipe.assault_rifle"] = "item.bp_assault_rifle",
+	["recipe.patrol_carbine"] = "item.bp_patrol_carbine",
+	["recipe.compact_rifle"] = "item.bp_compact_rifle",
+	["recipe.tactical_smg"] = "item.bp_tactical_smg",
+	["recipe.marksman_rifle"] = "item.bp_marksman_rifle",
 }
 
 -- ARSENAL §0: uploads that must never be referenced.
@@ -139,7 +232,7 @@ local function lootRows(itemId: string): { [string]: any }
 end
 
 return function(test: TestKit.Register)
-	test("the five guns carry ARSENAL's stats and three times its shot count", function()
+	test("the roster carries ARSENAL's stats and three times its shot count", function()
 		for itemId, row in GUNS do
 			local item = Content.Items[itemId] :: any
 			TestKit.truthy(item, `{itemId} exists`)
@@ -180,6 +273,10 @@ return function(test: TestKit.Register)
 		TestKit.truthy(life("item.pump_shotgun") > life("item.scrap_shotgun"), "Pump over the Scrap Shotgun")
 		TestKit.truthy(life("item.assault_rifle") > life("item.duty_pistol"), "advanced over standard")
 		TestKit.truthy(life("item.anti_materiel_rifle") > life("item.assault_rifle"), "the jackpot on top")
+		for _, advanced in { "item.patrol_carbine", "item.compact_rifle", "item.tactical_smg", "item.marksman_rifle" } do
+			TestKit.truthy(life(advanced) > life("item.hand_cannon"), `{advanced} over the best standard gun`)
+			TestKit.truthy(life(advanced) < life("item.anti_materiel_rifle"), `{advanced} under the jackpot`)
+		end
 	end)
 
 	test("shots to kill in Black fog match ARSENAL §6.2", function()
@@ -192,6 +289,19 @@ return function(test: TestKit.Register)
 		TestKit.equal(shotsInBlack("item.assault_rifle", "enemy.shambler"), 4)
 		TestKit.equal(shotsInBlack("item.assault_rifle", "enemy.runner"), 6)
 		TestKit.equal(shotsInBlack("item.anti_materiel_rifle", "enemy.runner"), 1)
+		-- Batch 5 (§6.2's Black column)
+		TestKit.equal(shotsInBlack("item.hand_cannon", "enemy.shambler"), 2)
+		TestKit.equal(shotsInBlack("item.hand_cannon", "enemy.runner"), 3)
+		TestKit.equal(shotsInBlack("item.machine_pistol", "enemy.shambler"), 7)
+		TestKit.equal(shotsInBlack("item.machine_pistol", "enemy.runner"), 11)
+		TestKit.equal(shotsInBlack("item.patrol_carbine", "enemy.shambler"), 4)
+		TestKit.equal(shotsInBlack("item.patrol_carbine", "enemy.runner"), 7)
+		TestKit.equal(shotsInBlack("item.compact_rifle", "enemy.shambler"), 5)
+		TestKit.equal(shotsInBlack("item.compact_rifle", "enemy.runner"), 8)
+		TestKit.equal(shotsInBlack("item.tactical_smg", "enemy.shambler"), 6)
+		TestKit.equal(shotsInBlack("item.tactical_smg", "enemy.runner"), 9)
+		TestKit.equal(shotsInBlack("item.marksman_rifle", "enemy.shambler"), 1)
+		TestKit.equal(shotsInBlack("item.marksman_rifle", "enemy.runner"), 1)
 	end)
 
 	test("no gun's hit on a survivor passes the PvP cap", function()
@@ -209,6 +319,8 @@ return function(test: TestKit.Register)
 			["recipe.duty_pistol"] = "quest.into_the_black",
 			["recipe.pump_shotgun"] = "quest.the_plans",
 			["recipe.hunting_rifle"] = "quest.copper_lines",
+			["recipe.hand_cannon"] = "quest.walls_that_hold",
+			["recipe.machine_pistol"] = "quest.padded_through",
 		}
 		for recipeId, questId in quests do
 			local recipe = Content.Recipes[recipeId] :: any
@@ -218,10 +330,18 @@ return function(test: TestKit.Register)
 			TestKit.equal(recipe.stationId, nil, `{recipeId} is made by hand`)
 			TestKit.truthy(Content.Quests[questId], questId)
 		end
-		local rifle = Content.Recipes["recipe.assault_rifle"] :: any
-		TestKit.equal(rifle.unlock.kind, "blueprint")
-		TestKit.equal(rifle.unlock.itemId, "item.bp_assault_rifle")
-		TestKit.equal((Content.Items["item.bp_assault_rifle"] :: any).category, "blueprint")
+		for recipeId, schematic in SCHEMATICS do
+			local recipe = Content.Recipes[recipeId] :: any
+			TestKit.equal(recipe.unlock.kind, "blueprint", recipeId)
+			TestKit.equal(recipe.unlock.itemId, schematic, recipeId)
+			TestKit.equal((Content.Items[schematic] :: any).category, "blueprint", schematic)
+		end
+		-- Hold the Line, chapter 3's end, teaches the Patrol Carbine (ARSENAL §3.3).
+		local taught = false
+		for _, reward in (Content.Quests["quest.hold_the_line"] :: any).rewards.items do
+			taught = taught or reward.itemId == "item.bp_patrol_carbine"
+		end
+		TestKit.truthy(taught, "Hold the Line rewards the Patrol Carbine Schematic")
 		-- Every gun recipe burns Trigger Groups (ARSENAL rule 3): three for the advanced gun.
 		for recipeId, groups in
 			{
@@ -229,6 +349,12 @@ return function(test: TestKit.Register)
 				["recipe.pump_shotgun"] = 2,
 				["recipe.hunting_rifle"] = 1,
 				["recipe.assault_rifle"] = 3,
+				["recipe.hand_cannon"] = 1,
+				["recipe.machine_pistol"] = 2,
+				["recipe.patrol_carbine"] = 3,
+				["recipe.compact_rifle"] = 3,
+				["recipe.tactical_smg"] = 3,
+				["recipe.marksman_rifle"] = 3,
 			}
 		do
 			local count = 0
@@ -265,6 +391,16 @@ return function(test: TestKit.Register)
 			["item.pump_shotgun"] = 3,
 			["item.assault_rifle"] = 1,
 			["item.bp_assault_rifle"] = 1,
+			["item.hand_cannon"] = 3,
+			["item.machine_pistol"] = 3,
+			["item.patrol_carbine"] = 1,
+			["item.compact_rifle"] = 1,
+			["item.tactical_smg"] = 1,
+			["item.marksman_rifle"] = 1,
+			["item.bp_patrol_carbine"] = 1,
+			["item.bp_compact_rifle"] = 1,
+			["item.bp_tactical_smg"] = 1,
+			["item.bp_marksman_rifle"] = 1,
 		}
 		for itemId, weight in band3 do
 			local row = lootRows(itemId)["loot.depot_band3"]
@@ -272,7 +408,14 @@ return function(test: TestKit.Register)
 			TestKit.equal(row.weight, weight, itemId)
 			TestKit.equal(row.rarity, "epic", `{itemId} counts toward the band's pity`)
 		end
-		TestKit.equal(lootRows("item.bp_assault_rifle")["loot.depot_strongbox"].weight, 2)
+		for _, schematic in SCHEMATICS do
+			TestKit.equal(lootRows(schematic)["loot.depot_strongbox"].weight, 2, schematic)
+			TestKit.truthy(lootRows(schematic)["loot.schematics_advanced"], `{schematic} in the airdrop's sub-table`)
+		end
+		TestKit.equal(lootRows("item.hand_cannon")["loot.depot_strongbox"].weight, 4)
+		TestKit.equal(lootRows("item.hand_cannon")["loot.caravan_band3"].weight, 3)
+		TestKit.equal(lootRows("item.machine_pistol")["loot.airdrop_crate"].weight, 2)
+		TestKit.equal(lootRows("item.bp_tactical_smg")["loot.mine_box_t3"].weight, 1, "§0: the Combat Shotgun's place")
 		TestKit.equal(lootRows("item.hunting_rifle")["loot.forest_crate_t3"].weight, 2)
 		TestKit.equal(lootRows("item.hunting_rifle")["loot.airdrop_crate"].weight, 2)
 		-- Reinforcement Plans keep about an 11% share of the strongbox (ARSENAL §3.4).
@@ -285,7 +428,10 @@ return function(test: TestKit.Register)
 		local source = fs.readFile("src/shared/Art.luau")
 		for itemId, row in GUNS do
 			TestKit.truthy(string.find(source, `{row.kit} = true`, 1, true), `{row.kit} is approved`)
-			TestKit.truthy(string.find(source, `{row.kit} = \{ id = {row.asset},`, 1, true), `{row.kit} asset ID`)
+			-- Art.uploaded's entry, on one line or spread over several.
+			local _, entry = string.find(source, `\n%s*{row.kit} = \{`)
+			local id = entry and string.find(string.sub(source, entry, entry + 60), `id = {row.asset},`, 1, true)
+			TestKit.truthy(id, `{row.kit} asset ID`)
 			TestKit.truthy(string.find(source, `["{itemId}"] = \{ "{row.kit}" }`, 1, true), `{itemId} shows {row.kit}`)
 			local _, heldAt = string.find(source, "Art.held = {", 1, true)
 			TestKit.truthy(string.find(source, `["{itemId}"] = \{`, heldAt, true), `{itemId} has a held pose`)
@@ -302,7 +448,10 @@ return function(test: TestKit.Register)
 				table.insert(works, row.work)
 			end
 		end
-		for itemId in GUNS do
+		for itemId, row in GUNS do
+			if row.credited == false then
+				continue
+			end
 			local name = (Content.Items[itemId] :: any).name
 			local found = false
 			for _, work in works do
@@ -333,6 +482,33 @@ return function(test: TestKit.Register)
 			gun = Combat.fire(gun, at)
 		end
 		TestKit.truthy(at >= 100 + 30 * firearm.fireInterval - 1e-9, "no faster than fireInterval")
+	end)
+
+	test("the Patrol Carbine fires three-round bursts and keeps ARSENAL's 71 a second", function()
+		local firearm = weapon("item.patrol_carbine").firearm
+		TestKit.deepEqual(firearm.burst, { count = 3, cooldown = 0.35 })
+		local gun = Combat.newGun(30)
+		local at = 100
+		local times: { number } = {}
+		for _ = 1, 6 do
+			local shot = Combat.shotTime(firearm, gun, at)
+			TestKit.truthy(Combat.canFire(firearm, gun, shot + 1e-6), `round {#times + 1} fires on its beat`)
+			gun = Combat.fire(gun, shot, firearm)
+			table.insert(times, shot)
+			at = shot
+		end
+		local function near(a: number, b: number): boolean
+			return math.abs(a - b) < 1e-6
+		end
+		TestKit.truthy(near(times[2] - times[1], 0.07) and near(times[3] - times[2], 0.07), "inside a burst")
+		TestKit.truthy(near(times[4] - times[3], 0.35), "the cooldown between bursts")
+		TestKit.equal(Combat.canFire(firearm, gun, times[6] + 0.1), false, "a spent burst waits")
+		local dps = 16 * Combat.sustainedRate(firearm)
+		TestKit.truthy(math.abs(dps - 71) < 1, `sustained {dps} a second`)
+		-- A burst left half-fired starts over once its cooldown has passed.
+		local half = Combat.fire(Combat.fire(Combat.newGun(30), 0, firearm), 0.07, firearm)
+		TestKit.equal(half.burstShots, 2)
+		TestKit.equal(Combat.fire(half, 1, firearm).burstShots, 1)
 	end)
 
 	test("only the Anti-Materiel Rifle pierces, through two more Hollow", function()
