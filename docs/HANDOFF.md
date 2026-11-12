@@ -487,6 +487,62 @@ Run all checks after each merge.
 >     - The Farmhouse's 12 roof parts read 0 outside, 0.97 inside and 0 again after leaving. The capture shows the room clear, the camera-side wall ghosted, and the floor shaded.
 >     - That check found a bare 0.6-stud lamp cube floating in the room once the roof faded. `Builder.lamp`'s holder is now invisible; the glow stays.
 >     - Haven, Rustwater, the towers and the doorway flicker were not checked in play.
+> - **Update 2026-11-11, ship readiness (the launch gate on today's main): pass after 3 fixes.** Branch `ship-readiness` from main b547d44, pushed, not merged. 618 Lune specs, six checks green. Cloud place "Ember", Studio simulation, three play sessions (each a fresh mock profile), god mode on throughout except the one Black-fog check. No tester death outside the scripted one.
+>   - **Launch gate (MVP_LAUNCH "How we go fast"):**
+>     - **Scripted playtest: pass.** New player (Level 1, 0 Embers, Energy 120 of a 160 cap: the creator owns the VIP pass in Studio) → gather 10 sticks, 6 stone, 2 fiber in 18 swings through `Gather` → `HandCraft` rope, stake, hatchet and pick (all instant), stake equipped through `InventoryMove`: quests 1 and 2 done from real events → 20 pine swings, 10 timber → 2 foundations and 2 walls at real cost (40 → 4 timber, 2 rope): quest 3 done → `TravelStart` at the Trailhead, Energy 120 → 105, on Pine Hollow at once → a crate (`ContainerSearch`, 6.8 s, `ContainerTakeAll`: +9 timber, +1 pitch glue) → `("shoot", 10)` with the Assault Rifle, Shambler 40 → 23 HP, durability 480 → 479, then `("kill")` → `("extract")`: "YOU MADE IT OUT", 0:31, 1 Hollow, 1 searched, +40 XP, home → a run to Ashfall Depot and `("die")`: the death screen → Recover all (Embers 171 → 71, the bag to the inbox) → Continue, home. About 30 in-game minutes over the sessions.
+>     - **UI overlap gate: pass,** 0 flags across 22,540 elements, after the last code change (a second run with every ScreenGui hidden for captures read 0 elements and doesn't count).
+>     - **No below-A visible: pass with notes.** The store art is graded below; the pale rock cluster and scrap heap are under "seen, not fixed".
+>     - **Checks: pass,** six green at every commit.
+>   - **Play-checks cleared (from the 2.0 blocks):**
+>     - **Fog map at cap 120** (VIP attribute off): "3/120", the regen countdown "+1 in 4:51", "Need 12 more", "No Energy", REFILL 99, RUN 15, WALK free, "AUTO: 1 Ration + 15 Energy"; the airdrop pin reads "Opens in 1:55:21" and "AUTO: loot airdrops in person".
+>     - **The Trader:** buys Boiled Water, Fatwood, Field Dressing, Reed Cord, Reedcloth and Sealed Tin, no Rivets or Planks (F-17). Selling 5 timber took the coins 5 → 25; a Boiled Water cost 15 (25 → 10).
+>     - **Supply Bundle contents:** two receipts through `ShopTestReceipt` put 90 timber, 90 stone, 60 ironstone, 12 planks and 2 Scrap Plates in the inbox: 45/45/30/6/1 each, as the card shows. Replaying the first receipt id granted nothing.
+>     - **Speed-up price:** a Blast Furnace Steel Plate job (19 m 58 s left) showed SPEED UP 29; pressing it charged 29 (200 → 171) and gave 2 Steel Plates.
+>     - **Build mode's tray Fill Up:** the Rain Barrel selected short of cloth shows "Fill up" 6. Fill Up on a Brass Gear (no Fill Up rate) is refused: "Those can't be filled up".
+>     - **Greyed shop cards:** Reinforced Room Kit "Read the Reinforcement Plans", Pack of Weapon Parts "Complete the 'The Dense Fog' quest", +1 Smelter "Complete the 'Into the Fog' quest", +1 Recycler "Complete the 'Scavenger' quest"; the passes "limit" (owned).
+>     - **The Firestarter Kit's one-time card:** not offered in Studio, correctly: `checkPasses` records the creator's two passes, so the tester is a payer (`Offers.hasPaid`). With the row forced on offer locally, the card draws (FIRESTARTER KIT, "You made it through. A survivor's kit, once:", contents, "Ends in 48h 00m", 99, Later, the strip's 47h 59m) and clears when the row goes off offer.
+>     - **Chapter 4's first two steps:** `("quests", 25)` opens Hotter Fires and Hide and Rivet. A Blast Furnace on a Reinforced floor ticked step 1; the 2 sped-up plates read 2/6 on step 2 ("Make a Steel Plate at the Blast Furnace and take it out 2/6").
+>     - **Black fog HP in Padded:** at Ashfall Depot with the full Padded set, god mode off for 10 s standing still: HP 100 → 100, no hits; exposure 0.031 after about 21 s on the map, which is the 11.5 min fill. God mode back on.
+>     - **Death screen:** "YOU DIED", "Go back in: 17 Energy", Recover all 100, the Scavenger's Kit 79, Continue, "Your bag stays where you fell in Ashfall Depot until the lobby closes."
+>   - **Fixed (3):**
+>     - **A script error on every gather swing:** Interaction's local "swing" effect has no `userId`; CombatControl took it for another survivor's swing and called `GetPlayerByUserId(nil)` ("Argument 1 missing or nil", 7 in one session). It now ignores a swing without a survivor.
+>     - **Recover all's inbox toast** listed the bag slot by slot ("Timber x20" ten times, about 60 entries). It merges by item and names at most six, then "N more".
+>     - **Heavy Equipment's card said "every gun and the bow"** with 3 of the 14 guns inside. It now names the contents. Also: a product Roblox reports off sale is now "notListed" like a robloxId of 0: `ShopBuy` refuses it and the shop hides its card (BEST too), so a missing product can never open a broken prompt. A failed price read leaves it listed.
+>   - **Shop products: 18 of 18 live, 0 missing** (`GetProductInfo` in Studio, universe 10775267789; every name and price matches `Data/Products` and `Tuning.prices`; all on sale):
+>
+>     | SKU | Robux | Roblox id | Kind |
+>     |---|---|---|---|
+>     | Firestarter Kit | 99 | 3729832319 | product |
+>     | Scavenger's Kit | 79 | 3729872993 | product |
+>     | Supply Bundle | 99 | 3729832298 | product |
+>     | Builder's Crate | 399 | 3729873035 | product |
+>     | Reinforced Room Kit | 1,699 | 3729873052 | product |
+>     | Energy Refill | 99 | 3729832267 | product |
+>     | Ember Pouch | 149 | 3729873068 | product |
+>     | Ember Chest | 799 | 3729873080 | product |
+>     | Scout's Kit | 79 | 3729896813 | product |
+>     | Pack of Weapon Parts | 149 | 3729896823 | product |
+>     | Padded Armor Pack | 199 | 3729896833 | product |
+>     | Gunrunner Pack | 249 | 3729896836 | product |
+>     | Raider Arms | 499 | 3729896845 | product |
+>     | Heavy Equipment | 2,499 | 3729896851 | product |
+>     | +1 Smelter | 399 | 3729896857 | product |
+>     | +1 Recycler | 399 | 3729896863 | product |
+>     | Pack Expansion | 199 | 2076082454 | game pass |
+>     | VIP Lounge | 399 | 2075836390 | game pass |
+>
+>   - **Store art** (`docs/store/`, composed with PIL from MCP `screen_capture`s of this build; title in Impact, ART_DIRECTION's ember orange and cream; no Roblox marks, no claims beyond the game): `icon_512.png` (the survivor aiming at a Shambler, "EMBER OUTPOST"), `thumb1_fight_1920.png` (Pine Hollow at dusk, the Assault Rifle at point-blank, "SURVIVE THE FOG"), `thumb2_base_1920.png` (a Fortified room with the Workbench, Woodworking Bench and Smelter, "BUILD AND FORTIFY YOUR OUTPOST"), `thumb3_scavenge_1920.png` (the Pine Hollow Farmhouse with its roof faded and the survivor inside, "SCAVENGE WHAT THE FOG LEFT"), `description.txt` (about 770 characters). Graded beside LDoE's loading-screen key art (rec2 4.6 s): LDoE's is painted, ours are real captures, so ours are flatter in light but claim nothing the game doesn't do. The icon and the fight thumbnail are the strongest; in the base shot the Fortified rivet holes read as bullet holes, and in the house shot the ghosted near walls are busy.
+>   - **What's left for the developer:** MVP_LAUNCH's "Publish checklist", 11 numbered steps (approve the merge, the twin check and save, optional Studio API access, Max Players 8, publish privately, a live private test with the first real teleport and a phone, the questionnaire, Basic Info and the description, the icon and thumbnails, Public, the soft launch).
+>   - **Not verified:** a Walk resuming after a rejoin (the mock profile resets each play start; needs step 3's API access); a real reserved-server teleport; real purchases; touch; the Firestarter card through the server's one-time path for a never-payer (the creator owns both passes).
+>   - **Seen, not fixed:**
+>     - **Max Players vs lobby capacity:** one place serves both roles, so Roblox's Max Players caps run lobbies too. With 8 plots it must be 8, and `Tuning.lobby.capacity` 12 can never fill; a 9th seat would fail to teleport (Lobby refunds failed trips). Lower it to 8 after launch, or give runs their own place.
+>     - Pine Hollow's rock cluster and scrap heap render pale, near white, at dusk (the batch 3 family conversions behind the client's permission lines). Re-upload those maps as plain images (batch 4b's next step).
+>     - SHOP_CATALOG §0's renames ("Gun Parts Pack", "Heavy Loadout") and Raider Arms at 1,199 aren't applied; the live products carry the old names and 499. A rename needs the dashboard product renamed too.
+>     - The Gunrunner Pack and Raider Arms say "Worn Pistol": that is the Pipe Pistol item's display name, so it's right, but the item id reads differently.
+>     - 20 pine swings gave 10 timber (the hatchet's cooldown drops half of 0.6 s swings); not a defect, just slower than the step 5 rate.
+>     - `Services/Energy`'s header still says the VIP cap is "200 to 240"; it's 120 to 160.
+>     - AnalyticsService warns "Event field levelName is invalid" on some economy events.
+>   - **How to repeat it:** step 5's recipe, plus `EO_DevClient` `("patch", { fogLocation = id })` for a Fog map card, `("action", "openShop", nil, tab)` for a shop tab, `("patch", { panel = "haven", havenId = "npc.trader", havenTab = "buy" })` for the Trader, and `("fixture", "shop", rows)` to force a row on offer. Read screens by collecting visible TextLabels under PlayerGui. Hide every ScreenGui and BillboardGui before a capture, and re-enable them before the UI gate.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):

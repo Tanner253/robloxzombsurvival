@@ -96,8 +96,24 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
   - no below-A visible
   - checks green
 
-## Publish checklist (developer; the orchestrator gives exact steps when ready)
-1. File → **Publish** the final build of "Ember".
-2. Creator Dashboard → the experience → **Questionnaire** (Mild: fantasy violence, no blood).
-3. Set the experience **Public**, with genre Survival.
-4. Confirm the icon, thumbnails and description (uploaded via Open Cloud where permitted).
+## Publish checklist (developer)
+
+Exact steps, written 2026-11-11 on branch `ship-readiness` after the launch playtest. Each one is a physical or account action. **"After N"** means step N must be done first. All 18 shop products and passes already exist on Roblox, priced and on sale (checked with `GetProductInfo`; the table is in HANDOFF §6, "ship readiness"), so there is no product to create.
+
+1. **Approve the merge.** Tell the orchestrator "merge ship-readiness". Main merges wait for you.
+2. **Studio, the "Ember" place, Edit mode, Rojo plugin connected to main** (after 1). In the Explorer, look in `ServerStorage`, `StarterPlayer` and `ReplicatedStorage` for two folders with the same name (a Rojo "twin"). If you find one, delete the copy whose meshes are empty. Then **File → Save to Roblox**.
+3. **Optional: Home → Game Settings → Security → "Enable Studio Access to API Services": on.** It is safe: Studio play saves only to `_Studio` DataStores, never to live saves. It lets Studio tests keep a profile across play sessions (the Walk-resume check needs it).
+4. **Game Settings → Places → "Ember" → Max Players: 8** (after 2). The Neighbourhood has 8 plots, and a 9th player gets no plot. Run lobbies are servers of the same place, so they also hold 8 (`Tuning.lobby.capacity` 12 can't fill; the orchestrator lowers it after launch).
+5. **File → Publish to Roblox** (after 2 and 4). The experience stays **Private**.
+6. **Live private test, about 15 minutes, on the website with your account** (after 5). This is the first time a real reserved-server teleport runs; Studio only simulates it.
+   1. Join. Your plot and Haven Square load, and the HUD shows Energy 120 (160 if you own the VIP Lounge pass, as the creator does).
+   2. Walk to the Trailhead sign, open the Fog map, pick Pine Hollow, press **RUN**. You should arrive within about 10 s.
+   3. Search a crate, then walk out at the map's edge. The results card shows; press **Continue**. You should be teleported home with the loot.
+   4. Run again and let a Hollow kill you (or reset). On the death screen press **Continue**: you should wake at home.
+   5. Press **F9**. Under the Client tab, check for red script errors and for any model that rendered plain white. Send the orchestrator a screenshot if you see either.
+   6. Repeat 6.1–6.3 once on a phone (touch has never been tested).
+7. **Creator Dashboard → the experience → Audience → Maturity & Compliance questionnaire** (any time). Answer from what is in the game: violence yes (melee, a bow and realistic guns against undead "Hollow", who crumble to ash); blood or gore no; crude humor no; romance no; alcohol, drugs or tobacco no; gambling or paid random items no (every pack has fixed contents); strong language no. Accept the rating it gives.
+8. **Creator Dashboard → the experience → Configure → Basic Info** (after 5). Name: Ember Outpost. Description: paste `docs/store/description.txt`. Genre: Survival. Devices: Computer, Phone and Tablet (Phone only if 6.6 passed).
+9. **Creator Dashboard → the experience → Configure → Places → Ember → Icon and Thumbnails** (after 5). Icon: `docs/store/icon_512.png`. Thumbnails, in this order: `thumb1_fight_1920.png`, `thumb2_base_1920.png`, `thumb3_scavenge_1920.png`.
+10. **Make it Public**: Creator Dashboard → the experience → the Private/Public switch (after 6, 7, 8 and 9).
+11. **The soft launch** (after 10): put the small ads budget behind it (HANDOFF §6 step 6) and watch the first hour's Developer Console errors.

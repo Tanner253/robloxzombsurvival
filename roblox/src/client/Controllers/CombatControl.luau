@@ -452,6 +452,11 @@ local function whoosh(name: string?, at: Vector3?)
 end
 
 local function onSwing(payload: any)
+	if type(payload) ~= "table" or type(payload.userId) ~= "number" then
+		-- Interaction's own gather swing shares the "swing" effect ({ key, model }, no
+		-- survivor): it animates on input. Without this, every chop logged a script error.
+		return
+	end
 	local character = characterOf(payload.userId)
 	if character == nil or payload.userId == player.UserId then
 		return -- your own swing animates on input

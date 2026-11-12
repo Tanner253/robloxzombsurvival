@@ -373,6 +373,11 @@ local function listFor(tab: Tab, state: any): { string }
 		if id == "product.starter_offer" and not (entry and entry.available) then
 			continue
 		end
+		-- No live Roblox product behind it (a robloxId of 0, or off sale): hidden, never a card
+		-- whose button could open a broken prompt.
+		if entry and entry.reason == "notListed" then
+			continue
+		end
 		-- BEST features what can be bought now; a pack still locked waits greyed on its own tab.
 		if tab == "best" and entry and entry.lock ~= nil and entry.available ~= true then
 			continue
@@ -384,7 +389,10 @@ local function listFor(tab: Tab, state: any): { string }
 			if #list >= CARDS then
 				break
 			end
-			table.insert(list, id)
+			local entry = if type(state) == "table" then state[id] else nil
+			if not (entry and entry.reason == "notListed") then
+				table.insert(list, id)
+			end
 		end
 	end
 	return list

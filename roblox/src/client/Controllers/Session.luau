@@ -22,6 +22,8 @@ local State = require("../State")
 
 local Session = {}
 
+local INBOX_NOTICE_ITEMS = 6 -- the inbox toast names this many items, then "N more"
+
 local SOURCE_SOUND: { [string]: string } = {
 	station = "collect",
 	craft = "reward",
@@ -46,11 +48,25 @@ local function onFx(kind: string, payload: any)
 			State.markNew(stack.itemId)
 		end
 	elseif kind == "inbox" then
-		-- Something landed in the inbox (overflow, a reward): say so once.
-		local names = {}
+		-- Something landed in the inbox (overflow, a reward, Recover all): say so once, one
+		-- entry per item (a recovered bag arrives slot by slot: "Timber x20" ten times read as
+		-- a wall of text), and at most INBOX_NOTICE_ITEMS of them.
+		local order: { string } = {}
+		local totals: { [string]: number } = {}
 		for _, item in payload.items or {} do
-			local def = Content.Items[item.itemId]
-			table.insert(names, `{if def then def.name else item.itemId} x{item.count}`)
+			if totals[item.itemId] == nil then
+				table.insert(order, item.itemId)
+			end
+			totals[item.itemId] = (totals[item.itemId] or 0) + item.count
+		end
+		local names = {}
+		for index, itemId in order do
+			if index > INBOX_NOTICE_ITEMS then
+				table.insert(names, `{#order - INBOX_NOTICE_ITEMS} more`)
+				break
+			end
+			local def = Content.Items[itemId]
+			table.insert(names, `{if def then def.name else itemId} x{totals[itemId]}`)
 		end
 		if #names > 0 then
 			State.notify(`To your inbox: {table.concat(names, ", ")}`, "info")
