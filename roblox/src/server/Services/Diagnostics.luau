@@ -548,6 +548,9 @@ local function devCommand(command: string, ...: any): any
 		equipment[slot] = { itemId = item.id, count = 1, durability = item.durability }
 		Sync.mark(player, "inventory")
 		Inventory.refreshGear(player)
+		if slot == "bag" then
+			Inventory.refreshBackpack(player) -- the bag's slots, as wearing it in play does
+		end
 		return "ok"
 	elseif command == "energy" then
 		local state, config = Energy.state(player)
