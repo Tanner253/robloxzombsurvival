@@ -45,6 +45,7 @@ export type Context = {
 	pieceOpen: { [string]: boolean },
 	stations: { [string]: StationView }, -- by station id
 	standing: Counts, -- the player's home nodes still standing, by node id
+	canRun: boolean?, -- Energy for a Pine Hollow Run now
 	recipes: { [string]: any }, -- Data/Recipes
 	items: { [string]: any }, -- Data/Items
 	nodes: { [string]: any }, -- Data/Nodes
@@ -431,6 +432,13 @@ function AutoPlan.atHome(ctx: Context, goals: Goals): Step
 		else
 			return candidate
 		end
+	end
+	-- Everything waits on a timer: a Run fills the time, as an LDoE player does (the Fog
+	-- has the timber, stone and water home runs out of).
+	if ctx.canRun then
+		return step("run", `while waiting: {if firstWait then firstWait.why else "nothing to do"}`, {
+			locationId = HOME_RUN,
+		})
 	end
 	return firstWait or step("idle", "nothing to do")
 end

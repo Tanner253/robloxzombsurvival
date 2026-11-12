@@ -271,6 +271,23 @@ local function standingNodes(): AutoPlan.Counts
 	return counts
 end
 
+-- Energy now (the synced value plus what regenerated since).
+local function energyNow(): number
+	local energy = State.get("energy")
+	if type(energy) ~= "table" or type(energy.value) ~= "number" then
+		return 0
+	end
+	local regen = if type(energy.secondsPerPoint) == "number" and energy.secondsPerPoint > 0
+		then (os.time() - (energy.updatedAt or os.time())) / energy.secondsPerPoint
+		else 0
+	return math.min(energy.cap or math.huge, energy.value + math.max(0, regen))
+end
+
+local function runCost(locationId: string): number
+	local location = Content.Locations[locationId] :: any
+	return if location and type(location.energyCost) == "number" then location.energyCost else 15
+end
+
 local function context(): AutoPlan.Context
 	local inv = inventory()
 	local carried = countsOf(inv)
@@ -310,6 +327,7 @@ local function context(): AutoPlan.Context
 		pieceOpen = pieceOpen,
 		stations = stationViews(),
 		standing = standingNodes(),
+		canRun = energyNow() >= runCost("loc.pine_hollow"),
 		recipes = Content.Recipes :: any,
 		items = Items,
 		nodes = Content.Nodes :: any,
@@ -545,7 +563,8 @@ local function gather(step: AutoPlan.Step)
 		return
 	end
 	local began = os.clock()
-	local swings = 0
+	local swings, idle = 0, 0
+	local hits = node:GetAttribute("HitsLeft")
 	while enabled and node:GetAttribute("Standing") == true and os.clock() - began < 25 do
 		if freeSlots() <= 0 and (findSlot(step.itemId or "") == nil) then
 			break
@@ -554,6 +573,20 @@ local function gather(step: AutoPlan.Step)
 			swings += 1
 		end
 		task.wait(Content.Tuning.gathering.swingSeconds + 0.05)
+		-- Swings that land nothing (the tool broke, the bag is full): stop and think again,
+		-- as a player reading the toast would.
+		local now = node:GetAttribute("HitsLeft")
+		if now == hits then
+			idle += 1
+			if idle >= 3 then
+				local notices = State.ui().notices
+				local last = notices[#notices]
+				log(`gather stalled at {node:GetAttribute("NodeId")}: {if last then last.text else "no notice"}`)
+				break
+			end
+		else
+			hits, idle = now, 0
+		end
 	end
 	log(`gathered at {node:GetAttribute("NodeId")} ({swings} swings)`)
 end
@@ -1036,17 +1069,16 @@ local runStartedAt = 0
 local runCount = 0
 
 local function goRun(step: AutoPlan.Step)
-	local energy = State.get("energy")
 	local at = trailhead()
 	if at == nil then
 		task.wait(2)
 		return
 	end
 	local locationId = step.locationId or "loc.pine_hollow"
-	local location = Content.Locations[locationId]
-	local cost = if location and (location :: any).energy then (location :: any).energy.run else 15
-	if type(energy) == "table" and type(energy.current) == "number" and energy.current < (cost or 15) then
-		log(`run {locationId}: waiting for Energy ({energy.current})`)
+	local have = energyNow()
+	if have < runCost(locationId) then
+		log(`run {locationId}: waiting for Energy ({math.floor(have)})`)
+		milestone("energyWait", `first wait on Energy ({math.floor(have)})`)
 		task.wait(5)
 		return
 	end
@@ -1323,8 +1355,8 @@ local function runTick()
 	end
 	local run = State.get("run")
 	local minutesLeft = nil
-	if type(run) == "table" and type(run.closesAt) == "number" then
-		minutesLeft = (run.closesAt - workspace:GetServerTimeNow()) / 60
+	if type(run) == "table" and type(run.closesAt) == "number" and type(run.serverTime) == "number" then
+		minutesLeft = (run.closesAt - run.serverTime) / 60
 	end
 	local kind, why = AutoPlan.onRun(ctx, {
 		hollowDistance = hollowDistance,
@@ -1433,6 +1465,7 @@ local function dumpSection()
 		return HttpService:JSONEncode(value)
 	end)
 	print(`[AutoPlayer] dump {name}: {if ok then string.sub(text, 1, 3000) else tostring(value)}`)
+	player:SetAttribute("AutoPlayerDumpOut", if ok then string.sub(text, 1, 3000) else tostring(value))
 end
 
 local function think(): any
