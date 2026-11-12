@@ -152,7 +152,11 @@ local function loadUploaded(name: string): Model?
 	end
 	local box = model:GetBoundingBox()
 	model.WorldPivot = CFrame.new(box.Position)
-	model:PivotTo(CFrame.new(box.Position) * CFrame.Angles(0, math.rad(entry.yaw), 0))
+	model:PivotTo(
+		CFrame.new(box.Position)
+			* CFrame.Angles(0, math.rad(entry.yaw), 0)
+			* CFrame.Angles(math.rad(entry.pitch or 0), 0, 0)
+	)
 	model.WorldPivot = CFrame.new(model.WorldPivot.Position) -- axis-aligned: measure in world axes
 	local _, size = model:GetBoundingBox()
 	local current = if entry.axis == "X" then size.X elseif entry.axis == "Y" then size.Y else size.Z
@@ -921,10 +925,8 @@ function Models.mountFrame(character: Model, mount: Mount): (CFrame?, BasePart?)
 	return bodyFrame(hips, hips.Position) * CFrame.new(0.78 * side, -0.25, 0.1), hips
 end
 
--- Places a held model on a mount (a world CFrame) and welds it to `anchorPart`.
-function Models.mount(held: Held, mountCFrame: CFrame, anchorPart: BasePart)
-	held.model:PivotTo(mountCFrame * held.rotation * CFrame.new(-held.gripPoint))
-	for _, descendant in held.model:GetDescendants() do
+local function weldTo(model: Model, anchorPart: BasePart)
+	for _, descendant in model:GetDescendants() do
 		if descendant:IsA("BasePart") then
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = anchorPart
@@ -932,6 +934,47 @@ function Models.mount(held: Held, mountCFrame: CFrame, anchorPart: BasePart)
 			weld.Parent = descendant
 		end
 	end
+end
+
+-- Places a held model on a mount (a world CFrame) and welds it to `anchorPart`.
+function Models.mount(held: Held, mountCFrame: CFrame, anchorPart: BasePart)
+	held.model:PivotTo(mountCFrame * held.rotation * CFrame.new(-held.gripPoint))
+	weldTo(held.model, anchorPart)
+end
+
+--[[
+	Worn gear with a model of its own (2.0 batch 4b, Art.wornModels): a helmet, the gas mask
+	or a cap on the head, a bag on the back, the plate carrier over the chest. The kit model is
+	turned by `turn`, scaled so its longest side is `size`, centred at `at` in the body part's
+	frame (x right, y up, z back, as the mounts above) and welded there, so it follows the
+	part as it animates. Nil when the item has no worn model or the rig lacks the part.
+]]
+function Models.worn(itemId: string, character: Model): Model?
+	local art = Art.wornModels[itemId]
+	local names = Art.items[itemId]
+	if art == nil or names == nil then
+		return nil
+	end
+	local partName = if art.mount == "head" then "Head" else "UpperTorso"
+	local found = character:FindFirstChild(partName)
+		or (if art.mount == "head" then nil else character:FindFirstChild("Torso"))
+	local body = if found and found:IsA("BasePart") then found else nil
+	local model = if body then Models.kit(names) else nil
+	if model == nil or body == nil then
+		return nil
+	end
+	local turn = art.turn or Vector3.zero
+	model:PivotTo(CFrame.Angles(math.rad(turn.X), math.rad(turn.Y), math.rad(turn.Z)))
+	model.WorldPivot = CFrame.new(model.WorldPivot.Position) -- measure in the body's axes
+	local _, size = model:GetBoundingBox()
+	model:ScaleTo(model:GetScale() * art.size / math.max(size.X, size.Y, size.Z))
+	local box = model:GetBoundingBox()
+	model.WorldPivot = CFrame.new(box.Position)
+	weldable(model)
+	model:PivotTo(bodyFrame(body, body.Position) * CFrame.new(art.at))
+	weldTo(model, body)
+	model.Name = itemId
+	return model
 end
 
 return Models

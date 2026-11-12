@@ -88,30 +88,6 @@ local Credits: { Section } = {
 				source = "polyhaven.com/a/crowbar_01",
 			},
 			{
-				work = '"Hatchet" (the Hand Axe)',
-				by = "James Ray Cock, Ulan Cabanilla",
-				license = "CC0",
-				source = "polyhaven.com/a/hatchet",
-			},
-			{
-				work = '"Baseball Bat" (the Hardwood Bat)',
-				by = "Enrique Martín",
-				license = "CC0",
-				source = "polyhaven.com/a/baseball_bat",
-			},
-			{
-				work = '"knife Animated" (the Field Knife)',
-				by = "DJMaesen",
-				license = "CC-BY-4.0",
-				source = "sketchfab.com/3d-models/knife-animated-f3140db917cc43389c14b5b2536c1dc8",
-			},
-			{
-				work = '"pitchfork Animated" (the Hay Fork)',
-				by = "DJMaesen",
-				license = "CC-BY-4.0",
-				source = "sketchfab.com/3d-models/pitchfork-animated-54ea2a82f7d74e8fabbc7245bec7be14",
-			},
-			{
 				work = '"Old Gas Mask" (the Gas Mask)',
 				by = "Michał Wiśniewski",
 				license = "CC0",
@@ -136,12 +112,6 @@ local Credits: { Section } = {
 				source = "sketchfab.com/3d-models/tactical-plate-carrier-vest-game-ready-3b51e6329dbb4b0aa14e43f12eb6c42a",
 			},
 			{
-				work = '"Large Camping BackPack (Free/GameReady)" (the Hide Rucksack)',
-				by = "Sebastian Webster",
-				license = "CC-BY-4.0",
-				source = "sketchfab.com/3d-models/large-camping-backpack-freegameready-a7086b50dae84706b81bb3ce14ad9094",
-			},
-			{
 				work = '"Military Backpack" (the Ranger Pack)',
 				by = "Neslihan Çakmak",
 				license = "CC-BY-4.0",
@@ -164,12 +134,6 @@ local Credits: { Section } = {
 				by = "BURNER",
 				license = "CC-BY-4.0",
 				source = "sketchfab.com/3d-models/medical-syringe-healing-fps-animation-8de32be8633a4c87ba7ed1d125b45ec9",
-			},
-			{
-				work = '"Food Collection - Game Ready" (its pill box: the Antiseptic Tablets)',
-				by = "Melon Polygons",
-				license = "CC-BY-4.0",
-				source = "sketchfab.com/3d-models/food-collection-game-ready-969b4e6ef7444650ba8a22a46d57ff43",
 			},
 			{
 				work = '"Universal Animation Library" (combat animations: reload, hit, fall)',
