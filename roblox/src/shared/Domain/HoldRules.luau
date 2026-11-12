@@ -62,6 +62,33 @@ function HoldRules.strikeDelay(class: string, heavy: boolean): number
 	return if clip and clip.hit then clip.hit else 0
 end
 
+--[[
+	The support hand on a long gun (batch 3): at 1.3x gun scale the solved stances left the
+	off hand at the magazine well, short of the handguard. Clients pull it there with an
+	IKControl toward a "Support" attachment the held model carries this far along the gun
+	from the grip: 0.4 of the gun's length (a rifle's handguard, a shotgun's pump), but no
+	more than SUPPORT_MAX_STUDS, the farthest the survivor's arm reaches from the bladed
+	stance (measured in Studio: shoulder to palm 1.79 studs). Returned as a share of the
+	length from the butt. nil for every other class. Off during a reload, when that hand is
+	on the magazine.
+]]
+HoldRules.SUPPORT_REACH = 0.4
+HoldRules.SUPPORT_MAX_STUDS = 1.25
+-- How far above the grip's drop the palm sits, as a share of the gun's height.
+HoldRules.SUPPORT_LIFT = 0.15
+
+function HoldRules.supportAt(class: string, grip: number, length: number): number?
+	if class ~= "long" or length <= 0 then
+		return nil
+	end
+	local reach = math.min(HoldRules.SUPPORT_REACH, HoldRules.SUPPORT_MAX_STUDS / length)
+	return math.min(grip + reach, 0.9)
+end
+
+function HoldRules.supportWeight(reloading: boolean): number
+	return if reloading then 0 else 1
+end
+
 -- Eat, drink or dress a wound: whichever the item mostly does.
 function HoldRules.consumeAction(
 	consume: { hunger: number?, thirst: number?, health: number?, energy: number? }?

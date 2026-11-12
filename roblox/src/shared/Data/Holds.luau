@@ -124,10 +124,13 @@ local AIM_PISTOL: { [string]: Pose } = {
 	LeftHand = { 9.9, -7.8, 3.7 },
 }
 -- Stock in the shoulder pocket, bladed, the other hand under the handguard (rec6_05).
+-- Batch 3: bladed 20 degrees more (from -38) so the off hand reaches the handguard; the
+-- head and the gun arm turn back by as much, so the gun and the gaze are unchanged. The
+-- off hand lands by IK (client/Controllers/Animations, HoldRules.supportAt).
 local AIM_LONG: { [string]: Pose } = {
-	UpperTorso = { 0, -38, 0 },
-	Head = { 0, 32, 0 },
-	RightUpperArm = { 42.8, 25.7, -50.2 },
+	UpperTorso = { 0, -58, 0 },
+	Head = { 0, 52, 0 },
+	RightUpperArm = { 52.3, 39.3, -67.7 },
 	RightLowerArm = { 54.2, 44.4, -18.4 },
 	RightHand = { -27.7, -15.1, 43.8 },
 	LeftUpperArm = { 51.3, 7.1, 20.5 },
@@ -136,9 +139,9 @@ local AIM_LONG: { [string]: Pose } = {
 }
 -- Low ready: both hands on the gun, the muzzle down at the ground ahead (rec3_08).
 local CARRY_LONG: { [string]: Pose } = {
-	UpperTorso = { 0, -22, 0 },
-	Head = { 0, 18, 0 },
-	RightUpperArm = { 6.9, 23.9, -34 },
+	UpperTorso = { 0, -42, 0 }, -- batch 3: 20 degrees more blade (from -22), as AIM_LONG
+	Head = { 0, 38, 0 },
+	RightUpperArm = { 8.7, 43.7, -37.3 },
 	RightLowerArm = { 46.9, 38, -14.3 },
 	RightHand = { -26.7, -9.5, 44.2 },
 	LeftUpperArm = { 27.8, -0.7, 24.2 },

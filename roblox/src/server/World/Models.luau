@@ -845,6 +845,22 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 	end
 	local seat = if mount == "hand" and HoldRules.mountOf(itemId, def :: any) == "gun" then "gun" else mount
 	local rotation = MOUNT_FRAMES[seat] * frame(axis, -edge):Inverse()
+	-- A long gun's handguard, where clients pull the off hand (HoldRules.supportAt; batch 3).
+	local support = if kit and art
+		then HoldRules.supportAt(HoldRules.classOf(itemId, def :: any), grip, length)
+		else nil
+	local body = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	if support and body then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "Support"
+		attachment.Parent = body
+		-- Along the bore from the grip, raised from the grip's height to just under the
+		-- handguard: back up the grip's drop, then 0.15 of the gun's height (set on the
+		-- Assault Rifle in Studio, where it puts the palm under the handguard).
+		local height = math.abs(edge.X) * box.X + math.abs(edge.Y) * box.Y + math.abs(edge.Z) * box.Z
+		local lift = -edge * (((drop or 0) + HoldRules.SUPPORT_LIFT) * height)
+		attachment.WorldPosition = gripPoint + axis * ((support - grip) * length) + lift
+	end
 	model.Name = itemId
 	return { model = model, rotation = rotation, gripPoint = gripPoint }
 end
