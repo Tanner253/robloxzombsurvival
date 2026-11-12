@@ -6,7 +6,8 @@
 	- Aim: press the attack input (LMB, or the weapon circle on touch) with a throwable in hand
 	  and an arc preview runs from the hand to where it will land, with a ring the size of its
 	  blast or fire. On PC it lands under the mouse; on touch, on the nearest Hollow ahead (or
-	  ahead of the survivor), so a tap still throws well. Release to throw.
+	  ahead of the survivor), so a tap still throws well, and dragging the finger that pressed
+	  the weapon circle moves it from there (up is farther). Release to throw.
 	- The arc is Domain/Throw's, the one the server flies, checked against walls the same way.
 	- Effects: the model leaves the hand on the throw clip's release frame and flies the arc; a
 	  grenade sits where it lands until its fuse, then bursts (flash, fireball, smoke, dust and
@@ -41,7 +42,15 @@ local TOUCH_DEFAULT_STUDS = 18
 local ARC_COLOR = Color3.fromHex("FFE3A3")
 local FIRE_COLOR = Color3.fromHex("FF8A3D")
 
+local TOUCH_STUDS_PER_PIXEL = 0.12 -- a drag on the weapon circle moves the aim this far
+
 local aiming = false
+-- Touch: the finger that pressed the weapon circle, and where it went down. Dragging it moves
+-- the aim from the auto target (up is farther, sideways is across the camera).
+local lastTouch: InputObject? = nil
+local lastTouchAt = 0
+local aimTouch: InputObject? = nil
+local aimTouchFrom = Vector2.zero
 local preview: Folder? = nil
 local dots: { BasePart } = {}
 local ring: BasePart? = nil
@@ -116,7 +125,19 @@ local function aimPoint(root: BasePart): Vector3
 			end
 		end
 	end
-	return best or (root.Position + Vector3.new(look.X, 0, look.Z).Unit * TOUCH_DEFAULT_STUDS)
+	local base = best or (root.Position + Vector3.new(look.X, 0, look.Z).Unit * TOUCH_DEFAULT_STUDS)
+	-- The drag, laid on the ground as the camera sees it (Throw.landing keeps it in range).
+	if aimTouch and camera then
+		local drag = Vector2.new(aimTouch.Position.X, aimTouch.Position.Y) - aimTouchFrom
+		local right = camera.CFrame.RightVector
+		local ahead = camera.CFrame.LookVector
+		local across = Vector3.new(right.X, 0, right.Z)
+		local forward = Vector3.new(ahead.X, 0, ahead.Z)
+		if across.Magnitude > 1e-3 and forward.Magnitude > 1e-3 then
+			base += (across.Unit * drag.X - forward.Unit * drag.Y) * TOUCH_STUDS_PER_PIXEL
+		end
+	end
+	return base
 end
 
 -- The arc the server will fly for this aim, stopped where it first meets the world.
@@ -217,6 +238,12 @@ function Throwing.begin()
 		return
 	end
 	aiming = true
+	-- The finger that just pressed the weapon circle steers the aim while it stays down.
+	aimTouch = nil
+	if State.ui().touch and lastTouch and os.clock() - lastTouchAt < 0.25 then
+		aimTouch = lastTouch
+		aimTouchFrom = Vector2.new(lastTouch.Position.X, lastTouch.Position.Y)
+	end
 	buildPreview(stats)
 	Throwing.step()
 end
@@ -230,6 +257,7 @@ function Throwing.step()
 	local root = rootPart()
 	if itemId == nil or root == nil or not FogRun.active() or State.ui().panel ~= "none" then
 		aiming = false
+		aimTouch = nil
 		clearPreview()
 		return
 	end
@@ -248,6 +276,7 @@ function Throwing.release()
 	end
 	Throwing.step()
 	aiming = false
+	aimTouch = nil
 	local land = landing
 	clearPreview()
 	if land == nil or inHand() == nil then
@@ -537,6 +566,11 @@ function Throwing.start()
 		end
 	end)
 	task.spawn(watchRags)
+	-- The weapon circle's press arrives with this touch (Actions.attackDown), so a throw that
+	-- begins now takes this finger as its aim.
+	UserInputService.TouchStarted:Connect(function(input: InputObject)
+		lastTouch, lastTouchAt = input, os.clock()
+	end)
 end
 
 return Throwing

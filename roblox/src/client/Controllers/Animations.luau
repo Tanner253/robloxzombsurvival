@@ -110,11 +110,12 @@ local function supportFor(character: Model, gear: Instance?)
 	ik.Name = SUPPORT_NAME
 	ik.Type = Enum.IKControlType.Position
 	ik.SmoothTime = 0.04
-	-- The elbow stays down and out to the side, as in the solved stances.
+	-- The elbow goes out to the left and ahead of the chest, as in the solved aim (batch 5:
+	-- the old pole, down and behind, folded the upper arm 0.08-0.13 studs into the chest).
 	local found = torso:FindFirstChild("EO_SupportPole")
 	local pole: Attachment = if found and found:IsA("Attachment") then found else Instance.new("Attachment")
 	pole.Name = "EO_SupportPole"
-	pole.Position = Vector3.new(-1.8, -2.2, 0.6)
+	pole.Position = Vector3.new(-1.2, -0.2, -1.6)
 	pole.Parent = torso
 	local aim = Instance.new("Attachment")
 	aim.Name = "EO_SupportAim"
