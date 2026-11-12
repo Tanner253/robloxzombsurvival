@@ -64,6 +64,43 @@ return function(test: TestKit.Register)
 		end
 	end)
 
+	-- 2026-11-12, the developer: "a lot of the model icons are upside down in the inventory".
+	-- ModelView draws the pose's edge up-left; Art.held's gun edge is the underside, so every
+	-- gun lay grip up, and the molotov's axis runs neck to base, so it stood on its neck.
+	test("item icons lie top up: guns grip down, the molotov neck up", function()
+		local art = fs.readFile("src/shared/Art.luau")
+		local held = block(art, "Art.held = {", "\n} :: { [string]: HeldArt }")
+		local function vector(id: string, field: string): { number }
+			local _, from = string.find(held, `["{id}"] = \{`, 1, true)
+			assert(from, `{id} in Art.held`)
+			local x, y, z = string.match(held, `{field} = Vector3%.new%(([%-%d%.]+), ([%-%d%.]+), ([%-%d%.]+)%)`, from)
+			assert(x and y and z, `{id}.{field}`)
+			return { tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number }
+		end
+		local guns = 0
+		for id, def in Items do
+			if holdable(def) and shipped(def) then
+				local axisSign, edgeSign = HoldRules.iconSigns(id, def)
+				local class = HoldRules.classOf(id, def)
+				if class == "pistol" or class == "long" then
+					guns += 1
+					TestKit.equal(edgeSign, -1, `{id}: the underside turns down`)
+					TestKit.truthy(vector(id, "edge")[2] * edgeSign > 0.5, `{id}: the icon's up-left side is its top`)
+				else
+					TestKit.equal(edgeSign, 1, `{id}: edge as held`)
+				end
+				TestKit.equal(axisSign, if Holds.heldByTop[id] then -1 else 1, id)
+			end
+		end
+		TestKit.truthy(guns >= 14, `{guns} guns`)
+		local axis = vector("item.molotov", "axis")
+		local axisSign = HoldRules.iconSigns("item.molotov", Items["item.molotov"])
+		TestKit.truthy(axis[2] * axisSign > 0.5, "the molotov's neck is the end drawn up-right")
+		local icon = fs.readFile("src/client/UI/components/ItemIcon.luau")
+		TestKit.truthy(string.find(icon, "HoldRules.iconSigns", 1, true), "ItemIcon poses through iconSigns")
+		TestKit.truthy(not string.find(icon, "pose = Art.held", 1, true), "ItemIcon never passes the hand pose raw")
+	end)
+
 	test("guns and the bow sit along the forearm; everything else ahead of the fist", function()
 		for name, class in Holds.classes do
 			TestKit.equal(class.mount, if GUN_CLASSES[name] then "gun" else "fist", name)

@@ -799,4 +799,9 @@ Holds.clips = {
 -- The action clip for a node's tool kind (gathering).
 Holds.gather = { hatchet = "chop", pick = "mine" } :: { [string]: string }
 
+-- Items the fist holds by their top, so Art.held's `axis` (butt to head as held) runs from
+-- the top down: the molotov is swung by its neck. Their icons turn the axis round
+-- (HoldRules.iconSigns), or the bottle stands on its neck.
+Holds.heldByTop = { ["item.molotov"] = true } :: { [string]: boolean }
+
 return Holds

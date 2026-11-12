@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Art = require(ReplicatedStorage.Shared.Art)
+local HoldRules = require(ReplicatedStorage.Shared.Domain.HoldRules)
 local Theme = require("../theme")
 local ModelView = require("./ModelView")
 
@@ -32,6 +33,26 @@ local function iconModel(itemId: string): Model?
 	return if model and model:IsA("Model") then model else nil
 end
 
+-- The pose an item's icon lies in, top up (HoldRules.iconSigns turns Art.held's hand frame
+-- over where it differs: a gun's `edge` is its underside). One table per item, so ModelView
+-- doesn't rebuild its copy on every render.
+local poses: { [string]: ModelView.Pose } = {}
+
+local function iconPose(itemId: string, def: any): ModelView.Pose?
+	local cached = poses[itemId]
+	if cached then
+		return cached
+	end
+	local held = Art.held[itemId]
+	if held == nil then
+		return nil
+	end
+	local axisSign, edgeSign = HoldRules.iconSigns(itemId, def)
+	local pose = { axis = held.axis * axisSign, edge = held.edge * edgeSign }
+	poses[itemId] = pose
+	return pose
+end
+
 local function ItemIcon(props: Props)
 	local def = Content.Items[props.itemId]
 	local size = props.size or UDim2.fromScale(0.82, 0.82)
@@ -44,7 +65,7 @@ local function ItemIcon(props: Props)
 	if model then
 		return React.createElement(ModelView, {
 			model = model,
-			pose = Art.held[props.itemId],
+			pose = iconPose(props.itemId, def),
 			size = size,
 			position = position,
 			anchorPoint = anchor,

@@ -50,6 +50,22 @@ function HoldRules.classOf(itemId: string?, def: ItemLike?): string
 	return if weapon then "blunt" else "fists"
 end
 
+--[[
+	How a held item lies in its icon (components/ModelView): the icon draws Art.held's
+	`axis * axisSign` up and to the right and `edge * edgeSign` up and to the left, so the
+	item lies as on a table, top up, head or muzzle to the upper right.
+
+	Art.held describes the hand, not the table: a gun's `edge` is its underside, so drawing
+	it up-left laid every gun grip up (2026-11-12, the developer: "a lot of the model icons
+	are upside down"), and the molotov's `axis` runs from the neck the fist holds to its base.
+]]
+function HoldRules.iconSigns(itemId: string, def: ItemLike?): (number, number)
+	local class = HoldRules.classOf(itemId, def)
+	local axisSign = if Holds.heldByTop[itemId] then -1 else 1
+	local edgeSign = if class == "pistol" or class == "long" then -1 else 1
+	return axisSign, edgeSign
+end
+
 function HoldRules.mountOf(itemId: string?, def: ItemLike?): Holds.Mount
 	return Holds.classes[HoldRules.classOf(itemId, def)].mount
 end

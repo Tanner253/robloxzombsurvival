@@ -7,9 +7,10 @@
 	slots, recipe cards, build cards and station headers. Live, so a changed model
 	re-renders by itself.
 
-	A `pose` (a held item's butt-to-head axis and edge, Shared/Art.held) lays tools
-	and weapons on the icon diagonal, head up and to the right, flat side to the
-	camera. The camera is fitted to the model's box, not its bounding sphere, so long
+	A `pose` (an axis and an edge in the model's space; ItemIcon derives it from
+	Shared/Art.held through HoldRules.iconSigns) lays tools and weapons on the icon
+	diagonal: the axis up and to the right, the edge (the item's top) up and to the
+	left, flat side to the camera. The camera is fitted to the model's box, not its bounding sphere, so long
 	thin things fill the frame.
 ]]
 
@@ -44,30 +45,59 @@ local UP = RIGHT:Cross(-BACK).Unit
 local LIGHT_DIRECTION = (RIGHT * 0.7 - UP - BACK * 0.6).Unit
 
 -- A posed item is framed by its length (the model box is far fatter than a diagonal
--- handle): about this wide across and deep, as fractions of the length.
+-- handle): at least this wide across and this deep, as fractions of the length.
 local POSED_WIDTH = 0.24
 local POSED_DEPTH = 0.2
+-- An axis this close to one of the model's own counts as running along it.
+local ALIGNED = 0.98
+
+-- How far the posed model's parts reach across the diagonal (each part's own box): a
+-- pistol's grip hangs a long way off its barrel line and a bow's limbs cross its axis, so
+-- the thin-handle width alone cropped the pistols and blew the bow up past its slot.
+local function across(model: Model, direction: Vector3): number
+	local low, high = math.huge, -math.huge
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.Transparency < 1 then
+			local frame, half = part.CFrame, part.Size / 2
+			for _, sx in { -1, 1 } do
+				for _, sy in { -1, 1 } do
+					for _, sz in { -1, 1 } do
+						local reach = (frame * Vector3.new(sx * half.X, sy * half.Y, sz * half.Z)):Dot(direction)
+						low, high = math.min(low, reach), math.max(high, reach)
+					end
+				end
+			end
+		end
+	end
+	return if high > low then high - low else 0
+end
 
 -- Turns a posed model so its axis runs along the screen diagonal (up-right) and its
--- flat side faces the camera. Returns its length along the axis.
-local function posed(model: Model, pose: Pose): number
+-- flat side faces the camera. Returns its length along the axis and its width across.
+local function posed(model: Model, pose: Pose): (number, number)
 	local axis = pose.axis.Unit
 	local edge = (pose.edge - axis * pose.edge:Dot(axis)).Unit
 	local from = CFrame.fromMatrix(Vector3.zero, axis, edge, axis:Cross(edge))
 	local along = (RIGHT + UP).Unit
-	local across = (UP - RIGHT).Unit
-	local to = CFrame.fromMatrix(Vector3.zero, along, across, along:Cross(across))
+	local side = (UP - RIGHT).Unit
+	local to = CFrame.fromMatrix(Vector3.zero, along, side, along:Cross(side))
 	model:PivotTo(CFrame.identity)
 	local _, size = model:GetBoundingBox()
 	model:PivotTo(to * from:Inverse())
-	return math.abs(axis.X) * size.X + math.abs(axis.Y) * size.Y + math.abs(axis.Z) * size.Z
+	local length = math.abs(axis.X) * size.X + math.abs(axis.Y) * size.Y + math.abs(axis.Z) * size.Z
+	-- The part boxes measure the width only when the item runs along one of the model's
+	-- axes (the guns, the bow, the machete): a mesh lying on a diagonal inside its box (the
+	-- stake, the hatchet) has a box far fatter than itself and would shrink in its slot.
+	local aligned = math.max(math.abs(axis.X), math.abs(axis.Y), math.abs(axis.Z)) > ALIGNED
+	return length, if aligned then across(model, side) else 0
 end
 
--- The camera distance for a posed item of `length`: the handle on the diagonal plus
--- its width across, in frame.
-local function fitPosed(length: number, aspect: number, margin: number): number
+-- The camera distance for a posed item of `length` and `width`: the handle on the
+-- diagonal plus its width across, in frame.
+local function fitPosed(length: number, width: number, aspect: number, margin: number): number
 	local tanV = math.tan(math.rad(FOV / 2))
-	local half = length / 2 * math.sqrt(0.5) + length * POSED_WIDTH / 2 * math.sqrt(0.5)
+	local wide = math.max(width, length * POSED_WIDTH)
+	local half = length / 2 * math.sqrt(0.5) + wide / 2 * math.sqrt(0.5)
 	return (length * POSED_DEPTH / 2 + math.max(half / (tanV * aspect), half / tanV)) * margin
 end
 
@@ -93,8 +123,8 @@ end
 -- Poses the copy when asked and returns where the camera looks and how far back it sits.
 local function frameFor(copy: Model, pose: Pose?, aspect: number, margin: number): (Vector3, number)
 	if pose then
-		local length = posed(copy, pose)
-		return copy:GetBoundingBox().Position, fitPosed(length, aspect, margin)
+		local length, width = posed(copy, pose)
+		return copy:GetBoundingBox().Position, fitPosed(length, width, aspect, margin)
 	end
 	return fitDistance(copy, aspect, margin)
 end
