@@ -233,7 +233,7 @@ local Tuning: Types.TuningDef = {
 		content2 = true,
 	},
 	lobby = {
-		capacity = 12, -- GAME_DESIGN: 8-12 a lobby
+		capacity = 8, -- GAME_DESIGN: 8-12 a lobby; 8 because a run lobby is a server of the one place, whose Max Players is 8 (one a plot)
 		openTimeoutSeconds = 90,
 		reservationSeconds = 45,
 		joinWindowSeconds = 3 * 60, -- GAME_DESIGN: new players join only in the first 3 min

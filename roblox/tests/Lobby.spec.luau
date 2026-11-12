@@ -118,18 +118,18 @@ return function(test: TestKit.Register)
 		TestKit.equal(closed, "closed")
 	end)
 
-	test("capacity is 12 and a party joins whole or not at all", function()
+	test("capacity is 8 (the place's Max Players) and a party joins whole or not at all", function()
 		local lobby = newLobby()
-		local eleven = {}
-		for userId = 1, 11 do
-			table.insert(eleven, userId)
+		local seven = {}
+		for userId = 1, 7 do
+			table.insert(seven, userId)
 		end
-		TestKit.truthy(Lobby.reserve(lobby, T0, CONFIG, eleven, nil, 3), "eleven seats")
+		TestKit.truthy(Lobby.reserve(lobby, T0, CONFIG, seven, nil, 3), "seven seats")
 		local ok, reason = Lobby.reserve(lobby, T0, CONFIG, { 20, 21 }, "p9", 3)
 		TestKit.equal(ok, false)
 		TestKit.equal(reason, "full")
 		TestKit.equal(lobby.members[20], nil, "nobody from the party got a seat")
-		TestKit.truthy(Lobby.reserve(lobby, T0, CONFIG, { 30 }, nil, 3), "the twelfth seat")
+		TestKit.truthy(Lobby.reserve(lobby, T0, CONFIG, { 30 }, nil, 3), "the eighth seat")
 		TestKit.equal(Lobby.freeSeats(lobby, T0, CONFIG), 0)
 	end)
 
@@ -237,12 +237,12 @@ return function(test: TestKit.Register)
 
 	test("a dead player's seat is held so a full lobby can't lock them out of their bag", function()
 		local lobby = newLobby()
-		local twelve = {}
-		for userId = 1, 12 do
-			table.insert(twelve, userId)
+		local full = {}
+		for userId = 1, CONFIG.capacity do
+			table.insert(full, userId)
 		end
-		assert(Lobby.reserve(lobby, T0, CONFIG, twelve, nil, 3))
-		for _, userId in twelve do
+		assert(Lobby.reserve(lobby, T0, CONFIG, full, nil, 3))
+		for _, userId in full do
 			assert(Lobby.arrive(lobby, userId, T0, CONFIG))
 		end
 		Lobby.die(lobby, 4, T0 + 20, CONFIG, DEATH, death())

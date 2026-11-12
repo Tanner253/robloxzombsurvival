@@ -100,10 +100,10 @@ Written by the orchestrator on 2026-11-08, after the developer said: "please get
 
 Exact steps, written 2026-11-11 on branch `ship-readiness` after the launch playtest. Each one is a physical or account action. **"After N"** means step N must be done first. All 18 shop products and passes already exist on Roblox, priced and on sale (checked with `GetProductInfo`; the table is in HANDOFF §6, "ship readiness"), so there is no product to create.
 
-1. **Approve the merge.** Tell the orchestrator "merge ship-readiness". Main merges wait for you.
+1. **Done (2026-11-12):** the orchestrator merged `ship-readiness` into main.
 2. **Studio, the "Ember" place, Edit mode, Rojo plugin connected to main** (after 1). In the Explorer, look in `ServerStorage`, `StarterPlayer` and `ReplicatedStorage` for two folders with the same name (a Rojo "twin"). If you find one, delete the copy whose meshes are empty. Then **File → Save to Roblox**.
 3. **Optional: Home → Game Settings → Security → "Enable Studio Access to API Services": on.** It is safe: Studio play saves only to `_Studio` DataStores, never to live saves. It lets Studio tests keep a profile across play sessions (the Walk-resume check needs it).
-4. **Game Settings → Places → "Ember" → Max Players: 8** (after 2). The Neighbourhood has 8 plots, and a 9th player gets no plot. Run lobbies are servers of the same place, so they also hold 8 (`Tuning.lobby.capacity` 12 can't fill; the orchestrator lowers it after launch).
+4. **Game Settings → Places → "Ember" → Max Players: 8** (after 2). The Neighbourhood has 8 plots, and a 9th player gets no plot. Run lobbies are servers of the same place, so they also hold 8 (`Tuning.lobby.capacity` is 8 to match).
 5. **File → Publish to Roblox** (after 2 and 4). The experience stays **Private**.
 6. **Live private test, about 15 minutes, on the website with your account** (after 5). This is the first time a real reserved-server teleport runs; Studio only simulates it.
    1. Join. Your plot and Haven Square load, and the HUD shows Energy 120 (160 if you own the VIP Lounge pass, as the creator does).
