@@ -328,7 +328,8 @@ return function(test: TestKit.Register)
 		local errors = brokenCopy(function(c)
 			c.Tuning.inventory.maxBackpackSlots = 10
 		end)
-		TestKit.anyContains(errors, "maxBackpackSlots is 10 but bags and upgrades reach 15")
+		-- The +15 Ranger Pack (content2) and the +5 Pack Expansion.
+		TestKit.anyContains(errors, "maxBackpackSlots is 10 but bags and upgrades reach 20")
 	end)
 
 	test("LDoE parity: converters, quest gates, a playable trail and a shelter that builds", function()

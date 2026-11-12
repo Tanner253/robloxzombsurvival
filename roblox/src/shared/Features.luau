@@ -3,12 +3,14 @@
 	Features: feature flags (Tuning.features) and the content they hide.
 
 	A feature that isn't graded A yet stays hidden (PLAYER_EXPERIENCE_CHECKLIST §0:
-	"never visible below A"). Content tagged `feature = "<name>"` (recipes, stations
-	and build pieces, the things menus list) is left out of the bundle while that
-	flag is off, so neither the server nor any client screen can see it. Untagged
-	content must never point at tagged content; the data validator runs on the
-	stripped bundle at boot and in the Lune suite, so a stray reference fails the
-	build.
+	"never visible below A"). Content tagged `feature = "<name>"` (recipes, stations,
+	build pieces, Ember Trail quests and single loot-table rows) is left out of the
+	bundle while that flag is off, so neither the server nor any client screen can see
+	it, and nothing drops it. Tagged items stay in the bundle but nothing gives them
+	(the validator lets a tagged item go unearned). A kept piece whose `upgradesTo` was
+	left out loses that link, so the tier below simply tops out. Untagged content must
+	never point at tagged content; the data validator runs on the stripped bundle at
+	boot and in the Lune suite, so a stray reference fails the build.
 
 	Services behind a flag check `Features.on(tuning, name)` in init() and stay
 	idle when it is off; Net/Remotes leaves their remotes out the same way.
@@ -42,9 +44,10 @@ local function filter<T>(
 end
 
 --[[
-	Leaves out every recipe, station and build piece whose feature flag is off.
-	Replaces those three tables on `content` with filtered copies (the entries are
-	shared, never copied) and returns `content`. Runs before the bundle is frozen.
+	Leaves out every recipe, station, build piece, quest and loot-table row whose feature
+	flag is off. Replaces those tables on `content` with filtered copies and returns
+	`content`; untouched entries are shared, and only a loot table that lost a row, or a
+	piece that lost its upgrade, is copied. Runs before the bundle is frozen.
 ]]
 function Features.strip(content: Types.Content): Types.Content
 	local tuning = content.Tuning
@@ -54,9 +57,37 @@ function Features.strip(content: Types.Content): Types.Content
 	content.Stations = filter(content.Stations, tuning, function(def: Types.StationDef)
 		return def.feature
 	end)
-	content.BuildPieces = filter(content.BuildPieces, tuning, function(def: Types.BuildPieceDef)
+	local pieces = filter(content.BuildPieces, tuning, function(def: Types.BuildPieceDef)
 		return def.feature
 	end)
+	for id, def in pieces do
+		if def.upgradesTo ~= nil and pieces[def.upgradesTo] == nil then
+			local copy = table.clone(def)
+			copy.upgradesTo = nil
+			pieces[id] = copy
+		end
+	end
+	content.BuildPieces = pieces
+	content.Quests = filter(content.Quests, tuning, function(def: Types.QuestDef)
+		return def.feature
+	end)
+	local tables: { [string]: Types.LootTableDef } = {}
+	for id, def in content.LootTables do
+		local entries: { Types.LootEntry } = {}
+		for _, entry in def.entries do
+			if keep(tuning, entry.feature) then
+				table.insert(entries, entry)
+			end
+		end
+		if #entries == #def.entries then
+			tables[id] = def
+		else
+			local copy = table.clone(def)
+			copy.entries = entries
+			tables[id] = copy
+		end
+	end
+	content.LootTables = tables
 	return content
 end
 

@@ -351,13 +351,25 @@ end
 
 --[[
 	#44 Sneak: a melee hit from a sneaking player on a Hollow that hasn't noticed
-	them (Hollow.isAware is false) lands at backstabMultiplier. Otherwise 1.
+	them (Hollow.isAware is false) lands at backstabMultiplier. Otherwise 1. A weapon's
+	own `melee.backstabMultiplier` overrides it (the Field Knife's x4, CONTENT_2_0 §4).
 ]]
-function Combat.backstab(sneaking: boolean, targetAware: boolean, config: Types.SneakTuning): number
+function Combat.backstab(
+	sneaking: boolean,
+	targetAware: boolean,
+	config: Types.SneakTuning,
+	melee: Types.MeleeStats?
+): number
 	if sneaking and not targetAware then
-		return config.backstabMultiplier
+		return (melee and melee.backstabMultiplier) or config.backstabMultiplier
 	end
 	return 1
+end
+
+-- The noise a melee swing makes: the weapon's own `melee.noise` (the Field Knife's 6), or
+-- Tuning.noise.melee.
+function Combat.meleeNoise(melee: Types.MeleeStats?, default: number): number
+	return (melee and melee.noise) or default
 end
 
 -- #34: a tool in a weapon slot swings as weak melee (it has no weapon stats of its own).

@@ -24,7 +24,7 @@ export type Progress = Unlocks.Progress
 export type Reason = Grid.Reason | "notBase" | "locked" | "limit" | "cantAfford" | "floorTier"
 
 -- Floor names by foundation tier, for the floor-tier gate (LDOE_PARITY #22).
-BuildRules.FLOOR_NAMES = { "Timber", "Scrap", "Reinforced" } :: { string }
+BuildRules.FLOOR_NAMES = { "Timber", "Scrap", "Reinforced", "Fortified" } :: { string }
 
 -- Player-facing copy for every reason, for toasts and the build menu.
 BuildRules.REASON_TEXT = {

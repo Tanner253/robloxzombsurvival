@@ -114,6 +114,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.stone_hatchet", weight = 5, min = 1, max = 1 },
 			{ itemId = "item.tire_iron", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.broken_lantern", weight = 5, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hardwood_bat", weight = 3, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.hay_fork", weight = 4, min = 1, max = 1, feature = "content2" },
 		},
 	},
 
@@ -146,6 +149,9 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.padded_hood", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.ember_tonic", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.shortbow", weight = 2, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.field_knife", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.steel_helmet", weight = 2, min = 1, max = 1, feature = "content2" },
 		},
 	},
 
@@ -167,6 +173,11 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.hearth_stew", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.brass_gear", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.hunting_rifle", weight = 1, min = 1, max = 1 }, -- ARSENAL 3.4
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hidebound_coat", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.gas_mask", weight = 1, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.first_aid_kit", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.steel_plate", weight = 2, min = 1, max = 2, feature = "content2" },
 		},
 	},
 	["loot.depot_strongbox"] = {
@@ -183,6 +194,12 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.shortbow", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.scrapblade", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.padded_vest", weight = 8, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.riveted_helm", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
+			{ itemId = "item.combat_helmet", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
+			{ itemId = "item.plate_carrier", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
+			{ itemId = "item.ranger_pack", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
+			{ itemId = "item.ember_stim", weight = 2, min = 1, max = 1, feature = "content2" },
 		},
 		guaranteed = { { itemId = "item.rivets", count = 2 } },
 		-- Bad-luck protection: a blueprint at least once in every 5 strongboxes.
@@ -207,6 +224,12 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.rail_mallet", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.padded_leggings", weight = 2, min = 1, max = 1 },
 			{ itemId = "item.padded_boots", weight = 2, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hidebound_cap", weight = 3, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.hidebound_boots", weight = 3, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.steel_helmet", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.gas_mask", weight = 1, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.trauma_pouch", weight = 3, min = 1, max = 2, feature = "content2" },
 		},
 	},
 	["loot.caravan_strongbox"] = {
@@ -408,6 +431,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.scrap", weight = 5, min = 2, max = 4 },
 			{ itemId = "item.snarled_wire", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.coil_spring", weight = 2, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hardwood_bat", weight = 2, min = 1, max = 1, feature = "content2" },
 		},
 	},
 	["loot.zone_pack_t2"] = {
@@ -427,6 +452,11 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.snarled_wire", weight = 4, min = 1, max = 1 },
 			{ itemId = "item.seized_motor", weight = 2, min = 1, max = 1 },
 			{ itemId = "item.ember_tonic", weight = 2, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.field_knife", weight = 3, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.trauma_pouch", weight = 2, min = 1, max = 2, feature = "content2" },
+			{ itemId = "item.antiseptic", weight = 2, min = 1, max = 2, feature = "content2" },
+			{ itemId = "item.hide_rucksack", weight = 1, min = 1, max = 1, feature = "content2" },
 		},
 	},
 	["loot.zone_pack_t3"] = {
@@ -446,6 +476,13 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.brass_gear", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.duty_pistol", weight = 1, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.field_knife", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.hidebound_cap", weight = 3, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.hidebound_boots", weight = 3, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.steel_helmet", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.trauma_pouch", weight = 3, min = 1, max = 2, feature = "content2" },
+			{ itemId = "item.antiseptic", weight = 3, min = 1, max = 2, feature = "content2" },
 		},
 	},
 	["loot.forest_crate_t1"] = {
@@ -460,6 +497,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.pitch_glue", weight = 8, min = 1, max = 1 },
 			{ itemId = "item.stone_hatchet", weight = 6, min = 1, max = 1 },
 			{ itemId = "item.broken_lantern", weight = 4, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hardwood_bat", weight = 3, min = 1, max = 1, feature = "content2" },
 		},
 	},
 	["loot.forest_crate_t2"] = {
@@ -476,6 +515,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.embercoal", weight = 6, min = 2, max = 4 },
 			{ itemId = "item.forged_hatchet", weight = 2, min = 1, max = 1 },
 			{ itemId = "item.coil_spring", weight = 2, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hand_axe", weight = 2, min = 1, max = 1, feature = "content2" },
 		},
 	},
 	["loot.forest_crate_t3"] = {
@@ -495,6 +536,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.bp_pack_frame", weight = 2, min = 1, max = 1, rarity = "epic" },
 			{ itemId = "item.seized_motor", weight = 3, min = 1, max = 1 },
 			{ itemId = "item.hunting_rifle", weight = 2, min = 1, max = 1 },
+			-- content2 (docs/CONTENT_2_0.md §5)
+			{ itemId = "item.hand_axe", weight = 3, min = 1, max = 1, feature = "content2" },
 		},
 	},
 	["loot.mine_box_t1"] = {

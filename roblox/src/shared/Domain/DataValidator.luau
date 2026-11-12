@@ -48,7 +48,7 @@ local Shelter = require("./Shelter")
 local DataValidator = {}
 
 local ID_FORM = "^%l+%.[%l%d_]+$"
-local MAX_BUILD_TIER = 3
+local MAX_BUILD_TIER = 4 -- Timber, Scrap, Reinforced, Fortified (content2)
 local MAX_TOOL_TIER = 3 -- stone, forged, Ember Steel (ECONOMY §4.1)
 local MAX_LOOT_DEPTH = 8 -- Domain/Loot refuses to nest deeper
 local EDGE_KINDS: { [string]: boolean } = { wall = true, doorway = true, door = true, gate = true, window = true }
@@ -189,6 +189,8 @@ end
 
 -- Fog Runs: melee, firearm and bow stats (Domain/Combat).
 local GUN_CLASSES: { [string]: boolean } = { pistol = true, smg = true, rifle = true, shotgun = true }
+local MELEE_CLASSES: { [string]: boolean } =
+	{ blade = true, axe = true, pick = true, blunt = true, heavy = true, stab = true, fists = true }
 local function checkFlare(errors: Errors, where: string, flare: Types.FlareStats)
 	if flare.lightRadius <= 0 or flare.seconds <= 0 or flare.fleeRadius <= 0 then
 		push(errors, `{where}: lightRadius, seconds and fleeRadius must be positive`)
@@ -217,6 +219,17 @@ local function checkWeaponStats(errors: Errors, where: string, weapon: Types.Wea
 		end
 		if melee.arcDegrees ~= nil and (melee.arcDegrees <= 0 or melee.arcDegrees > 360) then
 			push(errors, `{where}.melee: arcDegrees must be in (0, 360]`)
+		end
+		if melee.class ~= nil and not MELEE_CLASSES[melee.class] then
+			push(errors, `{where}.melee: class must be blade, axe, pick, blunt, heavy, stab or fists`)
+		end
+		if melee.backstabMultiplier ~= nil and melee.backstabMultiplier < 1 then
+			push(errors, `{where}.melee: backstabMultiplier must be at least 1`)
+		end
+		for _, value in { melee.noise, melee.structureMultiplier } do
+			if value ~= nil and value <= 0 then
+				push(errors, `{where}.melee: noise and structureMultiplier must be positive`)
+			end
 		end
 	end
 	if weapon.kind == "ranged" and (weapon.firearm ~= nil) == (weapon.bow ~= nil) then
@@ -352,6 +365,10 @@ local function checkItems(errors: Errors, content: Types.Content)
 		if fogResist ~= nil and (fogResist < 0 or fogResist >= 1) then
 			push(errors, `{where}.armor: fogResist must be in [0, 1)`)
 		end
+		local filter = item.armor and item.armor.filterPerSecond
+		if filter ~= nil and (filter <= 0 or (fogResist or 0) <= 0) then
+			push(errors, `{where}.armor: a filter needs a positive filterPerSecond and a fogResist`)
+		end
 		if item.bagSlots and not isPositiveInteger(item.bagSlots) then
 			push(errors, `{where}: bagSlots must be a positive integer`)
 		end
@@ -367,6 +384,10 @@ local function checkItems(errors: Errors, content: Types.Content)
 			end
 			if total <= 0 then
 				push(errors, `{where}.consume: must restore something`)
+			end
+			local hot = consume.healOverTime
+			if hot and (hot.amount <= 0 or hot.seconds <= 0) then
+				push(errors, `{where}.consume: healOverTime needs a positive amount and seconds`)
 			end
 		end
 	end
@@ -1460,6 +1481,17 @@ local function checkFeatureTags(errors: Errors, content: Types.Content)
 	end
 	for _, id in TableUtil.sortedKeys(content.BuildPieces) do
 		check(`BuildPieces['{id}']`, content.BuildPieces[id].feature)
+	end
+	for _, id in TableUtil.sortedKeys(content.Quests) do
+		check(`Quests['{id}']`, content.Quests[id].feature)
+	end
+	for _, id in TableUtil.sortedKeys(content.Items) do
+		check(`Items['{id}']`, content.Items[id].feature)
+	end
+	for _, id in TableUtil.sortedKeys(content.LootTables) do
+		for index, entry in content.LootTables[id].entries do
+			check(`LootTables['{id}'].entries[{index}]`, entry.feature)
+		end
 	end
 end
 

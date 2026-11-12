@@ -217,6 +217,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		},
 		breachCost = 8,
 		unlock = REINFORCED_TIER,
+		upgradesTo = "build.foundation_fortified", -- content2: dropped while that flag is off
 	},
 	["build.wall_reinforced"] = {
 		id = "build.wall_reinforced",
@@ -234,6 +235,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 4,
 		minFoundationTier = 3,
 		unlock = REINFORCED_TIER,
+		upgradesTo = "build.wall_fortified", -- content2: dropped while that flag is off
 	},
 	["build.doorway_reinforced"] = {
 		id = "build.doorway_reinforced",
@@ -251,6 +253,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 4,
 		minFoundationTier = 3,
 		unlock = REINFORCED_TIER,
+		upgradesTo = "build.doorway_fortified", -- content2: dropped while that flag is off
 	},
 	["build.door_reinforced"] = {
 		id = "build.door_reinforced",
@@ -268,6 +271,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 3,
 		minFoundationTier = 3,
 		unlock = REINFORCED_TIER,
+		upgradesTo = "build.door_fortified", -- content2: dropped while that flag is off
 	},
 	["build.window_reinforced"] = {
 		id = "build.window_reinforced",
@@ -285,6 +289,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		breachCost = 3,
 		minFoundationTier = 3,
 		unlock = REINFORCED_TIER,
+		upgradesTo = "build.window_fortified", -- content2: dropped while that flag is off
 	},
 
 	-- Stations (LDOE_PARITY #19): each a building goal with its own floor tier ----------------
@@ -520,6 +525,103 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		unlock = quest("quest.stand_your_ground"),
 		feature = "fogRuns",
 	},
+}
+
+-- 2.0 batch 4 (docs/CONTENT_2_0.md §2), all tagged content2 ----------------------------------------
+-- Fortified (tier 4): LDoE's L4 Metal tier on Steel Plate, an upgrade from Reinforced. HP doubles
+-- again and every piece can still be breached.
+local FORTIFIED_TIER = quest("quest.hotter_fires")
+
+local function fortified(
+	kind: Types.BuildPieceKind,
+	name: string,
+	hp: number,
+	breachCost: number,
+	cost: { Types.ItemStack }
+)
+	local id = `build.{kind}_fortified`
+	BuildPieces[id] = {
+		id = id,
+		name = name,
+		kind = kind,
+		tier = 4,
+		hp = hp,
+		cost = cost,
+		breachCost = breachCost,
+		minFoundationTier = if kind == "foundation" then nil else 4,
+		unlock = FORTIFIED_TIER,
+		feature = "content2",
+	}
+end
+
+local WALL_STEP: { Types.ItemStack } = {
+	{ itemId = "item.steel_plate", count = 8 },
+	{ itemId = "item.ironbark_plank", count = 4 },
+	{ itemId = "item.rivets", count = 4 },
+	{ itemId = "item.copper_wire", count = 2 },
+}
+fortified("foundation", "Fortified Foundation", 4800, 12, {
+	{ itemId = "item.steel_plate", count = 8 },
+	{ itemId = "item.stone_block", count = 6 },
+	{ itemId = "item.rivets", count = 4 },
+})
+fortified("wall", "Fortified Wall", 3200, 6, WALL_STEP)
+fortified("window", "Fortified Window Wall", 2800, 5, table.clone(WALL_STEP))
+fortified("doorway", "Fortified Doorway", 2800, 6, {
+	{ itemId = "item.steel_plate", count = 7 },
+	{ itemId = "item.ironbark_plank", count = 4 },
+	{ itemId = "item.rivets", count = 4 },
+	{ itemId = "item.copper_wire", count = 2 },
+})
+fortified("door", "Fortified Door", 2400, 5, {
+	{ itemId = "item.steel_plate", count = 10 },
+	{ itemId = "item.rivets", count = 6 },
+	{ itemId = "item.copper_wire", count = 4 },
+	{ itemId = "item.coil_spring", count = 2 },
+})
+
+-- The stations that need the new tier: the Blast Furnace stands on a Reinforced floor and makes
+-- the Steel Plate; the Apothecary needs a Fortified floor (and steel to build).
+BuildPieces["build.blast_furnace"] = {
+	id = "build.blast_furnace",
+	footprint = { w = 3, d = 3 },
+	name = "Blast Furnace",
+	kind = "station",
+	tier = 1,
+	hp = 600,
+	cost = {
+		{ itemId = "item.stone_block", count = 20 },
+		{ itemId = "item.scrap_plate", count = 8 },
+		{ itemId = "item.rivets", count = 6 },
+		{ itemId = "item.copper_wire", count = 4 },
+		{ itemId = "item.brass_gear", count = 1 },
+	},
+	breachCost = 2,
+	stationId = "station.blast_furnace",
+	minFoundationTier = 3,
+	maxPerPlot = 2,
+	unlock = quest("quest.hold_the_line"),
+	feature = "content2",
+}
+BuildPieces["build.apothecary"] = {
+	id = "build.apothecary",
+	footprint = { w = 3, d = 2 },
+	name = "Apothecary",
+	kind = "station",
+	tier = 1,
+	hp = 300,
+	cost = {
+		{ itemId = "item.steel_plate", count = 6 },
+		{ itemId = "item.ironbark_plank", count = 6 },
+		{ itemId = "item.copper_wire", count = 4 },
+		{ itemId = "item.cloth", count = 4 },
+	},
+	breachCost = 1,
+	stationId = "station.apothecary",
+	minFoundationTier = 4,
+	maxPerPlot = 1,
+	unlock = quest("quest.steel_floors"),
+	feature = "content2",
 }
 
 return BuildPieces

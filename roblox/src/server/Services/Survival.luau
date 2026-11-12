@@ -11,6 +11,9 @@
 
 	Food energy goes through the Energy service (daily food cap); an item that
 	only restores energy (a tonic) uses the "item" rule and is refused at the cap.
+
+	Meds past the dressing (content2) heal part at once and the rest over a few seconds
+	(Domain/Meds); the heals tick with the meters and stop on death.
 ]]
 
 local Players = game:GetService("Players")
@@ -19,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local SurvivalMath = require(ReplicatedStorage.Shared.Domain.Survival)
+local Meds = require(ReplicatedStorage.Shared.Domain.Meds)
 local Energy = require("./Energy")
 local PlayerData = require("./PlayerData")
 local Sync = require("./Sync")
@@ -32,6 +36,7 @@ local maxHealth = tuning.player.maxHealth
 type Runtime = {
 	meters: SurvivalMath.State,
 	died: boolean,
+	heals: { Meds.Heal }, -- healing over time still running (Domain/Meds)
 }
 
 local runtime: { [Player]: Runtime } = {}
@@ -93,6 +98,10 @@ function Survival.consume(player: Player, effect: Types.ConsumeEffect)
 	local result = SurvivalMath.consume(state.meters, now(), config, effect)
 	state.meters = result.state
 	humanoid.Health = math.clamp(humanoid.Health - result.damage + result.heal, 0, humanoid.MaxHealth)
+	local heal = Meds.start(effect, now())
+	if heal then
+		state.heals = Meds.add(state.heals, heal)
+	end
 	if result.energy > 0 then
 		if energyOnly(effect) then
 			Energy.restore(player, result.energy, "item")
@@ -146,6 +155,7 @@ local function setupCharacter(player: Player, character: Model)
 		if current then
 			-- The respawn meters are saved at once, so leaving before the respawn keeps them.
 			current.died = true
+			current.heals = {}
 			current.meters = (SurvivalMath.respawn(config, now()))
 			save(player)
 		end
@@ -158,6 +168,7 @@ local function onLoaded(player: Player, data: any)
 	runtime[player] = {
 		meters = SurvivalMath.resume({ hunger = saved.hunger, thirst = saved.thirst, updatedAt = 0 }, now()),
 		died = saved.health <= 0,
+		heals = {},
 	}
 	if player.Character then
 		task.spawn(setupCharacter, player, player.Character)
@@ -176,6 +187,11 @@ local function tick()
 			local regen = if meters.hunger >= config.regenThreshold and meters.thirst >= config.regenThreshold
 				then config.regenPerSecond * dt
 				else 0
+			if #state.heals > 0 then
+				local healed, running = Meds.step(state.heals, t)
+				state.heals = running
+				regen += healed
+			end
 			if damage > 0 or (regen > 0 and humanoid.Health < humanoid.MaxHealth) then
 				humanoid.Health = math.clamp(humanoid.Health - damage + regen, 0, humanoid.MaxHealth)
 			end

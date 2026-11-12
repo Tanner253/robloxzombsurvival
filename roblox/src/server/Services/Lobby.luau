@@ -33,6 +33,7 @@ local Domain = ReplicatedStorage.Shared.Domain
 local CombatMath = require(Domain.Combat)
 local DeathRecovery = require(Domain.DeathRecovery)
 local FogExposure = require(Domain.FogExposure)
+local Gear = require(Domain.Gear)
 local ExtractionMath = require(Domain.Extraction)
 local InventoryMath = require(Domain.Inventory)
 local LobbyMath = require(Domain.Lobby)
@@ -255,15 +256,42 @@ end
 -- Damage --------------------------------------------------------------------------------------
 
 local function armorDefense(equipment: { [string]: Types.Slot }): number
-	local defense = 0
-	for _, key in ARMOR_KEYS do
+	return Gear.defense(equipment, Items)
+end
+
+-- CONTENT_2_0 §4: a gas mask's filter wears while the fog rises (FogExposure.filterWear).
+-- The wear is applied FILTER_STEP points at a time, so the inventory syncs every few seconds,
+-- not every tick; a spent filter breaks the mask like worn-out armor.
+local FILTER_STEP = 5
+local filterDebt: { [Player]: { [string]: number } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function wearFilters(player: Player, equipment: { [string]: Types.Slot }, fogTier: number)
+	local wear = FogExposure.filterWear(equipment, Items, fogTier, TICK_SECONDS, tuning.fogExposure)
+	if next(wear) == nil then
+		return
+	end
+	local debt = filterDebt[player] or {}
+	filterDebt[player] = debt
+	local changed, broke = false, false
+	for key, amount in wear do
+		debt[key] = (debt[key] or 0) + amount
 		local slot = equipment[key]
-		local item = slot and slot.count > 0 and Items[slot.itemId]
-		if item and item.armor then
-			defense += item.armor.defense
+		if debt[key] >= FILTER_STEP and slot and slot.count > 0 and slot.durability then
+			slot.durability -= debt[key]
+			debt[key] = 0
+			changed = true
+			if slot.durability <= 0 then
+				equipment[key] = InventoryMath.emptySlot()
+				broke = true
+			end
 		end
 	end
-	return defense
+	if changed then
+		Sync.mark(player, "inventory")
+	end
+	if broke then
+		Sync.notice(player, "Your gas mask's filter is spent")
+	end
 end
 
 local function wearArmor(player: Player, equipment: { [string]: Types.Slot })
@@ -825,6 +853,7 @@ local function tickHosted(hosted: Hosted)
 		if run and data then
 			local resist = FogExposure.resist(data.inventory.equipment :: any, Items, exposureConfig)
 			local fogTier = hosted.location.fogTier
+			wearFilters(player, data.inventory.equipment :: any, fogTier)
 			run.stats.exposure = FogExposure.step(run.stats.exposure, TICK_SECONDS, fogTier, resist, exposureConfig)
 			local damage = FogExposure.damage(run.stats.exposure, TICK_SECONDS, exposureConfig)
 			if damage > 0 then

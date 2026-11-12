@@ -22,7 +22,9 @@ local RunService = game:GetService("RunService")
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Domain = ReplicatedStorage.Shared.Domain
+local Gear = require(Domain.Gear)
 local InventoryMath = require(Domain.Inventory)
+local Meds = require(Domain.Meds)
 local Slots = require(Domain.Slots)
 local PlayerSchema = require(Domain.PlayerSchema)
 local Net = require("../Net")
@@ -458,7 +460,7 @@ local function bagSlots(equipment: { [string]: Types.Slot }, data: PlayerData): 
 	local bag = equipment.bag
 	local def = if bag and bag.count > 0 then Items[bag.itemId] else nil
 	local bought = if data.purchases and data.purchases.backpackSlots then data.purchases.backpackSlots else 0
-	return tuning.inventory.backpackSlots + (if def and def.bagSlots then def.bagSlots else 0) + bought
+	return Gear.backpackSlots(tuning.inventory.backpackSlots, def, bought, tuning.inventory.maxBackpackSlots)
 end
 
 local function storageInReach(player: Player, uid: string): boolean
@@ -834,7 +836,8 @@ local function useMeds(player: Player)
 		local container = if ref == "pockets" then data.inventory.pockets else data.inventory.backpack
 		for index, slot in container do
 			local def = if slot.count > 0 then Items[slot.itemId] else nil
-			local heal = if def and def.consume then def.consume.health or 0 else 0
+			-- Instant plus over time (Domain/Meds): a First-Aid Kit beats a dressing.
+			local heal = if def and def.consume and (def.consume.health or 0) > 0 then Meds.total(def.consume) else 0
 			if heal > bestHeal then
 				bestRef, bestIndex, bestHeal = ref, index, heal
 			end
