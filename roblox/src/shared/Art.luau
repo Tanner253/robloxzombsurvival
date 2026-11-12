@@ -634,6 +634,10 @@ export type HeldArt = {
 	-- pick's point) pulls the box off the handle. Measured in Studio by casting rays across
 	-- the handle (2026-11-12, batch 1); with it the fist closes on the handle, not beside it.
 	offset: Vector3?,
+	-- Long guns: where the off hand goes above the grip's height, as a share of the gun's
+	-- height (default HoldRules.SUPPORT_LIFT). A tall scope raises the box's centre over the
+	-- handguard, so the Anti-Materiel Rifle sets its own (batch 5: its hand sat on the receiver).
+	supportLift: number?,
 }
 
 Art.held = {
@@ -754,6 +758,7 @@ Art.held = {
 		length = 4.7,
 		holster = "back",
 		drop = 0.27,
+		supportLift = -0.08,
 	},
 	-- Batch 5, read from side captures of each conformed model and checked in hand. The Zona
 	-- uploads' muzzles point along -X, the generations' along -Z.
@@ -761,7 +766,7 @@ Art.held = {
 		axis = Vector3.new(0, 0, -1),
 		edge = Vector3.new(0, -1, 0),
 		grip = 0.2,
-		length = 1.5,
+		length = 1.3,
 		holster = "belt",
 		drop = 0.12,
 	},
@@ -813,10 +818,12 @@ Art.held = {
 		length = 0.5,
 		holster = "belt",
 	},
+	-- The molotov is held by the neck, the bottle swinging out ahead of the fist and the
+	-- burning rag just past the thumb (`axis` runs neck to base); on the belt the neck is up.
 	["item.molotov"] = {
-		axis = Vector3.new(0, 1, 0),
+		axis = Vector3.new(0, -1, 0),
 		edge = Vector3.new(0, 0, 1),
-		grip = 0.35,
+		grip = 0.22,
 		length = 1,
 		holster = "belt",
 	},

@@ -287,9 +287,9 @@ local function emitter(parent: Instance, props: { [string]: any }): ParticleEmit
 	return particles
 end
 
--- The rag of a molotov burning: a small flame and its light at the top of the model.
+-- The rag of a molotov burning: a small flame and its light at the neck. The bottle's mesh
+-- stands along its own +Y (Art.uploaded), so the neck is the top of the mesh in its own space.
 local function lightRag(model: Model): Attachment?
-	local box, size = model:GetBoundingBox()
 	local body = model:FindFirstChildWhichIsA("BasePart", true)
 	if body == nil then
 		return nil
@@ -297,7 +297,7 @@ local function lightRag(model: Model): Attachment?
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "Rag"
 	attachment.Parent = body
-	attachment.WorldPosition = box.Position + box.UpVector * (size.Y / 2)
+	attachment.Position = Vector3.new(0, body.Size.Y / 2, 0)
 	emitter(attachment, {
 		Texture = "rbxasset://textures/particles/fire_main.dds",
 		Color = ColorSequence.new(Color3.fromHex("FFD27A"), FIRE_COLOR),
