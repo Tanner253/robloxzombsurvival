@@ -255,6 +255,13 @@ Run all checks after each merge.
 >     - On the Server, `EO_Dev` runs `place`, `kill`, `die`, `meter`, `extract` and `queststate`.
 >     - Keep Studio un-minimized: a minimized window captures black, and an unfocused one runs at 15 fps.
 > - **Next: step 6, the soft launch, is the developer's.** Before publishing, clear the boot console's asset errors (the "Requester does not have permission" lines and `rbxassetid://203785492`). Those need checking in the live game; Studio alone can't confirm them. 203785492 is in neither the repo nor the place's edit tree (6,000 instances scanned on 2026-11-11), so it is probably loaded at runtime by a Roblox core script.
+> - **2.0, started 2026-11-11.** The developer asked for polish, performance, quality of life, UX and more content, with LDoE as the standard. They also asked that items sit and point right in the hand and have good animations. The batches, in order; the orchestrator reviews and merges each one:
+>   1. **Hands, animations and feel** (Studio): every held item's grip and pose, plus the use, gather and fire animations. Guns start a run loaded, the loot panel closes on death, and a held body is hidden. Flow-review F-29.
+>   2. **Flow-review quality of life and UX** (worktree, runs alongside batch 1): F-10, F-11, F-12, F-20, F-21, F-22, F-27, F-28, F-33, F-36 and F-38, and a recheck of F-06 and F-07.
+>   3. **Performance:** the first lobby's map build (12–38 s), frame time at home and on a run, and network and memory.
+>   4. **Content past the Scrap tier** (F-24, F-37): ARSENAL melee and armor (port the parked melee WIP), and Zona item depth (helmets, the gas mask as fog protection, bags, a meds ladder, grenades). Spec first.
+>   5. **More guns** (the ARSENAL roster) and the full SHOP_CATALOG.
+>   6. **M2:** raids, PvP and guilds.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
