@@ -2,45 +2,46 @@
 
 Days 10 to 30 for a free player at 2.5 h a day, modelled on LDoE's mid-game (rec5's Survivor's Path "Radiation Protection" chapter, rec9's clothing tiers, helmets, masks, Military Backpack, bandage and first-aid kit). Flow review F-24 (nothing past Scrap, the trail ends) and F-37 (one craftable bag). Everything ships behind **`Tuning.features.content2 = false`**: while it is off, `Features.strip` removes every tagged recipe, station, build piece, quest and loot row, and the tagged items stay dormant (nothing gives them). `tests/Content2.spec` proves both states.
 
-## 1. What the player chases
+## 1. What the player chases (2.5 h a day, `tests/Pacing.spec`)
 
 | Days | Chase | Gate |
 |---|---|---|
-| 5-10 | Hide Rucksack (+8), Field Knife, Hand Axe, Steel Helmet | quests 9, 11, 19 |
-| 14-18 | Hidebound set (consumes Padded), Trauma Pouch | quest 21 |
-| 17-21 | Riveted set (consumes Hidebound), the Blast Furnace and Steel Plate | quests 23, 25 |
-| 19-26 | **Fortified tier**, the Apothecary, Ranger Pack (+15), the Gas Mask | chapter 4, quests 26-31 |
-| 24-30 | Fortified walls, the deep Black (60 Depot crates, 1,000 Hollow) | quests 32-33 |
+| 5-10 | Field Knife, Hand Axe, Hide Rucksack (+8, about day 9), Steel Helmet | quests 9, 11, 13, 19 |
+| 11-16 | Hidebound set (consumes Padded), Trauma Pouch | quest 21 |
+| 13-18 | Riveted set (consumes Hidebound), the Blast Furnace and Steel Plate | quests 23, 25 |
+| 18-25 | **Fortified tier** (done about day 25), Ranger Pack (+15), Gas Mask, Apothecary | chapter 4 |
+| 25-28 | The Deep Black, then the level cap | quest 33 |
 | any | Black jackpots: Combat Helmet, Plate Carrier, Ember Stim, Ranger Pack | Depot strongbox |
 
 ## 2. Base: the Fortified tier (tier 4) and two stations
 
-LDoE's L4 Metal tier, on materials we already have plus **Steel Plate** (LDoE's Steel Bar). Pieces upgrade from Reinforced; HP doubles again; nothing is unbreachable.
+LDoE's L4 Metal tier, on materials we already have plus **Steel Plate** (LDoE's Steel Bar). Pieces upgrade from Reinforced; HP doubles again; nothing is unbreachable. Floors unlock at quest 26, walls and doors at 28.
 
 | Piece | Upgrade cost | HP | Breach |
 |---|---|---|---|
-| Foundation | 8 steel plate, 6 stone block, 4 rivets | 4,800 | 12 |
-| Wall, Window wall | 8 steel plate, 4 ironbark plank, 4 rivets, 2 copper wire | 3,200 / 2,800 | 6 / 5 |
-| Doorway | 7 steel plate, 4 ironbark plank, 4 rivets, 2 copper wire | 2,800 | 6 |
-| Door | 10 steel plate, 6 rivets, 4 copper wire, 2 coil spring | 2,400 | 5 |
+| Foundation | 6 steel plate, 6 stone block, 4 rivets | 4,800 | 12 |
+| Wall, Window wall | 6 steel plate, 4 ironbark plank, 4 rivets, 2 copper wire | 3,200 / 2,800 | 6 / 5 |
+| Doorway | 5 steel plate, 4 ironbark plank, 4 rivets, 2 copper wire | 2,800 | 6 |
+| Door | 8 steel plate, 6 rivets, 4 copper wire, 2 coil spring | 2,400 | 5 |
 
-- **Blast Furnace** (LDoE's Refined Melting Furnace): 3 Iron Ingots → 1 Steel Plate in 30 min, burns Embercoal only. Needs a **Reinforced floor**. Build: 20 stone block, 8 plate, 6 rivets, 4 copper wire, 1 brass gear. Unlocked by quest 25.
-- **Apothecary** (LDoE's Chemistry Station): 4 Emberberries → 1 Antiseptic Tablets in 10 min. Needs a **Fortified floor**. Build: 6 steel plate, 6 ironbark plank, 4 copper wire, 4 cloth. Unlocked by quest 28.
+- **Blast Furnace** (LDoE's Refined Melting Furnace): 2 Iron Ingots → 1 Steel Plate in 20 min, burns like the Smelter, 2 per plot. Needs a **Reinforced floor**. Build: 20 stone block, 8 plate, 6 rivets, 4 copper wire, 1 brass gear. Unlocked by quest 25.
+- **Apothecary** (LDoE's Chemistry Station): 4 Emberberries → 1 Antiseptic Tablets in 10 min. Needs a **Fortified floor**. Build: 4 steel plate, 6 ironbark plank, 4 copper wire, 4 cloth. Unlocked by quest 30.
+- A whole Fortified room (the Reinforced 4×4) is about 190 Steel Plate: 380 Iron Ingots and 63 furnace-hours.
 
 ## 3. Ember Trail chapter 4, "Iron Lungs" (quests 26-33)
 
-Opens after Hold the Line (25), two lines side by side like chapter 3.
+Opens after Hold the Line (25), two lines side by side like chapter 3. Each build objective unlocks with the quest before it. Days are the 2.5 h model's.
 
-| # | Quest | Asks | Pays |
-|---|---|---|---|
-| 26 | Hotter Fires | build the Blast Furnace, 6 Steel Plate batches | 20 embercoal, 8 rivets |
-| 27 | Hide and Rivet | craft and wear the Riveted Cuirass and Legguards | 6 leather, 6 cloth |
-| 28 | Steel Underfoot | 4 Fortified foundations | 6 copper wire, 1 brass gear |
-| 29 | Pack Mule | craft and wear the Ranger Pack | 10 embercoal, 4 glue |
-| 30 | A Clean Room | build the Apothecary, 4 Antiseptic batches, 2 First-Aid Kits | 5 dressings, 4 steel plate |
-| 31 | Breathe Easy | craft and wear the Gas Mask, walk into Black fog | 2 First-Aid Kits, 1 tonic |
-| 32 | The Last Wall | 8 Fortified walls and a Fortified door | 3 brass gear, 2 coil spring |
-| 33 | The Deep Black | 60 Depot crates, 1,000 Hollow, level 28 | 2 trigger groups, 3 brass gear |
+| # | Quest | Asks | Pays | Day |
+|---|---|---|---|---|
+| 26 | Hotter Fires | the Blast Furnace, 6 Steel Plate batches | 20 embercoal, 8 rivets | 18.3 |
+| 27 | Hide and Rivet | craft and wear the Riveted Cuirass and Legguards | 6 leather, 6 cloth | 17.8 |
+| 28 | Steel Underfoot | 4 Fortified foundations | 6 copper wire, 8 rivets | 18.8 |
+| 29 | Pack Mule | craft and wear the Ranger Pack, 10 Depot crates | 10 embercoal, 4 glue | 18.4 |
+| 30 | The Last Wall | 8 Fortified walls and a Fortified door | 4 cloth, 4 copper wire | 22.3 |
+| 31 | Breathe Easy | craft and wear the Gas Mask, 200 Hollow in Black fog | 2 First-Aid Kits, 1 tonic | 24.8 |
+| 32 | A Clean Room | the Apothecary, 4 Antiseptic batches, 2 First-Aid Kits | 3 brass gear, 2 coil spring, 5 dressings | 22.4 |
+| 33 | The Deep Black | 30 Depot crates, 300 more Hollow, level 28 | 2 trigger groups, 3 brass gear | 27.8 |
 
 ## 4. Items (23 new)
 
@@ -53,9 +54,9 @@ Opens after Hold the Line (25), two lines side by side like chapter 3.
 **Gas Mask:** head slot, defence 1, **fog resist 0.35**, and a **filter of 900 seconds**: it loses 1 durability a second in Dense or Black fog (`FogExposure.filterWear`), so it lasts about one full Black run and is re-crafted (2 leather, 2 cloth, 1 copper wire, 4 embercoal, 1 glue; quest 29). Black fog fills an unprotected meter in 4 min; mask plus Padded body pieces 13.3 min, plus Hidebound 18.2 min, plus Riveted the 0.8 cap (20 min, a full run without fog damage).
 - **For the economy batch (not retuned here):** with the mask, `maxResist` 0.8 now binds for Hidebound and Riveted wearers, so Black fog stops hurting a geared player. Consider 0.75 (16 min) or a rising `ratePerTier` in band 3.
 
-**Bags (F-37):** Reed Satchel +5 → **Hide Rucksack +8** (4 leather, 3 rope, 2 cloth; quest 9) → Scrap Pack Frame +10 (schematic) → **Ranger Pack +15** (consumes the Pack Frame, plus 6 leather, 4 cloth, 2 steel plate, 2 rivets; quest 27). `maxBackpackSlots` rises from 15 to 20 (the +15 bag and the Pack Expansion).
+**Bags (F-37):** Reed Satchel +5 → **Hide Rucksack +8** (4 leather, 3 rope, 2 cloth; quest 13, Into the Black: at quest 9 the model's Reinforced tier fell to day 9.8, under its band) → Scrap Pack Frame +10 (schematic) → **Ranger Pack +15** (consumes the Pack Frame, plus 6 leather, 4 cloth, 4 scrap plate, 4 rivets; quest 27). `maxBackpackSlots` rises from 15 to 20 (the +15 bag and the Pack Expansion).
 
-**Meds ladder** (instant, then healing over time, `Domain/Meds`; up to 3 heal at once): Field Dressing 40 (LDoE's bandage, unchanged) → **Trauma Pouch** 25 + 40 over 10 s (2 dressings, 1 leather, 1 glue; quest 21) → **First-Aid Kit** 40 + 60 over 12 s (2 pouches, 2 Antiseptic Tablets, 1 plate; quest 28) → **Ember Stim** 50 + 50 over 5 s (Depot strongbox; a shop SKU later).
+**Meds ladder** (instant, then healing over time, `Domain/Meds`; up to 3 heal at once): Field Dressing 40 (LDoE's bandage, unchanged) → **Trauma Pouch** 25 + 40 over 10 s (2 dressings, 1 leather, 1 glue; quest 21) → **First-Aid Kit** 40 + 60 over 12 s (2 pouches, 2 Antiseptic Tablets, 1 plate; quest 30) → **Ember Stim** 60 + 50 over 5 s (Depot strongbox; a shop SKU later).
 
 **Materials:** Steel Plate, Antiseptic Tablets (both also rare loot, so neither waits on its station).
 
@@ -71,11 +72,11 @@ Opens after Hold the Line (25), two lines side by side like chapter 3.
 | `zone_pack_t3` (Black) | Field Knife 2, Hidebound Cap 3, Hidebound Boots 3, Steel Helmet 2, Trauma Pouch 3, Antiseptic 3 |
 | `caravan_wagon` (Dense event) | Hidebound Cap 3, Hidebound Boots 3, Steel Helmet 2, Gas Mask 1, Trauma Pouch 3 |
 | `depot_freight` (Black) | Hidebound Coat 2, Gas Mask 1, First-Aid Kit 2, Steel Plate 2 |
-| `depot_strongbox` (Black) | Riveted Helm 1, Combat Helmet 1, Plate Carrier 1, Ranger Pack 1, Ember Stim 2 (all `rarity = "rare"` for pity, so the blueprint pity keeps its meaning) |
+| `depot_strongbox` (Black) | Riveted Helm 1, Combat Helmet 1, Plate Carrier 1, Ranger Pack 1, Ember Stim 2 (all `rarity = "rare"` here, so the blueprint pity keeps its meaning) |
 
 ## 6. Pacing
 
-`tests/Pacing.spec` keeps every existing band on the 21-day model and adds a 30-day run with the content: the Hide Rucksack from quest 9, the Ranger Pack from quest 29, Gas Mask upkeep on Black runs, chapter 4's quests, and a fifth goal (the Fortified tier: 4 foundations, 8 walls, doorway and door, the Blast Furnace and the Apothecary). Asserts: chapter 4 opens within 2 days of quest 25, no gap over 4 days, ends by day 30; the Fortified goal lands in days 22-30. Loot-only items (bat, fork, helmets, Plate Carrier, stims) are extras the model doesn't count; the knife and hand axe don't beat the Scrapblade the model carries.
+`tests/Pacing.spec` models the content on: the Hide Rucksack from quest 13, the Ranger Pack from quest 29, a Gas Mask re-made whenever a Black run spends its filter, chapter 4's quests, and a fifth goal (the Reinforced room taken to Fortified, two Blast Furnaces, the Apothecary) whose pieces wait for the trail. Every existing band stays green on the 21-day runs. A 30-day run adds: at 2.5 h a day chapter 4 opens within 2 days of quest 25, no gap over 4 days, ends on day 27.8, Fortified lands on day 24.8 (band 22-30); at 3 h it ends on day 23.8; at 2 h, 7 of 8 quests by day 30 (Fortified 29.8). Two sim changes: a loaded station gets fuel between demands, and a quest's crates can steer runs (`seek`). Loot-only and side-grade items (bat, fork, knife, hand axe, helmets, set caps and boots, Plate Carrier, Ember Stim) are listed as extras the model doesn't count; a spec keeps that list complete.
 
 ## 7. Models and icons for the Studio pass (nothing uploaded here)
 

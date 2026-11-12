@@ -199,7 +199,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.combat_helmet", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
 			{ itemId = "item.plate_carrier", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
 			{ itemId = "item.ranger_pack", weight = 1, min = 1, max = 1, rarity = "rare", feature = "content2" },
-			{ itemId = "item.ember_stim", weight = 2, min = 1, max = 1, feature = "content2" },
+			{ itemId = "item.ember_stim", weight = 2, min = 1, max = 1, rarity = "rare", feature = "content2" },
 		},
 		guaranteed = { { itemId = "item.rivets", count = 2 } },
 		-- Bad-luck protection: a blueprint at least once in every 5 strongboxes.
