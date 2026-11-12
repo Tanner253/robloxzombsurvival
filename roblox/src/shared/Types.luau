@@ -855,6 +855,8 @@ export type HollowTuning = {
 	maxActive: number, -- per lobby
 	spawnSpreadStuds: number, -- spawns at least this far from players
 	hitRadiusStuds: number, -- a Hollow's body for hit tests (Domain/Plane)
+	-- F-19: extra Hollow per seated survivor past freePlayers (Domain/HollowAI.crowdExtra).
+	crowd: { freePlayers: number, perPlayer: number },
 }
 
 -- LDoE parity rulings for slice 2 (docs/LDOE_PARITY.md) ------------------------------------

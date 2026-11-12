@@ -421,6 +421,9 @@ local Tuning: Types.TuningDef = {
 		fleeSeconds = 3,
 		maxActive = 60,
 		spawnSpreadStuds = 40,
+		-- F-19: band 1 spawns one more Shambler for every seated survivor past two, topped up
+		-- as they join (HollowAI.crowdExtra): Pine Hollow's 6-9 become 16-19 at 12.
+		crowd = { freePlayers = 2, perPlayer = 1 },
 		hitRadiusStuds = 1.6,
 	},
 	-- Robux prices of the v0.1 shop (MVP_LAUNCH Monetization v0.1; the ladder is
