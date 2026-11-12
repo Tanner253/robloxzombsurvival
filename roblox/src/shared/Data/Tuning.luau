@@ -12,17 +12,21 @@ local Tuning: Types.TuningDef = {
 	-- (Shared/DevSpeed). Live servers always run at 1.
 	devSpeed = 1, -- timers only, opt-in: Workspace attribute "DevSpeed" in Studio (Shared/DevSpeed)
 	energy = {
-		-- LDOE_PARITY #38 (binding): cap 200 at 1 per 5 min, as LDoE; Runs cost 15/22/33
-		-- by fog tier (Data/Locations). Food restoring Energy goes in slice 1 (#33).
-		cap = 200,
+		-- LDOE_PARITY #38: 1 per 5 min, as LDoE; Runs cost 15/22/33 by fog tier (Data/Locations).
+		-- The cap is 120, not LDoE's 200 (the flow review's F-16): at 200 a night's regen was
+		-- all banked and a 2.5 h-a-day player never ran dry (5 short moments in 233 runs in
+		-- Pacing.spec); at 120 the night tops out, the Black-heavy sessions run short (33) and
+		-- the Refill, Rations and VIP's +40 cap have a moment. A new player starts full.
+		cap = 120,
 		secondsPerPoint = 5 * 60,
 		hardCap = 400,
 		levelUpRestore = 20,
 		foodDailyCap = 40,
 		-- The content parity audit's BR-9: all location quests together pay at most this many
-		-- Trail Rations (60 Energy each) a UTC day per player, whatever their data says, so
-		-- the dailies can't out-earn the day's regen (Domain/Quests.payLocationQuest).
-		locationQuestRations = { itemId = "item.rations", perDay = 2 },
+		-- Trail Rations (60 Energy each) a UTC day per player, whatever their data says
+		-- (Domain/Quests.payLocationQuest). 0 since F-16: 2 a day was 120 free Energy, a whole
+		-- cap, and the dailies kept the Refill idle. They still pay their XP and other items.
+		locationQuestRations = { itemId = "item.rations", perDay = 0 },
 	},
 	inventory = {
 		pocketSlots = 10, -- LDoE's 10 pockets
@@ -346,8 +350,9 @@ local Tuning: Types.TuningDef = {
 		killShare = 0.5,
 	},
 	airdrops = {
-		-- LDOE_PARITY #43: up to three a day, as Energy falls below 140, 80 and 20.
-		thresholds = { 140, 80, 20 },
+		-- LDOE_PARITY #43: up to three a day, as Energy falls below 140, 80 and 20 of LDoE's 200
+		-- (70%, 40% and 10%); the same shares of our 120 cap (F-16).
+		thresholds = { 84, 48, 12 },
 		locationId = "loc.supply_drop",
 		pinSeconds = 2 * 60 * 60,
 	},

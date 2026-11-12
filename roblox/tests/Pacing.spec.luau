@@ -39,6 +39,7 @@ local BuildPieces = require("../src/shared/Data/BuildPieces")
 local Levels = require("../src/shared/Data/Levels")
 local Quests = require("../src/shared/Data/Quests")
 local Tuning = require("../src/shared/Data/Tuning")
+local Features = require("../src/shared/Features")
 local process = require("@lune/process")
 
 -- Generated from tools/economy/pacing.py (LOOT): ECONOMY §7's tables, with the §7.4 deltas.
@@ -233,7 +234,7 @@ local LOOT: { [string]: Types.LootTableDef } = {
 			{ itemId = "item.cloth", weight = 25, min = 1, max = 2 },
 			{ itemId = "item.rope", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.sealed_tin", weight = 15, min = 1, max = 1 },
-			{ itemId = "item.scrap", weight = 25, min = 2, max = 4 },
+			{ tableId = "loot.junk", weight = 25, min = 1, max = 1 }, -- Data/LootTables: junk, not scrap
 			{ itemId = "item.field_dressing", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
 		},
@@ -242,7 +243,8 @@ local LOOT: { [string]: Types.LootTableDef } = {
 		id = "loot.pine_band3",
 		rolls = { min = 1, max = 1 },
 		entries = {
-			{ itemId = "item.scrap", weight = 43, min = 3, max = 5 },
+			{ itemId = "item.scrap", weight = 25, min = 3, max = 5 },
+			{ tableId = "loot.junk", weight = 18, min = 1, max = 1 },
 			{ itemId = "item.rivets", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.coil_spring", weight = 12, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 10, min = 1, max = 1 },
@@ -1088,7 +1090,8 @@ local function model(minutesPerSession: number, fallback: boolean, days: number?
 end
 
 -- Every recipe, Fog Runs ones included (the bundle strips them while the flag is off).
-local function content(fallback: boolean): PacingSim.Content
+-- `live`: the game as it ships while content2 is off (Features.strip with the flag off).
+local function content(fallback: boolean, live: boolean?): PacingSim.Content
 	local result: Types.Content = {
 		Items = Items,
 		Recipes = Recipes,
@@ -1117,7 +1120,43 @@ local function content(fallback: boolean): PacingSim.Content
 		result.Tuning = tuning
 		StationFallback.apply(result)
 	end
+	if live then
+		local tuning: any = table.clone(result.Tuning)
+		tuning.features = table.clone(tuning.features)
+		tuning.features.content2 = false
+		result.Tuning = tuning
+		Features.strip(result)
+	end
 	return result :: any
+end
+
+-- The model of the live game while content2 is off: no chapter 4, no Fortified goal, no bag
+-- past the Pack Frame and no Gas Mask (all of them are content2).
+local function liveModel(settings: PacingSim.Model, stripped: PacingSim.Content): PacingSim.Model
+	local kept: { PacingSim.Goal } = {}
+	for _, goal in settings.goals do
+		if goal.name ~= "fortified" then
+			table.insert(kept, goal)
+		end
+	end
+	settings.goals = kept
+	local later: { PacingSim.LaterQuest } = {}
+	for _, entry in settings.laterQuests do
+		if stripped.Quests[entry.questId] then
+			table.insert(later, entry)
+		end
+	end
+	settings.laterQuests = later
+	local priority: { string } = {}
+	for _, id in settings.priority do
+		if string.sub(id, 1, 6) ~= "build." or stripped.BuildPieces[id] then
+			table.insert(priority, id)
+		end
+	end
+	settings.priority = priority
+	settings.bagLadder = nil
+	settings.fogGear = nil
+	return settings
 end
 
 -- The day each quest of an Ember Trail chapter was paid (math.huge if never), in pay order.
@@ -1139,13 +1178,18 @@ local function chapterDays(result: PacingSim.Result, chapter: string): { { id: s
 end
 
 local cache: { [string]: PacingSim.Result } = {}
-local function run(minutesPerSession: number, fallback: boolean?, days: number?): PacingSim.Result
-	local key = `{minutesPerSession}{if fallback then "f" else ""}{if days then `d{days}` else ""}`
+local function run(minutesPerSession: number, fallback: boolean?, days: number?, live: boolean?): PacingSim.Result
+	local key =
+		`{minutesPerSession}{if fallback then "f" else ""}{if days then `d{days}` else ""}{if live then "live" else ""}`
 	local cached = cache[key]
 	if cached then
 		return cached
 	end
+	local data = content(fallback == true, live)
 	local settings = model(minutesPerSession, fallback == true, days)
+	if live then
+		settings = liveModel(settings, data)
+	end
 	if process.env.PACING_TRACE == key then
 		settings.trace = function(minute: number, message: string)
 			print(
@@ -1153,7 +1197,7 @@ local function run(minutesPerSession: number, fallback: boolean?, days: number?)
 			)
 		end
 	end
-	local result = PacingSim.run(content(fallback == true), settings)
+	local result = PacingSim.run(data, settings)
 	cache[key] = result
 	if process.env.PACING_VERBOSE then
 		local function stamp(minute: number?): string
@@ -1168,13 +1212,14 @@ local function run(minutesPerSession: number, fallback: boolean?, days: number?)
 			)
 		end
 		print(
-			`  [{2 * minutesPerSession} min/day{if fallback then ", fallback" else ""}] Hold the Line: {table.concat(
-				trail,
-				", "
-			)}; L25 {stamp(result.levelAt[25])}`
+			`  [{2 * minutesPerSession} min/day{if fallback then ", fallback" else ""}{if live
+				then ", content2 off"
+				else ""}] Hold the Line: {table.concat(trail, ", ")}; L25 {stamp(result.levelAt[25])}`
 		)
 		print(
-			`  [{2 * minutesPerSession} min/day{if fallback then ", fallback" else ""}] hook {if result.milestones.hook
+			`  [{2 * minutesPerSession} min/day{if fallback then ", fallback" else ""}{if live
+				then ", content2 off"
+				else ""}] hook {if result.milestones.hook
 				then PacingSim.playMinutes(result.milestones.hook, sessions)
 				else "-"} play-min, timber {stamp(result.milestones.timber)}, dense {stamp(
 				math.max(result.levelAt[8] or math.huge, result.flagAt.tower_dense or math.huge)
@@ -1183,7 +1228,7 @@ local function run(minutesPerSession: number, fallback: boolean?, days: number?)
 			)}, reinforced {stamp(result.milestones.reinforced)}, L20 {stamp(result.levelAt[20])}; runs {result.stats.runs}, broken {result.stats.brokenRuns}, starving {result.stats.starvingMinutes}, food {string.format(
 				"%.1f%%",
 				100 * result.stats.foodMinutes / math.max(1, result.stats.runMinutes)
-			)}, guns {result.stats.gunsCrafted}/{result.stats.gunRuns} runs, L5 {if result.levelAt[5]
+			)}, guns {result.stats.gunsCrafted}/{result.stats.gunRuns} runs, walks {result.stats.walks} ({result.stats.walkMinutes} min), energy {result.stats.energySpent}, short {result.stats.energyShort} (day 1: {result.stats.energyShortAt[1] or 0}), L5 {if result.levelAt[5]
 				then PacingSim.playMinutes(result.levelAt[5], sessions)
 				else "-"} play-min, L8 {stamp(result.levelAt[8])}, L15 {stamp(result.levelAt[15])}`
 		)
@@ -1372,7 +1417,9 @@ return function(test: TestKit.Register)
 		TestKit.truthy(stats.foodMinutes <= 0.15 * stats.runMinutes, "food time at most 15% of run time")
 		-- F-13 and F-14 dropped this to about 1 run in 20 (the floor went to 5%). With content2
 		-- modelled (chapter 4's plates and rivets, the Fortified goal) and loaded stations fuelled
-		-- between visits, melee breaks in about 1 run in 4 again, so the 10% floor is back.
+		-- between visits, melee breaks in about 1 run in 4 again, so the 10% floor is back. The
+		-- economy batch turned the junk lever (Pine Hollow's band 2 and 3 rows that were ammo
+		-- give junk, not scrap) and capped Energy at 120: about 1 run in 6, on or off.
 		TestKit.truthy(stats.brokenRuns >= 0.10 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
 		TestKit.truthy(stats.gunsCrafted > 0 and stats.gunRuns > 0, "the Pipe Pistol is used on Black runs")
 		-- 150 shots at 15 a Black run: a pistol lasts at most 10 runs, then it is re-crafted.
@@ -1389,6 +1436,37 @@ return function(test: TestKit.Register)
 			total += blades[d] or 0
 		end
 		TestKit.truthy(total >= 18 - scrapDay + 1, `{total} Scrapblades over days {scrapDay}-18`)
+	end)
+
+	-- The live game ships with content2 off: no chapter 4, no Fortified tier. Before the junk
+	-- lever melee broke in about 1 run in 20 there (the ammo rows had become scrap), so this
+	-- holds the live game to the same floor and bands as the content2 model.
+	test("2.5 h a day with content2 off (the live game): the bands hold and melee still breaks", function()
+		local result = run(75, false, nil, true)
+		local stats = result.stats
+		TestKit.truthy(result.milestones.fortified == nil, "no Fortified goal while content2 is off")
+		TestKit.truthy(day(result.milestones.timber) < 2, `Timber on day {day(result.milestones.timber)}`)
+		within(day(result.milestones.scrap), 3.0, 5.99, "Scrap tier")
+		within(opens(result, 15, "tower_black"), 5.0, 8.0, "Black fog")
+		within(day(result.milestones.reinforced), 10.0, 14.99, "Reinforced tier")
+		TestKit.equal(stats.starvingMinutes, 0, "starving minutes")
+		TestKit.truthy(stats.brokenRuns >= 0.10 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
+	end)
+
+	-- The flow review's F-16: at a 200 cap the reference player wanted a Run they couldn't pay
+	-- for 5 times in 233 runs, so the Refill never had a moment. The 120 cap tops out the night.
+	test("F-16: Energy binds the way LDoE's does, harder the more you play, never on day one", function()
+		for _, minutes in { 60, 75, 90 } do
+			local stats = run(minutes).stats
+			TestKit.equal(stats.energyShortAt[1], nil, `{2 * minutes} min/day: short of Energy on day one`)
+		end
+		local reference = run(75).stats
+		TestKit.truthy(
+			reference.energyShort >= 0.10 * reference.runs,
+			`2.5 h a day: short of Energy {reference.energyShort} times in {reference.runs} runs`
+		)
+		TestKit.truthy(run(90).stats.energyShort > reference.energyShort, "3 h a day runs short more often")
+		TestKit.truthy(run(60).stats.energyShort > 0, "2 h a day still meets it")
 	end)
 
 	test("2 h a day (2 x 60 min): the low edge still lands", function()

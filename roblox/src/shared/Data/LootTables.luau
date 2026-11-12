@@ -260,7 +260,7 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 			{ itemId = "item.cloth", weight = 25, min = 1, max = 2 },
 			{ itemId = "item.rope", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.sealed_tin", weight = 15, min = 1, max = 1 },
-			{ itemId = "item.scrap", weight = 25, min = 2, max = 4 }, -- was arrows 15 and Light Rounds 10 (F-13)
+			{ tableId = "loot.junk", weight = 25, min = 1, max = 1 }, -- was arrows 15 and Light Rounds 10 (F-13): junk, not scrap (the melee-wear lever)
 			{ itemId = "item.field_dressing", weight = 10, min = 1, max = 1 },
 			{ itemId = "item.pitch_glue", weight = 5, min = 1, max = 1 },
 		},
@@ -269,7 +269,8 @@ local LootTables: { [Types.LootTableId]: Types.LootTableDef } = {
 		id = "loot.pine_band3",
 		rolls = { min = 1, max = 1 },
 		entries = {
-			{ itemId = "item.scrap", weight = 43, min = 3, max = 5 }, -- +18 from Light Rounds (F-13)
+			{ itemId = "item.scrap", weight = 25, min = 3, max = 5 },
+			{ tableId = "loot.junk", weight = 18, min = 1, max = 1 }, -- was Light Rounds 18 (F-13): junk, not scrap
 			{ itemId = "item.rivets", weight = 20, min = 1, max = 2 },
 			{ itemId = "item.coil_spring", weight = 12, min = 1, max = 1 },
 			{ itemId = "item.steel_pipe", weight = 10, min = 1, max = 1 },

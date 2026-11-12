@@ -495,9 +495,9 @@ return function(test: TestKit.Register)
 		TestKit.equal(countIn(big.rewards.items, "item.rations"), 3, "data untouched")
 	end)
 
-	test("the real dailies pay 2 Rations a day in total, in any order, from what the profile keeps", function()
+	test("the real dailies pay no Rations (F-16), in any order, and all their XP", function()
 		local cap = Content.Tuning.energy.locationQuestRations
-		TestKit.deepEqual(cap, CAP, "Tuning: 2 Trail Rations a day")
+		TestKit.deepEqual(cap, { itemId = "item.rations", perDay = 0 }, "Tuning: no Trail Rations from dailies")
 		local defs = Quests.locationQuestDefs(Content.Locations)
 		local paying: { Types.LocationQuest } = {}
 		local inData = 0

@@ -76,8 +76,8 @@ return function(test: TestKit.Register)
 		TestKit.equal(Content.Locations["loc.ashfall_depot"].levelGate, 15)
 	end)
 
-	test("LDOE_PARITY #38: cap 200, Runs 15/22/33 and Walks 12/19/29 min by tier", function()
-		TestKit.equal(ENERGY.cap, 200)
+	test("LDOE_PARITY #38: cap 120 (F-16), Runs 15/22/33 and Walks 12/19/29 min by tier", function()
+		TestKit.equal(ENERGY.cap, 120)
 		TestKit.equal(ENERGY.secondsPerPoint, 5 * 60)
 		local runs = { 15, 22, 33 }
 		local walks = { 12, 19, 29 }

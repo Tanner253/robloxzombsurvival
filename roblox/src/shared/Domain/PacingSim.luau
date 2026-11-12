@@ -216,6 +216,13 @@ export type Stats = {
 	shots: number,
 	crafted: { [string]: { [number]: number } }, -- recipe id -> day -> crafts
 	runsAt: { { minute: number, locationId: string, walk: boolean } },
+	walks: number, -- trips walked because Energy was short (the flow review's F-16)
+	walkMinutes: number,
+	energySpent: number,
+	-- Trip choices where the Run the player wanted most cost more Energy than they had (the
+	-- Refill's moment, F-16), in all and by day (1-based).
+	energyShort: number,
+	energyShortAt: { [number]: number },
 }
 
 export type Result = {
@@ -506,6 +513,11 @@ function PacingSim.run(content: Content, model: Model): Result
 		shots = 0,
 		crafted = {},
 		runsAt = {},
+		walks = 0,
+		walkMinutes = 0,
+		energySpent = 0,
+		energyShort = 0,
+		energyShortAt = {},
 	}
 	-- The model plays a player who follows the Ember Trail, so every line it loads is open.
 	local allQuests: { [string]: number } = {}
@@ -1613,7 +1625,8 @@ function PacingSim.run(content: Content, model: Model): Result
 
 	type Choice = { location: Location, walk: boolean, plan: Plan, cost: number }
 
-	local function chooseRun(sessionLeft: number): Choice?
+	-- The best trip, and whether Energy stood in the way of the one the player wanted most.
+	local function chooseRun(sessionLeft: number): (Choice?, boolean)
 		local short = deficits()
 		local need = needs()
 		local h, d = foodPoints()
@@ -1637,6 +1650,8 @@ function PacingSim.run(content: Content, model: Model): Result
 		end
 		local best: Choice? = nil
 		local bestRate = -math.huge
+		local ideal: Location? = nil
+		local idealRate = -math.huge
 		for _, location in model.locations do
 			if current < location.level then
 				continue
@@ -1674,6 +1689,14 @@ function PacingSim.run(content: Content, model: Model): Result
 					end
 				end
 			end
+			-- The trip the player would Run with Energy to spare: when it costs more than they
+			-- have, the Fog map greys its Run and offers the Refill (F-16's binding moment).
+			if sessionLeft >= plan.minutes + 1 then
+				local runRate = value / (plan.minutes + 0.1 + model.energyWeight * location.energy)
+				if ideal == nil or runRate > idealRate then
+					ideal, idealRate = location, runRate
+				end
+			end
 			local walk: boolean? = nil
 			local spend = 0
 			if energy >= location.energy then
@@ -1690,7 +1713,7 @@ function PacingSim.run(content: Content, model: Model): Result
 				bestRate = rate
 			end
 		end
-		return best
+		return best, ideal ~= nil and energy < (ideal :: Location).energy
 	end
 
 	-- Home -------------------------------------------------------------------------------------
@@ -1833,7 +1856,11 @@ function PacingSim.run(content: Content, model: Model): Result
 			gatherHome()
 			continue
 		end
-		local choice = chooseRun(sessionLeft)
+		local choice, short = chooseRun(sessionLeft)
+		if short then
+			stats.energyShort += 1
+			stats.energyShortAt[day + 1] = (stats.energyShortAt[day + 1] or 0) + 1
+		end
 		if choice == nil then
 			advance(math.min(10, sessionLeft), true)
 			continue
@@ -1842,8 +1869,12 @@ function PacingSim.run(content: Content, model: Model): Result
 		stats.runMinutes += choice.cost
 		stats.foodMinutes += choice.plan.food
 		stats.runs += 1
-		if not choice.walk then
+		if choice.walk then
+			stats.walks += 1
+			stats.walkMinutes += location.walkMinutes
+		else
 			energy -= location.energy
+			stats.energySpent += location.energy
 		end
 		if location.dailyReset then
 			depotRunsToday += 1

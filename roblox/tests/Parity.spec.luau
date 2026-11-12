@@ -214,6 +214,17 @@ return function(test: TestKit.Register)
 		near(FogExposure.step(config.max - 1, 100, 3, 0, config), config.max, "clamped")
 	end)
 
+	-- #15 stacks ----------------------------------------------------------------------------------
+	test("#15 every stack is 20, scrap 50, gear 1 (the flow review's F-31)", function()
+		for id, item in Content.Items do
+			if id == "item.scrap" then
+				TestKit.equal(item.stackSize, 50, id)
+			elseif item.stackSize ~= 1 then
+				TestKit.equal(item.stackSize, 20, id)
+			end
+		end
+	end)
+
 	-- #40 travel bonus prices --------------------------------------------------------------------
 	test("#40 TAKE is an ad per item; TAKE ALL is Rations", function()
 		TestKit.deepEqual(TravelBonus.price("one", TUNING.travelBonus), { method = "ad", count = 1 })
@@ -221,18 +232,20 @@ return function(test: TestKit.Register)
 	end)
 
 	-- #43 airdrops, gates, hurry ------------------------------------------------------------------
-	test("#43 airdrops land as Energy falls below 140, 80 and 20, once each a day", function()
+	test("#43 airdrops land as Energy falls below 70%, 40% and 10% of the cap, once each a day", function()
 		local config = TUNING.airdrops
+		-- LDoE's 140, 80 and 20 of its 200, on our 120 cap (the flow review's F-16).
+		TestKit.deepEqual(config.thresholds, { 84, 48, 12 })
 		local day = { day = 0, fired = {} }
-		local crossed, day1 = FogMap.airdropsCrossed(150, 130, day, T0, config)
-		TestKit.deepEqual(crossed, { 140 })
-		local again = FogMap.airdropsCrossed(150, 130, day1, T0 + 60, config)
+		local crossed, day1 = FogMap.airdropsCrossed(100, 80, day, T0, config)
+		TestKit.deepEqual(crossed, { 84 })
+		local again = FogMap.airdropsCrossed(100, 80, day1, T0 + 60, config)
 		TestKit.deepEqual(again, {}, "not twice in a day")
-		local both = FogMap.airdropsCrossed(100, 10, day1, T0 + 120, config)
-		TestKit.deepEqual(both, { 80, 20 }, "a big spend crosses two")
-		local tomorrow = FogMap.airdropsCrossed(150, 130, day1, T0 + DAY, config)
-		TestKit.deepEqual(tomorrow, { 140 }, "a new day")
-		TestKit.deepEqual((FogMap.airdropsCrossed(130, 150, day, T0, config)), {}, "regen never triggers")
+		local both = FogMap.airdropsCrossed(60, 5, day1, T0 + 120, config)
+		TestKit.deepEqual(both, { 48, 12 }, "a big spend crosses two")
+		local tomorrow = FogMap.airdropsCrossed(100, 80, day1, T0 + DAY, config)
+		TestKit.deepEqual(tomorrow, { 84 }, "a new day")
+		TestKit.deepEqual((FogMap.airdropsCrossed(80, 100, day, T0, config)), {}, "regen never triggers")
 	end)
 
 	test("#43 an airdrop pin opens the drop location, once", function()
