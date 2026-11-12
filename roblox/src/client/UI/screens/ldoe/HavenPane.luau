@@ -41,6 +41,8 @@ export type Props = {
 	havenId: string,
 	haven: any, -- the "haven" section (nil until it arrives)
 	inventory: any,
+	-- The home pool (bag, crates, inbox): what the Trader buys and contracts take (F-35).
+	pooled: any,
 	now: number,
 	tab: string?, -- the Trader's tab: "buy" (default) or "sell"
 }
@@ -229,7 +231,7 @@ local function Trader(props: Props)
 	local rows: { [string]: any } = {}
 	local list: { Market.Price } = if selling then Content.Haven.trader.sell else Content.Haven.trader.buy
 	for index, price in list do
-		local owned = format.count(props.inventory, price.itemId)
+		local owned = format.count(props.pooled, price.itemId)
 		local buttons: { [string]: any }
 		if selling then
 			buttons = {
@@ -308,7 +310,7 @@ local function Contracts(props: Props)
 	local order = 0
 	for _, contract in (if haven then haven.contracts else {}) do
 		order += 1
-		local owned = format.count(props.inventory, contract.itemId)
+		local owned = format.count(props.pooled, contract.itemId)
 		local name = format.itemName(contract.itemId)
 		rows[contract.id] = e(Row, {
 			itemId = contract.itemId,

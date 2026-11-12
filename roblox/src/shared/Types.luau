@@ -635,7 +635,7 @@ export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" 
 export type Features = {
 	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
 	aiRaiders: boolean, -- M2: AI survivor bands backfill short lobbies
-	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift (cut from v0.1, MVP_LAUNCH)
+	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift until level 10 (on, F-33)
 	regionGates: boolean, -- M4: LDOE_PARITY #43's signal towers before Dense and Black fog
 	airdrops: boolean, -- M4: LDOE_PARITY #43's supply drops as Energy falls
 	wildlife: boolean, -- LDOE_PARITY #35's deer and wolves, and the venison lines that need them

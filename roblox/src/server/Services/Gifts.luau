@@ -39,7 +39,7 @@ end
 
 function Gifts.start()
 	if not Features.on(Content.Tuning, "dailyGift") then
-		return -- cut from v0.1 (docs/MVP_LAUNCH.md)
+		return -- switched off in Tuning.features (on for launch, F-33)
 	end
 	PlayerData.loaded:Connect(check)
 	for _, player in Players:GetPlayers() do

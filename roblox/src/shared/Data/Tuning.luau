@@ -212,7 +212,9 @@ local Tuning: Types.TuningDef = {
 	features = {
 		fogRuns = true,
 		aiRaiders = false, -- M2
-		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
+		-- LDOE_PARITY #58: on for launch (the flow review's F-33). MVP_LAUNCH never cut it; the old
+		-- "cut" note was wrong, and a new player needs the food and water cushion F-05 made matter.
+		dailyGift = true,
 		-- M4 (docs/MVP_LAUNCH.md): built and tested on the server, no client UI yet. Off, Dense
 		-- and Black fog open on the level gate alone, and no airdrops land.
 		regionGates = false,

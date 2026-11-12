@@ -2,7 +2,9 @@
 --[[
 	Contracts: the daily contract board at Haven Square (Data/Haven.contracts). Each
 	survivor gets `perDay` contracts a UTC day, the same all day (seeded by the day and the
-	user), each delivered once for coins and XP. A new day brings a fresh three.
+	user), each delivered once for coins and XP. A new day brings a fresh three. The board
+	asks only for what the player can get now (`eligible`, the flow review's F-35: a contract
+	for Planks before the Saw Bench was a dead card).
 ]]
 
 local Rng = require("./Rng")
@@ -16,6 +18,18 @@ local DAY = 24 * 60 * 60
 
 function Contracts.dayOf(now: number): number
 	return now // DAY
+end
+
+-- The pool's contracts whose item the player can get now (gathered, or made with what is
+-- unlocked), in pool order.
+function Contracts.eligible(pool: { Contract }, canGet: (itemId: string) -> boolean): { Contract }
+	local result: { Contract } = {}
+	for _, contract in pool do
+		if canGet(contract.itemId) then
+			table.insert(result, contract)
+		end
+	end
+	return result
 end
 
 -- The day's contracts for this survivor: `count` distinct entries of the pool.

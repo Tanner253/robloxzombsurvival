@@ -109,6 +109,59 @@ return function(test: TestKit.Register)
 		has("src/server/Services/Inbox.luau", 'Events.played:Fire(player, { kind = "consume"', "InboxUse reports")
 	end)
 
+	test("F-33: the daily food and water gift ships on, for new survivors only", function()
+		TestKit.equal(Content.Tuning.features.dailyGift, true, "LDOE_PARITY #58, on for launch")
+		TestKit.truthy(Content.Tuning.dailyGift.untilLevel > 1, "until a level")
+		TestKit.equal(
+			string.find(fs.readFile("src/shared/Data/Tuning.luau"), "cut from v0.1", 1, true),
+			nil,
+			"no false reason left"
+		)
+	end)
+
+	test("F-35: Haven asks only for what you can get, and takes it from the home pool", function()
+		local Contracts = require("../src/shared/Domain/Contracts")
+		local ItemSources = require("../src/shared/Domain/ItemSources")
+		local fresh: any = { level = 1, unlocks = { recipes = {}, blueprints = {} }, quests = { completed = {} } }
+		local pool: { Contracts.Contract } = Content.Haven.contracts.pool :: any
+		local early = Contracts.eligible(pool, function(itemId: string): boolean
+			return ItemSources.obtainable(Content :: any, itemId, fresh)
+		end)
+		local asked: { [string]: boolean } = {}
+		for _, contract in early do
+			asked[contract.itemId] = true
+		end
+		TestKit.truthy(asked["item.timber"], "timber is chopped from day one")
+		TestKit.equal(asked["item.plank"], nil, "no Planks before the Saw Bench")
+		TestKit.truthy(#early >= Content.Haven.contracts.perDay, "still a full board on day one")
+		local everything: any = { level = 99, unlocks = { recipes = {}, blueprints = {} }, quests = { completed = {} } }
+		for id in Content.Quests do
+			everything.quests.completed[id] = 1
+		end
+		local late = Contracts.eligible(pool, function(itemId: string): boolean
+			return ItemSources.obtainable(Content :: any, itemId, everything)
+		end)
+		TestKit.equal(#late, #pool, "the whole pool once the trail is done")
+		local haven = "src/server/Services/Haven.luau"
+		has(haven, 'Materials.take(player, { { itemId = itemId, count = count } }, "Trader")', "the Trader")
+		has(
+			haven,
+			'Materials.take(player, { { itemId = contract.itemId, count = contract.count } }, "Contract")',
+			"contracts"
+		)
+		has(haven, "Contracts.eligible(havenData.contracts.pool", "the board")
+		has("src/client/UI/screens/ldoe/HavenPane.luau", "format.count(props.pooled, contract.itemId)", "have counts")
+		has("src/client/UI/screens/ldoe/Panels.luau", "pooled = pooled,", "the pane gets the pool")
+	end)
+
+	test("F-38: every Ember Trail chapter, Into the Fog too, has a Trail Keeper reward", function()
+		for _, quest in Content.Quests do
+			local reward = Content.Haven.chapterRewards[quest.chapter]
+			TestKit.truthy(reward ~= nil and (reward.coins > 0 or #reward.items > 0), quest.chapter)
+		end
+		TestKit.truthy(Content.Haven.chapterRewards["Into the Fog"] ~= nil, "chapter 2")
+	end)
+
 	test("F-36: a Walk is saved in the profile and resumes on the next visit", function()
 		local trip: TravelMath.Trip = {
 			destinationId = "loc.pine_hollow",

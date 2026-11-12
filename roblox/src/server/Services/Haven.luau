@@ -3,7 +3,8 @@
 	Haven: the people and perks of Haven Square (Data/Haven; World/Haven builds the square).
 
 	- Trader: HavenBuy(itemId, count) pays coins for her stock; HavenSell(itemId, count)
-	  takes items from the bag for coins (Domain/Market). Coins live in the profile.
+	  takes items from the home pool (bag, crates, inbox; Services/Materials, F-35) for coins
+	  (Domain/Market). Coins live in the profile.
 	- Contracts: three a UTC day per survivor (Domain/Contracts). ContractDeliver(id)
 	  takes the items and pays coins and XP, once a day per contract.
 	- Chapter hand-ins: ChapterClaim(chapter) pays a finished Ember Trail chapter's
@@ -32,6 +33,7 @@ local RunService = game:GetService("RunService")
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Contracts = require(ReplicatedStorage.Shared.Domain.Contracts)
+local ItemSources = require(ReplicatedStorage.Shared.Domain.ItemSources)
 local Market = require(ReplicatedStorage.Shared.Domain.Market)
 local Neighbourhood = require(ReplicatedStorage.Shared.Domain.Neighbourhood)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -39,6 +41,7 @@ local HavenWorld = require("../World/Haven")
 local Analytics = require("./Analytics")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
+local Materials = require("./Materials")
 local Net = require("../Net")
 local PlayerData = require("./PlayerData")
 local Progression = require("./Progression")
@@ -120,7 +123,12 @@ local function board(player: Player, data: any): ({ Contracts.Contract }, Contra
 	local day = Contracts.dayOf(os.time())
 	local state = Contracts.today(data.haven.contracts, day)
 	data.haven.contracts = state
-	return Contracts.forDay(havenData.contracts.pool, havenData.contracts.perDay, player.UserId, day), state
+	-- F-35: only what the player can get now (no Planks before the Saw Bench).
+	local progress = { level = data.progression.level, unlocks = data.unlocks, quests = data.quests }
+	local pool = Contracts.eligible(havenData.contracts.pool, function(itemId: string): boolean
+		return ItemSources.obtainable(Content :: any, itemId, progress :: any)
+	end)
+	return Contracts.forDay(pool, havenData.contracts.perDay, player.UserId, day), state
 end
 
 -- Trader ---------------------------------------------------------------------------------------
@@ -165,7 +173,8 @@ local function sell(player: Player, itemId: string, count: number)
 	if value == nil then
 		return
 	end
-	if not Inventory.take(player, { { itemId = itemId, count = count } }, "Trader") then
+	-- F-35: the Trader buys from the whole home pool (bag, crates, inbox), like building does.
+	if not Materials.take(player, { { itemId = itemId, count = count } }, "Trader") then
 		Sync.notice(player, `You don't have {count} {itemName(itemId)}`, "warn")
 		return
 	end
@@ -190,7 +199,8 @@ local function deliver(player: Player, contractId: string)
 		Sync.mark(player, "haven")
 		return
 	end
-	if not Inventory.take(player, { { itemId = contract.itemId, count = contract.count } }, "Contract") then
+	-- F-35: a delivery draws on the home pool too: no carrying a crate's worth by hand.
+	if not Materials.take(player, { { itemId = contract.itemId, count = contract.count } }, "Contract") then
 		Sync.notice(player, `You need {contract.count} {itemName(contract.itemId)}`, "warn")
 		return
 	end
