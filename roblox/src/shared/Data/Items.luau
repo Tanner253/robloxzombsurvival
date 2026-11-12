@@ -1243,7 +1243,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "head",
-		armor = { defense = 4, fogResist = 0.12 },
+		armor = { defense = 4, fogResist = 0.1 },
 		feature = "content2",
 	},
 	["item.hidebound_coat"] = {
@@ -1257,7 +1257,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "body",
-		armor = { defense = 8, fogResist = 0.18 },
+		armor = { defense = 8, fogResist = 0.16 },
 		feature = "content2",
 	},
 	["item.hidebound_leggings"] = {
@@ -1271,7 +1271,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "legs",
-		armor = { defense = 6, fogResist = 0.15 },
+		armor = { defense = 6, fogResist = 0.13 },
 		feature = "content2",
 	},
 	["item.hidebound_boots"] = {
@@ -1285,7 +1285,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 150,
 		icon = "",
 		equipSlot = "feet",
-		armor = { defense = 3, fogResist = 0.1 },
+		armor = { defense = 3, fogResist = 0.09 },
 		feature = "content2",
 	},
 
@@ -1301,7 +1301,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "head",
-		armor = { defense = 5, fogResist = 0.15 },
+		armor = { defense = 5, fogResist = 0.11 },
 		feature = "content2",
 	},
 	["item.riveted_cuirass"] = {
@@ -1315,7 +1315,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "body",
-		armor = { defense = 10, fogResist = 0.22 },
+		armor = { defense = 10, fogResist = 0.17 },
 		feature = "content2",
 	},
 	["item.riveted_legguards"] = {
@@ -1329,7 +1329,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "legs",
-		armor = { defense = 9, fogResist = 0.18 },
+		armor = { defense = 9, fogResist = 0.14 },
 		feature = "content2",
 	},
 	["item.riveted_boots"] = {
@@ -1343,7 +1343,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		durability = 180,
 		icon = "",
 		equipSlot = "feet",
-		armor = { defense = 4, fogResist = 0.12 },
+		armor = { defense = 4, fogResist = 0.09 },
 		feature = "content2",
 	},
 

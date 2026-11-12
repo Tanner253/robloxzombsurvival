@@ -384,11 +384,16 @@ local Tuning: Types.TuningDef = {
 		},
 	},
 	fogExposure = {
-		-- LDOE_PARITY #37: unprotected, Dense fog fills the meter in about 10 min and
-		-- Black in 4, inside a 15 min run; padded gear stretches that, sets will gate it.
+		-- LDOE_PARITY #37: unprotected, Dense fog fills the meter in about 10 min and Black in
+		-- 6.3, inside a 15 min run. The flow review's F-15: Black was 4 min, so a full Padded
+		-- set filled at 7.3 and band 3 (11.8 min) cost over 500 HP; at 380 s it fills at 11.5,
+		-- about one dressing short of band 3. Hidebound (12.2) and Riveted (12.9) buy a little
+		-- more. maxResist 0.56 is reached only with a Gas Mask's filter (14.4 min), so even
+		-- the best kit still bleeds before the lobby closes (it was 0.8: a geared player
+		-- never filled the meter, and Black stopped being a pay-or-prepare tier).
 		max = 100,
-		ratePerTier = { 0, 100 / 600, 100 / 240 },
-		maxResist = 0.8,
+		ratePerTier = { 0, 100 / 600, 100 / 380 },
+		maxResist = 0.56,
 		damagePerSecond = 2,
 	},
 	deathRecovery = {

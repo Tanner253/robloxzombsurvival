@@ -248,7 +248,8 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 13,
 		chapter = FOG,
 		name = "Into the Black",
-		description = "Grow strong enough for the Black fog and walk into it. The plans for reinforced walls are out there.",
+		-- F-15: the Black fog's two costs, said before the first trip.
+		description = "Grow strong enough for the Black fog and walk into it. The plans for reinforced walls are out there. The fog seeps in as you stay: wear a full padded set, carry dressings, and know that dying there leaves your gear behind.",
 		prerequisite = "quest.green_vein",
 		objectives = {
 			{ kind = "reachLevel", level = 15 }, -- the Black fog's level gate (GAME_DESIGN)

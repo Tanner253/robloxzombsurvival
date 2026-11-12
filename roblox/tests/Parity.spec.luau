@@ -190,10 +190,10 @@ return function(test: TestKit.Register)
 	end)
 
 	-- #37 fog exposure ---------------------------------------------------------------------------
-	test("#37 Dense fog fills the meter in about 10 min, Black in 4; armor slows it", function()
+	test("#37 Dense fog fills the meter in about 10 min, Black in 6.3; armor slows it", function()
 		local config = TUNING.fogExposure
 		near(FogExposure.secondsToFull(0, 2, 0, config), 600, "Dense, unprotected")
-		near(FogExposure.secondsToFull(0, 3, 0, config), 240, "Black, unprotected")
+		near(FogExposure.secondsToFull(0, 3, 0, config), 380, "Black, unprotected (F-15: was 240)")
 		TestKit.equal(FogExposure.secondsToFull(0, 1, 0, config), math.huge, "Light fog never fills")
 		local equipment = {
 			head = { itemId = "item.padded_hood", count = 1 },
@@ -212,6 +212,45 @@ return function(test: TestKit.Register)
 		TestKit.equal(FogExposure.damage(99, 1, config), 0, "no damage until full")
 		near(FogExposure.damage(config.max, 0.5, config), config.damagePerSecond * 0.5, "full: it hurts")
 		near(FogExposure.step(config.max - 1, 100, 3, 0, config), config.max, "clamped")
+	end)
+
+	-- The flow review's F-15: Black fog stays deadly, a full Padded set reaches band 3 for about
+	-- a dressing, and nothing keeps the fog out for a whole run.
+	test("F-15: Black fog kills the unprepared, Padded reaches band 3, the best kit still bleeds", function()
+		local config = TUNING.fogExposure
+		local lobby = TUNING.lobby
+		local function bandAt(band: number): number
+			return lobby.durationSeconds * lobby.bands[band].from ^ (1 / lobby.meterExponent)
+		end
+		-- Fog HP lost by the time `seconds` into a Black run, at this resist.
+		local function lost(resist: number, seconds: number): number
+			return math.max(0, seconds - FogExposure.secondsToFull(0, 3, resist, config)) * config.damagePerSecond
+		end
+		local health = TUNING.player.maxHealth
+		local dressing = (Content.Items["item.field_dressing"].consume :: any).health :: number
+		local function wearing(ids: { [string]: string }): number
+			local equipment: { [string]: any } = {}
+			for key, itemId in ids do
+				equipment[key] = { itemId = itemId, count = 1 }
+			end
+			return FogExposure.resist(equipment :: any, ITEMS, config)
+		end
+		local padded = wearing({
+			head = "item.padded_hood",
+			body = "item.padded_vest",
+			legs = "item.padded_leggings",
+			feet = "item.padded_boots",
+		})
+		near(padded, 0.45, "the full Padded set")
+		local hoodAndVest = wearing({ head = "item.padded_hood", body = "item.padded_vest" })
+		local band3 = bandAt(3)
+		TestKit.truthy(lost(0, bandAt(2) + 30) >= health, "unprotected: dead by band 2")
+		TestKit.truthy(lost(hoodAndVest, band3) > health, "hood and vest: band 3 is out of reach")
+		TestKit.truthy(lost(padded, band3) <= dressing, `full Padded: band 3 costs {lost(padded, band3)} HP`)
+		TestKit.truthy(lost(padded, lobby.durationSeconds) > health, "full Padded: staying to the close kills")
+		-- The cap: even at maxResist the meter fills before the lobby closes.
+		TestKit.truthy(lost(config.maxResist, lobby.durationSeconds) > 0, "the best kit still loses health")
+		TestKit.truthy(lost(config.maxResist, band3) == 0, "the best kit holds through band 3")
 	end)
 
 	-- #15 stacks ----------------------------------------------------------------------------------
