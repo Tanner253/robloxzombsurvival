@@ -73,6 +73,42 @@ return function(test: TestKit.Register)
 		has("src/client/UI/screens/ldoe/StationPane.luau", "Input = not passive and e(DropSlot", "no input slot")
 	end)
 
+	test("F-22: every quest line says where, and every step kind has a Guide pointer", function()
+		local QuestText = require("../src/shared/Domain/QuestText")
+		local Flags = require("../src/shared/Flags")
+		local Quests = require("../src/shared/Domain/Quests")
+		local content: any = Content
+		local kinds: { [string]: boolean } = {}
+		for id, quest in Content.Quests do
+			for _, objective in Quests.objectives(quest, Flags.DEFAULTS) do
+				local o: any = objective
+				kinds[o.kind] = true
+				local line = QuestText.objective(o, content)
+				local recipe = o.recipeId and Content.Recipes[o.recipeId]
+				if recipe and recipe.stationId then
+					local station = Content.Stations[recipe.stationId]
+					TestKit.truthy(string.find(line, `at the {station.name} and take it out`, 1, true), `{id}: {line}`)
+				elseif o.kind == "loot" and o.locationId then
+					TestKit.equal(line, `Search containers in {Content.Locations[o.locationId].name}`, id)
+				elseif o.kind == "reachLevel" then
+					TestKit.truthy(string.find(line, "XP", 1, true), `{id}: {line} says where XP comes from`)
+				end
+			end
+		end
+		TestKit.equal(
+			QuestText.objective({ kind = "craft", recipeId = "recipe.plank", count = 1 }, content),
+			`Make a {Content.Items["item.plank"].name} at the {Content.Stations[Content.Recipes["recipe.plank"].stationId :: string].name} and take it out`
+		)
+		-- The Guide has a pointer for every kind the trail uses.
+		local guide = fs.readFile("src/client/Controllers/Guide.luau")
+		for kind in kinds do
+			TestKit.truthy(string.find(guide, `"{kind}"`, 1, true), `the Guide points somewhere for "{kind}"`)
+		end
+		has("src/client/UI/questText.luau", "QuestText.objective(objective, Content", "the tracker uses it")
+		-- Water drunk from the inbox counts for a consume step, like water from the bag.
+		has("src/server/Services/Inbox.luau", 'Events.played:Fire(player, { kind = "consume"', "InboxUse reports")
+	end)
+
 	test("F-36: a Walk is saved in the profile and resumes on the next visit", function()
 		local trip: TravelMath.Trip = {
 			destinationId = "loc.pine_hollow",

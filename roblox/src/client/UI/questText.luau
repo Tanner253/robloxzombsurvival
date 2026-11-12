@@ -1,7 +1,7 @@
 --!strict
 --[[
 	questText: one line per Ember Trail objective, for the tracker and the quest screen
-	("Chop timber", "Build a Saw Bench", "Reach the crash site"), and the tracker's
+	("Build a Saw Bench", "Search containers in Pine Hollow"; Domain/QuestText), and the tracker's
 	rows from the synced quest state (Domain/Quests.tracker).
 ]]
 
@@ -9,48 +9,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Flags = require(ReplicatedStorage.Shared.Flags)
+local QuestText = require(ReplicatedStorage.Shared.Domain.QuestText)
 local Quests = require(ReplicatedStorage.Shared.Domain.Quests)
-local format = require("./format")
 
 local questText = {}
 
-local function article(name: string): string
-	local first = string.lower(string.sub(name, 1, 1))
-	return if string.find("aeiou", first, 1, true) then `an {name}` else `a {name}`
-end
-
+-- One line per objective, saying where (Domain/QuestText, the flow review's F-22).
 function questText.objective(objective: any): string
-	local kind = objective.kind
-	if kind == "gather" then
-		return `Gather {format.itemName(objective.itemId)}`
-	elseif kind == "craft" then
-		local recipe = Content.Recipes[objective.recipeId]
-		local name = if recipe then format.itemName(recipe.outputs[1].itemId) else "something"
-		return if recipe and recipe.stationId then `Make {name}` else `Craft {article(name)}`
-	elseif kind == "build" then
-		local piece = Content.BuildPieces[objective.pieceId]
-		return `Build {article(if piece then piece.name else "piece")}`
-	elseif kind == "travel" then
-		if objective.locationId == nil and objective.fogTier then
-			local tier = Content.Tuning.travel.fogTierNames[objective.fogTier]
-			return `Enter the {if tier then tier else "deep"} fog`
-		end
-		local location = Content.Locations[objective.locationId]
-		return `Reach {if location then location.name else "the place"}`
-	elseif kind == "loot" then
-		return "Search containers"
-	elseif kind == "lootBody" then
-		return "Take what a Hollow drops"
-	elseif kind == "kill" then
-		return if objective.count and objective.count > 1 then "Put down the Hollow" else "Put down a Hollow"
-	elseif kind == "equip" then
-		return `Equip the {format.itemName(objective.itemId)}`
-	elseif kind == "consume" then
-		return `Drink or eat {format.itemName(objective.itemId)}`
-	elseif kind == "reachLevel" then
-		return `Reach level {objective.level}`
-	end
-	return "Keep going"
+	return QuestText.objective(objective, Content :: any)
 end
 
 -- The tracker rows (up to `limit`) for the synced quest state, or {} before it arrives.

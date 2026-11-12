@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Content = require(ReplicatedStorage.Shared.Data)
 local Types = require(ReplicatedStorage.Shared.Types)
 local InboxMath = require(ReplicatedStorage.Shared.Domain.Inbox)
+local Events = require("../Events")
 local Net = require("../Net")
 local OnRun = require("../OnRun")
 local Analytics = require("./Analytics")
@@ -157,6 +158,9 @@ local function use(player: Player, id: string)
 	Net.fireAllClients("Fx", "act", { userId = player.UserId, action = "eat" })
 	Analytics.economy(player, "sink", entry.itemId, 1, 0, "Consume")
 	Sync.fx(player, "consumed", { itemId = entry.itemId })
+	-- Counts for quests like eating from the bag does (the flow review's F-22: water drunk
+	-- from the inbox didn't count for Keep the Fire).
+	Events.played:Fire(player, { kind = "consume", itemId = entry.itemId, count = 1 })
 end
 
 function Inbox.init()

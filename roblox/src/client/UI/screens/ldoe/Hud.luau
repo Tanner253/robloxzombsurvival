@@ -218,6 +218,11 @@ local function locationRows(run: any): { { name: string, step: string } }
 	return rows
 end
 
+-- A step wraps to two lines, as LDoE's tracker does (rec8_hud_002s): the lines say where
+-- now (Domain/QuestText, F-22) and the count stays in view.
+local STEP = 38
+local ROW = 22 + STEP
+
 local function Tracker()
 	local ui = hooks.useUi()
 	local state = hooks.useSection("quests")
@@ -232,7 +237,7 @@ local function Tracker()
 	for index, row in pinned do
 		entries[`L{index}`] = e(Layout.Stack, {
 			gap = 0,
-			size = UDim2.new(1, 0, 0, if collapsed then 24 else 46),
+			size = UDim2.new(1, 0, 0, if collapsed then 24 else ROW),
 			layoutOrder = index,
 			children = {
 				Name = e("TextLabel", {
@@ -247,9 +252,11 @@ local function Tracker()
 					LayoutOrder = 1,
 				}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1, Transparency = 0.4 }) }),
 				Step = not collapsed and e("TextLabel", {
-					Size = UDim2.new(1, -12, 0, 20),
+					Size = UDim2.new(1, -12, 0, STEP),
 					BackgroundTransparency = 1,
 					FontFace = Theme.fonts.body,
+					TextWrapped = true,
+					TextYAlignment = Enum.TextYAlignment.Top,
 					Text = row.step,
 					TextSize = Theme.textSize.caption + 2,
 					TextColor3 = Theme.colors.text,
@@ -269,7 +276,7 @@ local function Tracker()
 		end
 		entries[`Q{index}`] = e(Layout.Stack, {
 			gap = 0,
-			size = UDim2.new(1, 0, 0, if collapsed then 24 else 46),
+			size = UDim2.new(1, 0, 0, if collapsed then 24 else ROW),
 			layoutOrder = #pinned + index,
 			children = {
 				Name = e("TextLabel", {
@@ -284,9 +291,11 @@ local function Tracker()
 					LayoutOrder = 1,
 				}, { Stroke = e("UIStroke", { Color = Theme.colors.shadow, Thickness = 1, Transparency = 0.4 }) }),
 				Step = not collapsed and upcoming and e("TextLabel", {
-					Size = UDim2.new(1, -12, 0, 20),
+					Size = UDim2.new(1, -12, 0, STEP),
 					BackgroundTransparency = 1,
 					FontFace = Theme.fonts.body,
+					TextWrapped = true,
+					TextYAlignment = Enum.TextYAlignment.Top,
 					Text = `{questText.objective(upcoming.objective)}  {upcoming.have}/{upcoming.need}`,
 					TextSize = Theme.textSize.caption + 2,
 					TextColor3 = Theme.colors.text,
@@ -300,7 +309,7 @@ local function Tracker()
 	return e(Layout.Stack, {
 		direction = "row",
 		gap = Theme.spacing.xs,
-		size = UDim2.fromOffset(H.tracker, (if collapsed then 26 else 50) * (#rows + #pinned)),
+		size = UDim2.fromOffset(H.tracker, (if collapsed then 26 else ROW + 4) * (#rows + #pinned)),
 		layoutOrder = 2,
 		children = {
 			Rule = e("Frame", {
