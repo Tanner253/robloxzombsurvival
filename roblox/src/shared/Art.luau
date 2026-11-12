@@ -46,7 +46,7 @@ Art.pieces = {
 	["build.rain_barrel"] = { "EO_RainCollector" },
 	["build.smoke_rack"] = { "EO_SmokeRack" },
 	-- Content 2.0 stations (Studio mesh generator, graded in the lineup beside the Smelter
-	-- and Stonecutter, docs/milestones/m1-launch C01): a fieldstone dome furnace banded in
+	-- and Stonecutter, docs/milestones/m1-launch C30): a fieldstone dome furnace banded in
 	-- rusted iron, and a honey-wood bench of flasks, a still and a mortar.
 	["build.blast_furnace"] = { "EO_BlastFurnace" },
 	["build.apothecary"] = { "EO_Apothecary" },
@@ -68,7 +68,7 @@ Art.decks = {
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 	-- Fortified (Content 2.0): riveted steel plates (Studio's material generator, picked from
 	-- four takes beside the Reinforced concrete), a shade darker so the tiers read apart and
-	-- warmed off its blue toward gunmetal (C04: beside the warm kit it read slate-blue).
+	-- warmed off its blue toward gunmetal (C24: beside the warm kit it read slate-blue).
 	{ base = Enum.Material.DiamondPlate, variant = "EO_Deck_Fortified", tint = Color3.fromRGB(172, 164, 154) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
 
@@ -274,7 +274,7 @@ Art.approved = {
 	-- its base disc dropped by art/tools/glb_drop_base.py).
 	EO_SharpenedStake = true,
 	-- Content 2.0 (batch 4b), graded A in the lineup beside the survivor and the approved
-	-- melee, stations and kit (docs/milestones/m1-launch C01-C03). Zona's licensed gear and
+	-- melee, stations and kit (docs/milestones/m1-launch C29-C31). Zona's licensed gear and
 	-- meds (CREDITS.md):
 	EO_GasMask = true,
 	EO_SteelHelmet = true,
@@ -475,7 +475,7 @@ Art.worn = {
 	Worn gear with a model on the body (2.0 batch 4b; World/Models.worn): headwear on the
 	head, bags on the back. The kit model (Art.items) is turned by `turn` (degrees), scaled so
 	its longest side is `size` studs and centred at `at` in the part's frame (x right, y up,
-	z back), measured on the StarterCharacter in Studio (captures C02). A worn bag hides the
+	z back), measured on the StarterCharacter in Studio (captures C31). A worn bag hides the
 	survivor's own small pack and pushes a back-slung weapon `depth` studs out.
 ]]
 export type WornArt = {

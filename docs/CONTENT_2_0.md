@@ -1,6 +1,6 @@
 # Content 2.0: past the Scrap tier (batch 4 spec)
 
-Days 10 to 30 for a free player at 2.5 h a day, modelled on LDoE's mid-game (rec5's Survivor's Path "Radiation Protection" chapter, rec9's clothing tiers, helmets, masks, Military Backpack, bandage and first-aid kit). Flow review F-24 (nothing past Scrap, the trail ends) and F-37 (one craftable bag). Everything ships behind **`Tuning.features.content2 = false`**: while it is off, `Features.strip` removes every tagged recipe, station, build piece, quest and loot row, and the tagged items stay dormant (nothing gives them). `tests/Content2.spec` proves both states.
+Days 10 to 30 for a free player at 2.5 h a day, modelled on LDoE's mid-game (rec5's Survivor's Path "Radiation Protection" chapter, rec9's clothing tiers, helmets, masks, Military Backpack, bandage and first-aid kit). Flow review F-24 (nothing past Scrap, the trail ends) and F-37 (one craftable bag). Everything is behind **`Tuning.features.content2`**, on since batch 4b's Studio pass graded its models: if it is switched off, `Features.strip` removes every tagged recipe, station, build piece, quest and loot row, and the tagged items stay dormant (nothing gives them). `tests/Content2.spec` proves both states.
 
 ## 1. What the player chases (2.5 h a day, `tests/Pacing.spec`)
 
@@ -73,26 +73,29 @@ Opens after Hold the Line (25), two lines side by side like chapter 3. Each buil
 
 `tests/Pacing.spec` models it: the rucksack from quest 13, the Ranger Pack from 29, a Gas Mask re-made when a Black run spends its filter, chapter 4, and a Fortified goal (the Reinforced room, two furnaces, the Apothecary) that waits for the trail. Every existing band stays green on 21 days. On 30 days at 2.5 h a day chapter 4 runs from day 17.8 to 27.8 with no gap over 4 days and Fortified lands on day 24.8; at 3 h it ends on 23.8; at 2 h, 7 of 8 by day 30. Loot-only and side-grade items are listed as extras; a spec keeps the list complete.
 
-## 7. Models and icons for the Studio pass (nothing uploaded here)
+## 7. Models and icons (batch 4b's Studio pass)
 
-| Item | File (`art/content2/`) | Licence | Credit |
-|---|---|---|---|
-| Hand Axe | `melee/hatchet.glb` | CC0 | Poly Haven "Hatchet", James Ray Cock, Ulan Cabanilla |
-| Hardwood Bat | `melee/baseball_bat.glb` | CC0 | Poly Haven "Baseball Bat", Enrique Martín |
-| Field Knife | `melee/knife_animated.glb` | CC-BY 4.0 | "knife Animated", DJMaesen |
-| Hay Fork | `melee/pitchfork.glb` | CC-BY 4.0 | "pitchfork Animated", DJMaesen |
-| Gas Mask | `gear/old_gas_mask.glb` | CC0 | Poly Haven "Old Gas Mask", Michał Wiśniewski |
-| Steel Helmet | `gear/helmet_m1.glb` | CC-BY 4.0 | "M1 Helmet", Melvin Stubbe |
-| Combat Helmet | `gear/helmet_k63.glb` | CC-BY 4.0 | "Combat helmet K6-3", shamanoff |
-| Plate Carrier | `gear/plate_carrier.glb` | CC-BY 4.0 | "Tactical Plate Carrier Vest - Game Ready", Exactly |
-| Hide Rucksack | `gear/camping_backpack.glb` (at 0.72 scale) | CC-BY 4.0 | "Large Camping BackPack", Sebastian Webster |
-| Ranger Pack | `gear/military_backpack.glb` (simplified to 8k triangles) | CC-BY 4.0 | "Military Backpack", Neslihan Çakmak |
-| Trauma Pouch | `meds/aid_pouch.glb` | CC-BY 4.0 | "Tactical FIRST AID KIT", Ruslan Koschey |
-| First-Aid Kit | `meds/medical_box.glb` | CC0 | Poly Haven "Medical Box", Ulan Cabanilla |
-| Ember Stim | `meds/syringe.glb` | CC-BY 4.0 | "Medical syringe healing FPS Animation", BURNER |
-| Antiseptic Tablets | `meds/pill_box.glb` | CC-BY 4.0 | "Food Collection - Game Ready" (its pill box), Melon Polygons |
+What ships, graded in the lineup beside the survivor and the approved kit (`docs/milestones/m1-launch` C21-C31). Every icon is the model itself (`Art.items`, rendered by ItemIcon); body, legs and feet armor tint the survivor's clothes as Padded does (`Art.worn`), headwear and bags sit on the body as models (`Art.wornModels`).
 
-The gear and meds are decoded for Roblox (no meshopt or WebP). The melee four are `art/zona/wip-v3`'s unreviewed files. No licensable Zona model fits the Hidebound and Riveted pieces, Steel Plate, the Fortified pieces or the two stations: generate them in Studio and grade against rec9 and rec8. Skipped on licence or size: Higgsfield-made and unlicensed models, `heavy_armor`, `combat_helmet`.
+| Item | Model | Source | Licence | Credit |
+|---|---|---|---|---|
+| Hand Axe, Hardwood Bat, Field Knife, Hay Fork | `EO_HandAxe`, `EO_HardwoodBat`, `EO_FieldKnife`, `EO_HayFork` | Studio mesh generator | ours | - |
+| Hidebound Cap, Coat, Leggings, Boots | `EO_Hidebound*` | Studio mesh generator | ours | - |
+| Riveted Helm, Cuirass, Legguards, Boots | `EO_Riveted*` | Studio mesh generator | ours | - |
+| Hide Rucksack | `EO_HideRucksack` | Studio mesh generator | ours | - |
+| Steel Plate, Antiseptic Tablets | `EO_SteelPlate`, `EO_AntisepticBottle` | Studio mesh generator | ours | - |
+| Blast Furnace, Apothecary | `EO_BlastFurnace`, `EO_Apothecary` | Studio mesh generator | ours | - |
+| Fortified tier (5 pieces) | `EO_Deck_Fortified` MaterialVariant on the exact geometry | Studio material generator | ours | - |
+| Gas Mask | `gear/old_gas_mask.glb` | Zona | CC0 | Poly Haven "Old Gas Mask", Michał Wiśniewski |
+| Steel Helmet | `gear/helmet_m1.glb` | Zona | CC-BY 4.0 | "M1 Helmet", Melvin Stubbe |
+| Combat Helmet | `gear/helmet_k63.glb` | Zona | CC-BY 4.0 | "Combat helmet K6-3", shamanoff |
+| Plate Carrier | `gear/plate_carrier.glb` (icon; worn as a tint) | Zona | CC-BY 4.0 | "Tactical Plate Carrier Vest - Game Ready", Exactly |
+| Ranger Pack | `gear/military_backpack.glb` (olive tint) | Zona | CC-BY 4.0 | "Military Backpack", Neslihan Çakmak |
+| Trauma Pouch | `meds/aid_pouch.glb` | Zona | CC-BY 4.0 | "Tactical FIRST AID KIT", Ruslan Koschey |
+| First-Aid Kit | `meds/medical_box.glb` | Zona | CC0 | Poly Haven "Medical Box", Ulan Cabanilla |
+| Ember Stim | `meds/syringe.glb` | Zona | CC-BY 4.0 | "Medical syringe healing FPS Animation", BURNER |
+
+Not used: the four `wip-v3` melee files (they are Git LFS pointers in batch 4's approved upload folder, so they couldn't be uploaded from it; Studio generations replaced them), the camping backpack (it read as black nylon, not hide) and the 12-triangle pill box (a blank white card as an icon). Their credits are dropped.
 
 ## 8. SKU ideas (not created)
 

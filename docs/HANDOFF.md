@@ -351,6 +351,54 @@ Run all checks after each merge.
 >     - The Credits panel lists the 14 new models while the flag is off.
 >     - The Blast Furnace burns wood fuel like the Smelter; on Embercoal alone the model starved it.
 
+> - **Update 2026-11-12, 2.0 batch 4b (Content 2.0's Studio pass): done on branch `content2-studio-pass`, pushed, not merged. `Tuning.features.content2 = true`.** 570 Lune specs, all six checks green. Calls are in the 2026-11-12 DECISIONS row. The cloud place "Ember" was saved as **version 219**: 25 new `EO_Uploaded` copies, the survivor meshes restored, Rojo's duplicate containers removed and every SurfaceAppearance and MaterialVariant rebuilt.
+>   - **In:**
+>     - **Models (25, all owner assets):** 8 of batch 4's Zona GLBs (gas mask, both helmets, plate carrier, Ranger Pack, Trauma Pouch, First-Aid Kit, Ember Stim). The rest are Studio mesh generations: the four melee, both armor sets, the Hide Rucksack, Steel Plate, the Antiseptic bottle, the Blast Furnace and the Apothecary. The wip-v3 melee files are Git LFS pointers in the approved folder, so they couldn't be uploaded without filling or copying files there; the camping pack and the pill box weren't grade A. `CONTENT_2_0.md` §7 has the table, and the unused credits are dropped.
+>     - **Fortified:** a generated riveted-plate MaterialVariant (`place/materials/EO_Deck_Fortified.model.json`) on the exact geometry, `Art.decks[4]`.
+>     - **Worn look:** armor tints the clothes as Padded does (`Art.worn`, the Plate Carrier too). Headwear and bags are models on the body (`Art.wornModels`, `Models.worn`, `Inventory.wornModels`); a bag hides the survivor's own pack and pushes a back-slung weapon out.
+>     - **Melee:** `Data/Holds` classes and `Art.held` grips, measured by casting rays across 12 slices of each handle.
+>     - **Icons:** all 23 render their model, through `Art.items`.
+>     - **Combat hook:** `weapon.melee` drives `CombatMath.backstab` and the swing's noise radius (a new `Hollow.noise` argument).
+>     - **Chapter 4's Trail Keeper hand-in.**
+>     - Studio-only `EO_Dev` `("hurt", hp)` and `("gearstate")`.
+>   - **Client asset failures, 50 → 0 at a play start** (the first clean session). The kit files Rojo serves carried `TexturePackContent` assets the client can't read: the survivor rigs, the Hollow, `EO_Kit` and the generated materials. `tools/strip_texture_packs.luau` sets them to none in `place/kit/*.rbxm`, and the place's copies were rebuilt fresh. Plugins can't write that property, so Rojo can't clear it. Fresh generated textures drew grey in ViewportFrames, which don't fall back to the baseline image; `Controllers/ArtPreload` and `ModelView` now preload each icon's model and redraw it.
+>   - **Verified in play** (Studio simulation; captures in `docs/milestones/m1-launch/`, side by side with LDoE where a frame exists):
+>     - **Hidebound:** a coat crafted through `HandCraft` (the Padded Vest and 6 leather consumed) and worn through `InventoryMove`; the set reads as hide (C21).
+>     - **Gas mask:** worn (C25); on a Rustwater run (Dense) the filter wore 895 → 885 in 10 s.
+>     - **Meds:**
+>       - Field Dressing: 30 → 70.
+>       - Trauma Pouch: 20 → 45 at once, then 40 over 10 s.
+>       - First-Aid Kit: 10 → 50, then to 100 over 12 s.
+>       - Ember Stim: 10 → 70, then 100 by 3 s.
+>       - The bandage clip plays (C23).
+>     - **Bags:** the Ranger Pack through `InventoryMove` gives a 20-slot backpack (5 + 15, the cap), the Hide Rucksack 13; both on the back (C22).
+>     - **Field Knife:** sneaking on an unaware Hollow (`DevUnseen`) dealt 40, its full health (11 x 4); the same swing unsneaked dealt 11 (C28).
+>     - **Fortified:** a foundation and two walls upgraded wood → Fortified, the Apothecary on the Fortified floor and the Blast Furnace on a Reinforced one (C24).
+>     - **Chapter 4:** `("quests", 25)` opens it. The card shows "Iron Lungs: Hotter Fires", the tracker shows both lines, and the Guide rings the build button (C27).
+>     - **Icons:** all 23 draw textured on first open (C26).
+>     - **UI gate:** 0 flags across 22,616 elements, after the last code change.
+>     - Lineups: C29-C31.
+>   - **Not verified in play:**
+>     - Riveted pieces, the helmets and the Combat Helmet worn (seen only on Edit rigs, C31).
+>     - The gas mask after its last size step (1.08, to cover a tuft of hair).
+>     - Black fog filter wear.
+>     - Fortified doorway, door and window.
+>     - The Blast Furnace and Apothecary jobs.
+>     - Hand Axe, Bat and Hay Fork swings on a Hollow.
+>     - Chapter 4 past its opening.
+>     - A second player's view, and touch.
+>   - **Seen, not fixed:**
+>     - **Client permission lines remain:**
+>       - 0-12 at a play start, depending on what is near the camera; 8-21 on arriving at a run; 5 during the UI gate. All are hashes from the original 50.
+>       - Placing each kit model in view one at a time traced them to batch 3's family conversions: barrel cluster, supply sacks, dead tree, bare branches, the pickup and van wrecks, fuel pump, loose stones, spring basin, hay bales, scrap heap, rock cluster, ember bush and reeds.
+>       - Their SurfaceAppearances are rebuilt and every map is an owner image (checked with GetProductInfo), and they render textured. Next step: re-upload those maps as plain images and point the copies at them.
+>     - About 14 "No asset content representation found while do_not_fallback_to_baseline" lines a boot, from fresh generated textures. Harmless now.
+>     - **Rojo:** its connect and re-sync made twins of the rbxm-backed containers with empty meshes (plugins can't set `MeshContent`). `LT_Gen` and `Survivor_v3_standin` had them before this batch. Removed in the place; after pressing Connect, check `ServerStorage` and `StarterPlayer` for twins.
+>     - Generated models use `TextureID`, so `Art.tints` can't warm them. The Blast Furnace's blue-grey stone is cooler than the Smelter.
+>     - The Fortified plates' rivet holes read a little like bullet holes up close.
+>     - ART_DIRECTION §10a still says `generate_mesh` results leave the world. This batch used them under the side-by-side bar; that line needs a revision.
+>     - **Gas mask (left for the economy batch):** filter wear follows the location's fog tier, not the rising band. It wears in Rustwater at band "Thin" and not in Pine Hollow at band "Rising". Batch 4's 0.8 `maxResist` note stands.
+
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
    - **F-01:** `fogRuns = true`, plus a spec that every quest has a live objective and every objective kind has a server emitter.

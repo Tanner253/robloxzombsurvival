@@ -8,7 +8,7 @@
 	content representation found while do_not_fallback_to_baseline is set to true"), so an
 	item never seen in the world drew grey in the inventory (the Hidebound Leggings and Boots,
 	the new melee, the Riveted set, the Plate Carrier). Preloading the models first puts the
-	baseline in the cache, and every icon draws textured (checked in Studio, captures C02).
+	baseline in the cache, and every icon draws textured (checked in Studio, capture C26).
 ]]
 
 local ContentProvider = game:GetService("ContentProvider")
