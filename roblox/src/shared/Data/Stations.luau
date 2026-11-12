@@ -310,7 +310,7 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 	},
 
 	-- 2.0 batch 4 (docs/CONTENT_2_0.md §2): the stations of the Fortified tier.
-	-- LDoE's Refined Melting Furnace: Iron Ingots into Steel Plate, on Embercoal only. Needs a
+	-- LDoE's Refined Melting Furnace: Iron Ingots into Steel Plate. Needs a
 	-- Reinforced floor; level 2 is paid in Reinforced-tier materials, never steel.
 	["station.blast_furnace"] = {
 		id = "station.blast_furnace",
@@ -328,10 +328,7 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 				speedMultiplier = 1,
 			},
 		},
-		fuel = {
-			itemIds = { "item.embercoal" },
-			secondsPerUnit = 5 * 60 + 20, -- LDoE's charcoal
-		},
+		fuel = WOOD_FUEL, -- burns like the Smelter
 		feature = "content2",
 	},
 	-- LDoE's Chemistry Station: Emberberries into Antiseptic Tablets. Needs a Fortified floor.

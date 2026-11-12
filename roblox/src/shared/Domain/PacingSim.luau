@@ -70,8 +70,19 @@ export type Location = {
 }
 
 -- A goal entry: "build.<piece>", "upgrade:<station id>" (one level up), "gate:<tower id>"
--- or "craft:<recipe id>".
-export type Goal = { name: string, pieces: { Count }, flags: { string }?, minLevel: number? }
+-- or "craft:<recipe id>". With `questGates`, a piece whose unlock names a quest waits until the
+-- trail has paid it (the Fortified goal: its pieces unlock on chapter 4, CONTENT_2_0 §3).
+export type Goal = { name: string, pieces: { Count }, flags: { string }?, minLevel: number?, questGates: boolean? }
+
+-- A bag past the satchel (CONTENT_2_0 §4): in hand once `quest` is paid, crafted from `recipe`
+-- when it has one (otherwise the quest's own cost made it). The biggest one carried sets the
+-- run's bag slots.
+export type BagStep = { itemId: string, quest: string, recipe: string? }
+
+-- Gear a fog wears out (the Gas Mask's filter): from `fromQuest` on, each run in a fog tier
+-- with `secondsPerRun` uses that many filter-seconds (the item's durability / filterPerSecond),
+-- and a new one is crafted from `recipe` when the old one is spent.
+export type FogGear = { recipe: string, fromQuest: string, secondsPerRun: { number } }
 
 --[[
 	An Ember Trail quest past the first ones (Model.questTriggers pays those in order). It is
@@ -96,6 +107,7 @@ export type LaterQuest = {
 	kills: number?,
 	runs: { [string]: number }?,
 	cost: { [string]: number }?,
+	seek: boolean?, -- its `searched` locations draw the player's runs until they're met
 }
 
 export type Model = {
@@ -158,6 +170,8 @@ export type Model = {
 	priority: { string }, -- goal entries built before anything cheaper
 	questTriggers: { string }, -- first builds that complete the next Ember Trail quest
 	laterQuests: { LaterQuest },
+	bagLadder: { BagStep }?,
+	fogGear: FogGear?,
 	craftGates: { [string]: { stationId: string, level: number } }, -- "known recipe" gates
 	recycle: { string },
 	fuelOrder: { string },
@@ -468,6 +482,7 @@ function PacingSim.run(content: Content, model: Model): Result
 	local springReadyAt = 0
 	local depotRunsToday = 0
 	local packFrame = false
+	local fogGearLeft = 0 -- filter-seconds left on the worn fog gear
 	local homeNodes: { [string]: number } = {}
 	local spring: Types.LocationNode? = nil
 	for _, entry in tuning.home.nodes do
@@ -630,8 +645,19 @@ function PacingSim.run(content: Content, model: Model): Result
 				add(need, itemId, count * times)
 			end
 		end
+		local current = model.goals[goalIndex]
 		for key, count in (goalLeft[goalIndex] or {}) :: { [string]: number } do
-			addAll(cost(key), count)
+			-- A quest-gated goal (Fortified) asks for nothing the trail hasn't unlocked yet.
+			local piece = content.BuildPieces[key]
+			local unlock = piece and piece.unlock
+			local locked = current ~= nil
+				and current.questGates == true
+				and unlock ~= nil
+				and unlock.kind == "quest"
+				and questAt[unlock.questId] == nil
+			if not locked then
+				addAll(cost(key), count)
+			end
 		end
 		if goalIndex >= model.forgedUpkeep.fromGoal then
 			for _, kind in sortedKeys(model.toolRecipes) do
@@ -663,6 +689,15 @@ function PacingSim.run(content: Content, model: Model): Result
 			handInputs(model.dressingRecipe),
 			math.max(0, model.dressingReserve - have(ids.dressing)) / dressing.outputs[1].count
 		)
+		-- CONTENT_2_0: a bag on the ladder once its quest is paid, and the fog gear once worn.
+		for _, step in (model.bagLadder or {}) :: { BagStep } do
+			if step.recipe and questAt[step.quest] and not flags["bag:" .. step.itemId] then
+				addAll(handInputs(step.recipe), 1)
+			end
+		end
+		if model.fogGear and questAt[model.fogGear.fromQuest] then
+			addAll(handInputs(model.fogGear.recipe), 1)
+		end
 		-- Open later quests: what their objectives use up, and the crafts they still want made
 		-- (on top of the stock, so the station runs them even with the item already in hand).
 		for _, entry in model.laterQuests do
@@ -983,29 +1018,35 @@ function PacingSim.run(content: Content, model: Model): Result
 					best, bestScore = line, score
 				end
 			end
-			if best == nil then
+			-- Nothing new is wanted, but a loaded batch still gets its fuel (CONTENT_2_0: the Blast
+			-- Furnace sits loaded between visits while its demand is in flight).
+			local idle = best == nil
+			if idle and (current == nil or station.state.input.count < current.inputCount) then
 				continue
 			end
-			local chosen = best :: Line
-			if current == nil or current.recipe.id ~= chosen.recipe.id then
-				local back: Types.Slot
-				station.state, back = Converter.takeInput(station.state, ctx, nil, now)
-				if back.count > 0 then
-					add(store, back.itemId, back.count)
+			if best then
+				local chosen = best :: Line
+				if current == nil or current.recipe.id ~= chosen.recipe.id then
+					local back: Types.Slot
+					station.state, back = Converter.takeInput(station.state, ctx, nil, now)
+					if back.count > 0 then
+						add(store, back.itemId, back.count)
+					end
 				end
-			end
-			local load = math.min(slotCap(station) - station.state.input.count, have(chosen.input))
-			local questLeft = questLines[chosen.recipe.id]
-			if questLeft then
-				-- Only the quest's batches: the line goes back to the grind after them.
-				load = math.min(load, math.ceil(questLeft - EPSILON) * chosen.inputCount - station.state.input.count)
-			end
-			if load > 0 then
-				local nextState, accepted =
-					Converter.putInput(station.state, ctx, progress, { itemId = chosen.input, count = load }, now)
-				if nextState then
-					station.state = nextState
-					store[chosen.input] -= accepted
+				local load = math.min(slotCap(station) - station.state.input.count, have(chosen.input))
+				local questLeft = questLines[chosen.recipe.id]
+				if questLeft then
+					-- Only the quest's batches: the line goes back to the grind after them.
+					load =
+						math.min(load, math.ceil(questLeft - EPSILON) * chosen.inputCount - station.state.input.count)
+				end
+				if load > 0 then
+					local nextState, accepted =
+						Converter.putInput(station.state, ctx, progress, { itemId = chosen.input, count = load }, now)
+					if nextState then
+						station.state = nextState
+						store[chosen.input] -= accepted
+					end
 				end
 			end
 			if station.def.fuel then
@@ -1184,6 +1225,10 @@ function PacingSim.run(content: Content, model: Model): Result
 		if unlock and unlock.kind == "blueprint" and not flags[unlock.itemId] then
 			return false
 		end
+		local goal = model.goals[goalIndex]
+		if unlock and unlock.kind == "quest" and goal and goal.questGates and questAt[unlock.questId] == nil then
+			return false
+		end
 		local floor = piece.minFoundationTier
 		if (piece.kind == "station" or piece.kind == "storage") and floor then
 			local found = false
@@ -1310,6 +1355,27 @@ function PacingSim.run(content: Content, model: Model): Result
 	-- Gear and sinks on a run ---------------------------------------------------------------------
 	local function gearUp(location: Location)
 		local tier = location.tier
+		for _, step in (model.bagLadder or {}) :: { BagStep } do
+			local key = "bag:" .. step.itemId
+			if not flags[key] and questAt[step.quest] and (step.recipe == nil or take(handInputs(step.recipe))) then
+				flags[key] = true
+				flagAt[key] = t
+				if step.recipe then
+					noteCraft(step.recipe, 1)
+				end
+			end
+		end
+		local fogGear = model.fogGear
+		local fogSeconds = if fogGear then fogGear.secondsPerRun[tier] or 0 else 0
+		if fogGear and fogSeconds > 0 and questAt[fogGear.fromQuest] then
+			if fogGearLeft < fogSeconds and take(handInputs(fogGear.recipe)) then
+				local gear = items[content.Recipes[fogGear.recipe].outputs[1].itemId]
+				local perSecond = if gear.armor and gear.armor.filterPerSecond then gear.armor.filterPerSecond else 1
+				fogGearLeft += (gear.durability or 0) / perSecond
+				noteCraft(fogGear.recipe, 1)
+			end
+			fogGearLeft = math.max(0, fogGearLeft - fogSeconds)
+		end
 		local kills: { [string]: number } = {}
 		for _, spawn in location.enemies do
 			add(kills, spawn.id, spawn.count * model.killShare)
@@ -1407,6 +1473,11 @@ function PacingSim.run(content: Content, model: Model): Result
 		local bag = items[ids.satchel].bagSlots or 0
 		if packFrame then
 			bag = items[ids.packFrame].bagSlots or bag
+		end
+		for _, step in (model.bagLadder or {}) :: { BagStep } do
+			if flags["bag:" .. step.itemId] then
+				bag = math.max(bag, items[step.itemId].bagSlots or 0)
+			end
 		end
 		local slots = tuning.inventory.pocketSlots + bag - model.reservedSlots
 		local seconds = model.overheadSeconds[tier] + model.extractSeconds[tier]
@@ -1586,12 +1657,19 @@ function PacingSim.run(content: Content, model: Model): Result
 			-- player goes next: the trail marks it (the Stranded Caravan's Dense run).
 			for _, entry in model.laterQuests do
 				local since = openedWith[entry.questId]
-				if since == nil or laterPaid[entry.questId] or entry.runs == nil then
+				if since == nil or laterPaid[entry.questId] then
 					continue
 				end
-				for key, count in entry.runs :: { [string]: number } do
+				for key, count in (entry.runs or {}) :: { [string]: number } do
 					local done = (tally.runs[key] or 0) - (since.runs[key] or 0)
 					if (key == location.id or key == `tier{location.tier}`) and done < count then
+						value += model.questRunValue or 0
+					end
+				end
+				-- `seek`: the crates a quest still asks for draw the player too (chapter 4).
+				for key, count in (if entry.seek then entry.searched or {} else {}) :: { [string]: number } do
+					local done = (tally.searched[key] or 0) - (since.searched[key] or 0)
+					if key == location.id and done < count - EPSILON then
 						value += model.questRunValue or 0
 					end
 				end

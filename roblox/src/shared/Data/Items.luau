@@ -1423,7 +1423,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 	["item.ranger_pack"] = {
 		id = "item.ranger_pack",
 		name = "Ranger Pack",
-		description = "A pack frame rebuilt with steel stays and a hide body. The biggest bag there is.",
+		description = "A pack frame rebuilt with riveted stays and a hide body. The biggest bag there is.",
 		category = "bag",
 		tier = 4,
 		rarity = "epic",
@@ -1468,7 +1468,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		rarity = "epic",
 		stackSize = 20,
 		icon = "",
-		consume = { health = 50, healOverTime = { amount = 50, seconds = 5 } },
+		consume = { health = 60, healOverTime = { amount = 50, seconds = 5 } },
 		feature = "content2", -- Depot strongbox only
 	},
 

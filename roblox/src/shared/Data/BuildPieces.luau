@@ -529,8 +529,10 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 
 -- 2.0 batch 4 (docs/CONTENT_2_0.md §2), all tagged content2 ----------------------------------------
 -- Fortified (tier 4): LDoE's L4 Metal tier on Steel Plate, an upgrade from Reinforced. HP doubles
--- again and every piece can still be breached.
-local FORTIFIED_TIER = quest("quest.hotter_fires")
+-- again and every piece can still be breached. The floors unlock first (Hotter Fires), the
+-- walls and doors once they're down (Steel Underfoot).
+local FORTIFIED_FLOORS = quest("quest.hotter_fires")
+local FORTIFIED_WALLS = quest("quest.steel_floors")
 
 local function fortified(
 	kind: Types.BuildPieceKind,
@@ -549,32 +551,32 @@ local function fortified(
 		cost = cost,
 		breachCost = breachCost,
 		minFoundationTier = if kind == "foundation" then nil else 4,
-		unlock = FORTIFIED_TIER,
+		unlock = if kind == "foundation" then FORTIFIED_FLOORS else FORTIFIED_WALLS,
 		feature = "content2",
 	}
 end
 
 local WALL_STEP: { Types.ItemStack } = {
-	{ itemId = "item.steel_plate", count = 8 },
+	{ itemId = "item.steel_plate", count = 6 },
 	{ itemId = "item.ironbark_plank", count = 4 },
 	{ itemId = "item.rivets", count = 4 },
 	{ itemId = "item.copper_wire", count = 2 },
 }
 fortified("foundation", "Fortified Foundation", 4800, 12, {
-	{ itemId = "item.steel_plate", count = 8 },
+	{ itemId = "item.steel_plate", count = 6 },
 	{ itemId = "item.stone_block", count = 6 },
 	{ itemId = "item.rivets", count = 4 },
 })
 fortified("wall", "Fortified Wall", 3200, 6, WALL_STEP)
 fortified("window", "Fortified Window Wall", 2800, 5, table.clone(WALL_STEP))
 fortified("doorway", "Fortified Doorway", 2800, 6, {
-	{ itemId = "item.steel_plate", count = 7 },
+	{ itemId = "item.steel_plate", count = 5 },
 	{ itemId = "item.ironbark_plank", count = 4 },
 	{ itemId = "item.rivets", count = 4 },
 	{ itemId = "item.copper_wire", count = 2 },
 })
 fortified("door", "Fortified Door", 2400, 5, {
-	{ itemId = "item.steel_plate", count = 10 },
+	{ itemId = "item.steel_plate", count = 8 },
 	{ itemId = "item.rivets", count = 6 },
 	{ itemId = "item.copper_wire", count = 4 },
 	{ itemId = "item.coil_spring", count = 2 },
@@ -611,7 +613,7 @@ BuildPieces["build.apothecary"] = {
 	tier = 1,
 	hp = 300,
 	cost = {
-		{ itemId = "item.steel_plate", count = 6 },
+		{ itemId = "item.steel_plate", count = 4 },
 		{ itemId = "item.ironbark_plank", count = 6 },
 		{ itemId = "item.copper_wire", count = 4 },
 		{ itemId = "item.cloth", count = 4 },
@@ -620,7 +622,7 @@ BuildPieces["build.apothecary"] = {
 	stationId = "station.apothecary",
 	minFoundationTier = 4,
 	maxPerPlot = 1,
-	unlock = quest("quest.steel_floors"),
+	unlock = quest("quest.last_wall"),
 	feature = "content2",
 }
 

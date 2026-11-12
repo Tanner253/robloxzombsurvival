@@ -481,8 +481,8 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 	Chapter 4, "Iron Lungs" (quests 26-33; docs/CONTENT_2_0.md §3), behind Tuning.features.content2.
 	LDoE's Survivor's Path has its "Radiation Protection" chapter at this point (rec5): gear that
 	lets you breathe where you couldn't. It opens after Hold the Line and runs two lines side by
-	side again: the home line (26, 28, 30, 32: the Blast Furnace, Fortified floors, the Apothecary,
-	Fortified walls) and the fog line (27, 29, 31, 33: the Riveted set, the Ranger Pack, the Gas
+	side again: the home line (26, 28, 30, 32: the Blast Furnace, Fortified floors, Fortified
+	walls, the Apothecary) and the fog line (27, 29, 31, 33: the Riveted set, the Ranger Pack, the Gas
 	Mask, the deep Black). In the pacing model (tests/Pacing.spec) it runs to about day 30.
 ]]
 local IRON = "Iron Lungs"
@@ -492,7 +492,9 @@ local function chapter4(def: Types.QuestDef)
 	Quests[def.id] = def
 end
 
--- The home line.
+-- The home line. Each build objective unlocks with the quest before it, so the trail is
+-- the order a base goes up in: the furnace, then the floors, the walls, and the Apothecary that
+-- needs a Fortified floor.
 chapter4({
 	id = "quest.hotter_fires",
 	order = 26,
@@ -520,44 +522,48 @@ chapter4({
 	objectives = {
 		{ kind = "build", pieceId = "build.foundation_fortified", count = 4 },
 	},
-	-- Wire for the Apothecary (A Clean Room).
+	-- Wire and rivets for the walls (The Last Wall).
 	rewards = {
 		xp = 5000,
-		items = { { itemId = "item.copper_wire", count = 6 }, { itemId = "item.brass_gear", count = 1 } },
+		items = { { itemId = "item.copper_wire", count = 6 }, { itemId = "item.rivets", count = 8 } },
+	},
+})
+chapter4({
+	id = "quest.last_wall",
+	order = 30,
+	chapter = IRON,
+	name = "The Last Wall",
+	description = "Raise Fortified walls and hang a Fortified door. Let the Black fog throw what it likes at them.",
+	prerequisite = "quest.steel_floors",
+	objectives = {
+		{ kind = "build", pieceId = "build.wall_fortified", count = 8 },
+		{ kind = "build", pieceId = "build.door_fortified", count = 1 },
+	},
+	-- Cloth and wire for the Apothecary (A Clean Room).
+	rewards = {
+		xp = 5500,
+		items = { { itemId = "item.cloth", count = 4 }, { itemId = "item.copper_wire", count = 4 } },
 	},
 })
 chapter4({
 	id = "quest.clean_room",
-	order = 30,
+	order = 32,
 	chapter = IRON,
 	name = "A Clean Room",
 	description = "Set up an Apothecary on a Fortified floor. Press Emberberries into Antiseptic Tablets and pack two First-Aid Kits.",
-	prerequisite = "quest.steel_floors",
+	prerequisite = "quest.last_wall",
 	objectives = {
 		{ kind = "build", pieceId = "build.apothecary", count = 1 },
 		{ kind = "craft", recipeId = "recipe.antiseptic", count = 4 },
 		{ kind = "craft", recipeId = "recipe.first_aid_kit", count = 2 },
 	},
-	-- Steel for the first Fortified walls (The Last Wall).
-	rewards = {
-		xp = 5500,
-		items = { { itemId = "item.field_dressing", count = 5 }, { itemId = "item.steel_plate", count = 4 } },
-	},
-})
-chapter4({
-	id = "quest.last_wall",
-	order = 32,
-	chapter = IRON,
-	name = "The Last Wall",
-	description = "Raise Fortified walls and hang a Fortified door. Let the Black fog throw what it likes at them.",
-	prerequisite = "quest.clean_room",
-	objectives = {
-		{ kind = "build", pieceId = "build.wall_fortified", count = 8 },
-		{ kind = "build", pieceId = "build.door_fortified", count = 1 },
-	},
 	rewards = {
 		xp = 6000,
-		items = { { itemId = "item.brass_gear", count = 3 }, { itemId = "item.coil_spring", count = 2 } },
+		items = {
+			{ itemId = "item.brass_gear", count = 3 },
+			{ itemId = "item.coil_spring", count = 2 },
+			{ itemId = "item.field_dressing", count = 5 },
+		},
 	},
 })
 
@@ -586,11 +592,12 @@ chapter4({
 	order = 29,
 	chapter = IRON,
 	name = "Pack Mule",
-	description = "Rebuild your Pack Frame with steel stays and a hide body. The Ranger Pack carries fifteen more.",
+	description = "Rebuild your Pack Frame with riveted stays and a hide body. The Ranger Pack carries fifteen more: fill it from ten Ashfall Depot crates.",
 	prerequisite = "quest.hide_and_rivet",
 	objectives = {
 		{ kind = "craft", recipeId = "recipe.ranger_pack", count = 1 },
 		{ kind = "equip", itemId = "item.ranger_pack" },
+		{ kind = "loot", count = 10, locationId = "loc.ashfall_depot", flag = "fogRuns" },
 	},
 	-- Coal and glue for the Gas Mask's filter (Breathe Easy).
 	rewards = {
@@ -603,12 +610,13 @@ chapter4({
 	order = 31,
 	chapter = IRON,
 	name = "Breathe Easy",
-	description = "Stitch a Gas Mask with an Embercoal filter, put it on, and walk into the Black fog. Watch the filter: when it's spent, so are you.",
+	description = "Stitch a Gas Mask with an Embercoal filter, put it on, and put down two hundred Hollow in the Black fog. Watch the filter: when it's spent, so are you.",
 	prerequisite = "quest.pack_mule",
 	objectives = {
 		{ kind = "craft", recipeId = "recipe.gas_mask", count = 1 },
 		{ kind = "equip", itemId = "item.gas_mask" },
 		{ kind = "travel", fogTier = 3, flag = "fogRuns" },
+		{ kind = "kill", count = 200, flag = "fogRuns" },
 	},
 	rewards = {
 		xp = 5500,
@@ -620,11 +628,11 @@ chapter4({
 	order = 33,
 	chapter = IRON,
 	name = "The Deep Black",
-	description = "Live in the Black fog. Strip the Ashfall Depot sixty crates deep, put down a thousand Hollow, and grow into a veteran.",
+	description = "Live in the Black fog. Strip the Ashfall Depot thirty crates deep, put down three hundred more Hollow, and grow into a veteran.",
 	prerequisite = "quest.breathe_easy",
 	objectives = {
-		{ kind = "loot", count = 60, locationId = "loc.ashfall_depot", flag = "fogRuns" },
-		{ kind = "kill", count = 1000, flag = "fogRuns" },
+		{ kind = "loot", count = 30, locationId = "loc.ashfall_depot", flag = "fogRuns" },
+		{ kind = "kill", count = 300, flag = "fogRuns" },
 		{ kind = "reachLevel", level = 28 },
 	},
 	rewards = {

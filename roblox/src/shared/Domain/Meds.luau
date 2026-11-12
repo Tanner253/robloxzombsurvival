@@ -8,7 +8,7 @@
 	waste and never a stockpile. Heals stop on death (the server drops them).
 
 	The ladder: Field Dressing 40 (LDoE's bandage) -> Trauma Pouch 25 + 40/10 s -> First-Aid
-	Kit 40 + 60/12 s -> Ember Stim 50 + 50/5 s.
+	Kit 40 + 60/12 s -> Ember Stim 60 + 50/5 s.
 ]]
 
 local Types = require("../Types")

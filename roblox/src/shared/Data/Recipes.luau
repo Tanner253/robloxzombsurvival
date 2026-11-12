@@ -715,13 +715,13 @@ hand("item.gas_mask", {
 	{ "item.embercoal", 4 }, -- the filter
 	{ "item.pitch_glue", 1 },
 }, "quest.pack_mule")
-hand("item.hide_rucksack", { { "item.leather", 4 }, { "item.rope", 3 }, { "item.cloth", 2 } }, "quest.scavenger")
+hand("item.hide_rucksack", { { "item.leather", 4 }, { "item.rope", 3 }, { "item.cloth", 2 } }, "quest.into_the_black")
 hand("item.ranger_pack", {
 	{ "item.pack_frame", 1 }, -- consumed, as the armor tiers consume theirs
 	{ "item.leather", 6 },
 	{ "item.cloth", 4 },
-	{ "item.steel_plate", 2 },
-	{ "item.rivets", 2 },
+	{ "item.scrap_plate", 4 },
+	{ "item.rivets", 4 },
 }, "quest.hide_and_rivet")
 
 -- Meds.
@@ -734,7 +734,7 @@ hand(
 hand(
 	"item.first_aid_kit",
 	{ { "item.trauma_pouch", 2 }, { "item.antiseptic", 2 }, { "item.scrap_plate", 1 } },
-	"quest.steel_floors",
+	"quest.last_wall",
 	5
 )
 
@@ -742,10 +742,10 @@ hand(
 -- (LDoE's Chemistry Station).
 Recipes["recipe.steel_plate"] = {
 	id = "recipe.steel_plate",
-	inputs = { { itemId = "item.iron_ingot", count = 3 } },
+	inputs = { { itemId = "item.iron_ingot", count = 2 } },
 	outputs = { { itemId = "item.steel_plate", count = 1 } },
 	stationId = "station.blast_furnace",
-	craftSeconds = 30 * 60,
+	craftSeconds = 20 * 60,
 	unlock = quest("quest.hold_the_line"),
 	feature = "content2",
 }
@@ -755,7 +755,7 @@ Recipes["recipe.antiseptic"] = {
 	outputs = { { itemId = "item.antiseptic", count = 1 } },
 	stationId = "station.apothecary",
 	craftSeconds = 10 * 60,
-	unlock = quest("quest.steel_floors"),
+	unlock = quest("quest.last_wall"),
 	feature = "content2",
 }
 
