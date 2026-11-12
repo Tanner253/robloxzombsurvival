@@ -23,6 +23,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Throw = require(ReplicatedStorage.Shared.Domain.Throw)
+local ArcCast = require(ReplicatedStorage.Shared.Util.ArcCast)
+local Trigger = require(ReplicatedStorage.Shared.Domain.Trigger)
 local Clips = require("../Clips")
 local Net = require("../Net")
 local Sfx = require("../Sfx")
@@ -30,6 +32,7 @@ local State = require("../State")
 local Camera = require("./Camera")
 local FogRun = require("./FogRun")
 local HollowView = require("./HollowView")
+local Stance = require("./Stance")
 
 local Throwing = {}
 
@@ -55,6 +58,7 @@ local preview: Folder? = nil
 local dots: { BasePart } = {}
 local ring: BasePart? = nil
 local landing: Vector3? = nil
+local lastThrowAt: number? = nil
 
 -- The throwable in the active hand and its stats, or nil.
 local function inHand(): (string?, any)
@@ -87,6 +91,11 @@ local function worldParams(): RaycastParams
 	end
 	if preview then
 		table.insert(skip, preview)
+	end
+	-- The Hollows as this client draws them (the server's arc has no bodies to meet).
+	local views = workspace:FindFirstChild("EO_HollowView")
+	if views then
+		table.insert(skip, views)
 	end
 	params.FilterDescendantsInstances = skip
 	params.RespectCanCollide = true
@@ -146,7 +155,8 @@ local function arcFor(root: BasePart, stats: any): ({ Vector3 }, Vector3)
 	local origin = root.Position + Vector3.new(0, HAND_HEIGHT, 0)
 	local look = root.CFrame.LookVector
 	local target = Throw.landing(point(origin), point(aimPoint(root)), stats, math.atan2(look.X, look.Z))
-	local floor = workspace:Raycast(Vector3.new(target.x, origin.Y + 30, target.z), Vector3.new(0, -120, 0), params)
+	local top = Vector3.new(target.x, origin.Y + 30, target.z)
+	local floor = ArcCast.cast(top, top - Vector3.new(0, 120, 0), params)
 	target.y = if floor then floor.Position.Y else origin.Y - 3
 	local list: { Vector3 } = {}
 	local samples = Throw.points(point(origin), target, stats, SEGMENTS)
@@ -154,7 +164,7 @@ local function arcFor(root: BasePart, stats: any): ({ Vector3 }, Vector3)
 		local at = vector(sample)
 		if i > 1 then
 			local from = list[#list]
-			local hit = workspace:Raycast(from, at - from, params)
+			local hit = ArcCast.cast(from, at, params)
 			if hit then
 				table.insert(list, hit.Position)
 				return list, hit.Position
@@ -263,11 +273,18 @@ function Throwing.step()
 	end
 	local path, land = arcFor(root, stats)
 	drawPreview(path, land)
-	-- Face the throw, as a gun faces its aim.
-	local flat = Vector3.new(land.X, root.Position.Y, land.Z)
-	if (flat - root.Position).Magnitude > 0.5 then
-		root.CFrame = CFrame.lookAt(root.Position, flat)
+	-- The chest turns to the throw, as to a gun's aim; the legs keep running (Stance).
+	local flat = Vector3.new(land.X - root.Position.X, 0, land.Z - root.Position.Z)
+	if flat.Magnitude > 0.5 then
+		Stance.engage(math.atan2(flat.X, flat.Z))
 	end
+end
+
+-- A hold that ended without a throw (the hand changed): the preview goes.
+function Throwing.cancel()
+	aiming = false
+	aimTouch = nil
+	clearPreview()
 end
 
 function Throwing.release()
@@ -279,10 +296,16 @@ function Throwing.release()
 	aimTouch = nil
 	local land = landing
 	clearPreview()
-	if land == nil or inHand() == nil then
+	local _, stats = inHand()
+	if land == nil or stats == nil then
 		return
 	end
-	Clips.play(player.Character, "throw")
+	-- One throw per interval, as the server keeps it: a press in its cool-down draws nothing.
+	if not Trigger.throwReady(lastThrowAt, os.clock(), stats.intervalSeconds) then
+		return
+	end
+	lastThrowAt = os.clock()
+	Clips.play(player.Character, "throw", nil, nil, nil, "upper")
 	task.delay(math.max(0, Clips.hit("throw") - 0.12), Sfx.play, "meleeSwing", nil)
 	Net.fire("CombatThrow", land.X, land.Y, land.Z)
 end

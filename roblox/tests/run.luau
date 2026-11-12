@@ -67,6 +67,8 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "MomentOffers", spec = require("./MomentOffers.spec") },
 	{ name = "Arsenal", spec = require("./Arsenal.spec") },
 	{ name = "Throw", spec = require("./Throw.spec") },
+	{ name = "Facing", spec = require("./Facing.spec") },
+	{ name = "Trigger", spec = require("./Trigger.spec") },
 	{ name = "QolFlow", spec = require("./QolFlow.spec") },
 	{ name = "AssetAudit", spec = require("./AssetAudit.spec") },
 	{ name = "Content2", spec = require("./Content2.spec") },

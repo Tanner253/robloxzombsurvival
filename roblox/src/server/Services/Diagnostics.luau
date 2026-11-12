@@ -392,12 +392,24 @@ local function devCommand(command: string, ...: any): any
 		end
 		local away = Vector3.new(origin.X - at.X, 0, origin.Z - at.Z)
 		away = if away.Magnitude > 0.1 then away.Unit else Vector3.zAxis
-		local stand = at + away * (args[1] or 12)
 		local ground = RaycastParams.new()
 		ground.FilterType = Enum.RaycastFilterType.Exclude
 		ground.FilterDescendantsInstances = { character }
-		local floor = workspace:Raycast(Vector3.new(stand.X, at.Y + 40, stand.Z), Vector3.new(0, -120, 0), ground)
-		local height = (if floor then floor.Position.Y else at.Y) + 3
+		-- Stand `args[1]` studs off it where the arc to it is clear (batch 5's two short frag
+		-- throws stood under the Farmhouse roof): the first of eight bearings that is.
+		local throwables = require("./Throwables")
+		local stand, height = at + away * (args[1] or 12), at.Y + 3
+		for turn = 0, 7 do
+			local bearing = CFrame.Angles(0, turn * math.pi / 4, 0):VectorToWorldSpace(away)
+			local spot = at + bearing * (args[1] or 12)
+			local floor = workspace:Raycast(Vector3.new(spot.X, at.Y + 40, spot.Z), Vector3.new(0, -120, 0), ground)
+			local y = (if floor then floor.Position.Y else at.Y) + 3
+			local _, _, blocker = throwables.dev.arc(Vector3.new(spot.X, y, spot.Z), at, def.id)
+			stand, height = spot, y
+			if blocker == nil then
+				break
+			end
+		end
 		character:PivotTo(CFrame.lookAt(Vector3.new(stand.X, height, stand.Z), Vector3.new(at.X, height, at.Z)))
 		task.wait(0.1)
 		at = HollowService.positionOf(run.hosted, nearest.id) or at
@@ -407,7 +419,7 @@ local function devCommand(command: string, ...: any): any
 			before[candidate.id] = HollowService.hpOf(run.hosted, candidate.id)
 		end
 		local stack = slot.count
-		local result, why = require("./Throwables").dev.throw(player, at.X, at.Y, at.Z)
+		local result, why = throwables.dev.throw(player, at.X, at.Y, at.Z)
 		if result == nil then
 			return why
 		end
@@ -424,6 +436,8 @@ local function devCommand(command: string, ...: any): any
 		return {
 			stack = `{stack} -> {if left and left.itemId == def.id then left.count else 0}`,
 			landed = math.floor((result.landing - at).Magnitude * 10) / 10, -- studs from the aim
+			flat = math.floor(Vector3.new(result.landing.X - at.X, 0, result.landing.Z - at.Z).Magnitude * 10) / 10,
+			blocker = result.blocker or "none",
 			flight = math.floor(result.flight * 100) / 100,
 			goesOff = math.floor(result.goesOff * 100) / 100,
 			hollows = hollows,

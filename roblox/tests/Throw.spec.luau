@@ -60,6 +60,25 @@ return function(test: TestKit.Register)
 		TestKit.truthy(Throw.flightSeconds(ORIGIN, Throw.point(0.5, 0, 0), FRAG) >= 0.35, "a lob still takes time")
 	end)
 
+	test("a short throw lobs lower, so it clears what a long arc would catch", function()
+		local function peak(distance: number): number
+			local to = Throw.point(distance, 2, 0)
+			local flight = Throw.flightSeconds(ORIGIN, to, FRAG)
+			return Throw.at(ORIGIN, to, FRAG, flight, flight / 2).y - 2
+		end
+		TestKit.truthy(peak(12) <= 5, `a 12-stud throw peaks {peak(12)} studs over the hand`)
+		TestKit.truthy(peak(6) < peak(12) and peak(12) < peak(30), "higher the farther it goes")
+		TestKit.truthy(near(peak(30), FRAG.apex), "a long throw keeps the item's apex")
+		-- Wherever it peaks, it lands on the aim (the arc changes, the landing doesn't).
+		for _, distance in { 6, 12, 20, 36 } do
+			local to = Throw.landing(ORIGIN, Throw.point(distance, 0, 0), FRAG)
+			local points = Throw.points(ORIGIN, to, FRAG, 10)
+			TestKit.truthy(near(points[11].x, distance) and near(points[11].y, 0), `{distance}: lands on the aim`)
+		end
+		TestKit.truthy(Throw.solid(0) and Throw.solid(0.5), "a visible part stops it")
+		TestKit.equal(Throw.solid(1), false, "an invisible volume does not")
+	end)
+
 	test("a blast hits hardest at its centre and nothing past its radius", function()
 		TestKit.equal(Throw.blastDamage(FRAG, 0), FRAG.damage)
 		TestKit.truthy(near(Throw.blastDamage(FRAG, FRAG.radius), FRAG.damage * FRAG.edgeMultiplier), "edge")

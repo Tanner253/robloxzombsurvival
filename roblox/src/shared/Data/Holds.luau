@@ -47,6 +47,7 @@ export type Clip = {
 	hit: number?,
 	loop: boolean?,
 	partial: boolean?,
+	linear: boolean?, -- linear easing between keys (the generated leg cycles)
 	ual: string?,
 	keys: { Key },
 }

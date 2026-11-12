@@ -6,23 +6,41 @@
 	asset has to be published. A clip that names a Universal Animation Library clip (CC0,
 	Data/UalClips) is retargeted onto the rig's joints instead, once they are known.
 
-	- Clips.play(character, name, speed?, priority?) -> the track (or nil)
+	- Clips.play(character, name, speed?, priority?, make?, mask?) -> the track (or nil)
 	- Clips.stop(character, name, fade?)
+	- Clips.track(character, name, make?) -> the loaded track, for callers that drive its
+	  weight and speed themselves (Controllers/Stance's leg cycles).
 	- Clips.hit(name): seconds to the clip's hit frame at play rate 1.
 
 	Carry clips loop under everything (Action); swings, stances and the rest play over them
 	(Action2) unless the caller asks for more.
+
+	The waist mask (mask "upper"): the clip drives only the chest, head and arms, and every
+	other joint is left to what plays beneath, so a swing or a flinch layers over the legs'
+	run instead of freezing them. The strafe and backpedal cycles (Domain/Facing.legClip) are
+	built here too, keyed linearly so the planted foot keeps its speed between keys.
 ]]
 
 local AnimationClipProvider = game:GetService("AnimationClipProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Facing = require(ReplicatedStorage.Shared.Domain.Facing)
 local Holds = require(ReplicatedStorage.Shared.Data.Holds)
 local UalClips = require(ReplicatedStorage.Shared.Data.UalClips)
 
 local Clips = {}
 
 local PARENTS = Holds.PARENTS
+local UPPER: { [string]: boolean } = {
+	UpperTorso = true,
+	Head = true,
+	RightUpperArm = true,
+	RightLowerArm = true,
+	RightHand = true,
+	LeftUpperArm = true,
+	LeftLowerArm = true,
+	LeftHand = true,
+}
 local UAL_PARENTS: { [string]: string } = table.clone(PARENTS)
 UAL_PARENTS.RightFoot = "RightLowerLeg"
 UAL_PARENTS.LeftFoot = "LeftLowerLeg"
@@ -83,7 +101,7 @@ local function jointFrames(character: Model): { [string]: CFrame }?
 	return frames
 end
 
-local function buildUal(name: string, loop: boolean, frames: { [string]: CFrame }): KeyframeSequence
+local function buildUal(name: string, loop: boolean, frames: { [string]: CFrame }, upper: boolean): KeyframeSequence
 	local source = UalClips.clips[name]
 	local sequence = Instance.new("KeyframeSequence")
 	sequence.Loop = loop
@@ -115,6 +133,9 @@ local function buildUal(name: string, loop: boolean, frames: { [string]: CFrame 
 			local pose = Instance.new("Pose")
 			pose.Name = part
 			pose.CFrame = cframe
+			if upper and not UPPER[part] then
+				pose.Weight = 0
+			end
 			pose.Parent = poseFor(UAL_PARENTS[part])
 			made[part] = pose
 			return pose
@@ -128,8 +149,8 @@ local function buildUal(name: string, loop: boolean, frames: { [string]: CFrame 
 end
 
 -- Keyed clips. A partial clip leaves every part it doesn't name to what plays beneath;
--- a full one holds those parts at rest.
-local function build(clip: Holds.Clip): KeyframeSequence
+-- a full one holds those parts at rest. `upper` leaves everything below the waist beneath.
+local function build(clip: Holds.Clip, upper: boolean): KeyframeSequence
 	local sequence = Instance.new("KeyframeSequence")
 	sequence.Loop = clip.loop == true
 	sequence.Priority = Enum.AnimationPriority.Action2
@@ -145,10 +166,10 @@ local function build(clip: Holds.Clip): KeyframeSequence
 			pose.Name = name
 			local posed = key.poses[name]
 			pose.CFrame = if posed then toCFrame(posed) else CFrame.identity
-			if clip.partial and not posed then
+			if (clip.partial and not posed) or (upper and not UPPER[name]) then
 				pose.Weight = 0
 			end
-			pose.EasingStyle = Enum.PoseEasingStyle.Cubic
+			pose.EasingStyle = if clip.linear then Enum.PoseEasingStyle.Linear else Enum.PoseEasingStyle.Cubic
 			pose.EasingDirection = Enum.PoseEasingDirection.Out
 			local parentName = PARENTS[name]
 			pose.Parent = if parentName then poseFor(parentName) else keyframe
@@ -167,11 +188,12 @@ end
 local animations: { [string]: Animation } = {}
 local ualFrames: { [string]: CFrame }? = nil
 
-local function animation(name: string, character: Model?): Animation?
-	if animations[name] then
-		return animations[name]
+local function animation(name: string, character: Model?, upper: boolean): Animation?
+	local key = if upper then `{name}@upper` else name
+	if animations[key] then
+		return animations[key]
 	end
-	local clip = Holds.clips[name]
+	local clip: Holds.Clip? = Holds.clips[name] or Facing.clipByName(name) :: any
 	if clip == nil then
 		return nil
 	end
@@ -181,16 +203,17 @@ local function animation(name: string, character: Model?): Animation?
 	local sequence = if clip.ual
 			and ualFrames
 			and UalClips.clips[clip.ual]
-		then buildUal(clip.ual, clip.loop == true, ualFrames)
-		else build(clip)
+		then buildUal(clip.ual, clip.loop == true, ualFrames, upper)
+		else build(clip, upper)
 	local ok, id = pcall(AnimationClipProvider.RegisterAnimationClip, AnimationClipProvider, sequence)
 	if not ok then
 		warn(`Clips: could not register '{name}': {id}`)
 		return nil
 	end
 	local made = Instance.new("Animation")
+	made.Name = key -- tracks read back by name (scripted checks)
 	made.AnimationId = id
-	animations[name] = made
+	animations[key] = made
 	return made
 end
 
@@ -210,7 +233,7 @@ local function animatorOf(character: Model?, make: boolean?): Animator?
 	return animator
 end
 
-local function trackOf(character: Model?, name: string, make: boolean?): AnimationTrack?
+local function trackOf(character: Model?, name: string, make: boolean?, upper: boolean?): AnimationTrack?
 	local animator = animatorOf(character, make)
 	if animator == nil then
 		return nil
@@ -225,9 +248,10 @@ local function trackOf(character: Model?, name: string, make: boolean?): Animati
 			end
 		end)
 	end
-	local track: AnimationTrack? = tracks[name]
+	local key = if upper then `{name}@upper` else name
+	local track: AnimationTrack? = tracks[key]
 	if not track then
-		local source = animation(name, character)
+		local source = animation(name, character, upper == true)
 		if source == nil then
 			return nil
 		end
@@ -236,9 +260,13 @@ local function trackOf(character: Model?, name: string, make: boolean?): Animati
 			return nil
 		end
 		track = made
-		tracks[name] = made
+		tracks[key] = made
 	end
 	return track
+end
+
+function Clips.track(character: Model?, name: string, make: boolean?): AnimationTrack?
+	return trackOf(character, name, make)
 end
 
 function Clips.play(
@@ -246,9 +274,10 @@ function Clips.play(
 	name: string,
 	speed: number?,
 	priority: Enum.AnimationPriority?,
-	make: boolean?
+	make: boolean?,
+	mask: "upper"?
 ): AnimationTrack?
-	local track = trackOf(character, name, make)
+	local track = trackOf(character, name, make, mask == "upper")
 	if track == nil then
 		return nil
 	end
@@ -259,20 +288,31 @@ function Clips.play(
 	return track
 end
 
+-- Stops the clip, masked or not.
 function Clips.stop(character: Model?, name: string, fade: number?)
 	local animator = animatorOf(character)
 	local tracks = animator and loaded[animator]
-	local track = tracks and tracks[name]
-	if track and track.IsPlaying then
-		track:Stop(fade or 0.15)
+	for _, key in { name, `{name}@upper` } do
+		local track = tracks and tracks[key]
+		if track and track.IsPlaying then
+			track:Stop(fade or 0.15)
+		end
 	end
 end
 
 function Clips.playing(character: Model?, name: string): boolean
 	local animator = animatorOf(character)
 	local tracks = animator and loaded[animator]
-	local track = tracks and tracks[name]
-	return track ~= nil and track.IsPlaying
+	if tracks == nil then
+		return false
+	end
+	for _, key in { name, `{name}@upper` } do
+		local track = tracks[key]
+		if track and track.IsPlaying then
+			return true
+		end
+	end
+	return false
 end
 
 function Clips.hit(name: string): number

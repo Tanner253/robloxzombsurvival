@@ -442,6 +442,35 @@ Run all checks after each merge.
 >   - **Not done:** the G20 front and side captures. The capture script never saw the viewport (screen grab found no sentinel), and the session stopped at its tool-call budget. Take them from a fresh play: equip each class, `Clips.play` the aim, a `ZZ_PoseCam` render-step camera.
 >   - **Seen, not fixed:** the shoulder stays bladed only 30 degrees and the off hand sits at the grip, not the handguard: at 1.3x gun scale this rig's arms (1.38 studs shoulder to wrist) can't reach a handguard without crossing the chest. The reload's left hand still brushes the hip (up to 0.16). Pine Hollow's Farmhouse roof panel stops rounds and throws from 8 to 13 studs out.
 
+> - **Update 2026-11-12, moving combat and the throw bugs: branch `moving-combat`, pushed, not merged.** The developer: attacking or shooting while moving (behind, sideways) looked bad. 609 Lune specs, six checks green, UI gate 0 flags (22,551 elements). Calls are in the 2026-11-12 DECISIONS row.
+>   - **The facing rules** (`Domain/Facing`, pure, `tests/Facing.spec`; applied by the new `Controllers/Stance`):
+>     - Moving within 65 degrees of the target: the legs keep the movement (the rig's own run) and the waist turns the chest onto the target.
+>     - Past that, the whole body turns toward the target, to the facing that leaves the movement exactly 45 off ahead, 45 off behind or straight behind. The legs then play a strafe (`legsAheadLeft/Right`), back-diagonal (`legsBackLeft/Right`) or backpedal (`legsBack`) cycle along it, and the waist turns the rest. Bands hold 6 degrees past their edges (no flicker); the waist's hard stop is 75 degrees.
+>     - The cycles are solved by two-bone IK on the StarterCharacter's legs (thigh 1.04, knee to sole 1.6, hips lowered 0.4). The spec checks that the planted sole holds the ground, moves at the speed the play rate promises (within 2%), and never crosses the other foot. The play rate is ground speed over the cycle's foot speed.
+>     - The root turns eased (`TURN_SECONDS` 0.05); the stance and the leg cross-fades blend over 0.15 s. The stance holds 0.6 s after the last attack. AutoRotate is off only while it holds.
+>     - The waist turn is written on the Waist joint after the Animator, every survivor this client draws: others turn to the yaw of their last shot or swing. Shot tracers leave the muzzle along the shot, not the root.
+>     - Swings, the throw and the hit flinch play through `Clips`' waist mask (`"upper"`: everything below the chest is left to the legs). The old swings were full-body and froze the legs at rest mid-run.
+>   - **Measured in play** (cloud place "Ember", Studio, Pine Hollow, god mode on, health 100 at every read). The client drove `Humanoid:Move` in 8 directions at 16 studs/s against a fixed target 30 studs ahead (`EO_DevClient` `("aimAt", x, y, z)`, then `("stance")`). Columns: the move off the target, then gait, root, waist, ground and leg speed in studs/s.
+>     - Assault Rifle held firing: 0° forward (rig run), waist 0; 45° forward, waist -60.5; 90° aheadLeft, waist -63.2, 16/16; 135° backLeft, -10.1, 16/16; **180° back (`legsBack`), root on the target, waist 0, 16/16**; 225° backRight, 9.9, 16/16; 270° aheadRight, 63.4, 16/16; 315° forward, 60.5. Movement against the root matched the cycle in every row (0, 45, 135, 180). The measured chest (upper torso against lower) was the written waist minus the aim's 30-degree blade every time.
+>     - Hand Axe swinging (`chopSwing@upper`): in all 8 directions the right hip kept swinging 16 to 33 degrees over 0.24 s mid-swing (the legs never froze). The cycles and speeds were as above, and the waist peaked at 64.0.
+>     - Leaving the stance: AutoRotate back on, waist 0, legs back to the rig's idle.
+>   - **Captures** (Studio MCP `screen_capture`, a client `ZZ_PoseCam` side camera, day via `ClockOverride` 13.5 on the client): `docs/milestones/m1-launch/M01_fire_behind_on_the_run_vs_rec6_07.jpg`, `M01_strafe_swing_vs_rec6_04.jpg` (the swing track was held at its wind-up frame for the shot; the legs kept running), `M01_backpedal_rifle_vs_rec6_08.jpg`.
+>   - **Throw fixes:**
+>     - **Short landings:** batch 5's two short frags landed 10.9 studs from the aim, the same distance at which the Molotov's first try met the Farmhouse. The dev throw had stood the survivor under the roof. A 12-stud lob also peaked 9 studs over the ground, high enough to catch overhangs.
+>       - `Throw.apexFor`: the rise grows with the throw's length up to the item's apex, so a 12-stud throw peaks 4.6 studs over the hand line. Throws of 25 studs or more are unchanged.
+>       - `Util/ArcCast` is now the one cast the server and the preview both make. It passes through see-through volumes (`Throw.solid`: transparency 0.9 and up), and the client preview also leaves out its Hollow views.
+>       - The dev throw stands on the first of eight bearings with a clear arc and reports `blocker`.
+>       - In play: a frag from 12 studs landed 0 studs from the aim, no blocker, stack 3 → 2, and killed both Shamblers in the ring (40 → dead at 0 studs, 29 → dead at 9.5).
+>     - **One press, one grenade** (`Domain/Trigger`, `tests/Trigger.spec`): a hold belongs to the weapon in hand at its press. A release completes only that weapon's action, once. A gun fires on a hold only if the hold began with the gun. The client also keeps the throw interval, so a press in the cool-down draws no throw. In play:
+>       - One press threw one grenade (2 → 1, the preview drew while held).
+>       - A press begun with a grenade, then switched to the Marksman Rifle mid-hold by the server, fired nothing for 2 s (durability 77 → 77). Its release threw nothing and cleared the preview.
+>       - The real-mouse path wasn't repeated.
+>   - **The two untested guns**, one `("shoot", 10)` each at Pine Hollow, clear of the Farmhouse:
+>     - Tactical SMG: Shambler 40 → 29 HP, durability 720 → 719.
+>     - Marksman Rifle: 40 → 0 HP, durability 78 → 77. The first try straight after the hand switch fired nothing (still in the swap or reload window); the retry hit.
+>   - **Not verified:** touch input; another survivor's legs and waist as seen by a second client (one-player sessions only); the bow and the pistol stances on the move (the rifle and the axe were measured); real-mouse input for the trigger fix; how the cycles look at the 22 studs/s sprint (rates scale, not captured); night captures.
+>   - **Seen, not fixed:** the frame-by-frame foot plant is held by the spec, not measured on the play client (the play check compares ground and leg-cycle speed). The `M01_` prefix is shared with the older minimap captures.
+
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
    - **F-01:** `fogRuns = true`, plus a spec that every quest has a live objective and every objective kind has a server emitter.
