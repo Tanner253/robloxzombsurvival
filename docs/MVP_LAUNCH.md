@@ -114,6 +114,6 @@ Exact steps, written 2026-11-11 on branch `ship-readiness` after the launch play
    6. Repeat 6.1–6.3 once on a phone (touch has never been tested).
 7. **Creator Dashboard → the experience → Audience → Maturity & Compliance questionnaire** (any time). Answer from what is in the game: violence yes (melee, a bow and realistic guns against undead "Hollow", who crumble to ash); blood or gore no; crude humor no; romance no; alcohol, drugs or tobacco no; gambling or paid random items no (every pack has fixed contents); strong language no. Accept the rating it gives.
 8. **Creator Dashboard → the experience → Configure → Basic Info** (after 5). Name: Ember Outpost. Description: paste `docs/store/description.txt`. Genre: Survival. Devices: Computer, Phone and Tablet (Phone only if 6.6 passed).
-9. **Creator Dashboard → the experience → Configure → Places → Ember → Icon and Thumbnails** (after 5). Icon: `docs/store/icon_512.png`. Thumbnails, in this order: `thumb1_fight_1920.png`, `thumb2_base_1920.png`, `thumb3_scavenge_1920.png`.
+9. **Creator Dashboard → the experience → Configure → Places → Ember → Icon and Thumbnails** (after 5). Icon: `docs/store/icon_512.png`. Thumbnails, in this order: `thumb1_fight_1920.png`, `thumb2_base_1920.png` (two for launch; a third comes with the next capture pass).
 10. **Make it Public**: Creator Dashboard → the experience → the Private/Public switch (after 6, 7, 8 and 9).
 11. **The soft launch** (after 10): put the small ads budget behind it (HANDOFF §6 step 6) and watch the first hour's Developer Console errors.
