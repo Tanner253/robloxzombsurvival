@@ -59,6 +59,7 @@ Nothing player-facing is done until it has all ten:
 | 2.3 | **Occlusion:** walls, roofs and tall props between the camera and the player fade or cut away, so you can always see yourself inside buildings | Interiors stay visible | S1 |
 | 2.4 | Smooth transition into the build-mode camera and back | Build view (rec2) | S1 |
 | 2.5 | Subtle camera shake on heavy hits and tree falls, with a setting to turn it off | — | S1 / S2 |
+| 2.6 | **Roof fade** (developer gap, 2026-11-12: "when im in a building the roof should dissapear so i can see clearly inside"): in any roofed building, Haven's stalls and sheds included, the roof and upper parts ease almost fully out within about 0.25 s of stepping in, and the walls facing the camera ghost. Everything eases back on stepping out, with no flicker in the doorway. | rec4 120 s, rec8 17 s | S1 |
 
 ## 3. Gathering
 
