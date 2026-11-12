@@ -218,7 +218,7 @@ Run all checks after each merge.
 >   - **UI gate is at zero** (21,938 elements, all four profiles): the fog meter's band name and time overlapped by 6 px; the label widths are now set from measured text ("FOG: CLOSING" 79 px, "59:59" 30 px).
 >   - `Pacing.spec` passed 6 runs in a row on merged main; the flake was not reproduced. If it shows again, look for iteration order over table-keyed maps in `Domain/PacingSim`.
 >   - **Seen, not fixed:** a held player's respawned body stands anchored on the run map until they choose; in a shared (Dense or Black fog) lobby, others can see it. Hollows ignore it (the player has left `hosted.players`). The console shows `rbxassetid://203785492` failing with "Asset type does not match" three times at boot: find which Data entry uses it.
-> - **Update 2026-11-11, step 5 (the scripted launch playtest): pass after 3 fixes.** Branch `launch-playtest`, pushed, **not merged**. Run in the cloud place "Ember" (Studio simulation, Rojo connected) over two play sessions. Studio has no API access, so ProfileStore uses its mock: every play start is a fresh profile (Level 1, 0 Embers, 200 Energy).
+> - **Update 2026-11-11, step 5 (the scripted launch playtest): pass after 3 fixes.** Branch `launch-playtest`, reviewed and merged. Run in the cloud place "Ember" (Studio simulation, Rojo connected) over two play sessions. Studio has no API access, so ProfileStore uses its mock: every play start is a fresh profile (Level 1, 0 Embers, 200 Energy).
 >   - **Passed:**
 >     - **Gather:** sticks, stones, reeds and pines through the real `Gather` remote; 40 pine swings gave 39 timber. Quests 1–3 tick from real events, and their rewards land in the inbox and count at home.
 >     - **Craft and equip:** rope, stake, hatchet, pick and satchel through `HandCraft`; equipped through `InventoryMove`.
@@ -254,7 +254,7 @@ Run all checks after each merge.
 >     - On the Client, fire `Gather`, `HandCraft`, `InventoryMove(ref, i, "equipment", 5 or 7)`, `TravelStart(loc, "run")`, `ContainerSearch` and `ContainerTakeAll`, and `DeathChoice`.
 >     - On the Server, `EO_Dev` runs `place`, `kill`, `die`, `meter`, `extract` and `queststate`.
 >     - Keep Studio un-minimized: a minimized window captures black, and an unfocused one runs at 15 fps.
-> - **Next:** merge `launch-playtest`, then step 6 (the soft launch).
+> - **Next: step 6, the soft launch, is the developer's.** Before publishing, clear the boot console's asset errors (the "Requester does not have permission" lines and `rbxassetid://203785492`). Those need checking in the live game; Studio alone can't confirm them.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
