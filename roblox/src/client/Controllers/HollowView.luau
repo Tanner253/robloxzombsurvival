@@ -304,6 +304,22 @@ local function emit(at: Vector3, color: ColorSequence, count: number, props: { [
 	emitter:Emit(count)
 end
 
+-- A hit: the body flashes pale for a beat (a crit brighter), so a blow reads at the
+-- gameplay camera even in the dark (2.0 batch 1).
+local function flashHit(model: Model, crit: boolean)
+	local light = Instance.new("Highlight")
+	light.Adornee = model
+	light.DepthMode = Enum.HighlightDepthMode.Occluded
+	light.FillColor = if crit then Color3.fromHex("FFE3A3") else Color3.fromRGB(255, 255, 255)
+	light.FillTransparency = if crit then 0.25 else 0.45
+	light.OutlineTransparency = 1
+	light.Parent = model
+	TweenService:Create(light, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		FillTransparency = 1,
+	}):Play()
+	Debris:AddItem(light, 0.2)
+end
+
 -- Death: the body crumbles into ash and drifting embers, then is gone (13.10).
 local function dissolve(view: View)
 	local model = view.model
@@ -444,6 +460,7 @@ local function onCue(cue: { any })
 			if view.gait then
 				Gait.cue(view.gait, "hit")
 			end
+			flashHit(view.model, crit == true)
 			playOnce(view, "hit")
 			Sfx.play("hitThud", top)
 		end
@@ -467,8 +484,9 @@ local function onCue(cue: { any })
 				Gait.cue(view.gait, "dead")
 				task.delay(3, fade, view)
 			else
+				-- The fall plays out before the body crumbles, so the kill reads.
 				playOnce(view, "death")
-				task.delay(0.5, dissolve, view)
+				task.delay(0.85, dissolve, view)
 			end
 		end
 	elseif kind == "burst" then

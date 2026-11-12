@@ -360,6 +360,34 @@ end
 
 -- Swing -------------------------------------------------------------------------------------------------
 
+--[[
+	A swing at a node starts (2.0 batch 1): the tool comes into the hand now, for the whole
+	wind-up, and everyone else sees the swing start with it. The blow itself is `gather`,
+	sent on the swing's hit frame. Only cheap checks here; `gather` checks everything.
+]]
+local swingShown: { [Player]: number } = {}
+local function swingStart(player: Player, key: string)
+	local node = nodes[key]
+	if node == nil or not Plots.withinArm(player, node.position, node.radius + 2) then
+		return
+	end
+	if node.plot and (node.plot :: Plots.Plot).owner ~= player then
+		return
+	end
+	local view = Inventory.view(player)
+	local toolRef = if view then GatheringMath.pickTool(node.def, view, Content.Items :: any) else nil
+	if toolRef == nil then
+		return
+	end
+	Inventory.holdForAction(player, toolRef, SWAP_BACK_SECONDS)
+	swingShown[player] = os.clock()
+	Net.fireAllClients(
+		"Fx",
+		"act",
+		{ userId = player.UserId, action = ACTION_BY_TOOL[if node.def.tool then node.def.tool.kind else "hand"] }
+	)
+end
+
 local function gather(player: Player, key: string)
 	local node = nodes[key]
 	if node == nil then
@@ -439,13 +467,18 @@ local function gather(player: Player, key: string)
 
 	local toolItem = ""
 	local broke = false
-	-- Swap to the tool (or empty hands for a pickup), then back after a short idle.
+	-- Swap to the tool (or empty hands for a pickup), then back after a short idle. A swing
+	-- that started with GatherSwing is already showing; one that didn't shows now.
 	Inventory.holdForAction(player, toolRef, SWAP_BACK_SECONDS)
-	Net.fireAllClients(
-		"Fx",
-		"act",
-		{ userId = player.UserId, action = ACTION_BY_TOOL[if node.def.tool then node.def.tool.kind else "hand"] }
-	)
+	local shown = swingShown[player]
+	swingShown[player] = nil
+	if shown == nil or os.clock() - shown > 1 then
+		Net.fireAllClients(
+			"Fx",
+			"act",
+			{ userId = player.UserId, action = ACTION_BY_TOOL[if node.def.tool then node.def.tool.kind else "hand"] }
+		)
+	end
 	local toolSlot = if toolRef ~= "" then Inventory.slotAt(player, toolRef) else nil
 	if toolSlot then
 		local slot = toolSlot
@@ -507,6 +540,7 @@ end
 
 function Gathering.init()
 	Net.onEvent("Gather", gather)
+	Net.onEvent("GatherSwing", swingStart)
 end
 
 function Gathering.start()
@@ -547,6 +581,7 @@ function Gathering.start()
 	-- Run servers have no plots to release.
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastSwing[player] = nil
+		swingShown[player] = nil
 	end)
 	task.spawn(function()
 		local sinceAnalytics = 0

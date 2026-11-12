@@ -206,6 +206,16 @@ local function devCommand(command: string, ...: any): any
 	elseif command == "heal" then
 		require("./Survival").healFull(player)
 		return "ok"
+	elseif command == "hold" then
+		-- Puts weapon slot `args[1]` (1 or 2) in hand, as the WeaponSelect remote does (on a run
+		-- through Combat's hands). Returns the hand ref.
+		local n = if args[1] == 2 then 2 else 1
+		local hook = Inventory.combat
+		if hook and hook.active(player) then
+			hook.select(player, n)
+		end
+		Inventory.setActiveWeapon(player, n)
+		return Inventory.handRef(player)
 	elseif command == "shoot" then
 		-- Fires the gun in hand once at the nearest living Hollow through the real fire path
 		-- (reloading first when the magazine is empty), from `args[1]` studs away (default 10).

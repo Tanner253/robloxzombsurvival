@@ -48,6 +48,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Matchmaking", spec = require("./Matchmaking.spec") },
 	{ name = "Combat", spec = require("./Combat.spec") },
 	{ name = "Hands", spec = require("./Hands.spec") },
+	{ name = "Holds", spec = require("./Holds.spec") },
 	{ name = "Noise", spec = require("./Noise.spec") },
 	{ name = "Flare", spec = require("./Flare.spec") },
 	{ name = "HollowAI", spec = require("./HollowAI.spec") },

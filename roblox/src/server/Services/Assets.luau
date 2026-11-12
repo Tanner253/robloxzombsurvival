@@ -58,9 +58,9 @@ function Assets.start()
 
 	local icons = folder(root, "Icons")
 	for itemId, def in Content.Items do
-		local names = Art.items[itemId]
+		local names = if Art.paintedIcon[itemId] then nil else Art.items[itemId]
 		local model = if names then Models.kit(names) else nil
-		if model == nil and def.tool then
+		if model == nil and def.tool and not Art.paintedIcon[itemId] then
 			local built = Models.held(itemId, def, "hand")
 			model = if built then built.model else nil
 		end

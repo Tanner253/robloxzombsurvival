@@ -327,6 +327,13 @@ Remotes.list = {
 		validate = Check.args(nodeKey),
 		description = "(nodeKey) one swing at a resource node; the server checks reach, tool and cooldown",
 	},
+	GatherSwing = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = { count = 6, perSeconds = 3 },
+		validate = Check.args(nodeKey),
+		description = "(nodeKey) a swing at a node starts: its tool comes into the hand and others see the swing",
+	},
 
 	-- Crafting and stations -------------------------------------------------------------------
 	HandCraft = {

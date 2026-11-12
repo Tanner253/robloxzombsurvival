@@ -18,7 +18,6 @@
 	tracer, shell eject, impact dust; real sounds per weapon; screen shake.
 ]]
 
-local AnimationClipProvider = game:GetService("AnimationClipProvider")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,7 +27,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
-local UalClips = require(ReplicatedStorage.Shared.Data.UalClips)
+local HoldRules = require(ReplicatedStorage.Shared.Domain.HoldRules)
+local Clips = require("../Clips")
 local Net = require("../Net")
 local Sfx = require("../Sfx")
 local State = require("../State")
@@ -47,475 +47,29 @@ local HEAVY_AFTER = tuning.melee.heavyWindupSeconds or 0.45
 
 -- Animations -----------------------------------------------------------------------------------------
 
-local function deg(x: number, y: number?, z: number?): CFrame
-	return CFrame.Angles(math.rad(x), math.rad(y or 0), math.rad(z or 0))
-end
-
-local PARENTS: { [string]: string } = {
-	LowerTorso = "HumanoidRootPart",
-	UpperTorso = "LowerTorso",
-	RightUpperArm = "UpperTorso",
-	RightLowerArm = "RightUpperArm",
-	RightHand = "RightLowerArm",
-	LeftUpperArm = "UpperTorso",
-	LeftLowerArm = "LeftUpperArm",
-	LeftHand = "LeftLowerArm",
-	Head = "UpperTorso",
-	RightUpperLeg = "LowerTorso",
-	RightLowerLeg = "RightUpperLeg",
-	LeftUpperLeg = "LowerTorso",
-	LeftLowerLeg = "LeftUpperLeg",
-}
-
--- `partial`: only the parts a key names are posed; the rest keep whatever plays beneath
--- (the legs go on walking under a firing stance).
-type Spec = {
-	length: number,
-	loop: boolean?,
-	partial: boolean?,
-	keys: { { time: number, poses: { [string]: CFrame } } },
-}
-
---[[
-	The firing stances. A held gun is welded to the right fist in the carry pose (muzzle
-	forward, World/Models), so it turns with the hand: raise the arm as UAL's pistol clip
-	does and the muzzle swings up to the sky. Each stance's RightHand pose is therefore the
-	wrist turn that puts the hand back in its rest orientation with the carry pose's 19 degrees
-	of lift taken out, so the gun stays level along the aim. The angles were solved against the
-	StarterCharacter's joints in Studio (2026-11-11) and checked in side captures.
-]]
-local PISTOL_STANCE: { [string]: CFrame } = {
-	-- Both hands out in front of the chest.
-	RightUpperArm = deg(60, 0, -35),
-	RightLowerArm = deg(65),
-	RightHand = deg(-128.2, -65.7, -8.3),
-	LeftUpperArm = deg(53, 0, 47),
-	LeftLowerArm = deg(12),
-}
-local LONG_STANCE: { [string]: CFrame } = {
-	-- The grip hand folded in to the chest (the stock at the body), the other under the gun.
-	RightUpperArm = deg(50, 0, -55),
-	RightLowerArm = deg(125),
-	RightHand = deg(-130.3, -69.2, 51.4),
-	LeftUpperArm = deg(40, 0, 50),
-	LeftLowerArm = deg(15),
-}
-
-local SPECS: { [string]: Spec } = {
-	-- A quick diagonal slash: wind back, cut across, recover.
-	swing = {
-		length = 0.42,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.12,
-				poses = { UpperTorso = deg(0, 34, 0), RightUpperArm = deg(120, 0, 40), RightLowerArm = deg(40) },
-			},
-			{
-				time = 0.22,
-				poses = {
-					UpperTorso = deg(-8, -30, 0),
-					RightUpperArm = deg(70, 0, -45),
-					RightLowerArm = deg(5),
-					RightHand = deg(-40),
-				},
-			},
-			{ time = 0.42, poses = {} },
-		},
-	},
-	-- A heavy overhead blow: a long wind-up, a committed chop, a slow recovery.
-	heavy = {
-		length = 0.78,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.36,
-				poses = {
-					UpperTorso = deg(14, 20, 0),
-					RightUpperArm = deg(175, 0, 10),
-					RightLowerArm = deg(50),
-					LeftUpperArm = deg(150, 0, -10),
-				},
-			},
-			{
-				time = 0.48,
-				poses = {
-					UpperTorso = deg(-22, -10, 0),
-					RightUpperArm = deg(40, 0, -20),
-					RightLowerArm = deg(10),
-					LeftUpperArm = deg(40, 0, 10),
-					RightUpperLeg = deg(-20),
-					LeftUpperLeg = deg(18),
-				},
-			},
-			{ time = 0.78, poses = {} },
-		},
-	},
-	-- Gun up and level in both hands (held while firing): a pistol, then a long gun.
-	aim = {
-		length = 0.3,
-		loop = true,
-		partial = true,
-		keys = { { time = 0, poses = PISTOL_STANCE }, { time = 0.3, poses = PISTOL_STANCE } },
-	},
-	aimLong = {
-		length = 0.3,
-		loop = true,
-		partial = true,
-		keys = { { time = 0, poses = LONG_STANCE }, { time = 0.3, poses = LONG_STANCE } },
-	},
-	-- A kick on each shot: the chest rocks back and the arms and gun ride with it.
-	recoil = {
-		length = 0.22,
-		partial = true,
-		keys = {
-			{ time = 0, poses = { UpperTorso = deg(0) } },
-			{ time = 0.05, poses = { UpperTorso = deg(-6, 0, 0) } },
-			{ time = 0.22, poses = { UpperTorso = deg(0) } },
-		},
-	},
-	reload = {
-		length = 1.2,
-		keys = {
-			{ time = 0, poses = {} },
-			{ time = 0.25, poses = { RightUpperArm = deg(50, 0, -20), RightLowerArm = deg(60), Head = deg(-20) } },
-			{
-				time = 0.6,
-				poses = {
-					RightUpperArm = deg(50, 0, -20),
-					RightLowerArm = deg(60),
-					LeftUpperArm = deg(40, 0, 30),
-					LeftLowerArm = deg(70),
-					Head = deg(-24),
-				},
-			},
-			{ time = 0.9, poses = { RightUpperArm = deg(60, 0, -10), RightLowerArm = deg(30), Head = deg(-10) } },
-			{ time = 1.2, poses = {} },
-		},
-	},
-	draw = {
-		length = 0.6,
-		loop = true,
-		keys = {
-			{
-				time = 0,
-				poses = {
-					LeftUpperArm = deg(90, 0, 10),
-					LeftLowerArm = deg(0),
-					RightUpperArm = deg(90, 0, -20),
-					RightLowerArm = deg(110),
-					UpperTorso = deg(0, -20, 0),
-				},
-			},
-			{
-				time = 0.6,
-				poses = {
-					LeftUpperArm = deg(90, 0, 10),
-					LeftLowerArm = deg(0),
-					RightUpperArm = deg(90, 0, -20),
-					RightLowerArm = deg(115),
-					UpperTorso = deg(0, -22, 0),
-				},
-			},
-		},
-	},
-	-- A forward roll: tuck, over the shoulder, back up.
-	roll = {
-		length = 0.5,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.1,
-				poses = {
-					LowerTorso = deg(-60),
-					UpperTorso = deg(-30),
-					Head = deg(-20),
-					RightUpperLeg = deg(70),
-					LeftUpperLeg = deg(70),
-					RightLowerLeg = deg(-90),
-					LeftLowerLeg = deg(-90),
-				},
-			},
-			{
-				time = 0.28,
-				poses = {
-					LowerTorso = deg(-200),
-					UpperTorso = deg(-30),
-					Head = deg(-20),
-					RightUpperLeg = deg(80),
-					LeftUpperLeg = deg(80),
-					RightLowerLeg = deg(-100),
-					LeftLowerLeg = deg(-100),
-				},
-			},
-			{ time = 0.42, poses = { LowerTorso = deg(-350), RightUpperLeg = deg(30), LeftUpperLeg = deg(30) } },
-			{ time = 0.5, poses = {} },
-		},
-	},
-	hitReact = {
-		length = 0.35,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.08,
-				poses = {
-					UpperTorso = deg(-14, 10, 0),
-					Head = deg(-16, 0, 8),
-					RightUpperArm = deg(-10, 0, 20),
-					LeftUpperArm = deg(-10, 0, -20),
-				},
-			},
-			{ time = 0.35, poses = {} },
-		},
-	},
-	-- Collapse to the knees and forward (no gore, 1.9).
-	collapse = {
-		length = 1.1,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.35,
-				poses = {
-					LowerTorso = deg(-10),
-					UpperTorso = deg(20),
-					Head = deg(20),
-					RightUpperLeg = deg(80),
-					LeftUpperLeg = deg(80),
-					RightLowerLeg = deg(-100),
-					LeftLowerLeg = deg(-100),
-				},
-			},
-			{
-				time = 1.1,
-				poses = {
-					LowerTorso = deg(70),
-					UpperTorso = deg(10),
-					Head = deg(10),
-					RightUpperLeg = deg(20),
-					LeftUpperLeg = deg(20),
-					RightUpperArm = deg(150, 0, 20),
-					LeftUpperArm = deg(150, 0, -20),
-				},
-			},
-		},
-	},
-}
-
-local clips: { [string]: Animation } = {}
-
--- Clips retargeted from Quaternius's Universal Animation Library (CC0, Data/UalClips):
--- the reload, the hit and the fall. Melee swings stay hand-keyed above, timed to the hit
--- frame (UAL's sword attack is a long spinning slash), and so does the quick dodge
--- (UAL's roll takes 1.5 s with its get-up). The firing stances and the kick are hand-keyed
--- too: UAL's Pistol_Aim_Neutral and Pistol_Shoot turn the wrist, and the gun with it.
-local UAL: { [string]: { clip: string, loop: boolean? } } = {
-	reload = { clip = "Pistol_Reload" },
-	hitReact = { clip = "Hit_Chest" },
-	collapse = { clip = "Death01" },
-}
-
-local UAL_PARENTS: { [string]: string } = table.clone(PARENTS)
-UAL_PARENTS.RightFoot = "RightLowerLeg"
-UAL_PARENTS.LeftFoot = "LeftLowerLeg"
-
---[[
-	Each joint's rest frame in character space, read from the rig (AnimationConstraint
-	attachments, or Motor6D C0 and C1). UAL rotations are in character space; a joint
-	takes one as J^-1 * D * J. nil when the rig lacks a part UAL drives.
-]]
-local function jointFrames(character: Model): { [string]: CFrame }?
-	local parentOf: { [string]: string } = {}
-	local near: { [string]: CFrame } = {}
-	local far: { [string]: CFrame } = {}
-	for _, joint in character:GetDescendants() do
-		if joint:IsA("AnimationConstraint") then
-			local a0, a1 = joint.Attachment0, joint.Attachment1
-			if a0 and a1 and a0.Parent and a1.Parent then
-				local child = (a1.Parent :: Instance).Name
-				parentOf[child] = (a0.Parent :: Instance).Name
-				near[child] = a0.CFrame.Rotation
-				far[child] = a1.CFrame.Rotation
-			end
-		elseif joint:IsA("Motor6D") and joint.Part0 and joint.Part1 then
-			local child = (joint.Part1 :: BasePart).Name
-			parentOf[child] = (joint.Part0 :: BasePart).Name
-			near[child] = joint.C0.Rotation
-			far[child] = joint.C1.Rotation
-		end
-	end
-	local rest: { [string]: CFrame } = { HumanoidRootPart = CFrame.identity }
-	local frames: { [string]: CFrame } = {}
-	local function restOf(name: string, depth: number): CFrame?
-		if rest[name] then
-			return rest[name]
-		end
-		local parentName = parentOf[name]
-		local parentRest = if parentName and depth < 12 then restOf(parentName, depth + 1) else nil
-		if parentRest == nil then
-			return nil
-		end
-		frames[name] = parentRest * near[name]
-		rest[name] = frames[name] * far[name]:Inverse()
-		return rest[name]
-	end
-	for _, part in UalClips.PARTS do
-		if restOf(part, 0) == nil then
-			return nil
-		end
-	end
-	return frames
-end
-
-local function buildUal(name: string, loop: boolean, frames: { [string]: CFrame }): KeyframeSequence
-	local source = UalClips.clips[name]
-	local sequence = Instance.new("KeyframeSequence")
-	sequence.Loop = loop
-	sequence.Priority = Enum.AnimationPriority.Action2
-	for _, key in source.keys do
-		local keyframe = Instance.new("Keyframe")
-		keyframe.Time = key.t
-		local made: { [string]: Pose } = {}
-		local root = Instance.new("Pose")
-		root.Name = "HumanoidRootPart"
-		root.Weight = 0
-		root.Parent = keyframe
-		made.HumanoidRootPart = root
-		local values: { [string]: { number } } = {}
-		for index, part in UalClips.PARTS do
-			values[part] = key.p[index]
-		end
-		local function poseFor(part: string): Pose
-			if made[part] then
-				return made[part]
-			end
-			local v = values[part]
-			local frame = frames[part]
-			local turn = CFrame.new(0, 0, 0, v[1], v[2], v[3], v[4])
-			local cframe = frame:Inverse() * turn * frame
-			if v[5] then
-				cframe = CFrame.new(frame:Inverse() * Vector3.new(v[5], v[6], v[7])) * cframe
-			end
-			local pose = Instance.new("Pose")
-			pose.Name = part
-			pose.CFrame = cframe
-			pose.Parent = poseFor(UAL_PARENTS[part])
-			made[part] = pose
-			return pose
-		end
-		for _, part in UalClips.PARTS do
-			poseFor(part)
-		end
-		keyframe.Parent = sequence
-	end
-	return sequence
-end
-
-local ualFrames: { [string]: CFrame }? = nil
-
-local function build(spec: Spec): KeyframeSequence
-	local sequence = Instance.new("KeyframeSequence")
-	sequence.Loop = spec.loop == true
-	sequence.Priority = Enum.AnimationPriority.Action2
-	for _, key in spec.keys do
-		local keyframe = Instance.new("Keyframe")
-		keyframe.Time = key.time
-		local made: { [string]: Pose } = {}
-		local function poseFor(name: string): Pose
-			if made[name] then
-				return made[name]
-			end
-			local pose = Instance.new("Pose")
-			pose.Name = name
-			local posed: CFrame? = key.poses[name]
-			pose.CFrame = posed or CFrame.identity
-			if spec.partial and not posed then
-				pose.Weight = 0
-			end
-			pose.EasingStyle = Enum.PoseEasingStyle.Cubic
-			pose.EasingDirection = Enum.PoseEasingDirection.Out
-			local parentName = PARENTS[name]
-			pose.Parent = if parentName then poseFor(parentName) else keyframe
-			made[name] = pose
-			return pose
-		end
-		poseFor("HumanoidRootPart").Weight = 0
-		for name in PARENTS do
-			poseFor(name)
-		end
-		keyframe.Parent = sequence
-	end
-	return sequence
-end
-
-local function clip(name: string, character: Model?): Animation?
-	if clips[name] then
-		return clips[name]
-	end
-	-- A UAL clip once the rig's joint frames are known; the hand-keyed spec otherwise.
-	local ual = UAL[name]
-	if ual and ualFrames == nil and character then
-		ualFrames = jointFrames(character)
-	end
-	local sequence: KeyframeSequence
-	if ual and ualFrames then
-		sequence = buildUal(ual.clip, ual.loop == true, ualFrames)
-	else
-		local spec = SPECS[name]
-		if spec == nil then
-			return nil
-		end
-		sequence = build(spec)
-	end
-	local ok, id = pcall(AnimationClipProvider.RegisterAnimationClip, AnimationClipProvider, sequence)
-	if not ok then
+-- Every clip comes from Data/Holds by the held item's class (client/Clips plays them): the
+-- class's swing and heavy, the gun's aim, kick and reload, the bow's draw; and the body's
+-- roll, hit-react and collapse.
+local function play(character: Model?, name: string?, speed: number?): AnimationTrack?
+	if name == nil then
 		return nil
 	end
-	local animation = Instance.new("Animation")
-	animation.AnimationId = id
-	clips[name] = animation
-	return animation
-end
-
-local loaded: { [Animator]: { [string]: AnimationTrack } } = {}
-
-local function play(character: Model?, name: string, speed: number?): AnimationTrack?
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	local animation = clip(name, character)
-	if animator == nil or animation == nil then
-		return nil
-	end
-	local tracks = loaded[animator]
-	if tracks == nil then
-		tracks = {}
-		loaded[animator] = tracks
-	end
-	local track: AnimationTrack? = tracks[name]
-	if not track then
-		track = animator:LoadAnimation(animation)
-		tracks[name] = track
-	end
-	local t = track :: AnimationTrack
-	t:Play(0.06, 1, speed or 1)
-	if name == "collapse" then
+	local track = Clips.play(character, name, speed)
+	if track and name == "collapse" then
 		-- The fall holds its last pose rather than springing back up.
-		local length = t.Length
-		task.delay(math.max(0, length / (speed or 1) - 0.08), function()
+		local t = track
+		task.delay(math.max(0, t.Length / (speed or 1) - 0.08), function()
 			if t.IsPlaying then
 				t:AdjustSpeed(0)
 			end
 		end)
 	end
-	return t
+	return track
 end
 
-local function stop(character: Model?, name: string)
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	local tracks = animator and loaded[animator]
-	local track = tracks and tracks[name]
-	if track then
-		track:Stop(0.15)
+local function stop(character: Model?, name: string?)
+	if name then
+		Clips.stop(character, name)
 	end
 end
 
@@ -531,11 +85,16 @@ local function activeItem(): (string?, any)
 	return itemId, if itemId then Items[itemId] else nil
 end
 
--- The stance a gun fires from: long guns come to the chest, pistols go out in front.
-local function aimClip(): string
-	local _, def = activeItem()
-	local firearm = def and def.weapon and def.weapon.firearm
-	return if firearm and firearm.animClass ~= "pistol" then "aimLong" else "aim"
+-- The clip the item in hand plays for a use (Data/Holds by its class): a long gun shoulders,
+-- a pistol goes out in both hands, an axe chops, the stake thrusts.
+local function clipFor(use: string): string?
+	local itemId, def = activeItem()
+	return HoldRules.clip(HoldRules.classOf(itemId, def), use)
+end
+
+-- The same for another survivor's item (an effect carries its id).
+local function clipOf(itemId: string?, use: string): string?
+	return HoldRules.clip(HoldRules.classOf(itemId, if itemId then Items[itemId] else nil), use)
 end
 
 local function weaponKind(): "melee" | "gun" | "bow"
@@ -787,6 +346,27 @@ local function characterOf(userId: number): Model?
 	return if other then other.Character else nil
 end
 
+-- Another survivor firing: their stance comes up with the first shot and drops a moment
+-- after the last (yours follows your trigger).
+local lastShotAt: { [Model]: number } = {}
+local function raise(character: Model, itemId: string?)
+	local aimName = clipOf(itemId, "aim")
+	if aimName == nil then
+		return
+	end
+	if not Clips.playing(character, aimName) then
+		play(character, aimName)
+	end
+	local at = os.clock()
+	lastShotAt[character] = at
+	task.delay(0.9, function()
+		if lastShotAt[character] == at then
+			lastShotAt[character] = nil
+			stop(character, aimName)
+		end
+	end)
+end
+
 local function onShot(payload: any)
 	local character = characterOf(payload.userId)
 	if character == nil then
@@ -798,11 +378,14 @@ local function onShot(payload: any)
 	local yaw: number = payload.yaw
 	if weapon and weapon.bow then
 		Sfx.play("bowRelease", from)
-		stop(character, "draw")
+		stop(character, clipOf(payload.itemId, "aim"))
 		tracer(from, from + Vector3.new(math.sin(yaw), 0, math.cos(yaw)) * 40, Color3.fromRGB(200, 190, 170))
 		return
 	end
-	play(character, "recoil")
+	if payload.userId ~= player.UserId then
+		raise(character, payload.itemId)
+	end
+	play(character, clipOf(payload.itemId, "recoil"))
 	local firearm = weapon and weapon.firearm
 	local flare = firearm ~= nil and firearm.flare ~= nil
 	-- The kick against a pistol's (FirearmStats.recoilScale): a wider flash, a harder shake.
@@ -836,14 +419,21 @@ local function onShot(payload: any)
 	end
 end
 
+-- The swing's whoosh as the blade comes through, just ahead of its hit frame.
+local function whoosh(name: string?, at: Vector3?)
+	local delay = math.max(0, (if name then Clips.hit(name) else 0) - 0.12)
+	task.delay(delay, Sfx.play, "meleeSwing", at)
+end
+
 local function onSwing(payload: any)
 	local character = characterOf(payload.userId)
 	if character == nil or payload.userId == player.UserId then
 		return -- your own swing animates on input
 	end
-	play(character, if payload.heavy then "heavy" else "swing")
+	local name = clipOf(payload.itemId, if payload.heavy then "heavy" else "swing")
+	play(character, name)
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	Sfx.play("meleeSwing", if root then root.Position else nil)
+	whoosh(name, if root then root.Position else nil)
 end
 
 local rolling = false
@@ -931,12 +521,12 @@ function CombatControl.press()
 	local kind = weaponKind()
 	local character = player.Character
 	if kind == "gun" then
-		play(character, aimClip())
+		play(character, clipFor("aim"))
 		fireOnce()
 		lastShot = os.clock()
 	elseif kind == "bow" then
 		drawing = true
-		play(character, "draw")
+		play(character, clipFor("aim"))
 		Sfx.play("bowDraw")
 		Net.fire("CombatDraw")
 	end
@@ -956,22 +546,22 @@ function CombatControl.release()
 		end
 		face(yaw)
 		local heavy = os.clock() - pressedAt >= HEAVY_AFTER
-		play(character, if heavy then "heavy" else "swing")
-		Sfx.play("meleeSwing")
+		local name = clipFor(if heavy then "heavy" else "swing")
+		play(character, name)
+		whoosh(name, nil)
 		Net.fire("CombatMelee", heavy, yaw, lockedId(target))
 	elseif kind == "bow" and drawing then
 		drawing = false
 		fireOnce()
 	elseif kind == "gun" then
-		stop(character, "aim")
-		stop(character, "aimLong")
+		stop(character, clipFor("aim"))
 	end
 end
 
 function CombatControl.reload()
 	if FogRun.active() and weaponKind() == "gun" then
 		Net.fire("CombatReload")
-		play(player.Character, "reload")
+		play(player.Character, clipFor("reload") or "reload")
 		Sfx.play("reload")
 	end
 end
