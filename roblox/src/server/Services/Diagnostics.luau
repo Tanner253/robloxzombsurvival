@@ -22,7 +22,8 @@
 	  and reports its health and the gun's durability before and after, ("throw", studs?,
 	  wait?) throws the grenade or molotov in hand at the nearest Hollow and reports the stack
 	  and the Hollow near it before and after (an equipped throwable's third argument is the
-	  stack's size), ("heal") restores the
+	  stack's size), ("god", on?) sets god mode (on from the first command: run damage does
+	  nothing; ("god", false) for a check that needs a hit to land), ("heal") restores the
 	  survivor between checks, ("wear", itemId) puts armor in its
 	  slot, ("energy", n) sets Energy,
 	  ("embers", n) sets the Ember balance, ("deathstate") reports the death screen's wait
@@ -186,7 +187,15 @@ local function devCommand(command: string, ...: any): any
 		return "no player"
 	end
 	local args = { ... }
-	if command == "fogrun" then
+	-- God mode is on for every scripted check unless it is turned off on purpose with
+	-- ("god", false), for a check that needs a Hollow to land a hit (Lobby.hurtPlayer).
+	if player:GetAttribute("DevGod") == nil then
+		player:SetAttribute("DevGod", true)
+	end
+	if command == "god" then
+		player:SetAttribute("DevGod", args[1] ~= false)
+		return player:GetAttribute("DevGod")
+	elseif command == "fogrun" then
 		Lobby.enqueue({ player }, args[1], args[2] or "run")
 		return "queued"
 	elseif command == "runstate" then

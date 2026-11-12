@@ -88,6 +88,19 @@ return function(test: TestKit.Register)
 		)
 	end)
 
+	test("Studio checks run in god mode, and only in Studio", function()
+		local lobby = fs.readFile("src/server/Services/Lobby.luau")
+		TestKit.truthy(
+			string.find(lobby, 'RunService:IsStudio() and player:GetAttribute("DevGod") == true', 1, true),
+			"Lobby.hurtPlayer skips damage for a Studio tester in god mode"
+		)
+		local dev = fs.readFile("src/server/Services/Diagnostics.luau")
+		TestKit.truthy(
+			string.find(dev, 'player:SetAttribute("DevGod", true)', 1, true),
+			"EO_Dev turns god mode on by default"
+		)
+	end)
+
 	test("F-01: Fog Runs are on for the launch build", function()
 		TestKit.equal((Content.Tuning.features :: any).fogRuns, true, "Tuning.features.fogRuns")
 		TestKit.equal(Flags.DEFAULTS.fogRuns, true, "Flags follows the one switch")
