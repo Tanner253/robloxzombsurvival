@@ -23,6 +23,7 @@
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Content = require(ReplicatedStorage.Shared.Data)
@@ -396,6 +397,11 @@ function Lobby.hurtPlayer(player: Player, amount: number, cause: string, from: V
 	end
 	if Lobby.invulnerable(player) then
 		Sync.fx(player, "dodged", { cause = cause })
+		return 0
+	end
+	-- Studio's scripted checks run in god mode (EO_Dev "god", on by default): a tester that
+	-- dies to a Hollow mid-check wastes the whole run. Never in a live game.
+	if RunService:IsStudio() and player:GetAttribute("DevGod") == true then
 		return 0
 	end
 	local equipment = data.inventory.equipment :: any
