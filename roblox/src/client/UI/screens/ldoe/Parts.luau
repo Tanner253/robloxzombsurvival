@@ -47,6 +47,28 @@ function Parts.Pane(props: { header: any, body: any, bar: any? })
 	})
 end
 
+-- A pane body that scrolls when its content is taller than the space: a big bag's
+-- backpack rows run past the action bar otherwise (the crate pane scrolls the same way).
+function Parts.ScrollBody(props: { gap: number?, children: { [string]: any } })
+	return e("ScrollingFrame", {
+		Size = UDim2.fromScale(1, 1),
+		CanvasSize = UDim2.fromScale(0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
+		ScrollBarThickness = 4,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+	}, {
+		Content = e(Layout.Stack, {
+			gap = props.gap,
+			size = UDim2.fromScale(1, 0),
+			autoSize = Enum.AutomaticSize.Y,
+			children = props.children,
+		}),
+	})
+end
+
 -- The header: an icon, the title (plain or on a teal chip) and controls at the right.
 -- Header titles longer than this many characters use the smaller section size.
 local LONG_TITLE = 18

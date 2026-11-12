@@ -101,6 +101,19 @@ return function(test: TestKit.Register)
 		)
 	end)
 
+	test("the inventory pane scrolls, so every backpack row can be reached", function()
+		local pane = fs.readFile("src/client/UI/screens/ldoe/InventoryPane.luau")
+		TestKit.truthy(
+			string.find(pane, "local body = e(Parts.ScrollBody", 1, true),
+			"InventoryPane's body is a ScrollBody"
+		)
+		local parts = fs.readFile("src/client/UI/screens/ldoe/Parts.luau")
+		TestKit.truthy(
+			string.find(parts, "AutomaticCanvasSize = Enum.AutomaticSize.Y", 1, true),
+			"ScrollBody grows its canvas"
+		)
+	end)
+
 	test("F-01: Fog Runs are on for the launch build", function()
 		TestKit.equal((Content.Tuning.features :: any).fogRuns, true, "Tuning.features.fogRuns")
 		TestKit.equal(Flags.DEFAULTS.fogRuns, true, "Flags follows the one switch")
