@@ -15,6 +15,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local Art = require(ReplicatedStorage.Shared.Art)
+local AssetAudit = require(ReplicatedStorage.Shared.Domain.AssetAudit)
 local HoldRules = require(ReplicatedStorage.Shared.Domain.HoldRules)
 local Types = require(ReplicatedStorage.Shared.Types)
 
@@ -85,6 +86,31 @@ end
 local LOAD_WAIT_SECONDS = 20
 local loading: { [string]: boolean } = {}
 local failed: { [string]: boolean } = {}
+local loadClock = 0
+
+-- Seconds this server has spent waiting on InsertService loads (perf notes).
+function Models.loadSeconds(): number
+	return loadClock
+end
+
+--[[
+	The place keeps a copy of each uploaded model in ServerStorage.EO_Uploaded (Studio's
+	`tools/rebuild_uploaded.luau`), its SurfaceAppearances rebuilt in Studio. A model fresh
+	from InsertService carries the texture pack the Open Cloud import made, which the game
+	may not read ("Requester does not have permission", rbxassethash, at every boot), and
+	the load itself cost a run server up to 2 s. Only a copy of the same asset id is used
+	(it moves into EO_Kit once conformed); otherwise the asset is loaded as before.
+]]
+local function storedCopy(name: string, assetId: number): Model?
+	local stored = ServerStorage:FindFirstChild("EO_Uploaded")
+	local found = stored and stored:FindFirstChild(name)
+	if found and found:IsA("Model") and AssetAudit.useStoredCopy(found:GetAttribute("AssetId"), assetId) then
+		found.Parent = nil
+		return found
+	end
+	return nil
+end
+
 local function loadUploaded(name: string): Model?
 	local entry = Art.uploaded[name]
 	local kit = ServerStorage:FindFirstChild("EO_Kit")
@@ -99,10 +125,17 @@ local function loadUploaded(name: string): Model?
 		return nil -- the caller finds the loaded model in EO_Kit
 	end
 	loading[name] = true
-	local ok, container = pcall(function()
-		return game:GetService("InsertService"):LoadAsset(entry.id)
-	end)
-	local model = if ok then container:FindFirstChildWhichIsA("Model") else nil
+	local model = storedCopy(name, entry.id)
+	local container: Instance? = nil
+	if model == nil then
+		local started = os.clock()
+		local ok, loaded = pcall(function()
+			return game:GetService("InsertService"):LoadAsset(entry.id)
+		end)
+		loadClock += os.clock() - started
+		container = if ok then loaded else nil
+		model = if container then container:FindFirstChildWhichIsA("Model") else nil
+	end
 	if model == nil then
 		warn(`[Models] couldn't load {name} ({entry.id})`)
 		failed[name] = true
@@ -134,7 +167,9 @@ local function loadUploaded(name: string): Model?
 	end
 	model.Name = name
 	model.Parent = kit
-	container:Destroy()
+	if container then
+		container:Destroy()
+	end
 	loading[name] = nil
 	return model
 end
@@ -810,6 +845,22 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 	end
 	local seat = if mount == "hand" and HoldRules.mountOf(itemId, def :: any) == "gun" then "gun" else mount
 	local rotation = MOUNT_FRAMES[seat] * frame(axis, -edge):Inverse()
+	-- A long gun's handguard, where clients pull the off hand (HoldRules.supportAt; batch 3).
+	local support = if kit and art
+		then HoldRules.supportAt(HoldRules.classOf(itemId, def :: any), grip, length)
+		else nil
+	local body = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	if support and body then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "Support"
+		attachment.Parent = body
+		-- Along the bore from the grip, raised from the grip's height to just under the
+		-- handguard: back up the grip's drop, then 0.15 of the gun's height (set on the
+		-- Assault Rifle in Studio, where it puts the palm under the handguard).
+		local height = math.abs(edge.X) * box.X + math.abs(edge.Y) * box.Y + math.abs(edge.Z) * box.Z
+		local lift = -edge * (((drop or 0) + HoldRules.SUPPORT_LIFT) * height)
+		attachment.WorldPosition = gripPoint + axis * ((support - grip) * length) + lift
+	end
 	model.Name = itemId
 	return { model = model, rotation = rotation, gripPoint = gripPoint }
 end

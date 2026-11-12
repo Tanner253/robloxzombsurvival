@@ -102,6 +102,8 @@ type World = {
 }
 
 local worlds: { [string]: World } = {}
+local cost = { ticks = 0, seconds = 0, worst = 0 }
+local SPAWN_CHECK_WAIT = 15 -- seconds the first spawn waits for a map's spawn checks at most
 
 -- The nav probe steps virtual Hollows in its own time (Hollow.navProbe; Studio only).
 local probeClock: number? = nil
@@ -951,11 +953,19 @@ function Hollow.start()
 		worlds[hosted.id] = world
 	end)
 	Lobby.entered:Connect(function(_player: Player, run: Lobby.Run)
-		-- The first arrival starts the meter: the band-1 Hollow wake now.
-		local world = worlds[run.hosted.id]
-		if world and next(world.hollows) == nil and world.seq == 0 then
-			spawnBand(world, 1)
-		end
+		-- The first arrival starts the meter: the band-1 Hollow wake now, once the map's
+		-- spawn markers are checked (Maps.build marks it Ready first; batch 3).
+		task.spawn(function()
+			local map = run.hosted.map
+			local waited = 0
+			while map and map:GetAttribute("SpawnsChecked") == false and waited < SPAWN_CHECK_WAIT do
+				waited += task.wait(0.2)
+			end
+			local world = worlds[run.hosted.id]
+			if world and next(world.hollows) == nil and world.seq == 0 then
+				spawnBand(world, 1)
+			end
+		end)
 	end)
 	Lobby.bandChanged:Connect(function(hosted: Lobby.Hosted, band: number)
 		local world = worlds[hosted.id]
@@ -974,6 +984,7 @@ function Hollow.start()
 			local stamp = now()
 			local dt = math.min(stamp - last, config.tickSeconds * 3)
 			last = stamp
+			local started = os.clock()
 			for id, world in worlds do
 				local ok, err = pcall(tickWorld :: any, world, dt)
 				if not ok then
@@ -984,8 +995,29 @@ function Hollow.start()
 					sync(world)
 				end
 			end
+			local spent = os.clock() - started
+			cost.ticks += 1
+			cost.seconds += spent
+			cost.worst = math.max(cost.worst, spent)
 		end
 	end)
+end
+
+-- Server time the AI tick has taken since the last reset (Studio perf notes), and the live count.
+function Hollow.cost(reset: boolean?): { ticks: number, seconds: number, worst: number, alive: number }
+	local alive = 0
+	for _, world in worlds do
+		for _, record in world.hollows do
+			if record.diedAt == nil then
+				alive += 1
+			end
+		end
+	end
+	local result = { ticks = cost.ticks, seconds = cost.seconds, worst = cost.worst, alive = alive }
+	if reset then
+		cost.ticks, cost.seconds, cost.worst = 0, 0, 0
+	end
+	return result
 end
 
 return Hollow

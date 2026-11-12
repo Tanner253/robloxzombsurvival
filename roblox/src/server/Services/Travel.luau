@@ -42,6 +42,7 @@ local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local PlayerData = require("./PlayerData")
 local Progression = require("./Progression")
+local RunWorld = require("./RunWorld")
 local Sync = require("./Sync")
 local Maps = require("../FogRuns/Maps")
 local Teleport = require("../FogRuns/Teleport")
@@ -248,6 +249,8 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 			arrivesAt = plan.trip.arrivesAt,
 		})
 	end
+	-- The Studio simulation builds the map during the trip (batch 3; live run servers build at boot).
+	RunWorld.prepare(location.id)
 end
 
 local function cancel(player: Player)
@@ -309,7 +312,7 @@ local function arrive(record: Trip)
 			refund(present[1], record.spent[present[1]] or 0, "ReentryRefund")
 		end
 	else
-		Lobby.enqueue(present, record.location.id, record.trip.mode)
+		Lobby.enqueue(present, record.location.id, record.trip.mode, record.trip.departedAt)
 	end
 end
 

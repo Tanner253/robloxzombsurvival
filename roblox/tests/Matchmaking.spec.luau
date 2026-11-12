@@ -142,6 +142,22 @@ return function(test: TestKit.Register)
 		TestKit.equal(#later.creates, 1, "and gets a lobby of their own soon after")
 	end)
 
+	test("a Run's trip counts as waiting: a lobby opens at the first tick after it", function()
+		local runSeconds = Content.Tuning.travel.runSeconds
+		local departed = T0
+		local arrived = departed + runSeconds
+		TestKit.equal(Matchmaking.waitSince(departed, arrived), departed)
+		TestKit.equal(Matchmaking.waitSince(nil, arrived), arrived, "no trip: the wait starts now")
+		TestKit.equal(Matchmaking.waitSince(arrived + 5, arrived), arrived, "never in the future")
+		TestKit.truthy(
+			CONFIG.newLobbyAfterSeconds <= runSeconds,
+			"the shipped wait fits inside the Run's trip (batch 3: arrive within 5 s of the timer)"
+		)
+		local entry = solo("u1", 130, Matchmaking.waitSince(departed, arrived))
+		local plan = Matchmaking.tick({ entry }, {}, arrived, CONFIG, CAPACITY)
+		TestKit.equal(#plan.creates, 1, "no lobby to join: a fresh one at once")
+	end)
+
 	test("a fresh lobby fills to capacity and no further", function()
 		local queue = {}
 		for index = 1, 14 do
