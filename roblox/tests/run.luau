@@ -69,6 +69,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "QolFlow", spec = require("./QolFlow.spec") },
 	{ name = "AssetAudit", spec = require("./AssetAudit.spec") },
 	{ name = "Content2", spec = require("./Content2.spec") },
+	{ name = "Interior", spec = require("./Interior.spec") },
 }
 
 local passed, failed = 0, 0
