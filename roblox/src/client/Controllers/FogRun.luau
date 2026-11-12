@@ -15,7 +15,7 @@
 	The world it dresses on the client:
 	- per fog tier, the fog thickens as the lobby's meter rises (12.3) and lifts again
 	  at home;
-	- the roof of the building you stand in lifts away (2.3);
+	- (the roof of the building you stand in lifts away in RoofFade, checklist 2.3);
 	- searched containers open their lids and doors; unstocked ones stand open;
 	- tall map foliage fades when it hides you.
 ]]
@@ -45,7 +45,6 @@ local CONTAINER_TAG = "EO_RunContainer"
 local EXIT_TAG = "EO_RunExit"
 local CLOSED_EXIT = Color3.fromRGB(92, 96, 100)
 local CANOPY_TAG = "EO_Canopy"
-local ROOF_TAG = "EO_Roof"
 
 -- Fog by tier (Light, Dense, Black): density and haze at the meter's start and at its end.
 type Look = { density: { number }, haze: { number }, offset: number, saturation: number, contrast: number }
@@ -127,52 +126,6 @@ local function restoreHome()
 	if g and saturation then
 		g.Saturation = saturation
 		g.Contrast = saved.contrast
-	end
-end
-
--- Roofs: the building you're in loses its roof (and walls fade via WorldFx) --------------------------
-
-local liftedRoofs: { [Instance]: boolean } = {}
-
-local function setRoof(roof: Instance, lifted: boolean)
-	for _, descendant in roof:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			descendant.LocalTransparencyModifier = if lifted then 1 else 0
-		end
-	end
-end
-
-local function updateRoofs()
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	local inside: { [Instance]: boolean } = {}
-	if root then
-		for _, roof in CollectionService:GetTagged(ROOF_TAG) do
-			local building = roof.Parent
-			local box = building and building:GetAttribute("Interior")
-			local frame = building and building:GetAttribute("InteriorCFrame")
-			if typeof(box) == "Vector3" and typeof(frame) == "CFrame" then
-				local here = frame:PointToObjectSpace(root.Position)
-				local half = box / 2 + Vector3.new(0.6, 2, 0.6)
-				if math.abs(here.X) < half.X and math.abs(here.Z) < half.Z and math.abs(here.Y) < half.Y then
-					inside[roof] = true
-				end
-			end
-		end
-	end
-	for roof in inside do
-		if not liftedRoofs[roof] then
-			liftedRoofs[roof] = true
-			setRoof(roof, true)
-		end
-	end
-	for roof in liftedRoofs do
-		if not inside[roof] then
-			liftedRoofs[roof] = nil
-			if roof.Parent then
-				setRoof(roof, false)
-			end
-		end
 	end
 end
 
@@ -684,7 +637,7 @@ function FogRun.start()
 		task.spawn(watchContainer, instance)
 	end)
 
-	local roofClock, canopyClock, exitClock = 0, 0, 0
+	local canopyClock, exitClock = 0, 0
 	RunService.RenderStepped:Connect(function(dt: number)
 		if State.isHeld() then
 			return -- the UI gate is showing fixture screens
@@ -720,11 +673,6 @@ function FogRun.start()
 					exitMark = nil
 				end
 			end
-		end
-		roofClock += dt
-		if roofClock > 0.2 then
-			roofClock = 0
-			updateRoofs()
 		end
 		canopyClock += dt
 		if run and canopyClock > 0.15 then

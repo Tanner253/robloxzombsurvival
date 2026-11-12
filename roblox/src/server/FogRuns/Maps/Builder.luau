@@ -17,8 +17,11 @@
 	- the RunMarker parts: spawn, hollow, container, extract, bounds, node.
 
 	Walls are Models with Layer "fill" and roofs Layer "roof", so the client's
-	occlusion fade sees through them; a building's Interior box lets the client lift
-	the roof off while you're inside (checklist 2.3).
+	occlusion fade sees through them. Every enterable building is marked for the roof
+	fade (World/Interiors, checklist 2.3): its footprint, its roof and porch awning, and
+	its walls and corner posts with their outward normals. While you're inside, the roof
+	lifts and the camera-side walls ghost (Controllers/RoofFade). The Interior box and
+	EO_Roof tag stay for the Radar's map.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -26,6 +29,7 @@ local MaterialService = game:GetService("MaterialService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Art = require(ReplicatedStorage.Shared.Art)
+local Interiors = require("../../World/Interiors")
 local Models = require("../../World/Models")
 
 local Builder = {}
@@ -945,6 +949,7 @@ local function wallSide(
 	local offset = if info.axis == "X" then spec.depth / 2 else spec.width / 2
 	local holder = model(building, `Wall{side}`)
 	holder:SetAttribute("Layer", "fill")
+	Interiors.wall(holder, base:VectorToWorldSpace(info.normal))
 	-- The wall's own frame: X runs along the building's +X (north and south walls) or +Z
 	-- (east and west walls), so an opening's `at` is that offset; `out` says which way
 	-- local Z faces (+1 out of the building, -1 in).
@@ -1119,6 +1124,7 @@ local function gableRoof(ctx: Ctx, building: Model, base: CFrame, spec: Building
 	local holder = model(building, "Roof")
 	holder:SetAttribute("Layer", "roof")
 	CollectionService:AddTag(holder, Builder.ROOF_TAG)
+	Interiors.roof(holder)
 	local paint = spec.roofPaint or "shingle"
 	local alongX = spec.width >= spec.depth
 	local span = if alongX then spec.depth else spec.width
@@ -1187,6 +1193,7 @@ local function flatRoof(ctx: Ctx, building: Model, base: CFrame, spec: BuildingS
 	local holder = model(building, "Roof")
 	holder:SetAttribute("Layer", "roof")
 	CollectionService:AddTag(holder, Builder.ROOF_TAG)
+	Interiors.roof(holder)
 	local paint = spec.roofPaint or "concreteDark"
 	local ruin = spec.ruin or 0
 	if ruin > 0.3 then
@@ -1242,6 +1249,7 @@ local function shedRoof(ctx: Ctx, building: Model, base: CFrame, spec: BuildingS
 	local holder = model(building, "Roof")
 	holder:SetAttribute("Layer", "roof")
 	CollectionService:AddTag(holder, Builder.ROOF_TAG)
+	Interiors.roof(holder)
 	local rise = spec.depth * 0.18
 	local slope = math.sqrt(spec.depth * spec.depth + rise * rise) + 1.4
 	local angle = math.atan2(rise, spec.depth)
@@ -1335,14 +1343,16 @@ function Builder.building(ctx: Ctx, spec: BuildingSpec): Building
 	-- Corner posts in trim.
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
-			Builder.part(
+			local corner = Builder.part(
 				building,
 				Vector3.new(1, height, 1),
 				base * CFrame.new(sx * (spec.width / 2 - 0.4), height / 2, sz * (spec.depth / 2 - 0.4)),
 				spec.trim or "trim",
 				"Corner"
-			).Size =
-				Vector3.new(1, if (spec.ruin or 0) > 0 then height * 0.55 else height, 1)
+			)
+			corner.Size = Vector3.new(1, if (spec.ruin or 0) > 0 then height * 0.55 else height, 1)
+			-- A corner post ghosts with the walls when it stands between two that face the camera.
+			Interiors.wall(corner, base:VectorToWorldSpace(Vector3.new(sx, 0, sz)))
 		end
 	end
 	local roof = spec.roof or "gable"
@@ -1380,7 +1390,11 @@ function Builder.building(ctx: Ctx, spec: BuildingSpec): Building
 		)
 		roofPart:SetAttribute("Porch", true)
 		porch:SetAttribute("Layer", "roof")
+		Interiors.roof(roofPart)
 	end
+	-- The room inside the walls, floor to eaves, for the roof fade (last, so the client
+	-- sees a finished building when the tag arrives).
+	Interiors.mark(building, base * CFrame.new(0, 0.2, 0), spec.width - WALL * 2, spec.depth - WALL * 2, height)
 	local inverse = base:Inverse()
 	local function inside(x: number, z: number): boolean
 		local here = inverse * (ctx.origin + Vector3.new(x, ground + plinth, z))
