@@ -12,6 +12,7 @@
 	lobby seed closes one. Containers: lockers and cabinets indoors, car boots.
 ]]
 
+local Interiors = require("../../World/Interiors")
 local Builder = require("./Builder")
 
 local Rustwater = {}
@@ -378,8 +379,12 @@ local function gasStation(ctx: Builder.Ctx)
 			Builder.part(holder, Vector3.new(1, 13, 1), base * CFrame.new(x, 6.5, z), "concrete", "Pillar")
 		end
 	end
-	Builder.part(holder, Vector3.new(28, 1.6, 16), base * CFrame.new(0, 13.6, 0), "concreteDark", "Canopy")
-	Builder.part(holder, Vector3.new(28.2, 0.6, 16.2), base * CFrame.new(0, 12.9, 0), "rust", "Band")
+	-- The canopy deck and its band lift while you're under them (roof fade); the pillars stay.
+	Interiors.roof(
+		Builder.part(holder, Vector3.new(28, 1.6, 16), base * CFrame.new(0, 13.6, 0), "concreteDark", "Canopy")
+	)
+	Interiors.roof(Builder.part(holder, Vector3.new(28.2, 0.6, 16.2), base * CFrame.new(0, 12.9, 0), "rust", "Band"))
+	Interiors.mark(holder, base, 28, 16, 12.6)
 	for _, x in { -5, 5 } do
 		Builder.part(holder, Vector3.new(4, 0.8, 2), base * CFrame.new(x, 0.4, 0), "concrete", "Island")
 		Builder.kit(ctx, { "EO_FuelPump" }, 50 + x, 86, 180, { height = 5, lift = 0.8 })

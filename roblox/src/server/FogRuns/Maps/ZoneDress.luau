@@ -5,6 +5,7 @@
 	burnt shell, a lookout tower, an ore chute and a conveyor.
 ]]
 
+local Interiors = require("../../World/Interiors")
 local Builder = require("./Builder")
 
 local ZoneDress = {}
@@ -149,7 +150,11 @@ function ZoneDress.tower(ctx: Builder.Ctx, name: string, x: number, z: number, y
 			"Rail"
 		)
 	end
-	Builder.part(holder, Vector3.new(span + 3, 0.4, span + 3), base * CFrame.new(0, deck + 7, 0), "shingle", "Roof")
+	local roof =
+		Builder.part(holder, Vector3.new(span + 3, 0.4, span + 3), base * CFrame.new(0, deck + 7, 0), "shingle", "Roof")
+	-- Up on the deck, the plank roof lifts so the climber stays in view (roof fade).
+	Interiors.roof(roof)
+	Interiors.mark(holder, base * CFrame.new(0, deck + 0.25, 0), span + 2, span + 2, 6.5)
 	for rung = 1, deck, 1.4 do
 		Builder.part(holder, Vector3.new(1.6, 0.2, 0.2), base * CFrame.new(0, rung, span / 2 + 0.7), "trim", "Rung")
 	end

@@ -32,6 +32,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Neighbourhood = require(ReplicatedStorage.Shared.Domain.Neighbourhood)
+local Interiors = require("./Interiors")
 local Models = require("./Models")
 
 local Haven = {}
@@ -761,9 +762,14 @@ type RoofShape = { width: number, depth: number, front: number, back: number }
 
 -- A roof: two kit wall panels (scrap sheet or timber) laid side by side over the posts,
 -- sloping from the back eave (height `back`) down to the front (`front`), overhanging
--- every side. Real textured sheet, never a flat-coloured slab.
+-- every side. Real textured sheet, never a flat-coloured slab. The panels share a holder
+-- tagged for the roof fade, so they lift while you stand underneath.
 local function roof(parent: Instance, frame: CFrame, panelName: string, shape: RoofShape?)
 	local dims: RoofShape = shape or STALL
+	local holder = Instance.new("Model")
+	holder.Name = "Roof"
+	Interiors.roof(holder)
+	holder.Parent = parent
 	local w, d = dims.width, dims.depth
 	local rise = dims.back - dims.front
 	local slope = math.atan2(rise, d)
@@ -786,27 +792,33 @@ local function roof(parent: Instance, frame: CFrame, panelName: string, shape: R
 				piece.CanTouch = false
 			end
 		end
-		panel.Parent = parent
+		panel.Parent = holder
 	end
 end
 
--- An open shed in its own frame (front toward -Z): four posts under a kit-panel roof.
-local function shed(parent: Instance, frame: CFrame, panelName: string, shape: RoofShape)
+-- An open shed in its own frame (front toward -Z): four posts under a kit-panel roof, as
+-- its own Model marked for the roof fade (you can walk in under it).
+local function shed(parent: Instance, name: string, frame: CFrame, panelName: string, shape: RoofShape)
+	local model = Instance.new("Model")
+	model.Name = name
 	for _, x in { -shape.width / 2, shape.width / 2 } do
 		wood(
-			parent,
+			model,
 			Vector3.new(0.5, shape.front, 0.5),
 			frame * CFrame.new(x, shape.front / 2, -shape.depth / 2),
 			DARK_WOOD
 		)
 		wood(
-			parent,
+			model,
 			Vector3.new(0.5, shape.back, 0.5),
 			frame * CFrame.new(x, shape.back / 2, shape.depth / 2),
 			DARK_WOOD
 		)
 	end
-	roof(parent, frame, panelName, shape)
+	roof(model, frame, panelName, shape)
+	Interiors.mark(model, frame, shape.width, shape.depth, shape.front)
+	model.WorldPivot = frame
+	model.Parent = parent
 end
 
 -- The striped awning hung from the front eave, with a scalloped valance along its edge.
@@ -853,6 +865,7 @@ local function stall(parent: Instance, frame: CFrame, roofPanel: string, title: 
 		DARK_WOOD
 	)
 	paint(sign, Enum.NormalId.Front, title, GOLD)
+	Interiors.roof(sign) -- it stands on the eave: it lifts with the roof, never floats
 	-- Bulbs along the awning's edge.
 	stringLights(
 		folder,
@@ -879,13 +892,18 @@ local function stall(parent: Instance, frame: CFrame, roofPanel: string, title: 
 		width = 2.6,
 		solid = false,
 	})
-	kit(folder, "WallScrap", frame * CFrame.new(0, 0, d / 2 + 1.4))
+	local backWall = kit(folder, "WallScrap", frame * CFrame.new(0, 0, d / 2 + 1.4))
+	if backWall then
+		-- Ghosts while you're under the roof when it stands on the camera's side.
+		Interiors.wall(backWall, frame:VectorToWorldSpace(Vector3.zAxis))
+	end
 	candles(folder, frame * CFrame.new(0, crateTop, 1.6), 3)
 	kit(folder, "EO_LanternPost", frame * CFrame.new(-w / 2 - 1.4, 0, -d / 2 - 1.2) * CFrame.Angles(0, math.rad(90), 0))
 	-- Stock round the outside: barrels by the front post, a tarped stack beside the back.
 	kit(folder, "EO_BarrelCluster", frame * CFrame.new(-w / 2 - 2.6, 0, -1.5) * CFrame.Angles(0, math.rad(35), 0))
 	crateStack(folder, frame * CFrame.new(w / 2 + 2.6, 0, 2.8) * CFrame.Angles(0, math.rad(90), 0), accent)
 	kit(folder, "EO_SupplySacksMesh", frame * CFrame.new(-w / 2 - 2.4, 0, 3.2) * CFrame.Angles(0, math.rad(-30), 0))
+	Interiors.mark(folder, frame, w, d, STALL.front)
 	folder.WorldPivot = frame
 	folder.Parent = parent
 	return folder
@@ -1263,13 +1281,13 @@ local function southside(folder: Instance, origin: Vector3)
 	kit(yard, "EO_BarrelCluster", yawed(at(-36.5, 23), 80), { width = 3.4 })
 	-- The hay barn: an open timber shed over the bales, more stacked beside it.
 	local barn = yawed(at(-10, 49), 0)
-	shed(yard, barn, "WallWood", { width = 10, depth = 6, front = 5.4, back = 6.6 })
+	shed(yard, "HayBarn", barn, "WallWood", { width = 10, depth = 6, front = 5.4, back = 6.6 })
 	kit(yard, "EO_HayBales", barn * CFrame.new(0, 0, 0.4), { width = 7 })
 	kit(yard, "EO_HayBales", yawed(at(-21, 48), -14), { width = 6 })
 	-- The stores: a scrap-roofed shed over a table of goods south of the spawn, washing
 	-- hung out east.
 	local stores = yawed(at(-3, 39), 0)
-	shed(yard, stores, "WallScrap", { width = 9, depth = 5, front = 6, back = 7 })
+	shed(yard, "Stores", stores, "WallScrap", { width = 9, depth = 5, front = 6, back = 7 })
 	local top = plankTable(yard, stores * CFrame.new(0, 0, -0.4), 7, 2.4)
 	kit(yard, "EO_SupplySacksMesh", top * CFrame.new(-2.2, 0, 0) * CFrame.Angles(0, math.rad(15), 0), {
 		width = 2.2,
