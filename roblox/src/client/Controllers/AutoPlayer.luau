@@ -600,8 +600,9 @@ local function openStation(uid: string): Model?
 end
 
 local function closePanels()
-	if State.ui().panel ~= "none" then
-		State.toggle(State.ui().panel)
+	local ui = State.ui()
+	if ui.panel ~= "none" then
+		State.toggle(ui.panel, ui.stationUid) -- the X: a station's toggle names its uid
 	end
 end
 
@@ -874,9 +875,24 @@ local function build(step: AutoPlan.Step)
 	local def = Pieces[pieceId]
 	local where = PlotSpace.target(info.origin, current, Grid.layerOf(def), target, def).Position
 	walkTo(where, 10)
+	local before = 0
+	for _ in current.pieces do
+		before += 1
+	end
 	Net.fire("BuildPlace", pieceId, target.x, target.z, target.axis, target.rot)
 	log(`build {pieceId} at {target.x},{target.z}{if target.axis then " " .. target.axis else ""}`)
-	task.wait(1)
+	task.wait(1.2)
+	local after = 0
+	for _ in (layout() or current).pieces do
+		after += 1
+	end
+	if after <= before then
+		local notices = State.ui().notices
+		local last = notices[#notices]
+		log(`build refused: {if last then last.text else "no notice"}`)
+		task.wait(2)
+		return
+	end
 	if def.kind == "wall" then
 		milestone("wall", "first wall")
 	end
@@ -948,6 +964,60 @@ local function stash()
 	log("bag full: put all into the crate")
 	task.wait(0.8)
 	closePanels()
+end
+
+-- The first empty bag slot: (ref, index).
+local function emptySlot(): (string?, number?)
+	local inv = inventory()
+	if inv == nil then
+		return nil, nil
+	end
+	for _, ref in { "pockets", "backpack" } do
+		for index, slot in inv[ref] or {} do
+			if slot.count <= 0 then
+				return ref, index
+			end
+		end
+	end
+	return nil, nil
+end
+
+-- Takes `itemId` out of the crate it sits in into the bag (a station's input must be
+-- carried to drag it in), as dragging it from the crate's pane.
+local function fetch(itemId: string)
+	for _, model in CollectionService:GetTagged("EO_Storage") do
+		if
+			model:IsA("Model")
+			and model:IsDescendantOf(workspace)
+			and model:GetAttribute("OwnerUserId") == player.UserId
+		then
+			if not approach(model, "storage") then
+				continue
+			end
+			Interaction.useModel(model, "storage")
+			task.wait(0.8)
+			local storage = State.get("storage")
+			local slots = if type(storage) == "table" then storage.slots else nil
+			for index, slot in slots or {} do
+				if slot.itemId == itemId and slot.count > 0 then
+					local ref, free = emptySlot()
+					if ref and free then
+						Net.fire("InventoryMove", "storage", index, ref, free)
+						log(`fetch {itemId} from the crate`)
+						task.wait(0.6)
+					end
+					closePanels()
+					return
+				end
+			end
+			closePanels()
+		end
+	end
+	-- Not in a crate: maybe the inbox (Take all when there's room).
+	if freeSlots() > 0 then
+		Net.fire("InboxTakeAll")
+	end
+	task.wait(1)
 end
 
 -- Fog Runs -----------------------------------------------------------------------------------------
@@ -1342,8 +1412,10 @@ local function homeTick()
 		upgrade(step)
 	elseif step.kind == "run" then
 		goRun(step)
+	elseif step.kind == "wait" and step.itemId and (ctx.home[step.itemId] or 0) > (ctx.carried[step.itemId] or 0) then
+		fetch(step.itemId) -- it's in a crate or the inbox: take it out
 	else
-		-- Waiting on a timer: stand by the campfire, as a player would, and look again.
+		-- Waiting on a timer: look again shortly.
 		task.wait(3)
 	end
 end
