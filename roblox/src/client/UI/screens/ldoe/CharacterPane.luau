@@ -1,9 +1,11 @@
 --!strict
 --[[
-	CharacterPane: the right pane when the inventory opens alone (LDOE_PARITY #13-14): the
-	survivor's gear slots (head, body, legs, feet, backpack, Weapon 1, Weapon 2 and the
-	Quick slot) beside HP, food, water and armor values. The weapon slots feed the HUD's
-	weapon circles and the Quick slot its meds button.
+	CharacterPane: the right pane when the inventory opens alone (LDOE_PARITY #13-14,
+	Domain/RightPane): the survivor's 3D model (components/SurvivorView) between the gear
+	slots (head, body, legs and feet down the left; backpack, Weapon 1, Weapon 2 and the
+	Quick slot down the right), HP, food, water and armor along the foot, and the Inbox tab in
+	the header. The weapon slots feed the HUD's weapon circles and the Quick slot its meds
+	button.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +17,7 @@ local Theme = require("../../theme")
 local Glyph = require("../../components/Glyph")
 local ItemSlot = require("../../components/ItemSlot")
 local Layout = require("../../components/Layout")
+local SurvivorView = require("../../components/SurvivorView")
 local Parts = require("./Parts")
 
 local e = React.createElement
@@ -37,6 +40,8 @@ export type Props = {
 	inventory: any,
 	survival: any,
 	selected: { ref: string, index: number }?,
+	inboxCount: number?,
+	onInbox: (() -> ())?,
 	onSelect: (ref: string, index: number) -> (),
 	onSecondary: (ref: string, index: number) -> (),
 }
@@ -46,15 +51,15 @@ local function Stat(props: { glyph: string, value: string, tone: Color3, layoutO
 		direction = "row",
 		gap = Theme.spacing.sm,
 		alignY = Enum.VerticalAlignment.Center,
-		size = UDim2.new(1, 0, 0, 32),
+		size = UDim2.fromOffset(26 + Theme.spacing.sm + 54, 32), -- four sit in a row along the foot
 		layoutOrder = props.layoutOrder,
 		children = {
 			Icon = e(
 				Glyph,
-				{ name = props.glyph, size = UDim2.fromOffset(28, 28), color = props.tone, layoutOrder = 1 }
+				{ name = props.glyph, size = UDim2.fromOffset(26, 26), color = props.tone, layoutOrder = 1 }
 			),
 			Value = e("TextLabel", {
-				Size = UDim2.new(0, 90, 1, 0),
+				Size = UDim2.new(0, 54, 1, 0),
 				BackgroundTransparency = 1,
 				FontFace = Theme.fonts.header,
 				Text = props.value,
@@ -130,63 +135,93 @@ local function CharacterPane(props: Props)
 		columns[`C{column}`] = e(Layout.Stack, {
 			gap = Theme.spacing.sm,
 			size = UDim2.new(0, Theme.panel.slot + 16, 1, 0),
-			layoutOrder = column,
+			layoutOrder = if column == 1 then 1 else 3, -- the survivor stands between (2)
 			children = cells,
 		})
 	end
 
-	local body = e(Layout.Stack, {
+	-- The worn gear's signature: the model is copied again when it changes.
+	local look = {}
+	for _, name in Slots.EQUIP_ORDER do
+		local slot = equipment[name]
+		table.insert(look, if slot and slot.count > 0 then slot.itemId else "")
+	end
+
+	-- LDoE: armour slots down the left, the survivor in the middle, bag and weapons down the
+	-- right, the values along the foot.
+	columns.Model = e(Layout.Fill, {
 		direction = "row",
-		gap = Theme.spacing.lg,
+		layoutOrder = 2,
+		children = { View = e(SurvivorView, { look = table.concat(look, "|") }) },
+	})
+
+	local body = e(Layout.Stack, {
+		gap = Theme.spacing.sm,
 		children = {
-			Gear = e(Layout.Stack, {
-				direction = "row",
-				gap = Theme.spacing.md,
-				size = UDim2.new(0, (Theme.panel.slot + 16) * 2 + Theme.spacing.md, 1, 0),
+			Gear = e(Layout.Fill, {
 				layoutOrder = 1,
-				children = columns,
+				children = {
+					Row = e(Layout.Stack, {
+						direction = "row",
+						gap = Theme.spacing.sm,
+						children = columns,
+					}),
+				},
 			}),
-			Stats = e(Layout.Fill, {
+			Stats = e(Layout.Stack, {
 				direction = "row",
+				gap = Theme.spacing.lg,
+				alignX = Enum.HorizontalAlignment.Center,
+				alignY = Enum.VerticalAlignment.Center,
+				size = UDim2.new(1, 0, 0, 32),
 				layoutOrder = 2,
 				children = {
-					List = e(Layout.Stack, {
-						gap = Theme.spacing.md,
-						padding = Theme.spacing.sm,
-						children = {
-							Health = e(Stat, {
-								glyph = "health",
-								value = tostring(hp),
-								tone = Theme.meters.health,
-								layoutOrder = 1,
-							}),
-							Food = e(Stat, {
-								glyph = "hunger",
-								value = tostring(food),
-								tone = Theme.meters.hunger,
-								layoutOrder = 2,
-							}),
-							Water = e(Stat, {
-								glyph = "thirst",
-								value = tostring(water),
-								tone = Theme.meters.thirst,
-								layoutOrder = 3,
-							}),
-							Armor = e(Stat, {
-								glyph = "defense",
-								value = tostring(armor),
-								tone = Theme.colors.text,
-								layoutOrder = 4,
-							}),
-						},
+					Health = e(Stat, {
+						glyph = "health",
+						value = tostring(hp),
+						tone = Theme.meters.health,
+						layoutOrder = 1,
+					}),
+					Food = e(Stat, {
+						glyph = "hunger",
+						value = tostring(food),
+						tone = Theme.meters.hunger,
+						layoutOrder = 2,
+					}),
+					Water = e(Stat, {
+						glyph = "thirst",
+						value = tostring(water),
+						tone = Theme.meters.thirst,
+						layoutOrder = 3,
+					}),
+					Armor = e(Stat, {
+						glyph = "defense",
+						value = tostring(armor),
+						tone = Theme.colors.text,
+						layoutOrder = 4,
 					}),
 				},
 			}),
 		},
 	})
 
+	-- The inbox is a tab of this pane (Domain/RightPane): it never replaces the survivor.
+	local inboxCount = props.inboxCount or 0
 	return e(Parts.Pane, {
-		header = e(Parts.Header, { glyph = "friends", title = "Survivor" }),
+		header = e(Parts.Header, {
+			glyph = "friends",
+			title = "Survivor",
+			right = if props.onInbox
+				then {
+					Inbox = e(Parts.BarButton, {
+						text = if inboxCount > 0 then `Inbox ({inboxCount})` else "Inbox",
+						width = 130,
+						tone = if inboxCount > 0 then "teal" else "plain",
+						onActivated = props.onInbox,
+					}),
+				}
+				else nil,
+		}),
 		body = body,
 	})
 end

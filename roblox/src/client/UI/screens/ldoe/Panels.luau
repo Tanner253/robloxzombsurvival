@@ -30,6 +30,7 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Flags = require(ReplicatedStorage.Shared.Flags)
 local Converter = require(ReplicatedStorage.Shared.Domain.Converter)
 local Market = require(ReplicatedStorage.Shared.Domain.Market)
+local RightPane = require(ReplicatedStorage.Shared.Domain.RightPane)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Net = require("../../../Net")
@@ -392,8 +393,18 @@ local function Panels()
 		quests = if type(quests) == "table" then quests else nil,
 	}
 
+	-- The right pane: what the inventory was opened with, else the survivor (Domain/RightPane).
+	local pane = RightPane.choose({
+		haven = havenId ~= nil,
+		station = station ~= nil and stationUid ~= nil,
+		project = projectId ~= nil,
+		loot = type(loot) == "table",
+		crate = crate ~= nil,
+		tab = ui.inventoryTab,
+	})
+	local inboxRows = if type(inbox) == "table" then inbox else {}
 	local right: any
-	if havenId then
+	if pane == "haven" and havenId then
 		right = e(HavenPane, {
 			havenId = havenId,
 			haven = if type(haven) == "table" then haven else nil,
@@ -402,7 +413,7 @@ local function Panels()
 			now = now,
 			tab = ui.havenTab,
 		})
-	elseif station and stationUid then
+	elseif pane == "station" and station and stationUid then
 		right = e(StationPane.Pane, {
 			uid = stationUid,
 			station = station,
@@ -412,15 +423,17 @@ local function Panels()
 				setModal("station")
 			end,
 		})
-	elseif projectId then
+	elseif pane == "project" and projectId then
 		right = e(ContextPanes.Project, {
 			projectId = projectId,
 			state = if type(projects) == "table" then projects[projectId] else nil,
 			pooled = pooled,
 		})
-	elseif type(loot) == "table" then
+	elseif pane == "loot" then
 		right = e(ContextPanes.Loot, { loot = loot, run = run })
-	elseif crate and ui.inventoryTab ~= "inbox" then
+	elseif pane == "inbox" then
+		right = e(ContextPanes.Inbox, { rows = inboxRows, onBack = Actions.showSurvivor })
+	elseif pane == "storage" and crate then
 		right = e(ContextPanes.Storage, {
 			storage = crate,
 			selected = selected,
@@ -435,13 +448,13 @@ local function Panels()
 				Net.fire("StorageLabel", if slot and slot.count > 0 then slot.itemId else nil)
 			end,
 		})
-	elseif ui.inventoryTab == "inbox" then
-		right = e(ContextPanes.Inbox, { rows = if type(inbox) == "table" then inbox else {} })
 	else
 		right = e(CharacterPane, {
 			inventory = inventory,
 			survival = survival,
 			selected = selected,
+			inboxCount = #inboxRows,
+			onInbox = Actions.openInbox,
 			onSelect = select,
 			onSecondary = secondary,
 		})

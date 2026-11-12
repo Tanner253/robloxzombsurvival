@@ -773,7 +773,9 @@ local function MenuBar(props: { right: number })
 				active = flashing or ui.guide == "inventory",
 				ring = if flashing then Theme.colors.danger else Theme.colors.accentSoft,
 				layoutOrder = 7,
-				onPress = if inboxCount > 0 and not anyNew then Actions.openInbox else Actions.toggleInventory,
+				-- Like Tab, always onto the survivor; the badge's rows wait behind its Inbox tab
+				-- (Domain/RightPane: the inbox never replaces the survivor).
+				onPress = Actions.toggleInventory,
 			}),
 		},
 	})

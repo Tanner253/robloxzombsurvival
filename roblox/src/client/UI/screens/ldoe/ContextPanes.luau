@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Project = require(ReplicatedStorage.Shared.Domain.Project)
+local InboxRules = require(ReplicatedStorage.Shared.Domain.Inbox)
 local Net = require("../../../Net")
 local Actions = require("../../../Actions")
 local Theme = require("../../theme")
@@ -297,7 +298,7 @@ end
 
 -- Inbox ---------------------------------------------------------------------------------------------
 
-function ContextPanes.Inbox(props: { rows: { any } })
+function ContextPanes.Inbox(props: { rows: { any }, onBack: (() -> ())? })
 	local list: { [string]: any } = {}
 	for index, row in props.rows do
 		local def = Content.Items[row.itemId]
@@ -327,7 +328,7 @@ function ContextPanes.Inbox(props: { rows: { any } })
 									layoutOrder = 1,
 								}),
 								Source = e(Parts.Line, {
-									text = row.source,
+									text = InboxRules.sourceText(row.source),
 									size = Theme.textSize.caption,
 									layoutOrder = 2,
 								}),
@@ -379,7 +380,20 @@ function ContextPanes.Inbox(props: { rows: { any } })
 		},
 	})
 	return e(Parts.Pane, {
-		header = e(Parts.Header, { glyph = "inbox", title = "Inbox" }),
+		-- The inbox is a tab of the survivor pane (Domain/RightPane): Survivor goes back.
+		header = e(Parts.Header, {
+			glyph = "inbox",
+			title = "Inbox",
+			right = if props.onBack
+				then {
+					Back = e(Parts.BarButton, {
+						text = "Survivor",
+						width = 120,
+						onActivated = props.onBack,
+					}),
+				}
+				else nil,
+		}),
 		body = body,
 		bar = bar,
 	})

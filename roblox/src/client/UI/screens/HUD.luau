@@ -715,11 +715,7 @@ local function ActionBar()
 			glyph = "backpack",
 			size = 64,
 			layoutOrder = 4,
-			onPress = if type(inbox) == "table"
-					and #inbox > 0
-					and ui.panel ~= "inventory"
-				then Actions.openInbox
-				else Actions.toggleInventory,
+			onPress = Actions.toggleInventory, -- onto the survivor, as Tab (Domain/RightPane)
 			dot = next(ui.newItems) ~= nil,
 			alertAt = ui.bagFullAt,
 			badge = if type(inbox) == "table" then #inbox else 0,

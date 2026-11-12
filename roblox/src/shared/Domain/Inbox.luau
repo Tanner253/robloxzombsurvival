@@ -15,6 +15,33 @@ local Inbox = {}
 
 export type Entry = Types.InboxEntry
 
+-- What each row's source reads as under its name: the server's keys ("DailyGift") showed
+-- raw in the inbox pane (found by the AutoPlayer's first session, 2026-11-12).
+Inbox.SOURCE_TEXT = {
+	DailyGift = "Daily gift",
+	Quest = "Quest reward",
+	LevelUp = "Level-up reward",
+	Chapter = "Chapter reward",
+	LocationQuest = "Location reward",
+	Project = "Project reward",
+	DeathMilestone = "A gift for the road",
+	Recovery = "Recovered from your bag",
+	Purchase = "Purchase",
+	Embers = "Bought with Embers",
+	["Fill up"] = "Fill up",
+	["VIP crate"] = "VIP crate",
+	AutoClear = "AUTO clear",
+	Overflow = "Didn't fit your bag",
+	Update = "Returned by an update",
+	Stash = "From the old stash",
+	Event = "Event reward",
+	["Dev Armory"] = "Dev Armory",
+} :: { [string]: string }
+
+function Inbox.sourceText(source: string): string
+	return Inbox.SOURCE_TEXT[source] or source
+end
+
 -- Adds stacks or slots from `source`. Returns the new rows and the next sequence number.
 function Inbox.add(
 	entries: { Entry },

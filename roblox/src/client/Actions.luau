@@ -28,13 +28,22 @@ local function seenInventory()
 	end
 end
 
+-- Tab and the Bag button: the inventory always opens on the survivor (Domain/RightPane).
 function Actions.toggleInventory()
 	seenInventory()
+	State.clear("inventoryTab")
 	State.toggle("inventory")
 	Sfx.play(if State.ui().panel == "inventory" then "uiOpen" else "uiClose")
 end
 
--- Opens the inventory on the item inbox (the Bag badge counts its rows, 4.15).
+-- The inbox pane's Survivor tab: back to the survivor and the gear slots.
+function Actions.showSurvivor()
+	State.clear("inventoryTab")
+	Sfx.play("uiClick")
+end
+
+-- Opens the inventory on the item inbox: the survivor pane's Inbox tab and the shop's
+-- inbox button (4.15).
 function Actions.openInbox()
 	seenInventory()
 	State.patch({ inventoryTab = "inbox" })

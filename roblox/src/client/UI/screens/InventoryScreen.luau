@@ -20,6 +20,7 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
+local InboxRules = require(ReplicatedStorage.Shared.Domain.Inbox)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
 local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
@@ -666,14 +667,6 @@ end
 
 -- Item inbox (checklist 4.15) ---------------------------------------------------------------------------
 
-local SOURCE_TEXT: { [string]: string } = {
-	LevelUp = "Level-up reward",
-	Quest = "Quest reward",
-	Purchase = "Purchase",
-	Event = "Event reward",
-	Overflow = "Didn't fit your bag",
-	Stash = "From the old stash",
-}
 local FILTERS = {
 	"all",
 	"resource",
@@ -724,7 +717,7 @@ local function InboxRow(props: { row: any, layoutOrder: number })
 			position = UDim2.fromOffset(58, 6),
 		}),
 		Source = e(Label, {
-			text = SOURCE_TEXT[row.source] or row.source,
+			text = InboxRules.sourceText(row.source),
 			style = "caption",
 			tone = "muted",
 			size = UDim2.new(1, -230, 0, 18),
