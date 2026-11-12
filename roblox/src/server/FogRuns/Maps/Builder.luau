@@ -1949,6 +1949,9 @@ function Builder.lamp(ctx: Ctx, x: number, z: number, height: number, warm: bool
 	)
 	part.CanCollide = false
 	part.CastShadow = false
+	-- Only the light's holder: a bare cube would float in plain sight once a roof fades
+	-- (Controllers/RoofFade), so the glow shows and the block doesn't.
+	part.Transparency = 1
 	local light = Instance.new("PointLight")
 	light.Color = if warm then Color3.fromRGB(255, 186, 120) else Color3.fromRGB(150, 190, 210)
 	light.Range = range or 16
