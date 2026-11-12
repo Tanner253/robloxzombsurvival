@@ -30,6 +30,10 @@
 	  (checklist 12.9); run it with no lobby open.
 	  Scripted playtests: ("kill", range?) kills the nearest Hollow as the survivor and stands
 	  them on the spot, ("queststate", questId) reads one trail quest's progress.
+	  Performance (batch 3): ("perf", seconds?) samples heartbeat frames, the Hollow tick, memory,
+	  instances and bytes per remote; ("mapstats") reads each built Fog Run map's build times
+	  and part, light and emitter counts; ("assetfails") lists content that failed to load
+	  since boot, with the models placed just before each failure.
 	- puts the Dev Armory crate by each claimed plot: one of every weapon and armor piece
 	  into the inbox, so the developer can try all the gear.
 ]]
@@ -108,6 +112,68 @@ local TEST_STOCK = {
 	{ itemId = "item.fiber", count = 30 },
 	{ itemId = "item.sticks", count = 60 },
 }
+
+-- Content that failed to load (Studio; filled by watchAssetFails, read by "assetfails").
+local assetFails: { { content: string, reason: string, at: number, recent: { string } } } = {}
+
+--[[
+	("perf", seconds) samples the server for a few seconds (keep it under 12): heartbeat
+	frame times, the Hollow tick's share, memory, instances and what each remote sent.
+]]
+local function perfSample(seconds: number): { [string]: any }
+	local Stats = game:GetService("Stats")
+	local Hollow = require("./Hollow")
+	local frames: { number } = {}
+	Hollow.cost(true)
+	Net.measure(true)
+	local connection = RunService.Heartbeat:Connect(function(dt: number)
+		table.insert(frames, dt)
+	end)
+	local started = os.clock()
+	task.wait(math.min(seconds, 12))
+	connection:Disconnect()
+	Net.measure(false)
+	local elapsed = os.clock() - started
+	table.sort(frames)
+	local total = 0
+	for _, dt in frames do
+		total += dt
+	end
+	local function ms(value: number): number
+		return math.floor(value * 10000 + 0.5) / 10
+	end
+	local hollow = Hollow.cost(true)
+	local sends: { string } = {}
+	local bytes = 0
+	for key, entry in Net.traffic() do
+		bytes += entry.bytes
+		table.insert(sends, `{key} {entry.sends}x {math.floor(entry.bytes / elapsed)}B/s`)
+	end
+	table.sort(sends)
+	local parts = 0
+	for _, item in workspace:GetDescendants() do
+		if item:IsA("BasePart") then
+			parts += 1
+		end
+	end
+	return {
+		frames = #frames,
+		frameAvgMs = ms(total / math.max(#frames, 1)),
+		frameP95Ms = ms(frames[math.max(1, math.ceil(#frames * 0.95))] or 0),
+		frameMaxMs = ms(frames[#frames] or 0),
+		heartbeatMs = math.floor(Stats.HeartbeatTimeMs * 10 + 0.5) / 10,
+		hollowAlive = hollow.alive,
+		hollowTickAvgMs = ms(hollow.seconds / math.max(hollow.ticks, 1)),
+		hollowTickMaxMs = ms(hollow.worst),
+		hollowShare = math.floor(hollow.seconds / elapsed * 1000 + 0.5) / 10, -- % of wall time
+		memoryMb = math.floor(Stats:GetTotalMemoryUsageMb()),
+		instances = Stats.InstanceCount,
+		workspaceParts = parts,
+		sendKbps = math.floor(Stats.DataSendKbps * 10 + 0.5) / 10,
+		remoteBytesPerSecond = math.floor(bytes / elapsed),
+		remotes = sends,
+	}
+end
 
 local function devCommand(command: string, ...: any): any
 	local player = Players:GetPlayers()[1]
@@ -504,6 +570,31 @@ local function devCommand(command: string, ...: any): any
 		Progression.grantXp(player, args[1], "Dev")
 	elseif command == "clock" then
 		Lighting.ClockTime = args[1]
+	elseif command == "perf" then
+		return perfSample(args[1] or 8)
+	elseif command == "assetfails" then
+		return assetFails
+	elseif command == "mapstats" then
+		-- Each built Fog Run map: where its build time went and what it holds.
+		local result = {}
+		local all = workspace:FindFirstChild("FogRuns")
+		for _, map in if all then all:GetChildren() else {} do
+			local parts, lights, emitters = 0, 0, 0
+			for _, item in map:GetDescendants() do
+				if item:IsA("BasePart") then
+					parts += 1
+				elseif item:IsA("Light") then
+					lights += 1
+				elseif item:IsA("ParticleEmitter") then
+					emitters += 1
+				end
+			end
+			local row = map:GetAttributes()
+			row.Origin = nil
+			row.parts, row.lights, row.emitters = parts, lights, emitters
+			result[map.Name] = row
+		end
+		return result
 	else
 		return `unknown command '{command}'`
 	end
@@ -577,10 +668,39 @@ local function devArmory(player: Player, plot: any)
 	crate.Parent = workspace
 end
 
+--[[
+	Studio only: every "ContentId ... failed" line in the output, with the models added to the
+	Workspace just before it (EO_Dev "assetfails"). Content fails when something new is
+	placed, so the recent additions name the culprit.
+]]
+local function watchAssetFails()
+	local recent: { string } = {}
+	workspace.DescendantAdded:Connect(function(added: Instance)
+		if added:IsA("Model") then
+			table.insert(recent, added:GetFullName())
+			if #recent > 12 then
+				table.remove(recent, 1)
+			end
+		end
+	end)
+	game:GetService("LogService").MessageOut:Connect(function(message: string)
+		local content, reason = message:match("^ContentId: (%S+) failed due to: (.+)$")
+		if content and #assetFails < 200 then
+			table.insert(
+				assetFails,
+				{ content = content, reason = reason or "", at = os.clock(), recent = table.clone(recent) }
+			)
+		end
+	end)
+end
+
 function Diagnostics.init()
 	Net.onInvoke("Ping", function(_player: Player, nonce: number)
 		return nonce, workspace:GetServerTimeNow()
 	end)
+	if RunService:IsStudio() then
+		watchAssetFails()
+	end
 end
 
 function Diagnostics.start()

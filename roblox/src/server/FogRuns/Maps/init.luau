@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Content = require(ReplicatedStorage.Shared.Data)
 local Builder = require("@self/Builder")
 local Map = require("./Map")
+local Models = require("../World/Models")
 
 local PathfindingService = game:GetService("PathfindingService")
 
@@ -119,17 +120,38 @@ function Maps.build(locationId: string, runServer: boolean): Instance?
 	root:SetAttribute("Half", layout.half)
 	local ctx = Builder.new(locationId, root, origin, layout.half, layout.seed)
 	local started = os.clock()
+	local loadsBefore = Models.loadSeconds()
 	local ok, err = pcall(layout.build :: any, ctx)
-	building[locationId] = nil
 	if not ok then
+		building[locationId] = nil
 		warn(`[Maps] {locationId} failed to build: {err}`)
 		return nil
 	end
+	local laid = os.clock()
 	Builder.bounds(ctx)
 	Maps.checkNodes(root, locationId)
-	Maps.checkSpawns(root, locationId)
+	local function tenths(seconds: number): number
+		return math.floor(seconds * 10 + 0.5) / 10
+	end
+	--[[
+		Ready (survivors may arrive) before the Hollow spawn checks: their pathfinding took
+		4-5 s of every build while the first survivor waited at home (batch 3). Hollow wait for
+		SpawnsChecked before their first spawn (Services/Hollow), so none starts shut in.
+	]]
+	root:SetAttribute("SpawnsChecked", false)
 	root:SetAttribute("Ready", true)
-	print(`[Maps] built {locationId} in {math.floor((os.clock() - started) * 10) / 10} s`)
+	building[locationId] = nil
+	-- Where the wait went (read by EO_Dev "mapstats" and the perf notes).
+	root:SetAttribute("BuildSeconds", tenths(os.clock() - started))
+	root:SetAttribute("LayoutSeconds", tenths(laid - started))
+	root:SetAttribute("ModelLoadSeconds", tenths(Models.loadSeconds() - loadsBefore))
+	print(`[Maps] built {locationId} in {tenths(os.clock() - started)} s`)
+	task.spawn(function()
+		local checking = os.clock()
+		Maps.checkSpawns(root, locationId)
+		root:SetAttribute("SpawnCheckSeconds", tenths(os.clock() - checking))
+		root:SetAttribute("SpawnsChecked", true)
+	end)
 	return root
 end
 
@@ -189,16 +211,31 @@ function Maps.checkSpawns(root: Instance, locationId: string): number
 	end
 	local shut = 0
 	local agent = { AgentRadius = 1.0, AgentHeight = 5.5, AgentCanJump = true, WaypointSpacing = 5 }
-	for _, marker in Map.markers(root, "hollow") do
-		local path = PathfindingService:CreatePath(agent)
-		local ok = pcall(function()
-			path:ComputeAsync(marker.Position + Vector3.new(0, 1, 0), arrival.Position + Vector3.new(0, 1, 0))
+	-- All at once (each ComputeAsync yields): one after another took 5.3 s of Pine Hollow's
+	-- 8.7 s build while the first survivor waited (batch 3).
+	local markers = Map.markers(root, "hollow")
+	local pending = #markers
+	local finished = Instance.new("BindableEvent")
+	for _, marker in markers do
+		task.spawn(function()
+			local path = PathfindingService:CreatePath(agent)
+			local ok = pcall(function()
+				path:ComputeAsync(marker.Position + Vector3.new(0, 1, 0), arrival.Position + Vector3.new(0, 1, 0))
+			end)
+			if not ok or path.Status ~= Enum.PathStatus.Success then
+				marker:SetAttribute("Unreachable", true)
+				shut += 1
+			end
+			pending -= 1
+			if pending == 0 then
+				finished:Fire()
+			end
 		end)
-		if not ok or path.Status ~= Enum.PathStatus.Success then
-			marker:SetAttribute("Unreachable", true)
-			shut += 1
-		end
 	end
+	if pending > 0 then
+		finished.Event:Wait()
+	end
+	finished:Destroy()
 	if shut > 0 then
 		root:SetAttribute("ShutInSpawns", shut)
 		warn(`[Maps] {locationId}: {shut} Hollow spawn(s) have no way out and are skipped`)

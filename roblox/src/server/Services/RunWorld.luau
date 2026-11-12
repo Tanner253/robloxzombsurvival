@@ -53,6 +53,22 @@ function RunWorld.map(locationId: string): Instance?
 	return Maps.build(locationId, runServer) or Maps.await(locationId, runServer, BUILD_TIMEOUT)
 end
 
+--[[
+	Starts building a location's map now, in the background, where this server would host
+	its lobby (the Studio simulation): Travel calls it as a trip there begins, so the build
+	overlaps the trip's timer instead of following it (batch 3). A live world server builds
+	no maps (its run servers build at boot), so this does nothing there.
+]]
+function RunWorld.prepare(locationId: string)
+	if Teleport.role() == "run" or Teleport.canGoLive() or not Maps.has(locationId) then
+		return
+	end
+	if not Features.on(Content.Tuning, "fogRuns") then
+		return
+	end
+	task.spawn(RunWorld.map, locationId)
+end
+
 local function locationFromTicket(player: Player): string?
 	local ok, data = pcall(function()
 		return player:GetJoinData()

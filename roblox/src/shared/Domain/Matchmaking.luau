@@ -147,6 +147,19 @@ function Matchmaking.tolerance(waited: number, config: Config): number
 	return math.min(config.maxTolerance, math.floor(math.max(0, waited) / config.widenEverySeconds))
 end
 
+--[[
+	When a queue entry's wait began: the trip there is part of it (batch 3). A Run's trip
+	(Tuning.travel.runSeconds) counts toward newLobbyAfterSeconds, so a survivor with no
+	lobby to join gets a fresh one at the first match tick after the trip, not 12 s later.
+	Never in the future.
+]]
+function Matchmaking.waitSince(departedAt: number?, now: number): number
+	if departedAt == nil then
+		return now
+	end
+	return math.min(departedAt, now)
+end
+
 -- A queue entry for a solo player or a whole party (matched at its strongest member).
 function Matchmaking.entry(
 	id: string,

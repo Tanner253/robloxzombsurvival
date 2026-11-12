@@ -11,6 +11,7 @@
 	init() with Net.onEvent / Net.onInvoke.
 ]]
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -107,15 +108,51 @@ function Net.onInvoke(name: string, handler: (player: Player, ...any) -> ...any)
 	end
 end
 
+-- Traffic sampling for the perf notes (Studio's EO_Dev "perf"): off unless measuring.
+export type Traffic = { [string]: { sends: number, bytes: number } }
+local measuring = false
+local traffic: Traffic = {}
+
+local function record(name: string, receivers: number, ...: any)
+	local first = ...
+	local key = if type(first) == "string" then `{name}:{first}` else name
+	local ok, text = pcall(function(...)
+		return HttpService:JSONEncode({ ... })
+	end, ...)
+	local entry = traffic[key] or { sends = 0, bytes = 0 }
+	entry.sends += receivers
+	entry.bytes += (if ok then #text else 0) * receivers
+	traffic[key] = entry
+end
+
+-- Starts (clearing the counts) or stops counting server-to-client sends.
+function Net.measure(on: boolean)
+	measuring = on
+	if on then
+		table.clear(traffic)
+	end
+end
+
+-- Sends and approximate JSON bytes per remote (and first string argument) while measuring.
+function Net.traffic(): Traffic
+	return traffic
+end
+
 function Net.fireClient(name: string, player: Player, ...: any)
 	local remote = events[name]
 	assert(remote, `Remote '{name}' is not a declared event`)
+	if measuring then
+		record(name, 1, ...)
+	end
 	remote:FireClient(player, ...)
 end
 
 function Net.fireAllClients(name: string, ...: any)
 	local remote = events[name]
 	assert(remote, `Remote '{name}' is not a declared event`)
+	if measuring then
+		record(name, #Players:GetPlayers(), ...)
+	end
 	remote:FireAllClients(...)
 end
 

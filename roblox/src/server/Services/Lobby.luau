@@ -1182,7 +1182,7 @@ end
 	Queues players (a whole party, or one) for a lobby at `locationId`. Travel calls
 	this when their trip arrives. They are matched within seconds (Matchmaking).
 ]]
-function Lobby.enqueue(players: { Player }, locationId: string, mode: ("run" | "walk")?)
+function Lobby.enqueue(players: { Player }, locationId: string, mode: ("run" | "walk")?, departedAt: number?)
 	if not Features.on(tuning, "fogRuns") or #players == 0 then
 		return
 	end
@@ -1192,7 +1192,9 @@ function Lobby.enqueue(players: { Player }, locationId: string, mode: ("run" | "
 		table.insert(powers, powerOf(player))
 	end
 	local id = nextId("q")
-	local entry = Matchmaking.entry(id, locationId, ids, powers, Lobby.partyIdOf(players[1]), now(), tuning.matchmaking)
+	-- The trip there counts as waiting (Matchmaking.waitSince).
+	local since = Matchmaking.waitSince(departedAt, now())
+	local entry = Matchmaking.entry(id, locationId, ids, powers, Lobby.partyIdOf(players[1]), since, tuning.matchmaking)
 	queue[id] = { entry = entry, players = table.clone(players), mode = mode }
 	for _, player in players do
 		Sync.fx(player, "matching", { locationId = locationId })

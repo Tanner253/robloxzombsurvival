@@ -96,6 +96,21 @@ local homeBase: MapData.Map = NeighbourhoodMap.build(Content.Tuning.plots :: any
 local learned: { [string]: MapData.Building } = {} -- Haven stalls by name
 local runKey: string? = nil -- the run map in use (its folder's full name and what it held)
 
+-- A blip key per instance. Full names collide (a map holds many "Container_crate"
+-- siblings), and colliding keys made the minimap rebuild those icons 5 times a second
+-- and show one of each name.
+local instanceKeys: { [Instance]: string } = setmetatable({}, { __mode = "k" }) :: any
+local lastInstanceKey = 0
+local function keyOf(prefix: string, instance: Instance): string
+	local key = instanceKeys[instance]
+	if key == nil then
+		lastInstanceKey += 1
+		key = tostring(lastInstanceKey)
+		instanceKeys[instance] = key
+	end
+	return prefix .. key
+end
+
 function Radar.current(): Current?
 	return current
 end
@@ -544,7 +559,7 @@ local function gather()
 					local stocked = body:GetAttribute("ContainerId") ~= nil
 					local opened = body:GetAttribute("Opened") == true
 					table.insert(list, {
-						key = `c{holder:GetFullName()}`,
+						key = keyOf("c", holder),
 						kind = "container",
 						at = body.Position,
 						dim = opened or not stocked,
@@ -579,7 +594,7 @@ local function gather()
 			if exit:IsA("Model") then
 				local id = exit:GetAttribute("PointId")
 				table.insert(list, {
-					key = `x{exit:GetFullName()}`,
+					key = keyOf("x", exit),
 					kind = "exit",
 					at = exit:GetPivot().Position,
 					dim = open ~= nil and type(id) == "string" and not open[id],
@@ -596,7 +611,7 @@ local function gather()
 				local record = if type(stations) == "table" and type(uid) == "string" then stations[uid] else nil
 				local ready = type(record) == "table" and type(record.output) == "table" and Converter.ready(record) > 0
 				table.insert(list, {
-					key = `s{model:GetFullName()}`,
+					key = keyOf("s", model),
 					kind = "station",
 					at = model:GetPivot().Position,
 					ready = ready,
@@ -606,7 +621,7 @@ local function gather()
 		for _, drop in CollectionService:GetTagged("EO_Drop") do
 			if drop:IsA("Model") then
 				table.insert(list, {
-					key = `d{drop:GetFullName()}`,
+					key = keyOf("d", drop),
 					kind = "bag",
 					at = drop:GetPivot().Position,
 					mine = drop:GetAttribute("OwnerUserId") == player.UserId,

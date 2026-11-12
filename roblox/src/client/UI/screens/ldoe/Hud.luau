@@ -737,8 +737,10 @@ local function MenuBar(props: { right: number })
 	local anyNew = next(ui.newItems) ~= nil
 	-- A full bag flashes the Inventory button red for a moment (the old HUD's Bag did), so
 	-- a new player whose pockets just filled sees where to make room.
-	hooks.useClock(0.15)
 	local sinceFull = if ui.bagFullAt then os.clock() - ui.bagFullAt else math.huge
+	-- Ticks fast only while it flashes; a new bagFullAt re-renders it through useUi (batch 3:
+	-- the whole menu bar re-rendered 7 times a second all game).
+	hooks.useClock(if sinceFull < 1.6 then 0.15 else 5)
 	local flashing = sinceFull < 1.6 and math.floor(sinceFull * 6) % 2 == 0
 	-- Social, Crew, Quests, Pass, Shop and Map switch on with their screens (S2/S3).
 	local slots = 7
@@ -871,7 +873,9 @@ end
 
 local function Pickups()
 	local ui = hooks.useUi()
-	hooks.useClock(0.25)
+	-- Ticks while a "+N" can still be fading; a new reward re-renders it through useUi.
+	local last = ui.rewards[#ui.rewards]
+	hooks.useClock(if last and os.clock() - last.at < 2.2 then 0.25 else 5)
 	local character = Players.LocalPlayer.Character
 	local head = character and character:FindFirstChild("Head")
 	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")

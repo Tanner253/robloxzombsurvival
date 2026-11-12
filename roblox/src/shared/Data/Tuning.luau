@@ -261,7 +261,10 @@ local Tuning: Types.TuningDef = {
 		bandWidth = 60,
 		widenEverySeconds = 4,
 		maxTolerance = 2,
-		newLobbyAfterSeconds = 12, -- nobody waits long: an empty lobby beats a queue
+		-- Nobody waits long: an empty lobby beats a queue. The wait counts from the trip's start
+		-- (Matchmaking.waitSince), so a 3 s Run opens a lobby at the first tick after it (batch 3:
+		-- it was 12, and the first survivor waited 12 s at home after every Run's timer).
+		newLobbyAfterSeconds = 3,
 		weights = { weapon = 40, armor = 12, bag = 10, companion = 0 }, -- companion: M3 hook
 		aiBackfillTarget = 8,
 		maxPartySize = 4, -- a crew (GAME_DESIGN "Crews")

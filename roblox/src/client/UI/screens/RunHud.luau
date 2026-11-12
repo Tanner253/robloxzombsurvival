@@ -212,8 +212,9 @@ type Channel = { endsAt: number, startedAt: number, kind: string? }
 local function Progress()
 	local search: Channel | false | nil = hooks.useSection("search")
 	local extracting: Channel | false | nil = hooks.useSection("extracting")
-	local now = hooks.useClock(0.05)
 	local active = if type(extracting) == "table" then extracting elseif type(search) == "table" then search else nil
+	-- Fast only while a bar fills: idle, the sections re-render it when one starts (batch 3).
+	local now = hooks.useClock(if active then 0.05 else 1)
 	if active == nil then
 		return nil
 	end
@@ -288,14 +289,13 @@ end
 -- A red edge on the side you were hit from, fading out (13.9).
 local function Hurt()
 	local hurt = hooks.useSection("hurtAt")
-	local now = hooks.useClock(0.03)
-	if type(hurt) ~= "table" then
+	local fresh = type(hurt) == "table" and os.clock() - hurt.at <= 0.8
+	-- 30 frames a second only while the edge fades (batch 3: it re-rendered at 33 Hz all run).
+	local now = hooks.useClock(if fresh then 0.03 else 1)
+	if not fresh then
 		return nil
 	end
 	local age = os.clock() - hurt.at
-	if age > 0.8 then
-		return nil
-	end
 	local alpha = 1 - age / 0.8
 	local function edge(rotation: number, size: UDim2, position: UDim2, anchor: Vector2): any
 		return e("Frame", {
@@ -332,14 +332,12 @@ end
 
 local function Arrival()
 	local arrival = hooks.useSection("arrival")
-	local now = hooks.useClock(0.05)
-	if type(arrival) ~= "table" then
+	local showing = type(arrival) == "table" and os.clock() - arrival.at <= 4.5
+	local now = hooks.useClock(if showing then 0.05 else 1)
+	if not showing then
 		return nil
 	end
 	local age = os.clock() - arrival.at
-	if age > 4.5 then
-		return nil
-	end
 	local location = Content.Locations[arrival.locationId]
 	if location == nil then
 		return nil
