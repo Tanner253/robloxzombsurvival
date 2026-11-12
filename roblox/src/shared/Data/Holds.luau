@@ -81,6 +81,11 @@ Holds.items = {
 	["item.scrapblade"] = "blade",
 	["item.machete"] = "blade",
 	["item.fire_axe"] = "axe",
+	-- Content 2.0 (ARSENAL §4; `melee.class` in Data/Items says the same).
+	["item.hand_axe"] = "axe",
+	["item.hardwood_bat"] = "blunt",
+	["item.field_knife"] = "stab",
+	["item.hay_fork"] = "stab",
 	-- Guns (ARSENAL animClass pistol → pistol; shotgun and rifle → long)
 	["item.pipe_pistol"] = "pistol",
 	["item.flare_pistol"] = "pistol",

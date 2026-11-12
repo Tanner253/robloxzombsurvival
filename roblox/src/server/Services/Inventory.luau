@@ -144,8 +144,8 @@ end
 
 -- Rebuilds the visible gear (in hand and holstered) when what the player carries changes.
 -- The survivor rig's parts each worn slot recolours (one atlas texture, so a tint reads
--- as different cloth at the gameplay camera). The head carries the face, so headwear shows
--- on the paperdoll only.
+-- as different cloth at the gameplay camera). The head carries the face, so headwear is a
+-- model on the head instead (Art.wornModels), as are bags and the plate carrier.
 local WORN_PARTS: { [string]: { string } } = {
 	body = { "UpperTorso", "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm" },
 	legs = { "LowerTorso", "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg" },
@@ -167,6 +167,30 @@ local function applyWorn(character: Model, data: PlayerData)
 			end
 		end
 	end
+	-- A worn bag with a model of its own (Art.wornModels) takes the place of the survivor's
+	-- own small pack. A held body (Lobby's "HeldLook") stays hidden; it puts the pack back.
+	local pack = character:FindFirstChild("EO_Backpack")
+	local handle = pack and pack:FindFirstChild("Handle")
+	if handle and handle:IsA("BasePart") and handle:GetAttribute("HeldLook") == nil then
+		local bag = equipment.bag
+		handle.Transparency = if bag and bag.count > 0 and Art.wornModels[bag.itemId] then 1 else 0
+	end
+end
+
+-- Worn slots whose items can carry a model of their own (Art.wornModels): headwear, the
+-- plate carrier and bags show on the body (2.0 batch 4b).
+local WORN_MODEL_SLOTS = { "head", "body", "bag" }
+
+local function wornModels(data: PlayerData): { [string]: string }
+	local equipment = data.inventory.equipment :: any
+	local worn: { [string]: string } = {}
+	for _, slot in WORN_MODEL_SLOTS do
+		local item = equipment[slot]
+		if item and item.count > 0 and Art.wornModels[item.itemId] then
+			worn[slot] = item.itemId
+		end
+	end
+	return worn
 end
 
 local function refreshHeld(player: Player)
@@ -177,7 +201,9 @@ local function refreshHeld(player: Player)
 	end
 	applyWorn(character, data)
 	local plan = gearPlan(data, held[player] or "")
+	local worn = wornModels(data)
 	local signature = `{plan.hand or ""}|{plan.belt or ""}|{plan.beltLeft or ""}|{plan.back or ""}`
+		.. `|{worn.head or ""}|{worn.body or ""}|{worn.bag or ""}`
 	local folder = heldModels[player]
 	if folder and folder.Parent == character and folder:GetAttribute("Signature") == signature then
 		return
@@ -189,14 +215,27 @@ local function refreshHeld(player: Player)
 	made.Name = "Gear"
 	made:SetAttribute("Signature", signature)
 	made:SetAttribute("HandItem", plan.hand or "")
+	-- A weapon across the back rides on the outside of a worn bag.
+	local bag = if worn.bag then Art.wornModels[worn.bag] else nil
 	for mount, itemId in plan do
 		local where, anchor = Models.mountFrame(character, mount :: Models.Mount)
+		if where and mount == "back" and bag then
+			where *= CFrame.new(0, 0, bag.depth or 0)
+		end
 		local gear = if where and anchor then Models.held(itemId, Items[itemId], mount :: any) else nil
 		if gear and where and anchor then
 			gear.model.Name = mount
 			gear.model:SetAttribute("ItemId", itemId)
 			Models.mount(gear, where, anchor)
 			gear.model.Parent = made
+		end
+	end
+	for slot, itemId in worn do
+		local model = Models.worn(itemId, character)
+		if model then
+			model.Name = `worn_{slot}`
+			model:SetAttribute("ItemId", itemId)
+			model.Parent = made
 		end
 	end
 	made.Parent = character

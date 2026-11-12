@@ -249,12 +249,14 @@ local function strike(
 			target = candidate
 		end
 	end
-	Hollow.noise(run.hosted, "melee", root.Position, nil, `u{player.UserId}`, fighter.sneaking)
+	local noise = CombatMath.meleeNoise(weapon.melee, tuning.noise.melee)
+	Hollow.noise(run.hosted, "melee", root.Position, nil, `u{player.UserId}`, fighter.sneaking, noise)
 	if target == nil then
 		return
 	end
-	-- LDOE_PARITY #44: a sneak attack on a Hollow that hasn't noticed you lands at 3x.
-	local backstab = CombatMath.backstab(fighter.sneaking, Hollow.isAware(run.hosted, target.id), tuning.sneak)
+	-- LDOE_PARITY #44: a sneak attack on a Hollow that hasn't noticed you lands at 3x (the knife's 4x).
+	local backstab =
+		CombatMath.backstab(fighter.sneaking, Hollow.isAware(run.hosted, target.id), tuning.sneak, weapon.melee)
 	local hit = CombatMath.meleeHit(weapon, stats, heavy, { rng = rng, combat = combatConfig, multiplier = backstab })
 	local dealt = Hollow.damage(run.hosted, target.id, hit.damage, player, {
 		knockbackStuds = hit.knockbackStuds,

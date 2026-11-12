@@ -310,7 +310,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(players, 1)
 	end)
 
-	test("with Fog Runs on, the whole trail (quests 1-25) plays through in order", function()
+	test("with Fog Runs on, the whole trail (quests 1-33) plays through in order", function()
 		local flags = { fogRuns = true }
 		local state = Quests.open(Quests.newState(), Content.Quests)
 		local facts: Quests.Facts = { level = 1, equipped = {} }
@@ -334,9 +334,9 @@ return function(test: TestKit.Register)
 				table.insert(completed, id)
 			end
 		end
-		TestKit.equal(#completed, 25, "every quest completes")
+		TestKit.equal(#completed, 33, "every quest completes")
 		TestKit.equal(next(state.active), nil, "nothing left open")
-		TestKit.equal(completed[#completed], "quest.hold_the_line", "the chapter 3 capstone comes last")
+		TestKit.equal(completed[#completed], "quest.deep_black", "the chapter 4 capstone comes last")
 	end)
 
 	test("chapter 3: each quest's rewards supply what the next one on its line makes or builds", function()

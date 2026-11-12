@@ -30,6 +30,8 @@
 	  (checklist 12.9); run it with no lobby open.
 	  Scripted playtests: ("kill", range?) kills the nearest Hollow as the survivor and stands
 	  them on the spot, ("queststate", questId) reads one trail quest's progress.
+	  Worn gear and meds (batch 4b): ("hurt", hp) sets health, ("gearstate") reads each worn
+	  slot and its durability, the backpack size, health, the heals running and what the body shows.
 	  Performance (batch 3): ("perf", seconds?) samples heartbeat frames, the Hollow tick, memory,
 	  instances and bytes per remote; ("mapstats") reads each built Fog Run map's build times
 	  and part, light and emitter counts; ("assetfails") lists content that failed to load
@@ -272,6 +274,42 @@ local function devCommand(command: string, ...: any): any
 	elseif command == "heal" then
 		require("./Survival").healFull(player)
 		return "ok"
+	elseif command == "hurt" then
+		-- ("hurt", hp) sets the survivor's health, for med checks (batch 4b).
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Health = math.clamp(args[1] or 20, 1, humanoid.MaxHealth)
+		end
+		return if humanoid then humanoid.Health else "no humanoid"
+	elseif command == "gearstate" then
+		-- What a worn-gear check reads (batch 4b): each equipment slot with its durability,
+		-- the backpack's size, health, the heals still running and what the body shows.
+		local data = PlayerData.get(player)
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if data == nil then
+			return "no data"
+		end
+		local slots: { string } = {}
+		for slot, item in data.inventory.equipment :: any do
+			if item and item.count > 0 then
+				table.insert(slots, `{slot}={item.itemId}@{item.durability or "-"}`)
+			end
+		end
+		table.sort(slots)
+		local gear = player.Character and player.Character:FindFirstChild("Gear")
+		local shown: { string } = {}
+		for _, child in if gear then gear:GetChildren() else {} do
+			table.insert(shown, `{child.Name}:{child:GetAttribute("ItemId") or ""}`)
+		end
+		table.sort(shown)
+		return {
+			equipment = table.concat(slots, " "),
+			backpack = #data.inventory.backpack,
+			health = if humanoid then math.floor(humanoid.Health * 10) / 10 else nil,
+			heals = require("./Survival").healsOf(player),
+			shown = table.concat(shown, " "),
+			sneaking = player:GetAttribute("Sneaking") == true,
+		}
 	elseif command == "approach" then
 		-- Stands the survivor `args[1]` studs (default 4) off the nearest living Hollow, on the
 		-- ground, facing it, for melee checks. Returns its id, health and the yaw to it.

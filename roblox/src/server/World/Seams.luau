@@ -36,7 +36,7 @@ local SINK = 0.05 -- detail layers sit at least this far off any surface they me
 -- material, the same one its floors, walls, doorways, doors and windows use.
 type Trim = { material: Enum.Material, variant: string, color: Color3, postSize: number }
 
-local POST_SIZE = { 1.0, 0.95, 1.1 }
+local POST_SIZE = { 1.0, 0.95, 1.1, 1.15 }
 
 local function trimFor(tier: number): Trim
 	local index = math.clamp(tier, 1, #Art.decks)

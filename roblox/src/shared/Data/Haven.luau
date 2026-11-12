@@ -122,6 +122,16 @@ Haven.chapterRewards = {
 			{ itemId = "item.rations", count = 3 },
 		},
 	},
+	-- Content 2.0's chapter 4 (batch 4b): the next step up, in items that exist with the flag
+	-- off too (a hand-in that only names old items can't leak content2 into a stripped bundle).
+	["Iron Lungs"] = {
+		coins = 800,
+		items = {
+			{ itemId = "item.ember_tonic", count = 4 },
+			{ itemId = "item.brass_gear", count = 3 },
+			{ itemId = "item.rations", count = 4 },
+		},
+	},
 } :: { [string]: { coins: number, items: { Types.ItemStack } } }
 
 Haven.vip = {

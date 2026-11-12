@@ -13,6 +13,7 @@
 	thin things fill the frame.
 ]]
 
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
@@ -117,7 +118,21 @@ local function ModelView(props: Props)
 		camera.Parent = frame
 		frame.CurrentCamera = camera
 		copy.Parent = frame
+		-- A texture that isn't cached yet never shows in a ViewportFrame (it doesn't fall back
+		-- to the baseline image the world uses: fresh uploads drew grey, batch 4b). Load the
+		-- copy's content, then put it back in the frame so it draws with it.
+		local live = true
+		task.spawn(function()
+			local ok = pcall(function()
+				ContentProvider:PreloadAsync({ copy })
+			end)
+			if ok and live and copy.Parent == frame then
+				copy.Parent = nil
+				copy.Parent = frame
+			end
+		end)
 		return function()
+			live = false
 			copy:Destroy()
 			camera:Destroy()
 		end
