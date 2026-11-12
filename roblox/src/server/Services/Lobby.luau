@@ -181,6 +181,11 @@ local function hideOne(item: Instance)
 	elseif item:IsA("Decal") then
 		item:SetAttribute(HIDDEN_ATTRIBUTE, tostring(item.Transparency))
 		item.Transparency = 1
+	elseif item:IsA("BillboardGui") or item:IsA("ParticleEmitter") or item:IsA("Light") then
+		-- The VIP tag over the head, a glow or a light: off while held.
+		local toggled: any = item
+		item:SetAttribute(HIDDEN_ATTRIBUTE, tostring(toggled.Enabled))
+		toggled.Enabled = false
 	end
 end
 
@@ -198,6 +203,9 @@ local function showOne(item: Instance)
 		item.CanTouch = parts[4] == "true"
 	elseif item:IsA("Decal") then
 		item.Transparency = tonumber(saved) or 0
+	elseif item:IsA("BillboardGui") or item:IsA("ParticleEmitter") or item:IsA("Light") then
+		local toggled: any = item
+		toggled.Enabled = saved == "true"
 	end
 end
 
