@@ -265,25 +265,40 @@ obtain = function(ctx: Context, itemId: string, count: number, depth: number): S
 			{ stationId = recipe.stationId, recipeId = recipe.id, itemId = input.itemId, count = batches }
 		)
 	end
-	local nodes = AutoPlan.nodesFor(ctx, itemId)
-	if #nodes > 0 then
-		local def = ctx.nodes[nodes[1]]
-		local tool = def.tool
-		if tool and (ctx.tools[tool.kind] or 0) < tool.tier then
-			local toolItem = TOOL_ITEMS[tool.kind]
-			if toolItem and tool.tier <= 1 then
-				local missing = obtain(ctx, toolItem, 1, depth + 1)
-				if missing then
-					return missing
-				end
-				-- Made but in a crate or the inbox: wait for the controller to take it.
-				return step("wait", `{toolItem} is not in the bag`, { itemId = toolItem })
-			end
-		else
-			return step("gather", `{itemId} for {count}`, { itemId = itemId, nodeIds = nodes, count = short })
+	local usable, toolItem = AutoPlan.usableNodes(ctx, itemId)
+	if #usable > 0 then
+		return step("gather", `{itemId} for {count}`, { itemId = itemId, nodeIds = usable, count = short })
+	end
+	-- Only nodes that need a tool: make the tool, unless the tool itself needs this item
+	-- from such a node (stone for the pick from a boulder: the loose stones come first).
+	if toolItem and depth < MAX_DEPTH then
+		local missing = obtain(ctx, toolItem, 1, depth + 1)
+		if missing and missing.kind ~= "run" then
+			return missing
+		elseif missing == nil then
+			-- Made but in a crate or the inbox: wait for the controller to take it.
+			return step("wait", `{toolItem} is not in the bag`, { itemId = toolItem })
 		end
 	end
 	return step("run", `{itemId}: none left at home`, { itemId = itemId, locationId = HOME_RUN })
+end
+
+--[[
+	The standing home nodes for `itemId` the carried tools can harvest now, and the tier-1
+	tool item that would open the rest (nil when none needs one).
+]]
+function AutoPlan.usableNodes(ctx: Context, itemId: string): ({ string }, string?)
+	local usable: { string } = {}
+	local toolItem: string? = nil
+	for _, nodeId in AutoPlan.nodesFor(ctx, itemId) do
+		local tool = ctx.nodes[nodeId].tool
+		if tool == nil or (ctx.tools[tool.kind] or 0) >= tool.tier then
+			table.insert(usable, nodeId)
+		elseif tool.tier <= 1 and toolItem == nil then
+			toolItem = TOOL_ITEMS[tool.kind]
+		end
+	end
+	return usable, toolItem
 end
 
 function AutoPlan.obtain(ctx: Context, itemId: string, count: number): Step?
@@ -316,22 +331,19 @@ function AutoPlan.objectiveStep(ctx: Context, objective: any, have: number, need
 	local left = math.max(1, need - have)
 	if kind == "gather" then
 		-- Gathering counts swings, not holdings: gather even when the bag already has some.
-		local nodes = AutoPlan.nodesFor(ctx, objective.itemId)
-		if #nodes == 0 then
-			return step("run", `gather {objective.itemId}: none at home`, {
+		local usable, toolItem = AutoPlan.usableNodes(ctx, objective.itemId)
+		if #usable > 0 then
+			return step("gather", `quest: gather {objective.itemId}`, {
 				itemId = objective.itemId,
-				locationId = HOME_RUN,
+				nodeIds = usable,
+				count = left,
 			})
+		elseif toolItem then
+			return obtain(ctx, toolItem, 1, 0) or step("wait", `{toolItem} is not in the bag`, { itemId = toolItem })
 		end
-		local def = ctx.nodes[nodes[1]]
-		if def.tool and (ctx.tools[def.tool.kind] or 0) < def.tool.tier then
-			return obtain(ctx, TOOL_ITEMS[def.tool.kind] or "", 1, 0)
-				or step("wait", "the tool is not in the bag", { itemId = TOOL_ITEMS[def.tool.kind] })
-		end
-		return step("gather", `quest: gather {objective.itemId}`, {
+		return step("run", `gather {objective.itemId}: none at home`, {
 			itemId = objective.itemId,
-			nodeIds = nodes,
-			count = left,
+			locationId = HOME_RUN,
 		})
 	elseif kind == "craft" then
 		local recipe = ctx.recipes[objective.recipeId]

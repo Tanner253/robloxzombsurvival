@@ -78,9 +78,17 @@ local function clock(): string
 	return string.format("%02d:%02d", t // 60, t % 60)
 end
 
+local recent: { string } = {}
 local function log(text: string)
-	print(`[AutoPlayer] {clock()} {text}`)
-	player:SetAttribute("AutoPlayerLast", `{clock()} {text}`)
+	local line = `{clock()} {text}`
+	print(`[AutoPlayer] {line}`)
+	player:SetAttribute("AutoPlayerLast", line)
+	-- The last 40 lines, for a cheap read of what it has been doing.
+	table.insert(recent, line)
+	if #recent > 40 then
+		table.remove(recent, 1)
+	end
+	player:SetAttribute("AutoPlayerLog", table.concat(recent, "\n"))
 end
 
 local function milestone(key: string, text: string)

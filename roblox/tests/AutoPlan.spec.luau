@@ -86,6 +86,25 @@ return function(test: TestKit.Register)
 		TestKit.equal(AutoPlan.obtain(c, "item.timber", 10), nil, "enough")
 	end)
 
+	-- The first session looped stone -> pick -> stone (the boulder sorted first and needs a pick).
+	test("stone comes from the loose stones before a pick is made for the boulders", function()
+		local c = ctx()
+		local step = AutoPlan.obtain(c, "item.stone", 6) :: AutoPlan.Step
+		TestKit.equal(step.kind, "gather")
+		TestKit.deepEqual(step.nodeIds, { "node.loose_stones" })
+		local quest = AutoPlan.objectiveStep(c, { kind = "gather", itemId = "item.stone", count = 6 }, 0, 6)
+		TestKit.deepEqual(quest.nodeIds, { "node.loose_stones" })
+		c.standing["node.loose_stones"] = 0
+		c.home = { ["item.sticks"] = 3 }
+		TestKit.equal((AutoPlan.obtain(c, "item.stone", 6) :: AutoPlan.Step).kind, "run", "no stone for a pick")
+		c.home = { ["item.stone"] = 3, ["item.sticks"] = 3 }
+		local pick = AutoPlan.obtain(c, "item.stone", 6) :: AutoPlan.Step
+		TestKit.equal(pick.kind, "craft", "the boulders need a pick: make one")
+		TestKit.equal(pick.recipeId, "recipe.stone_pick")
+		c.tools = { pick = 1 }
+		TestKit.deepEqual((AutoPlan.obtain(c, "item.stone", 6) :: AutoPlan.Step).nodeIds, { "node.boulder" })
+	end)
+
 	test("a station recipe builds the station, loads it, waits on it and collects", function()
 		local c = ctx({ home = {}, tools = { hatchet = 1, pick = 1 } })
 		local step = AutoPlan.obtain(c, "item.plank", 1) :: AutoPlan.Step
