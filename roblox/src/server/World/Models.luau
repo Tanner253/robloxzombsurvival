@@ -15,6 +15,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local Art = require(ReplicatedStorage.Shared.Art)
+local HoldRules = require(ReplicatedStorage.Shared.Domain.HoldRules)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local Models = {}
@@ -720,6 +721,10 @@ export type Mount = "hand" | "belt" | "beltLeft" | "back"
 local MOUNT_FRAMES: { [string]: CFrame } = {
 	-- In the fist, head forward and a little up, blade down (LDoE's carry pose).
 	hand = frame(Vector3.new(0, 0.35, -1), Vector3.new(0, 1, 0.35)),
+	-- A gun or the bow in the fist (Data/Holds mount "gun"): the bore runs down the forearm,
+	-- canted forward as a pistol grip holds it, the top toward the thumb. An aimed arm aims
+	-- the gun with a straight wrist; the carry and aim clips raise it (client/Clips).
+	gun = frame(Vector3.new(0, -1, -0.3), Vector3.new(0, 0.3, -1)),
 	-- Hung from the belt, head down by the thigh, blade facing back.
 	belt = frame(Vector3.new(0.08, -1, 0.1), Vector3.new(0, 0, -1)),
 	beltLeft = frame(Vector3.new(-0.08, -1, 0.1), Vector3.new(0, 0, -1)),
@@ -798,7 +803,13 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 		local along = math.abs(edge.X) * box.X + math.abs(edge.Y) * box.Y + math.abs(edge.Z) * box.Z
 		gripPoint += edge * (drop * along)
 	end
-	local rotation = MOUNT_FRAMES[mount] * frame(axis, -edge):Inverse()
+	-- The handle's own centre line, where a head pulls the box off it (Art.held `offset`).
+	local offset = if art then art.offset else nil
+	if offset then
+		gripPoint += offset
+	end
+	local seat = if mount == "hand" and HoldRules.mountOf(itemId, def :: any) == "gun" then "gun" else mount
+	local rotation = MOUNT_FRAMES[seat] * frame(axis, -edge):Inverse()
 	model.Name = itemId
 	return { model = model, rotation = rotation, gripPoint = gripPoint }
 end

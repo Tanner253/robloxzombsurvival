@@ -532,6 +532,16 @@ end
 
 -- Server effects ---------------------------------------------------------------------------------------
 
+-- The death screen and the results card take the screen: a search in progress stops and an
+-- open container's panel (the inventory with its loot pane) closes behind them.
+local function closeLoot()
+	State.set("search", false)
+	State.set("loot", false)
+	if State.ui().panel ~= "none" then
+		State.patch({ panel = "none" })
+	end
+end
+
 local function onFx(kind: any, payload: any)
 	if kind == "travel" then
 		State.set("travel", payload)
@@ -594,9 +604,8 @@ local function onFx(kind: any, payload: any)
 	elseif kind == "runDeath" then
 		-- The screen stays up on the run side until a choice is sent (F-09): "held".
 		State.set("death", { info = payload, at = os.clock(), reentry = payload.reentry, held = payload.held })
-		State.set("search", false)
 		State.set("extracting", false)
-		State.set("loot", false)
+		closeLoot()
 		Sfx.play("lowMeter", nil, 1)
 	elseif kind == "recovered" then
 		local death = State.get("death")
@@ -606,6 +615,7 @@ local function onFx(kind: any, payload: any)
 			State.set("death", fresh)
 		end
 	elseif kind == "runResult" then
+		closeLoot()
 		State.set("result", { info = payload, at = os.clock() })
 	elseif kind == "fogWarning" then
 		State.notify("The Fog closes in 60 seconds. Get to an exit.", "warn")
@@ -633,8 +643,10 @@ local function onHomecoming()
 	end
 	lastHomecoming = home.at
 	if home.death then
+		closeLoot()
 		State.set("death", { info = home.death, at = os.clock(), reentry = home.reentry })
 	elseif home.result then
+		closeLoot()
 		State.set("result", { info = home.result, at = os.clock() })
 	end
 end

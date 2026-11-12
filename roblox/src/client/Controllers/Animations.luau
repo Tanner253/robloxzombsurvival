@@ -1,290 +1,100 @@
 --!strict
 --[[
-	Animations: the survivor's action animations, as custom keyframes built in code
-	(ART_DIRECTION §6: never Roblox defaults). Each is a KeyframeSequence registered at
-	runtime with AnimationClipProvider, so no animation asset has to be published.
+	Animations: the survivor's action animations and held-item carries (Data/Holds,
+	played by client/Clips; ART_DIRECTION §6: never Roblox defaults).
 
-	- chop: a diagonal overhead swing (anticipation, hit, recovery)
-	- mine: a vertical overhead swing
-	- pickup: crouch, reach and grab
-	- eat: hand to mouth twice
-
-	The local player's swings start immediately on input; everyone else's play when
-	the server's "act" effect arrives, so all players see each other work.
-	`Animations.hitDelay(kind)` is when the hit frame lands, for timing impacts.
+	- Actions: chop, mine, pickup, swap, eat, drink, bandage. The local player's play
+	  immediately on input; everyone else's play when the server's "act" effect arrives,
+	  so all players see each other work. `Animations.hitDelay(kind)` is when the hit
+	  frame lands, for timing impacts.
+	- Carries: while a gun or the bow is in a survivor's hand, its class's carry loops
+	  under everything else (a long gun at low ready in both hands, a pistol and the bow
+	  in front of the hip), on every character, read from the server-built Gear model's
+	  HandItem. Melee weapons and tools hang from the fist under the walk.
 ]]
 
 local Players = game:GetService("Players")
-local AnimationClipProvider = game:GetService("AnimationClipProvider")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Content = require(ReplicatedStorage.Shared.Data)
+local Holds = require(ReplicatedStorage.Shared.Data.Holds)
+local HoldRules = require(ReplicatedStorage.Shared.Domain.HoldRules)
+local Clips = require("../Clips")
 local State = require("../State")
 
 local Animations = {}
 
-type Spec = {
-	length: number,
-	hit: number, -- seconds to the hit frame
-	keys: { { time: number, poses: { [string]: CFrame } } },
-}
-
-local function deg(x: number, y: number?, z: number?): CFrame
-	return CFrame.Angles(math.rad(x), math.rad(y or 0), math.rad(z or 0))
-end
-
--- Pose hierarchy of the R15 survivor (parents first).
-local PARENTS: { [string]: string } = {
-	LowerTorso = "HumanoidRootPart",
-	UpperTorso = "LowerTorso",
-	RightUpperArm = "UpperTorso",
-	RightLowerArm = "RightUpperArm",
-	RightHand = "RightLowerArm",
-	LeftUpperArm = "UpperTorso",
-	LeftLowerArm = "LeftUpperArm",
-	Head = "UpperTorso",
-	RightUpperLeg = "LowerTorso",
-	RightLowerLeg = "RightUpperLeg",
-	LeftUpperLeg = "LowerTorso",
-	LeftLowerLeg = "LeftUpperLeg",
-}
-
-local SPECS: { [string]: Spec } = {
-	chop = {
-		length = 0.62,
-		hit = 0.3,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.2,
-				poses = {
-					UpperTorso = deg(6, 28, 0),
-					RightUpperArm = deg(165, 0, 25),
-					RightLowerArm = deg(35),
-					LeftUpperArm = deg(20, 0, -10),
-				},
-			},
-			{
-				time = 0.3,
-				poses = {
-					UpperTorso = deg(-12, -22, 0),
-					RightUpperArm = deg(62, 0, -30),
-					RightLowerArm = deg(8),
-					RightHand = deg(-70),
-					LeftUpperArm = deg(-10, 0, -8),
-				},
-			},
-			{
-				time = 0.36,
-				poses = { UpperTorso = deg(-10, -20, 0), RightUpperArm = deg(58, 0, -28), RightHand = deg(-65) },
-			},
-			{ time = 0.62, poses = {} },
-		},
-	},
-	mine = {
-		length = 0.66,
-		hit = 0.32,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.22,
-				poses = {
-					UpperTorso = deg(12, 0, 0),
-					RightUpperArm = deg(175, 0, 8),
-					RightLowerArm = deg(25),
-					LeftUpperArm = deg(150, 0, -10),
-					LeftLowerArm = deg(25),
-				},
-			},
-			{
-				time = 0.32,
-				poses = {
-					UpperTorso = deg(-24, 0, 0),
-					RightUpperArm = deg(55, 0, -4),
-					RightLowerArm = deg(5),
-					RightHand = deg(-80),
-					LeftUpperArm = deg(40, 0, 6),
-				},
-			},
-			{
-				time = 0.38,
-				poses = { UpperTorso = deg(-22, 0, 0), RightUpperArm = deg(52, 0, -4), RightHand = deg(-75) },
-			},
-			{ time = 0.66, poses = {} },
-		},
-	},
-	-- A quick weapon swap (4.9): the hand drops to the hip and comes back up.
-	swap = {
-		length = 0.32,
-		hit = 0.16,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.14,
-				poses = {
-					RightUpperArm = deg(-25, 0, 18),
-					RightLowerArm = deg(35),
-					UpperTorso = deg(0, -12, 0),
-				},
-			},
-			{ time = 0.32, poses = {} },
-		},
-	},
-	pickup = {
-		length = 0.7,
-		hit = 0.32,
-		keys = {
-			{ time = 0, poses = {} },
-			{
-				time = 0.25,
-				poses = {
-					LowerTorso = CFrame.new(0, -1.1, 0.2) * deg(-10),
-					UpperTorso = deg(-38),
-					RightUpperLeg = deg(75),
-					RightLowerLeg = deg(-95),
-					LeftUpperLeg = deg(55),
-					LeftLowerLeg = deg(-100),
-					RightUpperArm = deg(55, 0, -10),
-					RightLowerArm = deg(10),
-					Head = deg(-15),
-				},
-			},
-			{
-				time = 0.38,
-				poses = {
-					LowerTorso = CFrame.new(0, -1.1, 0.2) * deg(-10),
-					UpperTorso = deg(-36),
-					RightUpperLeg = deg(75),
-					RightLowerLeg = deg(-95),
-					LeftUpperLeg = deg(55),
-					LeftLowerLeg = deg(-100),
-					RightUpperArm = deg(35, 0, -5),
-					RightLowerArm = deg(40),
-				},
-			},
-			{ time = 0.7, poses = {} },
-		},
-	},
-	eat = {
-		length = 1.1,
-		hit = 0.35,
-		keys = {
-			{ time = 0, poses = {} },
-			{ time = 0.25, poses = { RightUpperArm = deg(70, 0, 15), RightLowerArm = deg(115), Head = deg(-8) } },
-			{ time = 0.5, poses = { RightUpperArm = deg(60, 0, 15), RightLowerArm = deg(95), Head = deg(-4) } },
-			{ time = 0.75, poses = { RightUpperArm = deg(70, 0, 15), RightLowerArm = deg(115), Head = deg(-8) } },
-			{ time = 1.1, poses = {} },
-		},
-	},
-}
-
-local clips: { [string]: Animation } = {}
-local tracks: { [Animator]: { [string]: AnimationTrack } } = {}
-
-local function build(spec: Spec): KeyframeSequence
-	local sequence = Instance.new("KeyframeSequence")
-	sequence.Loop = false
-	sequence.Priority = Enum.AnimationPriority.Action4
-	for _, key in spec.keys do
-		local keyframe = Instance.new("Keyframe")
-		keyframe.Time = key.time
-		local made: { [string]: Pose } = {}
-		local function poseFor(name: string): Pose
-			local existing = made[name]
-			if existing then
-				return existing
-			end
-			local pose = Instance.new("Pose")
-			pose.Name = name
-			pose.Weight = if key.poses[name] then 1 else 0
-			pose.CFrame = key.poses[name] or CFrame.identity
-			pose.EasingStyle = Enum.PoseEasingStyle.Cubic
-			pose.EasingDirection = Enum.PoseEasingDirection.Out
-			local parentName = PARENTS[name]
-			pose.Parent = if parentName then poseFor(parentName) else keyframe
-			made[name] = pose
-			return pose
-		end
-		poseFor("HumanoidRootPart").Weight = 0
-		for name in PARENTS do
-			poseFor(name)
-		end
-		keyframe.Parent = sequence
-	end
-	return sequence
-end
-
-local function clip(name: string): Animation?
-	local existing = clips[name]
-	if existing then
-		return existing
-	end
-	local spec = SPECS[name]
-	if spec == nil then
-		return nil
-	end
-	local ok, id = pcall(AnimationClipProvider.RegisterAnimationClip, AnimationClipProvider, build(spec))
-	if not ok then
-		warn(`Animations: could not register '{name}': {id}`)
-		return nil
-	end
-	local animation = Instance.new("Animation")
-	animation.AnimationId = id
-	clips[name] = animation
-	return animation
-end
-
-local function animatorOf(character: Model?): Animator?
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid == nil then
-		return nil
-	end
-	local animator = humanoid:FindFirstChildOfClass("Animator")
-	if animator == nil and character == Players.LocalPlayer.Character then
-		local made = Instance.new("Animator")
-		made.Parent = humanoid
-		animator = made
-	end
-	return animator
-end
+local Items: any = Content.Items
 
 -- Plays an action on a character. Returns seconds until its hit frame.
 function Animations.play(character: Model?, name: string, speed: number?): number
-	local animator = animatorOf(character)
-	local animation = clip(name)
-	local spec = SPECS[name]
-	if animator == nil or animation == nil or spec == nil then
+	local mine = character ~= nil and character == Players.LocalPlayer.Character
+	local track = Clips.play(character, name, speed, Enum.AnimationPriority.Action4, mine)
+	if track == nil then
 		return 0
 	end
-	local perAnimator = tracks[animator]
-	if perAnimator == nil then
-		perAnimator = {}
-		tracks[animator] = perAnimator
-		animator.AncestryChanged:Connect(function()
-			if not animator:IsDescendantOf(game) then
-				tracks[animator] = nil
-			end
-		end)
-	end
-	local track: AnimationTrack? = perAnimator[name]
-	if track == nil then
-		local loaded = animator:LoadAnimation(animation)
-		loaded.Priority = Enum.AnimationPriority.Action4
-		perAnimator[name] = loaded
-		track = loaded
-	end
-	local rate = speed or 1
-	(track :: AnimationTrack):Play(0.06, 1, rate)
-	return spec.hit / rate
+	return Clips.hit(name) / (speed or 1)
 end
 
 -- Seconds from the start of an action to its hit frame.
 function Animations.hitDelay(name: string): number
-	local spec = SPECS[name]
-	return if spec then spec.hit else 0
+	return Clips.hit(name)
 end
 
 -- The action for a node's tool kind.
 function Animations.forTool(kind: string?): string
-	return if kind == "hatchet" then "chop" elseif kind == "pick" then "mine" else "pickup"
+	return if kind then Holds.gather[kind] or "pickup" else "pickup"
+end
+
+-- Carries ------------------------------------------------------------------------------------------
+
+local carrying: { [Model]: string? } = {}
+
+local function carryFor(character: Model)
+	local gear = character:FindFirstChild("Gear")
+	local itemId = if gear then gear:GetAttribute("HandItem") else nil
+	local id = if type(itemId) == "string" and itemId ~= "" then itemId else nil
+	local name = if id then HoldRules.clip(HoldRules.classOf(id, Items[id]), "carry") else nil
+	local current = carrying[character]
+	if current == name then
+		return
+	end
+	if current then
+		Clips.stop(character, current, 0.2)
+	end
+	carrying[character] = name
+	if name then
+		Clips.play(character, name)
+	end
+end
+
+local function watch(character: Model)
+	carryFor(character)
+	character.ChildAdded:Connect(function(child)
+		if child.Name == "Gear" then
+			carryFor(character)
+		end
+	end)
+	character.ChildRemoved:Connect(function(child)
+		if child.Name == "Gear" then
+			task.defer(carryFor, character)
+		end
+	end)
+	character.AncestryChanged:Connect(function()
+		if not character:IsDescendantOf(game) then
+			carrying[character] = nil
+		end
+	end)
+end
+
+local function track(player: Player)
+	if player.Character then
+		task.defer(watch, player.Character)
+	end
+	player.CharacterAdded:Connect(function(character)
+		-- The Animator arrives with the Humanoid; give the rig a moment to assemble.
+		task.delay(0.5, watch, character)
+	end)
 end
 
 function Animations.start()
@@ -295,6 +105,10 @@ function Animations.start()
 			Animations.play(if other then other.Character else nil, payload.action)
 		end
 	end)
+	for _, player in Players:GetPlayers() do
+		track(player)
+	end
+	Players.PlayerAdded:Connect(track)
 end
 
 return Animations

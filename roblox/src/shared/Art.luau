@@ -394,6 +394,10 @@ Art.items = {
 	["item.spiked_club"] = { "EO_SpikedClub" },
 	["item.scrapblade"] = { "EO_Scrapblade" },
 	["item.stone_pick"] = { "EO_StonePick" },
+	-- The forged tools have no model of their own yet (art spend): they show their stone
+	-- forms, the same silhouette as their icons, rather than a built stand-in.
+	["item.forged_hatchet"] = { "EO_StoneHatchet" },
+	["item.forged_pick"] = { "EO_StonePick" },
 	["item.timber"] = { "Gen_firewood" },
 	["item.satchel"] = { "Gen_backpack" },
 	["item.pack_frame"] = { "Raw_Backpack", "Gen_backpack" },
@@ -416,6 +420,13 @@ Art.items = {
 	["item.rail_mallet"] = { "EO_RailMallet" },
 } :: { [string]: { string } }
 
+-- Items whose model above is a stand-in for the hand: the inventory shows their painted
+-- icon (ItemDef.icon), not a render of the stand-in.
+Art.paintedIcon = {
+	["item.forged_hatchet"] = true,
+	["item.forged_pick"] = true,
+} :: { [string]: boolean }
+
 -- How each held item sits in the fist and on the body (checklist 1.5, 1.5b).
 -- `axis` is the butt-to-head direction and `edge` the blade-facing direction, both
 -- in the kit model's own space (read from front and side renders); `grip` is how
@@ -430,36 +441,61 @@ export type HeldArt = {
 	-- Guns: how far the fist sits off the barrel line toward `edge` (down), as a share of
 	-- the gun's size along it (a pistol's grip hangs below the slide).
 	drop: number?,
+	-- Where the handle's centre line runs, off the bounding box's centre line, in studs in
+	-- the model's own space at `length`: a head that juts to one side (an axe's blade, a
+	-- pick's point) pulls the box off the handle. Measured in Studio by casting rays across
+	-- the handle (2026-11-12, batch 1); with it the fist closes on the handle, not beside it.
+	offset: Vector3?,
 }
 
 Art.held = {
 	["item.stone_hatchet"] = {
-		axis = Vector3.new(0.75, 0.65, -0.13),
+		axis = Vector3.new(0.579, 0.715, -0.393),
 		edge = Vector3.new(0, 0, -1),
 		grip = 0.18,
 		length = 1.7,
 		holster = "belt",
+		offset = Vector3.new(0.02, 0.024, 0.074),
 	},
 	["item.stone_pick"] = {
-		axis = Vector3.new(0.48, 0.88, -0.26),
+		axis = Vector3.new(0.336, 0.875, -0.347),
 		edge = Vector3.new(0, 0, -1),
 		grip = 0.16,
 		length = 2.2,
 		holster = "belt",
+		offset = Vector3.new(-0.024, 0.1, 0.229),
+	},
+	["item.forged_hatchet"] = {
+		axis = Vector3.new(0.579, 0.715, -0.393),
+		edge = Vector3.new(0, 0, -1),
+		grip = 0.18,
+		length = 1.7,
+		holster = "belt",
+		offset = Vector3.new(0.02, 0.024, 0.074),
+	},
+	["item.forged_pick"] = {
+		axis = Vector3.new(0.336, 0.875, -0.347),
+		edge = Vector3.new(0, 0, -1),
+		grip = 0.16,
+		length = 2.2,
+		holster = "belt",
+		offset = Vector3.new(-0.024, 0.1, 0.229),
 	},
 	["item.spiked_club"] = {
-		axis = Vector3.new(0.36, 0.69, 0.67),
+		axis = Vector3.new(0.289, 0.696, 0.657),
 		edge = Vector3.new(1, 0, 0),
 		grip = 0.14,
 		length = 2.3,
 		holster = "back",
+		offset = Vector3.new(-0.041, 0.029, -0.013),
 	},
 	["item.scrapblade"] = {
-		axis = Vector3.new(0.35, 1, 1),
+		axis = Vector3.new(0.087, 0.712, 0.697),
 		edge = Vector3.new(0, -1, 1),
 		grip = 0.12,
 		length = 2,
 		holster = "back",
+		offset = Vector3.new(0.046, 0, -0.006),
 	},
 	-- Guns: `axis` is the muzzle direction (the fist points it forward) and `edge` the
 	-- gun's underside; `length` is the gun's length (realistic, about 1.3x life size
@@ -537,19 +573,23 @@ Art.held = {
 		grip = 0.12,
 		length = 2.3,
 		holster = "belt",
+		offset = Vector3.new(0, 0, 0.026),
 	},
 	["item.fire_axe"] = {
-		axis = Vector3.new(0, 0, -1),
+		axis = Vector3.new(0.056, 0.276, -0.959),
 		edge = Vector3.new(0, 1, 0),
 		grip = 0.12,
 		length = 2.9,
 		holster = "back",
+		offset = Vector3.new(-0.016, -0.156, -0.046),
 	},
-	-- The stake lies on a diagonal in its model (converted as drawn); the point is its thin end.
+	-- The stake lies on a diagonal in its model (converted as drawn); the point is its thin
+	-- end, toward -X -Y -Z, and the fist closes on the cord wrap (measured 2026-11-12: the old
+	-- axis crossed the stick at about 80 degrees, so it sat across the fist).
 	["item.sharpened_stake"] = {
-		axis = Vector3.new(-0.617, 0.655, -0.436), -- butt (cord) to the charred point
-		edge = Vector3.new(0.728, 0.686, 0),
-		grip = 0.14,
+		axis = Vector3.new(-0.658, -0.622, -0.425), -- butt (cord) to the charred point
+		edge = Vector3.new(0.728, -0.686, 0),
+		grip = 0.3,
 		length = 3.4,
 		holster = "back",
 	},
@@ -561,6 +601,7 @@ Art.held = {
 		grip = 0.14,
 		length = 2,
 		holster = "belt",
+		offset = Vector3.new(0, 0, 0.113),
 	},
 	["item.rail_mallet"] = {
 		axis = Vector3.new(0, 1, 0),

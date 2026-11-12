@@ -206,6 +206,45 @@ local function devCommand(command: string, ...: any): any
 	elseif command == "heal" then
 		require("./Survival").healFull(player)
 		return "ok"
+	elseif command == "approach" then
+		-- Stands the survivor `args[1]` studs (default 4) off the nearest living Hollow, on the
+		-- ground, facing it, for melee checks. Returns its id, health and the yaw to it.
+		local run = Lobby.runOf(player)
+		local character = player.Character
+		if run == nil or character == nil then
+			return "no run"
+		end
+		local HollowService = require("./Hollow")
+		local origin = character:GetPivot().Position
+		local nearest = HollowService.inArc(run.hosted, origin, 0, 400, 360)[1]
+		local at = nearest and HollowService.positionOf(run.hosted, nearest.id)
+		if nearest == nil or at == nil then
+			return "no hollow"
+		end
+		local away = Vector3.new(origin.X - at.X, 0, origin.Z - at.Z)
+		away = if away.Magnitude > 0.1 then away.Unit else Vector3.zAxis
+		local stand = at + away * (args[1] or 4)
+		local ground = RaycastParams.new()
+		ground.FilterType = Enum.RaycastFilterType.Exclude
+		ground.FilterDescendantsInstances = { character }
+		local floor = workspace:Raycast(Vector3.new(stand.X, at.Y + 40, stand.Z), Vector3.new(0, -120, 0), ground)
+		local height = (if floor then floor.Position.Y else at.Y) + 3
+		character:PivotTo(CFrame.lookAt(Vector3.new(stand.X, height, stand.Z), Vector3.new(at.X, height, at.Z)))
+		return {
+			id = nearest.id,
+			hp = HollowService.hpOf(run.hosted, nearest.id),
+			yaw = math.atan2(at.X - stand.X, at.Z - stand.Z),
+		}
+	elseif command == "hold" then
+		-- Puts weapon slot `args[1]` (1 or 2) in hand, as the WeaponSelect remote does (on a run
+		-- through Combat's hands). Returns the hand ref.
+		local n = if args[1] == 2 then 2 else 1
+		local hook = Inventory.combat
+		if hook and hook.active(player) then
+			hook.select(player, n)
+		end
+		Inventory.setActiveWeapon(player, n)
+		return Inventory.handRef(player)
 	elseif command == "shoot" then
 		-- Fires the gun in hand once at the nearest living Hollow through the real fire path
 		-- (reloading first when the magazine is empty), from `args[1]` studs away (default 10).

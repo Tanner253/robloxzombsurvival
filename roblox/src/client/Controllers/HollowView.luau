@@ -304,6 +304,22 @@ local function emit(at: Vector3, color: ColorSequence, count: number, props: { [
 	emitter:Emit(count)
 end
 
+-- A hit: the body flashes pale for a beat (a crit brighter), so a blow reads at the
+-- gameplay camera even in the dark (2.0 batch 1).
+local function flashHit(model: Model, crit: boolean)
+	local light = Instance.new("Highlight")
+	light.Adornee = model
+	light.DepthMode = Enum.HighlightDepthMode.Occluded
+	light.FillColor = if crit then Color3.fromHex("FFE3A3") else Color3.fromRGB(255, 255, 255)
+	light.FillTransparency = if crit then 0.25 else 0.45
+	light.OutlineTransparency = 1
+	light.Parent = model
+	TweenService:Create(light, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		FillTransparency = 1,
+	}):Play()
+	Debris:AddItem(light, 0.2)
+end
+
 -- Death: the body crumbles into ash and drifting embers, then is gone (13.10).
 local function dissolve(view: View)
 	local model = view.model
@@ -407,6 +423,37 @@ local function flareLight(at: Vector3, seconds: number)
 	end)
 end
 
+-- A blow landing: the number, a puff, the flash, the flinch and the thud, all at once.
+local shownHits: { [string]: number? } = {} -- blows drawn early, awaiting their snapshot copy
+local function showHit(id: string, amount: number, crit: boolean)
+	local view = views[id]
+	local model = view and view.model
+	if view == nil or model == nil then
+		return
+	end
+	local _, size = model:GetBoundingBox()
+	local top = model:GetPivot().Position + Vector3.new((math.random() - 0.5) * 1.5, size.Y, 0)
+	billboardText(
+		top,
+		tostring(math.floor(amount + 0.5)),
+		if crit then Theme.colors.accentSoft else Theme.colors.text,
+		if crit then 34 else 24,
+		2.2
+	)
+	emit(top - Vector3.new(0, size.Y * 0.4, 0), ColorSequence.new(Color3.fromRGB(110, 106, 100)), 10, {
+		texture = "rbxasset://textures/particles/smoke_main.dds",
+		light = 0,
+		size = NumberSequence.new(0.6, 1.2),
+		speed = NumberRange.new(3, 6),
+	})
+	if view.gait then
+		Gait.cue(view.gait, "hit")
+	end
+	flashHit(model, crit)
+	playOnce(view, "hit")
+	Sfx.play("hitThud", top)
+end
+
 local function onCue(cue: { any })
 	local kind = cue[1]
 	if kind == "alert" then
@@ -423,30 +470,14 @@ local function onCue(cue: { any })
 			Sfx.play("hollowAlert", view.model:GetPivot().Position)
 		end
 	elseif kind == "hit" then
-		local view = views[cue[2]]
-		local amount, crit = cue[3], cue[4]
-		if view and view.model then
-			local _, size = view.model:GetBoundingBox()
-			local top = view.model:GetPivot().Position + Vector3.new((math.random() - 0.5) * 1.5, size.Y, 0)
-			billboardText(
-				top,
-				tostring(math.floor((amount :: number) + 0.5)),
-				if crit then Theme.colors.accentSoft else Theme.colors.text,
-				if crit then 34 else 24,
-				2.2
-			)
-			emit(top - Vector3.new(0, size.Y * 0.4, 0), ColorSequence.new(Color3.fromRGB(110, 106, 100)), 10, {
-				texture = "rbxasset://textures/particles/smoke_main.dds",
-				light = 0,
-				size = NumberSequence.new(0.6, 1.2),
-				speed = NumberRange.new(3, 6),
-			})
-			if view.gait then
-				Gait.cue(view.gait, "hit")
-			end
-			playOnce(view, "hit")
-			Sfx.play("hitThud", top)
+		-- A blow the server already told this client about the moment it landed (the
+		-- "hit" effect) is drawn then; the snapshot's copy is skipped.
+		local shown = shownHits[cue[2]]
+		if shown and shown > 0 then
+			shownHits[cue[2]] = if shown > 1 then shown - 1 else nil
+			return
 		end
+		showHit(cue[2], cue[3], cue[4] == true)
 	elseif kind == "attack" then
 		local view = views[cue[2]]
 		if view then
@@ -467,8 +498,9 @@ local function onCue(cue: { any })
 				Gait.cue(view.gait, "dead")
 				task.delay(3, fade, view)
 			else
+				-- The fall plays out before the body crumbles, so the kill reads.
 				playOnce(view, "death")
-				task.delay(0.5, dissolve, view)
+				task.delay(0.85, dissolve, view)
 			end
 		end
 	elseif kind == "burst" then
@@ -639,8 +671,17 @@ function HollowView.start()
 	end
 	Net.on("HollowSync", onSync)
 	RunService.RenderStepped:Connect(step)
+	-- Melee and shot hits arrive as they land (Services/Combat), not with the next snapshot:
+	-- the thud and the flinch meet the swing's hit frame.
+	State.fx:Connect(function(kind: any, payload: any)
+		if kind == "hit" and type(payload) == "table" and type(payload.id) == "string" then
+			shownHits[payload.id] = (shownHits[payload.id] or 0) + 1
+			showHit(payload.id, payload.damage or 0, payload.crit == true)
+		end
+	end)
 	State.changed:Connect(function(key: string)
 		if key == "run" and State.get("run") == false then
+			table.clear(shownHits)
 			for id, view in views do
 				views[id] = nil
 				if view.model then

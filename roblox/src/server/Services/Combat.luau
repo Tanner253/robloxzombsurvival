@@ -38,6 +38,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Domain = ReplicatedStorage.Shared.Domain
 local CombatMath = require(Domain.Combat)
 local Hands = require(Domain.Hands)
+local HoldRules = require(Domain.HoldRules)
 local InventoryMath = require(Domain.Inventory)
 local Plane = require(Domain.Plane)
 local Rng = require(Domain.Rng)
@@ -59,6 +60,10 @@ local SLOT_KEYS = { "weapon", "weapon2" } -- paper-doll keys for hand slots 1 an
 local MUZZLE_HEIGHT = 1.5
 local FIRE_LEEWAY_SECONDS = 0.05 -- how early a held trigger's next request may land and still fire
 local HOLLOW_CHEST = 3.5 -- studs above the ground a Hollow stands on: where a round aims
+
+-- Seconds a melee request is taken to have spent reaching the server (half a typical round
+-- trip): taken off the wait for the swing's hit frame.
+local STRIKE_TRANSIT = 0.05
 
 -- Bare hands, from Tuning.player.
 local FISTS: Types.WeaponStats = {
@@ -111,7 +116,7 @@ local function slotIds(player: Player): { string? }
 	return ids
 end
 
--- Matches the hands to the paper-doll (a changed slot starts over with an empty gun).
+-- Matches the hands to the paper-doll (a changed slot starts over with a full gun).
 local function fighterOf(player: Player): Fighter?
 	local fighter = fighters[player]
 	if fighter == nil then
@@ -288,11 +293,17 @@ local function melee(player: Player, heavy: boolean, yaw: number, lockId: string
 	end
 	fighter.stamina = spent
 	fighter.nextSwingAt = stamp + CombatMath.swingSeconds(weapon, stats, heavy)
-	broadcast(run, "swing", { userId = player.UserId, heavy = heavy, yaw = yaw })
+	local itemId = Hands.active(fighter.hands).itemId
+	broadcast(run, "swing", { userId = player.UserId, heavy = heavy, yaw = yaw, itemId = itemId })
 	if heavy then
 		task.delay(stats.heavyWindupSeconds, strike, player, run, weapon, true, yaw, lockId)
 	else
-		strike(player, run, weapon, false, yaw, lockId)
+		-- The blow lands on the swing's hit frame (Data/Holds), not on the click, so the
+		-- number, the flinch and the thud arrive with the blade. The request already spent
+		-- part of that on its way here.
+		local class = HoldRules.classOf(itemId, Items[itemId])
+		local delay = math.max(0, HoldRules.strikeDelay(class, false) - STRIKE_TRANSIT)
+		task.delay(delay, strike, player, run, weapon, false, yaw, lockId)
 	end
 end
 

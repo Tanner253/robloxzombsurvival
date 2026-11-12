@@ -340,6 +340,8 @@ local function swingAt(model: Model): boolean
 	-- chips and sound land with the blow (3.2, 3.3).
 	local def = Content.Nodes[model:GetAttribute("NodeId") :: string]
 	local action = Animations.forTool(if def and def.tool then def.tool.kind else nil)
+	-- The tool comes into the hand for the wind-up, not at the blow.
+	Net.fire("GatherSwing", key)
 	local hitIn = Animations.play(player.Character, action)
 	task.delay(hitIn, function()
 		Net.fire("Gather", key)

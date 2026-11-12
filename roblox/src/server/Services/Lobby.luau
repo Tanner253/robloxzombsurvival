@@ -106,6 +106,7 @@ type Hold = {
 	lobbyId: string,
 	recovered: boolean,
 	watch: RBXScriptConnection?,
+	hidden: RBXScriptConnection?,
 }
 
 -- Signals for the other Fog Run services.
@@ -159,6 +160,71 @@ end
 local function nextId(prefix: string): string
 	seq += 1
 	return `{prefix}{seq}`
+end
+
+--[[
+	A held body (its player is on the death screen) waits out of the world for everyone
+	else: unseen, untouchable and unshootable, its name tag off (2.0 batch 1). `held` false
+	puts back what was there. Gear that arrives while it is held is hidden too.
+]]
+local HIDDEN_ATTRIBUTE = "HeldLook"
+local function hideOne(item: Instance)
+	if item:GetAttribute(HIDDEN_ATTRIBUTE) ~= nil then
+		return
+	end
+	if item:IsA("BasePart") then
+		item:SetAttribute(HIDDEN_ATTRIBUTE, `{item.Transparency}|{item.CanCollide}|{item.CanQuery}|{item.CanTouch}`)
+		item.Transparency = 1
+		item.CanCollide = false
+		item.CanQuery = false
+		item.CanTouch = false
+	elseif item:IsA("Decal") then
+		item:SetAttribute(HIDDEN_ATTRIBUTE, tostring(item.Transparency))
+		item.Transparency = 1
+	elseif item:IsA("BillboardGui") or item:IsA("ParticleEmitter") or item:IsA("Light") then
+		-- The VIP tag over the head, a glow or a light: off while held.
+		local toggled: any = item
+		item:SetAttribute(HIDDEN_ATTRIBUTE, tostring(toggled.Enabled))
+		toggled.Enabled = false
+	end
+end
+
+local function showOne(item: Instance)
+	local saved = item:GetAttribute(HIDDEN_ATTRIBUTE)
+	if type(saved) ~= "string" then
+		return
+	end
+	item:SetAttribute(HIDDEN_ATTRIBUTE, nil)
+	if item:IsA("BasePart") then
+		local parts = string.split(saved, "|")
+		item.Transparency = tonumber(parts[1]) or 0
+		item.CanCollide = parts[2] == "true"
+		item.CanQuery = parts[3] == "true"
+		item.CanTouch = parts[4] == "true"
+	elseif item:IsA("Decal") then
+		item.Transparency = tonumber(saved) or 0
+	elseif item:IsA("BillboardGui") or item:IsA("ParticleEmitter") or item:IsA("Light") then
+		local toggled: any = item
+		toggled.Enabled = saved == "true"
+	end
+end
+
+local function setBodyHeld(character: Model, held: boolean): RBXScriptConnection?
+	for _, item in character:GetDescendants() do
+		if held then
+			hideOne(item)
+		else
+			showOne(item)
+		end
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = if held
+			then Enum.HumanoidDisplayDistanceType.None
+			else Enum.HumanoidDisplayDistanceType.Viewer
+	end
+	character:SetAttribute("Held", if held then true else nil)
+	return if held then character.DescendantAdded:Connect(hideOne) else nil
 end
 
 local function rootOf(player: Player): BasePart?
@@ -436,6 +502,10 @@ local function finish(player: Player, run: Run, outcome: ExtractionMath.Outcome,
 			local root = character:WaitForChild("HumanoidRootPart", 5)
 			if holds[player] == hold and root and root:IsA("BasePart") then
 				root.Anchored = true
+				if hold.hidden then
+					hold.hidden:Disconnect()
+				end
+				hold.hidden = setBodyHeld(character, true)
 			end
 		end)
 		holds[player] = hold
@@ -459,9 +529,15 @@ local function release(player: Player, choice: MomentOffers.Choice)
 	if hold.watch then
 		hold.watch:Disconnect()
 	end
+	if hold.hidden then
+		hold.hidden:Disconnect()
+	end
 	local root = rootOf(player)
 	if root then
 		root.Anchored = false
+	end
+	if player.Character then
+		setBodyHeld(player.Character, false)
 	end
 	local after = MomentOffers.afterHold(choice, hold.recovered)
 	local home: Teleport.HomeData = table.clone(hold.home)

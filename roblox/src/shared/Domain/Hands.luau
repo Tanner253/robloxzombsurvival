@@ -11,7 +11,7 @@
 	  swapping away cancels a reload in progress.
 	- Each slot keeps its own magazine: rounds stay in a gun you swap away from.
 	  There are no rounds to carry (DECISIONS 2026-11-08): a reload is free, and a
-	  newly slotted gun starts empty.
+	  newly slotted gun starts loaded.
 	- The meds button (H) uses the best healing item carried (`bestMeds`): the
 	  smallest heal that covers the missing health, else the biggest there is.
 	  "Meds" are consumables whose health restore is their largest effect, so the
@@ -52,7 +52,10 @@ local function handFor(itemId: string?, items: ItemLookup): Hand
 	local id = itemId or ""
 	local item = items[id]
 	local weapon = item and item.weapon
-	return { itemId = id, gun = if weapon and weapon.firearm then Combat.newGun(0) else nil }
+	-- A gun comes up loaded (2.0 batch 1): the first pull on a run fires. Reloads cost only
+	-- time (no ammo, F-13), so a full magazine gives nothing away.
+	local firearm = weapon and weapon.firearm
+	return { itemId = id, gun = if firearm then Combat.newGun(firearm.magazine) else nil }
 end
 
 -- Fresh hands for the slotted weapon IDs (index 1 and 2; nil or "" for empty).
@@ -66,7 +69,7 @@ end
 
 --[[
 	Matches the hands to what the paper-doll holds now. A slot whose weapon
-	changed starts over (an empty gun).
+	changed starts over (a full magazine).
 ]]
 function Hands.sync(state: State, itemIds: { string? }, items: ItemLookup, config: Config): State
 	local hands: { Hand } = {}
