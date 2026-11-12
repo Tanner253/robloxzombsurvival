@@ -738,12 +738,22 @@ local function goals(fallback: boolean): { PacingSim.Goal }
 			}, room("reinforced", 16, 13))),
 			flags = { "item.bp_reinforced" },
 		},
+		-- CONTENT_2_0 §2: the Reinforced room taken to Fortified on Steel Plate, the two Blast
+		-- Furnaces that make it and the Apothecary that needs its floor. Its pieces unlock on
+		-- chapter 4 (questGates), so it waits for the trail.
+		{
+			name = "fortified",
+			pieces = join({ count("build.blast_furnace", 2), count("build.apothecary", 1) }, room("fortified", 16, 13)),
+			questGates = true,
+		},
 	}
 end
 
-local function model(minutesPerSession: number, fallback: boolean): PacingSim.Model
+local function model(minutesPerSession: number, fallback: boolean, days: number?): PacingSim.Model
 	return {
-		days = 21, -- was 18: three full weeks, so chapter 3's last quests land inside the run
+		-- 21 (was 18): three full weeks, so chapter 3's last quests land inside the run. The
+		-- content2 checks run 30, to the end of chapter 4.
+		days = days or 21,
 		sessions = { { start = 8 * 60, minutes = minutesPerSession }, { start = 19 * 60, minutes = minutesPerSession } },
 		homeMinutes = 3,
 		reservedSlots = 3,
@@ -888,6 +898,11 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			"upgrade:station.woodworking_bench",
 			"upgrade:station.smelter",
 			"upgrade:station.campfire",
+			-- Chapter 4 asks for Fortified walls and the door before the rest of the floor.
+			"build.doorway_fortified",
+			"build.wall_fortified",
+			"build.apothecary",
+			"build.door_fortified",
 			"build.recycler",
 		},
 		questTriggers = {
@@ -959,7 +974,77 @@ local function model(minutesPerSession: number, fallback: boolean): PacingSim.Mo
 			},
 			{ questId = "quest.full_stores", cost = { ["item.raw_meat"] = 20 } },
 			{ questId = "quest.hold_the_line", kills = 500 },
+			-- Chapter 4, Iron Lungs (CONTENT_2_0 §3), in trail order so each quest opens before
+			-- the pieces its objectives count can be built. `cost` is the gear the model doesn't
+			-- craft itself, as materials: the Hidebound and Riveted coat and legs over the Padded
+			-- pieces it wears (ARSENAL §5), the Ranger Pack over its Pack Frame, the first Gas Mask,
+			-- and two First-Aid Kits (4 Trauma Pouches of 8 dressings: 40 cloth).
+			{ questId = "quest.hotter_fires", crafts = { ["recipe.steel_plate"] = 6 } },
+			{
+				questId = "quest.hide_and_rivet",
+				cost = {
+					["item.leather"] = 11,
+					["item.scrap_plate"] = 16,
+					["item.rivets"] = 18,
+					["item.pitch_glue"] = 3,
+					["item.copper_wire"] = 7,
+					["item.brass_gear"] = 1,
+				},
+			},
+			{ questId = "quest.steel_floors", built = { ["build.foundation_fortified"] = 4 } },
+			{
+				questId = "quest.pack_mule",
+				searched = { ["loc.ashfall_depot"] = 10 },
+				seek = true, -- a player sets out for the crates the quest asks for
+				cost = {
+					["item.leather"] = 6,
+					["item.cloth"] = 4,
+					["item.scrap_plate"] = 4,
+					["item.rivets"] = 4,
+				},
+			},
+			{
+				questId = "quest.last_wall",
+				built = { ["build.wall_fortified"] = 8, ["build.door_fortified"] = 1 },
+			},
+			{
+				questId = "quest.breathe_easy",
+				runs = { tier3 = 1 },
+				kills = 200,
+				cost = {
+					["item.leather"] = 2,
+					["item.cloth"] = 2,
+					["item.copper_wire"] = 1,
+					["item.embercoal"] = 4,
+					["item.pitch_glue"] = 1,
+				},
+			},
+			{
+				questId = "quest.clean_room",
+				built = { ["build.apothecary"] = 1 },
+				crafts = { ["recipe.antiseptic"] = 4 },
+				cost = {
+					["item.cloth"] = 40,
+					["item.leather"] = 4,
+					["item.pitch_glue"] = 4,
+					["item.antiseptic"] = 4,
+					["item.scrap_plate"] = 2,
+				},
+			},
+			{
+				questId = "quest.deep_black",
+				searched = { ["loc.ashfall_depot"] = 30 },
+				seek = true,
+				kills = 300,
+			},
 		},
+		-- CONTENT_2_0 §4 (F-37): the Hide Rucksack from Scavenger, then the Ranger Pack that Pack
+		-- Mule's cost builds. The Gas Mask's filter wears through a Black run (14 min in the fog).
+		bagLadder = {
+			{ itemId = "item.hide_rucksack", quest = "quest.into_the_black", recipe = "recipe.hide_rucksack" },
+			{ itemId = "item.ranger_pack", quest = "quest.pack_mule" },
+		},
+		fogGear = { recipe = "recipe.gas_mask", fromQuest = "quest.breathe_easy", secondsPerRun = { 0, 0, 14 * 60 } },
 		-- §4.2: the Workbench level is a "known recipe" gate on firearms.
 		craftGates = { ["recipe.pipe_pistol"] = { stationId = "station.workbench", level = 2 } },
 		recycle = { "item.seized_motor", "item.snarled_wire", "item.broken_lantern" },
@@ -1054,13 +1139,13 @@ local function chapterDays(result: PacingSim.Result, chapter: string): { { id: s
 end
 
 local cache: { [string]: PacingSim.Result } = {}
-local function run(minutesPerSession: number, fallback: boolean?): PacingSim.Result
-	local key = `{minutesPerSession}{if fallback then "f" else ""}`
+local function run(minutesPerSession: number, fallback: boolean?, days: number?): PacingSim.Result
+	local key = `{minutesPerSession}{if fallback then "f" else ""}{if days then `d{days}` else ""}`
 	local cached = cache[key]
 	if cached then
 		return cached
 	end
-	local settings = model(minutesPerSession, fallback == true)
+	local settings = model(minutesPerSession, fallback == true, days)
 	if process.env.PACING_TRACE == key then
 		settings.trace = function(minute: number, message: string)
 			print(
@@ -1285,10 +1370,10 @@ return function(test: TestKit.Register)
 		local stats = result.stats
 		TestKit.equal(stats.starvingMinutes, 0, "starving minutes")
 		TestKit.truthy(stats.foodMinutes <= 0.15 * stats.runMinutes, "food time at most 15% of run time")
-		-- F-13 and F-14 move this: the pine bands' ammo rows became scrap (earlier Scrapblades)
-		-- and the Pistol's 150 shots carry more of a Black run, so melee breaks about 1 run in
-		-- 20 (it was 1 in 4). It must still break.
-		TestKit.truthy(stats.brokenRuns >= 0.05 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
+		-- F-13 and F-14 dropped this to about 1 run in 20 (the floor went to 5%). With content2
+		-- modelled (chapter 4's plates and rivets, the Fortified goal) and loaded stations fuelled
+		-- between visits, melee breaks in about 1 run in 4 again, so the 10% floor is back.
+		TestKit.truthy(stats.brokenRuns >= 0.10 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
 		TestKit.truthy(stats.gunsCrafted > 0 and stats.gunRuns > 0, "the Pipe Pistol is used on Black runs")
 		-- 150 shots at 15 a Black run: a pistol lasts at most 10 runs, then it is re-crafted.
 		TestKit.truthy(
@@ -1357,6 +1442,131 @@ return function(test: TestKit.Register)
 			end
 			TestKit.truthy(list[#list].day >= 14, `{2 * minutes} min/day: chapter 3 done on day {list[#list].day}`)
 		end
+	end)
+
+	-- Content 2.0, batch 4 (docs/CONTENT_2_0.md): the same player run on to day 30. --------------
+	test("2.5 h a day: chapter 4 follows chapter 3 with no cliff, and the Fortified tier lands by day 30", function()
+		local result = run(75, false, 30)
+		local opened = day(result.questAt["quest.hold_the_line"])
+		local list = chapterDays(result, "Iron Lungs")
+		if process.env.PACING_VERBOSE then
+			local trail: { string } = {}
+			for _, entry in list do
+				table.insert(trail, `{Quests[entry.id].order} {string.format("%.2f", entry.day)}`)
+			end
+			print(
+				`  [150 min/day, 30 days] Hold the Line {string.format("%.2f", opened)}; Iron Lungs: {table.concat(
+					trail,
+					", "
+				)}; fortified {string.format("%.2f", day(result.milestones.fortified))}; rucksack {string.format(
+					"%.2f",
+					day(result.flagAt["bag:item.hide_rucksack"])
+				)}; L28 {string.format("%.2f", day(result.levelAt[28]))}, L30 {string.format(
+					"%.2f",
+					day(result.levelAt[30])
+				)}`
+			)
+		end
+		TestKit.equal(#list, 8, "chapter 4 quests")
+		local last = opened
+		for _, entry in list do
+			TestKit.truthy(entry.day < math.huge, `{entry.id} is never finished`)
+			TestKit.truthy(entry.day - last <= 4, `{entry.id} on day {entry.day}: over 4 days after the one before`)
+			last = entry.day
+		end
+		within(list[1].day, opened, opened + 2, "chapter 4's first quest")
+		within(last, 24, 30, "chapter 4's last quest")
+		within(day(result.milestones.fortified), 22, 30, "Fortified tier")
+	end)
+
+	test("2 h and 3 h a day: chapter 4 never stalls, and the low end is still at it in week five", function()
+		for _, minutes in { 60, 90 } do
+			local result = run(minutes, false, 30)
+			local list = chapterDays(result, "Iron Lungs")
+			if process.env.PACING_VERBOSE then
+				local trail: { string } = {}
+				for _, entry in list do
+					table.insert(trail, `{Quests[entry.id].order} {string.format("%.2f", entry.day)}`)
+				end
+				print(
+					`  [{2 * minutes} min/day, 30 days] Iron Lungs: {table.concat(trail, ", ")}; fortified {string.format(
+						"%.2f",
+						day(result.milestones.fortified)
+					)}`
+				)
+			end
+			local done = 0
+			for _, entry in list do
+				if entry.day < math.huge then
+					done += 1
+				end
+			end
+			-- 3 h a day finishes the chapter inside the month; 2 h a day gets at least half of it.
+			TestKit.truthy(done >= (if minutes > 60 then 8 else 4), `{2 * minutes} min/day: {done} of 8 by day 30`)
+			TestKit.truthy(
+				day(result.milestones.fortified) >= 20,
+				`{2 * minutes} min/day: Fortified on day {day(result.milestones.fortified)}`
+			)
+		end
+	end)
+
+	test("2.5 h a day: the Hide Rucksack comes mid-game, and the Gas Mask is re-made on Black runs", function()
+		local result = run(75, false, 30)
+		within(day(result.flagAt["bag:item.hide_rucksack"]), 4, 12, "Hide Rucksack")
+		TestKit.truthy(result.flagAt["bag:item.ranger_pack"], "the Ranger Pack is carried")
+		local masks = 0
+		for _, made in result.stats.crafted["recipe.gas_mask"] or {} do
+			masks += made
+		end
+		TestKit.truthy(masks >= 2, `{masks} Gas Masks made: the filter is a sink`)
+	end)
+
+	test("every content2 item is in the model, or a loot or side-grade extra it doesn't count", function()
+		-- In the model: goal costs, chapter-4 costs (as their materials), the bag ladder, fog gear.
+		local modelled = {
+			"item.steel_plate",
+			"item.antiseptic",
+			"item.hide_rucksack",
+			"item.ranger_pack",
+			"item.gas_mask",
+			"item.hidebound_coat",
+			"item.hidebound_leggings",
+			"item.riveted_cuirass",
+			"item.riveted_legguards",
+			"item.trauma_pouch",
+			"item.first_aid_kit",
+		}
+		-- Extras: found weapons and armor, the Black jackpots, and gear the modelled player
+		-- doesn't switch to (below the Scrapblade's DPS; the model's head and feet stay Padded).
+		local extras = {
+			"item.hand_axe",
+			"item.field_knife",
+			"item.hardwood_bat",
+			"item.hay_fork",
+			"item.hidebound_cap",
+			"item.hidebound_boots",
+			"item.riveted_helm",
+			"item.riveted_boots",
+			"item.steel_helmet",
+			"item.combat_helmet",
+			"item.plate_carrier",
+			"item.ember_stim",
+		}
+		local listed: { [string]: boolean } = {}
+		for _, id in modelled do
+			listed[id] = true
+		end
+		for _, id in extras do
+			TestKit.equal(listed[id], nil, `{id} is listed twice`)
+			listed[id] = true
+		end
+		for id, item in Items do
+			if item.feature == "content2" then
+				TestKit.truthy(listed[id], `{id} is neither modelled nor listed as an extra`)
+				listed[id] = nil
+			end
+		end
+		TestKit.deepEqual(listed, {}, "listed items that aren't content2")
 	end)
 
 	test("the station fallback layout (no Smelter or Stonecutter model) stays playable to Reinforced", function()

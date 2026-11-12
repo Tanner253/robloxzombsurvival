@@ -27,9 +27,9 @@ local Tuning: Types.TuningDef = {
 	inventory = {
 		pocketSlots = 10, -- LDoE's 10 pockets
 		backpackSlots = 0,
-		-- Bags add +5, +10 or +15 (LDOE_PARITY #15); the +15 bag comes with Fog Run loot (S2)
-		-- and raises this to 20.
-		maxBackpackSlots = 15, -- the Scrap Pack Frame (+10) and the Pack Expansion (+5)
+		-- Bags add +5, +8, +10 or +15 (LDOE_PARITY #15, CONTENT_2_0 §4). The +15 Ranger Pack
+		-- (content2) and the Pack Expansion (+5) reach 20.
+		maxBackpackSlots = 20,
 	},
 	player = {
 		maxHealth = 100,
@@ -223,6 +223,10 @@ local Tuning: Types.TuningDef = {
 		-- Rack, its venison line and the quest steps that need them stay hidden: nothing else
 		-- drops enough Raw Venison to feed them (the flow review's F-21).
 		wildlife = false,
+		-- 2.0 batch 4 (docs/CONTENT_2_0.md): the Fortified tier, chapter 4 and the Zona item
+		-- depth. Off until the Studio pass has uploaded, graded and gripped every model and icon
+		-- (tests/Content2.spec: off, nothing new appears; on, the bundle validates).
+		content2 = false,
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby

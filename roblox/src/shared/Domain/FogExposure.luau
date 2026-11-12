@@ -45,6 +45,35 @@ function FogExposure.damage(value: number, dt: number, config: Config): number
 	return if value >= config.max then config.damagePerSecond * dt else 0
 end
 
+--[[
+	A gas mask's filter (docs/CONTENT_2_0.md §4): in a fog that raises the meter (Dense or
+	Black), each worn piece with `armor.filterPerSecond` loses that much durability a second.
+	Returns the wear by equipment key (empty in Light fog or with no filter worn). The server
+	takes it off the slot and breaks the piece at 0, as a hit wears armor out, so a spent
+	filter stops protecting.
+]]
+function FogExposure.filterWear(
+	equipment: { [string]: Types.Slot },
+	items: ItemLookup,
+	fogTier: number,
+	dt: number,
+	config: Config
+): { [string]: number }
+	local wear: { [string]: number } = {}
+	if (config.ratePerTier[fogTier] or 0) <= 0 or dt <= 0 then
+		return wear
+	end
+	for _, key in ARMOR_KEYS do
+		local slot = equipment[key]
+		local item = if slot and slot.count > 0 then items[slot.itemId] else nil
+		local filter = item and item.armor and item.armor.filterPerSecond
+		if filter and filter > 0 then
+			wear[key] = filter * dt
+		end
+	end
+	return wear
+end
+
 -- Seconds until the meter is full (math.huge in Light fog).
 function FogExposure.secondsToFull(value: number, fogTier: number, resist: number, config: Config): number
 	local rate = FogExposure.rate(fogTier, resist, config)

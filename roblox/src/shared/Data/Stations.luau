@@ -311,6 +311,36 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 		levels = { { level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 } },
 		feature = "wildlife", -- raw venison comes from deer: hidden until they ship (F-21)
 	},
+
+	-- 2.0 batch 4 (docs/CONTENT_2_0.md §2): the stations of the Fortified tier.
+	-- LDoE's Refined Melting Furnace: Iron Ingots into Steel Plate. Needs a
+	-- Reinforced floor; level 2 is paid in Reinforced-tier materials, never steel.
+	["station.blast_furnace"] = {
+		id = "station.blast_furnace",
+		name = "Blast Furnace",
+		levels = {
+			{ level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 },
+			{
+				level = 2,
+				upgradeCost = {
+					{ itemId = "item.stone_block", count = 30 },
+					{ itemId = "item.scrap_plate", count = 12 },
+					{ itemId = "item.brass_gear", count = 2 },
+				},
+				slotCap = 40,
+				speedMultiplier = 1,
+			},
+		},
+		fuel = WOOD_FUEL, -- burns like the Smelter
+		feature = "content2",
+	},
+	-- LDoE's Chemistry Station: Emberberries into Antiseptic Tablets. Needs a Fortified floor.
+	["station.apothecary"] = {
+		id = "station.apothecary",
+		name = "Apothecary",
+		levels = { { level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 } },
+		feature = "content2",
+	},
 }
 
 return Stations

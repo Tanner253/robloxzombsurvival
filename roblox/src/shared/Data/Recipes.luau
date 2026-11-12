@@ -602,4 +602,154 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 	},
 }
 
+-- 2.0 batch 4 (docs/CONTENT_2_0.md), all tagged content2 -----------------------------------------
+local function stacks(list: { { any } }): { Types.ItemStack }
+	local result: { Types.ItemStack } = {}
+	for _, pair in list do
+		table.insert(result, { itemId = pair[1] :: string, count = pair[2] :: number })
+	end
+	return result
+end
+
+-- A hand recipe making one `output` (gear, bags and meds are crafted on the spot, #20).
+local function hand(output: string, inputs: { { any } }, questId: string, seconds: number?)
+	local id = "recipe." .. string.sub(output, 6)
+	Recipes[id] = {
+		id = id,
+		inputs = stacks(inputs),
+		outputs = { { itemId = output, count = 1 } },
+		craftSeconds = seconds or 10,
+		unlock = quest(questId),
+		feature = "content2",
+	}
+end
+
+-- Melee (ARSENAL §4).
+hand("item.hand_axe", {
+	{ "item.iron_ingot", 3 },
+	{ "item.ironbark_plank", 2 },
+	{ "item.rivets", 2 },
+	{ "item.pitch_glue", 1 },
+}, "quest.heartwood")
+hand(
+	"item.field_knife",
+	{ { "item.iron_ingot", 2 }, { "item.scrap_plate", 1 }, { "item.leather", 1 }, { "item.rope", 1 } },
+	"quest.scavenger"
+)
+
+-- Armor levels 3 and 4 (ARSENAL §5): each piece consumes the matching lower piece, at any
+-- durability, as LDoE's Reinforced Jacket consumes a Thick Jacket.
+local HIDEBOUND = "quest.padded_through"
+local RIVETED = "quest.black_fog_regular"
+hand("item.hidebound_cap", {
+	{ "item.padded_hood", 1 },
+	{ "item.leather", 3 },
+	{ "item.scrap_plate", 1 },
+	{ "item.rivets", 1 },
+	{ "item.pitch_glue", 1 },
+}, HIDEBOUND)
+hand("item.hidebound_coat", {
+	{ "item.padded_vest", 1 },
+	{ "item.leather", 6 },
+	{ "item.scrap_plate", 3 },
+	{ "item.rivets", 2 },
+	{ "item.pitch_glue", 2 },
+}, HIDEBOUND)
+hand("item.hidebound_leggings", {
+	{ "item.padded_leggings", 1 },
+	{ "item.leather", 5 },
+	{ "item.scrap_plate", 2 },
+	{ "item.rivets", 2 },
+	{ "item.pitch_glue", 1 },
+}, HIDEBOUND)
+hand("item.hidebound_boots", {
+	{ "item.padded_boots", 1 },
+	{ "item.leather", 3 },
+	{ "item.scrap_plate", 1 },
+	{ "item.rivets", 1 },
+	{ "item.pitch_glue", 1 },
+}, HIDEBOUND)
+hand("item.riveted_helm", {
+	{ "item.hidebound_cap", 1 },
+	{ "item.scrap_plate", 3 },
+	{ "item.rivets", 4 },
+	{ "item.copper_wire", 2 },
+}, RIVETED)
+hand("item.riveted_cuirass", {
+	{ "item.hidebound_coat", 1 },
+	{ "item.scrap_plate", 6 },
+	{ "item.rivets", 8 },
+	{ "item.copper_wire", 4 },
+	{ "item.brass_gear", 1 },
+}, RIVETED)
+hand("item.riveted_legguards", {
+	{ "item.hidebound_leggings", 1 },
+	{ "item.scrap_plate", 5 },
+	{ "item.rivets", 6 },
+	{ "item.copper_wire", 3 },
+}, RIVETED)
+hand("item.riveted_boots", {
+	{ "item.hidebound_boots", 1 },
+	{ "item.scrap_plate", 2 },
+	{ "item.rivets", 4 },
+	{ "item.copper_wire", 2 },
+}, RIVETED)
+
+-- Helmet, gas mask and bags.
+hand(
+	"item.steel_helmet",
+	{ { "item.scrap_plate", 4 }, { "item.rivets", 2 }, { "item.leather", 1 }, { "item.cloth", 1 } },
+	"quest.walls_that_hold"
+)
+hand("item.gas_mask", {
+	{ "item.leather", 2 },
+	{ "item.cloth", 2 },
+	{ "item.copper_wire", 1 },
+	{ "item.embercoal", 4 }, -- the filter
+	{ "item.pitch_glue", 1 },
+}, "quest.pack_mule")
+hand("item.hide_rucksack", { { "item.leather", 4 }, { "item.rope", 3 }, { "item.cloth", 2 } }, "quest.into_the_black")
+hand("item.ranger_pack", {
+	{ "item.pack_frame", 1 }, -- consumed, as the armor tiers consume theirs
+	{ "item.leather", 6 },
+	{ "item.cloth", 4 },
+	{ "item.scrap_plate", 4 },
+	{ "item.rivets", 4 },
+}, "quest.hide_and_rivet")
+
+-- Meds.
+hand(
+	"item.trauma_pouch",
+	{ { "item.field_dressing", 2 }, { "item.leather", 1 }, { "item.pitch_glue", 1 } },
+	HIDEBOUND,
+	5
+)
+hand(
+	"item.first_aid_kit",
+	{ { "item.trauma_pouch", 2 }, { "item.antiseptic", 2 }, { "item.scrap_plate", 1 } },
+	"quest.last_wall",
+	5
+)
+
+-- Station lines: the Blast Furnace (LDoE's Refined Melting Furnace) and the Apothecary
+-- (LDoE's Chemistry Station).
+Recipes["recipe.steel_plate"] = {
+	id = "recipe.steel_plate",
+	inputs = { { itemId = "item.iron_ingot", count = 2 } },
+	outputs = { { itemId = "item.steel_plate", count = 1 } },
+	stationId = "station.blast_furnace",
+	craftSeconds = 20 * 60,
+	unlock = quest("quest.hold_the_line"),
+	feature = "content2",
+}
+Recipes["recipe.antiseptic"] = {
+	id = "recipe.antiseptic",
+	inputs = { { itemId = "item.emberberry", count = 4 } },
+	outputs = { { itemId = "item.antiseptic", count = 1 } },
+	stationId = "station.apothecary",
+	craftSeconds = 10 * 60,
+	unlock = quest("quest.last_wall"),
+	feature = "content2",
+}
+
 return Recipes

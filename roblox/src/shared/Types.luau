@@ -73,6 +73,9 @@ export type WeaponStats = {
 export type ArmorStats = {
 	defense: number, -- reduction = defense / (defense + Tuning.combat.armorConstant)
 	fogResist: number?, -- Fog Runs: share of fog exposure this piece blocks (Domain/FogExposure)
+	-- A gas mask's filter (content2): durability lost per second in Dense or Black fog
+	-- (FogExposure.filterWear). A spent filter breaks the mask like any worn-out armor.
+	filterPerSecond: number?,
 }
 
 -- What eating, drinking or using a consumable restores. Missing fields are 0.
@@ -81,6 +84,9 @@ export type ConsumeEffect = {
 	hunger: number?,
 	thirst: number?,
 	energy: number?, -- food and drink energy counts toward Tuning.energy.foodDailyCap
+	-- Meds past the dressing (content2, Domain/Meds): this much more health, spread evenly
+	-- over `seconds` after the instant part.
+	healOverTime: { amount: number, seconds: number }?,
 }
 
 export type ItemDef = {
@@ -195,6 +201,7 @@ export type LootEntry = {
 	min: number,
 	max: number,
 	rarity: Rarity?, -- overrides the item's rarity for pity in this table
+	feature: FeatureName?, -- left out of the table while that Tuning.features flag is off (Shared/Features)
 }
 
 -- At least one in every `every` opens of the table drops an entry of `rarity` or
@@ -414,6 +421,7 @@ export type QuestDef = {
 	prerequisite: QuestId?, -- nil starts the chain
 	objectives: { QuestObjective },
 	rewards: QuestRewards,
+	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off (Shared/Features)
 }
 
 -- Shop ----------------------------------------------------------------------------
@@ -630,7 +638,7 @@ export type TuningDef = {
 -- Fog Runs (slice 2) -------------------------------------------------------------------
 -- Everything here is read only while Tuning.features.fogRuns is on (Shared/Features).
 
-export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops" | "wildlife"
+export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops" | "wildlife" | "content2"
 
 export type Features = {
 	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
@@ -639,6 +647,7 @@ export type Features = {
 	regionGates: boolean, -- M4: LDOE_PARITY #43's signal towers before Dense and Black fog
 	airdrops: boolean, -- M4: LDOE_PARITY #43's supply drops as Energy falls
 	wildlife: boolean, -- LDOE_PARITY #35's deer and wolves, and the venison lines that need them
+	content2: boolean, -- 2.0 batch 4 (docs/CONTENT_2_0.md): the Fortified tier, chapter 4, Zona item depth
 }
 
 -- Per-weapon melee overrides; anything missing comes from Tuning.melee.
@@ -647,7 +656,15 @@ export type MeleeStats = {
 	heavyMultiplier: number?,
 	knockbackStuds: number?,
 	hitStopSeconds: number?,
+	-- content2 (docs/CONTENT_2_0.md §4). The animation class its swings use (the parked melee
+	-- WIP's taxonomy; the clips themselves are batch 1's).
+	class: MeleeClass?,
+	backstabMultiplier: number?, -- overrides Tuning.sneak.backstabMultiplier (Domain/Combat.backstab)
+	noise: number?, -- overrides Tuning.noise.melee
+	structureMultiplier: number?, -- damage to build pieces (M2 raids; nothing reads it yet)
 }
+
+export type MeleeClass = "blade" | "axe" | "pick" | "blunt" | "heavy" | "stab" | "fists"
 
 export type FirearmStats = {
 	fireInterval: number, -- seconds between shots from one magazine

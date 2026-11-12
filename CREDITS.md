@@ -37,6 +37,20 @@ Columns: **Work** is what we use. **By** is the author or owner. **License** is 
 | "Barrett-M82 (Optimized)" (the Anti-Materiel Rifle) | Gintoki1234 | CC-BY-4.0 | sketchfab.com/3d-models/barrett-m82-optimized-af16e974a47e463989311bcda6f51f87 |
 | "Machete" (the Machete) | Ulan Cabanilla | CC0 | polyhaven.com/a/machete |
 | "Crowbar 01" (the Tire Iron) | Alexander Otterbeck | CC0 | polyhaven.com/a/crowbar_01 |
+| "Hatchet" (the Hand Axe) | James Ray Cock, Ulan Cabanilla | CC0 | polyhaven.com/a/hatchet |
+| "Baseball Bat" (the Hardwood Bat) | Enrique Martín | CC0 | polyhaven.com/a/baseball_bat |
+| "knife Animated" (the Field Knife) | DJMaesen | CC-BY-4.0 | sketchfab.com/3d-models/knife-animated-f3140db917cc43389c14b5b2536c1dc8 |
+| "pitchfork Animated" (the Hay Fork) | DJMaesen | CC-BY-4.0 | sketchfab.com/3d-models/pitchfork-animated-54ea2a82f7d74e8fabbc7245bec7be14 |
+| "Old Gas Mask" (the Gas Mask) | Michał Wiśniewski | CC0 | polyhaven.com/a/old_gas_mask |
+| "M1 Helmet" (the Steel Helmet) | Melvin Stubbe | CC-BY-4.0 | sketchfab.com/3d-models/m1-helmet-6d7929b10c994db0b6b39e35b379bfbd |
+| "Combat helmet K6-3" (the Combat Helmet) | shamanoff | CC-BY-4.0 | sketchfab.com/3d-models/combat-helmet-k6-3-94701874d8b949718708b018c8d4f61d |
+| "Tactical Plate Carrier Vest - Game Ready" (the Plate Carrier) | Exactly | CC-BY-4.0 | sketchfab.com/3d-models/tactical-plate-carrier-vest-game-ready-3b51e6329dbb4b0aa14e43f12eb6c42a |
+| "Large Camping BackPack (Free/GameReady)" (the Hide Rucksack) | Sebastian Webster | CC-BY-4.0 | sketchfab.com/3d-models/large-camping-backpack-freegameready-a7086b50dae84706b81bb3ce14ad9094 |
+| "Military Backpack" (the Ranger Pack) | Neslihan Çakmak | CC-BY-4.0 | sketchfab.com/3d-models/military-backpack-06be5c0f15aa4aa3af8ebcc4c83d02a3 |
+| "Tactical FIRST AID KIT" (the Trauma Pouch) | Ruslan Koschey | CC-BY-4.0 | sketchfab.com/3d-models/tactical-first-aid-kit-011c33c121284bc88bb765a85511dae1 |
+| "Medical Box" (the First-Aid Kit) | Ulan Cabanilla | CC0 | polyhaven.com/a/medical_box |
+| "Medical syringe healing FPS Animation" (the Ember Stim) | BURNER | CC-BY-4.0 | sketchfab.com/3d-models/medical-syringe-healing-fps-animation-8de32be8633a4c87ba7ed1d125b45ec9 |
+| "Food Collection - Game Ready" (its pill box: the Antiseptic Tablets) | Melon Polygons | CC-BY-4.0 | sketchfab.com/3d-models/food-collection-game-ready-969b4e6ef7444650ba8a22a46d57ff43 |
 | "Universal Animation Library" (combat animations: reload, hit, fall) | Quaternius | CC0 | quaternius.com |
 
 This work is based on "sawnoffs Animated"
@@ -58,6 +72,13 @@ This work is based on "FPS AK-74m animations"
 This work is based on "Barrett-M82 (Optimized)"
 (https://sketchfab.com/3d-models/barrett-m82-optimized-af16e974a47e463989311bcda6f51f87) by Gintoki1234
 (https://sketchfab.com/Gintoki1234) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+The 2.0 batch-4 models (`art/content2/`, docs/CONTENT_2_0.md §7) are each "based on" the work
+named in its row above, by that author, licensed under CC-BY-4.0
+(http://creativecommons.org/licenses/by/4.0/). Changes made: the Zona copies, decompressed for
+Roblox (meshopt decoded, quantization removed, textures re-encoded as JPEG or PNG at most 1024 a
+side); the Military Backpack simplified from 13,994 to about 8,000 triangles; the knife is its
+standalone 30.5 cm copy without the arms; the syringe and the pill box are taken out of their packs.
 
 CC0 assets are listed as a courtesy.
 

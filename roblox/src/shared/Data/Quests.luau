@@ -479,4 +479,168 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 	},
 }
 
+--[[
+	Chapter 4, "Iron Lungs" (quests 26-33; docs/CONTENT_2_0.md §3), behind Tuning.features.content2.
+	LDoE's Survivor's Path has its "Radiation Protection" chapter at this point (rec5): gear that
+	lets you breathe where you couldn't. It opens after Hold the Line and runs two lines side by
+	side again: the home line (26, 28, 30, 32: the Blast Furnace, Fortified floors, Fortified
+	walls, the Apothecary) and the fog line (27, 29, 31, 33: the Riveted set, the Ranger Pack, the Gas
+	Mask, the deep Black). In the pacing model (tests/Pacing.spec) it runs to about day 30.
+]]
+local IRON = "Iron Lungs"
+
+local function chapter4(def: Types.QuestDef)
+	def.feature = "content2"
+	Quests[def.id] = def
+end
+
+-- The home line. Each build objective unlocks with the quest before it, so the trail is
+-- the order a base goes up in: the furnace, then the floors, the walls, and the Apothecary that
+-- needs a Fortified floor.
+chapter4({
+	id = "quest.hotter_fires",
+	order = 26,
+	chapter = IRON,
+	name = "Hotter Fires",
+	description = "Iron is not enough any more. Build a Blast Furnace on a reinforced floor, feed it Embercoal, and roll Iron Ingots into Steel Plate.",
+	prerequisite = "quest.hold_the_line",
+	objectives = {
+		{ kind = "build", pieceId = "build.blast_furnace", count = 1 },
+		{ kind = "craft", recipeId = "recipe.steel_plate", count = 6 },
+	},
+	-- Coal for the furnace and rivets for the first Fortified floors (Steel Underfoot).
+	rewards = {
+		xp = 4500,
+		items = { { itemId = "item.embercoal", count = 20 }, { itemId = "item.rivets", count = 8 } },
+	},
+})
+chapter4({
+	id = "quest.steel_floors",
+	order = 28,
+	chapter = IRON,
+	name = "Steel Underfoot",
+	description = "Plate your reinforced foundations in steel. A Fortified floor holds what nothing else will stand on.",
+	prerequisite = "quest.hotter_fires",
+	objectives = {
+		{ kind = "build", pieceId = "build.foundation_fortified", count = 4 },
+	},
+	-- Wire and rivets for the walls (The Last Wall).
+	rewards = {
+		xp = 5000,
+		items = { { itemId = "item.copper_wire", count = 6 }, { itemId = "item.rivets", count = 8 } },
+	},
+})
+chapter4({
+	id = "quest.last_wall",
+	order = 30,
+	chapter = IRON,
+	name = "The Last Wall",
+	description = "Raise Fortified walls and hang a Fortified door. Let the Black fog throw what it likes at them.",
+	prerequisite = "quest.steel_floors",
+	objectives = {
+		{ kind = "build", pieceId = "build.wall_fortified", count = 8 },
+		{ kind = "build", pieceId = "build.door_fortified", count = 1 },
+	},
+	-- Cloth and wire for the Apothecary (A Clean Room).
+	rewards = {
+		xp = 5500,
+		items = { { itemId = "item.cloth", count = 4 }, { itemId = "item.copper_wire", count = 4 } },
+	},
+})
+chapter4({
+	id = "quest.clean_room",
+	order = 32,
+	chapter = IRON,
+	name = "A Clean Room",
+	description = "Set up an Apothecary on a Fortified floor. Press Emberberries into Antiseptic Tablets and pack two First-Aid Kits.",
+	prerequisite = "quest.last_wall",
+	objectives = {
+		{ kind = "build", pieceId = "build.apothecary", count = 1 },
+		{ kind = "craft", recipeId = "recipe.antiseptic", count = 4 },
+		{ kind = "craft", recipeId = "recipe.first_aid_kit", count = 2 },
+	},
+	rewards = {
+		xp = 6000,
+		items = {
+			{ itemId = "item.brass_gear", count = 3 },
+			{ itemId = "item.coil_spring", count = 2 },
+			{ itemId = "item.field_dressing", count = 5 },
+		},
+	},
+})
+
+-- The fog line.
+chapter4({
+	id = "quest.hide_and_rivet",
+	order = 27,
+	chapter = IRON,
+	name = "Hide and Rivet",
+	description = "Rivet plate over your Hidebound coat and leggings, and wear the Riveted Cuirass and Legguards into the fog.",
+	prerequisite = "quest.hold_the_line",
+	objectives = {
+		{ kind = "craft", recipeId = "recipe.riveted_cuirass", count = 1 },
+		{ kind = "craft", recipeId = "recipe.riveted_legguards", count = 1 },
+		{ kind = "equip", itemId = "item.riveted_cuirass" },
+		{ kind = "equip", itemId = "item.riveted_legguards" },
+	},
+	-- Leather and cloth for the Ranger Pack (Pack Mule).
+	rewards = {
+		xp = 4500,
+		items = { { itemId = "item.leather", count = 6 }, { itemId = "item.cloth", count = 6 } },
+	},
+})
+chapter4({
+	id = "quest.pack_mule",
+	order = 29,
+	chapter = IRON,
+	name = "Pack Mule",
+	description = "Rebuild your Pack Frame with riveted stays and a hide body. The Ranger Pack carries fifteen more: fill it from ten Ashfall Depot crates.",
+	prerequisite = "quest.hide_and_rivet",
+	objectives = {
+		{ kind = "craft", recipeId = "recipe.ranger_pack", count = 1 },
+		{ kind = "equip", itemId = "item.ranger_pack" },
+		{ kind = "loot", count = 10, locationId = "loc.ashfall_depot", flag = "fogRuns" },
+	},
+	-- Coal and glue for the Gas Mask's filter (Breathe Easy).
+	rewards = {
+		xp = 5000,
+		items = { { itemId = "item.embercoal", count = 10 }, { itemId = "item.pitch_glue", count = 4 } },
+	},
+})
+chapter4({
+	id = "quest.breathe_easy",
+	order = 31,
+	chapter = IRON,
+	name = "Breathe Easy",
+	description = "Stitch a Gas Mask with an Embercoal filter, put it on, and put down two hundred Hollow in the Black fog. Watch the filter: when it's spent, so are you.",
+	prerequisite = "quest.pack_mule",
+	objectives = {
+		{ kind = "craft", recipeId = "recipe.gas_mask", count = 1 },
+		{ kind = "equip", itemId = "item.gas_mask" },
+		{ kind = "travel", fogTier = 3, flag = "fogRuns" },
+		{ kind = "kill", count = 200, flag = "fogRuns" },
+	},
+	rewards = {
+		xp = 5500,
+		items = { { itemId = "item.first_aid_kit", count = 2 }, { itemId = "item.ember_tonic", count = 1 } },
+	},
+})
+chapter4({
+	id = "quest.deep_black",
+	order = 33,
+	chapter = IRON,
+	name = "The Deep Black",
+	description = "Live in the Black fog. Strip the Ashfall Depot thirty crates deep, put down three hundred more Hollow, and grow into a veteran.",
+	prerequisite = "quest.breathe_easy",
+	objectives = {
+		{ kind = "loot", count = 30, locationId = "loc.ashfall_depot", flag = "fogRuns" },
+		{ kind = "kill", count = 300, flag = "fogRuns" },
+		{ kind = "reachLevel", level = 28 },
+	},
+	rewards = {
+		xp = 8000,
+		items = { { itemId = "item.trigger_group", count = 2 }, { itemId = "item.brass_gear", count = 3 } },
+	},
+})
+
 return Quests
