@@ -45,20 +45,15 @@ Opens after Hold the Line (25), two lines side by side like chapter 3. Each buil
 
 ## 4. Items (23 new)
 
-**Melee (ARSENAL §4, exact):** Hand Axe (20 dmg, 1.4/s, 70 hits; crafted, quest 11; `structureMultiplier` 1.5 for M2 raids), Hardwood Bat (18, 1.0/s, 80, knockback 2.5; loot), Field Knife (11, 2.0/s, 120, crit 0.2, backstab ×4, noise 6; crafted, quest 9), Hay Fork (16, 0.9/s, reach 8.5, 60; loot). **From the parked melee WIP** (`worktree-agent-a3c75eb84c6644ce1`) we keep its design, not its code: every melee weapon names its animation class (`melee.class`: blade, axe, pick, blunt, heavy, stab, fists; the knife and fork are `stab`, the axe `axe`, the bat `blunt`), and each class gets a 2-3 swing light combo plus a heavy, timed by prep, windup, contact, follow, cycle and length marks. The clips, poses and timing tables wait for the animation worker (batch 1).
+**Melee (ARSENAL §4, exact):** Hand Axe (20 dmg, 1.4/s, 70; crafted, quest 11; `structureMultiplier` 1.5 for M2), Hardwood Bat (18, 1.0/s, 80; loot), Field Knife (11, 2.0/s, 120, backstab ×4, noise 6; crafted, quest 9), Hay Fork (16, 0.9/s, reach 8.5, 60; loot). From the parked melee WIP we keep the design, not the code: each weapon names its animation class (`melee.class`: blade, axe, pick, blunt, heavy, stab, fists), each class a 2-3 swing combo plus a heavy; the clips and timing wait for batch 1.
 
-**Armor levels (ARSENAL §5, exact):** L1 Reedweave, L2 Padded, **L3 Hidebound** (21 defence, 0.55 fog; each piece consumes its Padded piece; quest 21), **L4 Riveted** (28, 0.67; consumes Hidebound; quest 23), and the **Plate Carrier** (body 12, fog 0.08, 240; Black loot only).
+**Armor levels (ARSENAL §5, exact):** L1 Reedweave, L2 Padded, **L3 Hidebound** (21 defence, 0.55 fog; consumes Padded; quest 21), **L4 Riveted** (28, 0.67; consumes Hidebound; quest 23), the **Plate Carrier** (body 12, fog 0.08; Black loot). **Helmets** trade fog for defence: Steel Helmet (5, 0.04; quest 19 and loot), Combat Helmet (7, 0.06; Depot strongbox).
 
-**Helmets:** Steel Helmet (head 5, fog 0.04, 200; crafted from quest 19 and found), Combat Helmet (head 7, fog 0.06, 240; Depot strongbox only). A helmet trades fog resistance for defence against the set caps.
+**Gas Mask:** head slot, defence 1, fog resist 0.35, a **900-second filter** that wears 1 a second in Dense or Black fog (`FogExposure.filterWear`): about one Black run, then re-crafted (2 leather, 2 cloth, 1 copper wire, 4 embercoal, 1 glue; quest 29). Black fog fills the meter in 4 min bare; with the mask and Padded 13.3, Hidebound 18.2, Riveted 20 (the 0.8 cap). **For the economy batch:** that cap now binds, so a geared player stops taking Black-fog damage; consider 0.75.
 
-**Gas Mask:** head slot, defence 1, **fog resist 0.35**, and a **filter of 900 seconds**: it loses 1 durability a second in Dense or Black fog (`FogExposure.filterWear`), so it lasts about one full Black run and is re-crafted (2 leather, 2 cloth, 1 copper wire, 4 embercoal, 1 glue; quest 29). Black fog fills an unprotected meter in 4 min; mask plus Padded body pieces 13.3 min, plus Hidebound 18.2 min, plus Riveted the 0.8 cap (20 min, a full run without fog damage).
-- **For the economy batch (not retuned here):** with the mask, `maxResist` 0.8 now binds for Hidebound and Riveted wearers, so Black fog stops hurting a geared player. Consider 0.75 (16 min) or a rising `ratePerTier` in band 3.
+**Bags (F-37):** Satchel +5 → **Hide Rucksack +8** (4 leather, 3 rope, 2 cloth; quest 13: at quest 9 the model's Reinforced fell under its band) → Pack Frame +10 → **Ranger Pack +15** (consumes the Pack Frame; 6 leather, 4 cloth, 4 plate, 4 rivets; quest 27). `maxBackpackSlots` 15 → 20.
 
-**Bags (F-37):** Reed Satchel +5 → **Hide Rucksack +8** (4 leather, 3 rope, 2 cloth; quest 13, Into the Black: at quest 9 the model's Reinforced tier fell to day 9.8, under its band) → Scrap Pack Frame +10 (schematic) → **Ranger Pack +15** (consumes the Pack Frame, plus 6 leather, 4 cloth, 4 scrap plate, 4 rivets; quest 27). `maxBackpackSlots` rises from 15 to 20 (the +15 bag and the Pack Expansion).
-
-**Meds ladder** (instant, then healing over time, `Domain/Meds`; up to 3 heal at once): Field Dressing 40 (LDoE's bandage, unchanged) → **Trauma Pouch** 25 + 40 over 10 s (2 dressings, 1 leather, 1 glue; quest 21) → **First-Aid Kit** 40 + 60 over 12 s (2 pouches, 2 Antiseptic Tablets, 1 plate; quest 30) → **Ember Stim** 60 + 50 over 5 s (Depot strongbox; a shop SKU later).
-
-**Materials:** Steel Plate, Antiseptic Tablets (both also rare loot, so neither waits on its station).
+**Meds** (instant, then over time, `Domain/Meds`, 3 at once): Field Dressing 40 → **Trauma Pouch** 25 + 40/10 s (quest 21) → **First-Aid Kit** 40 + 60/12 s (quest 30) → **Ember Stim** 60 + 50/5 s (strongbox). **Materials:** Steel Plate, Antiseptic Tablets (also rare loot).
 
 ## 5. Loot rows (all `feature = "content2"`)
 
@@ -76,7 +71,7 @@ Opens after Hold the Line (25), two lines side by side like chapter 3. Each buil
 
 ## 6. Pacing
 
-`tests/Pacing.spec` models the content on: the Hide Rucksack from quest 13, the Ranger Pack from quest 29, a Gas Mask re-made whenever a Black run spends its filter, chapter 4's quests, and a fifth goal (the Reinforced room taken to Fortified, two Blast Furnaces, the Apothecary) whose pieces wait for the trail. Every existing band stays green on the 21-day runs. A 30-day run adds: at 2.5 h a day chapter 4 opens within 2 days of quest 25, no gap over 4 days, ends on day 27.8, Fortified lands on day 24.8 (band 22-30); at 3 h it ends on day 23.8; at 2 h, 7 of 8 quests by day 30 (Fortified 29.8). Two sim changes: a loaded station gets fuel between demands, and a quest's crates can steer runs (`seek`). Loot-only and side-grade items (bat, fork, knife, hand axe, helmets, set caps and boots, Plate Carrier, Ember Stim) are listed as extras the model doesn't count; a spec keeps that list complete.
+`tests/Pacing.spec` models it: the rucksack from quest 13, the Ranger Pack from 29, a Gas Mask re-made when a Black run spends its filter, chapter 4, and a Fortified goal (the Reinforced room, two furnaces, the Apothecary) that waits for the trail. Every existing band stays green on 21 days. On 30 days at 2.5 h a day chapter 4 runs from day 17.8 to 27.8 with no gap over 4 days and Fortified lands on day 24.8; at 3 h it ends on 23.8; at 2 h, 7 of 8 by day 30. Loot-only and side-grade items are listed as extras; a spec keeps the list complete.
 
 ## 7. Models and icons for the Studio pass (nothing uploaded here)
 
@@ -91,13 +86,13 @@ Opens after Hold the Line (25), two lines side by side like chapter 3. Each buil
 | Combat Helmet | `gear/helmet_k63.glb` | CC-BY 4.0 | "Combat helmet K6-3", shamanoff |
 | Plate Carrier | `gear/plate_carrier.glb` | CC-BY 4.0 | "Tactical Plate Carrier Vest - Game Ready", Exactly |
 | Hide Rucksack | `gear/camping_backpack.glb` (at 0.72 scale) | CC-BY 4.0 | "Large Camping BackPack", Sebastian Webster |
-| Ranger Pack | `gear/military_backpack.glb` (decimate to ~8k tris) | CC-BY 4.0 | "Military Backpack", Neslihan Çakmak |
+| Ranger Pack | `gear/military_backpack.glb` (simplified to 8k triangles) | CC-BY 4.0 | "Military Backpack", Neslihan Çakmak |
 | Trauma Pouch | `meds/aid_pouch.glb` | CC-BY 4.0 | "Tactical FIRST AID KIT", Ruslan Koschey |
 | First-Aid Kit | `meds/medical_box.glb` | CC0 | Poly Haven "Medical Box", Ulan Cabanilla |
 | Ember Stim | `meds/syringe.glb` | CC-BY 4.0 | "Medical syringe healing FPS Animation", BURNER |
 | Antiseptic Tablets | `meds/pill_box.glb` | CC-BY 4.0 | "Food Collection - Game Ready" (its pill box), Melon Polygons |
 
-No CC0 or CC-BY Zona model fits the Hidebound and Riveted pieces, Steel Plate, the Fortified pieces, the Blast Furnace or the Apothecary: those need Studio-generated meshes (free Studio MCP, graded side by side against rec9 and rec8). Skipped from Zona on licence: every Higgsfield-made or unlicensed (`?`) model, `heavy_armor` and `combat_helmet` (300k+ triangles).
+The gear and meds are decoded for Roblox (no meshopt or WebP). The melee four are `art/zona/wip-v3`'s unreviewed files. No licensable Zona model fits the Hidebound and Riveted pieces, Steel Plate, the Fortified pieces or the two stations: generate them in Studio and grade against rec9 and rec8. Skipped on licence or size: Higgsfield-made and unlicensed models, `heavy_armor`, `combat_helmet`.
 
 ## 8. SKU ideas (not created)
 
