@@ -304,9 +304,11 @@ local Tuning: Types.TuningDef = {
 		heavyHitStopSeconds = 0.09,
 		knockbackStuds = 1.5,
 		heavyKnockbackStuds = 4,
-		-- LDOE_PARITY #34: a hatchet or pick in a weapon slot is a weak club (below the Spiked Club's 14).
-		toolDamage = 8,
-		toolAttacksPerSecond = 1.1,
+		-- LDOE_PARITY #34: a hatchet or pick in a weapon slot is a weak club. F-29: never weaker
+		-- than bare fists (6 x 1.8 = 10.8 a second), never stronger than the crafted Stake
+		-- (10 x 1.1 = 11): 9 x 1.22 = 10.98.
+		toolDamage = 9,
+		toolAttacksPerSecond = 1.22,
 		toolRange = 5,
 	},
 	sneak = {

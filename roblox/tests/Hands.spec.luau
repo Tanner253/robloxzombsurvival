@@ -15,12 +15,13 @@ local function loaded(state: Hands.State, index: number): number
 end
 
 return function(test: TestKit.Register)
-	test("two slots from the paper-doll; slot 1 starts active; guns start empty", function()
+	test("two slots from the paper-doll; slot 1 starts active; guns start loaded", function()
 		local state = Hands.new({ "item.pipe_pistol", "item.machete" }, ITEMS, CONFIG)
 		TestKit.equal(#state.hands, 2)
 		TestKit.equal(state.active, 1)
 		TestKit.equal(Hands.active(state).itemId, "item.pipe_pistol")
-		TestKit.equal(loaded(state, 1), 0, "a gun has its own magazine")
+		local magazine = (Content.Items["item.pipe_pistol"] :: any).weapon.firearm.magazine
+		TestKit.equal(loaded(state, 1), magazine, "a gun has its own magazine, full: the first pull fires")
 		TestKit.equal(state.hands[2].gun, nil, "melee has none")
 		TestKit.equal(Hands.weapon(state, ITEMS), (Content.Items["item.pipe_pistol"] :: any).weapon)
 		local empty = Hands.new({}, ITEMS, CONFIG)
@@ -65,7 +66,8 @@ return function(test: TestKit.Register)
 		TestKit.equal(synced.hands[1].gun, nil, "an axe has no magazine")
 		TestKit.equal(synced.hands[2], state.hands[2], "the untouched slot keeps its state")
 		local back = Hands.sync(synced, { "item.scrap_shotgun", "item.pipe_pistol" }, ITEMS, CONFIG)
-		TestKit.equal(loaded(back, 1), 0, "a newly slotted gun starts empty")
+		local shells = (Content.Items["item.scrap_shotgun"] :: any).weapon.firearm.magazine
+		TestKit.equal(loaded(back, 1), shells, "a newly slotted gun starts loaded")
 		local same = Hands.sync(back, { "item.scrap_shotgun", "item.pipe_pistol" }, ITEMS, CONFIG)
 		TestKit.equal(same.hands[1], back.hands[1], "no change, same state")
 	end)
