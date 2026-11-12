@@ -254,7 +254,7 @@ Run all checks after each merge.
 >     - On the Client, fire `Gather`, `HandCraft`, `InventoryMove(ref, i, "equipment", 5 or 7)`, `TravelStart(loc, "run")`, `ContainerSearch` and `ContainerTakeAll`, and `DeathChoice`.
 >     - On the Server, `EO_Dev` runs `place`, `kill`, `die`, `meter`, `extract` and `queststate`.
 >     - Keep Studio un-minimized: a minimized window captures black, and an unfocused one runs at 15 fps.
-> - **Next: step 6, the soft launch, is the developer's.** Before publishing, clear the boot console's asset errors (the "Requester does not have permission" lines and `rbxassetid://203785492`). Those need checking in the live game; Studio alone can't confirm them.
+> - **Next: step 6, the soft launch, is the developer's.** Before publishing, clear the boot console's asset errors (the "Requester does not have permission" lines and `rbxassetid://203785492`). Those need checking in the live game; Studio alone can't confirm them. 203785492 is in neither the repo nor the place's edit tree (6,000 instances scanned on 2026-11-11), so it is probably loaded at runtime by a Roblox core script.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
