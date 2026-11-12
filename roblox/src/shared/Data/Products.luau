@@ -296,7 +296,9 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 	["product.heavy_equipment"] = {
 		id = "product.heavy_equipment",
 		name = "Heavy Equipment",
-		description = "Everything for the Black fog: the full Padded set, every gun and the bow, the Fire Axe, Rail Mallet and Machete, and 20 dressings.",
+		-- Names its contents: it said "every gun and the bow" with 3 of the 14 guns inside (a paid
+		-- card can't overclaim; ship-readiness check, 2026-11-11).
+		description = "The full Padded set, Worn Pistol, Scrap Shotgun, Flare Pistol, Shortbow, Fire Axe, Rail Mallet, Machete and 20 dressings.",
 		kind = "devProduct",
 		robloxId = 3729896851,
 		icon = "rbxassetid://108890459491267",
