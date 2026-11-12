@@ -17,6 +17,7 @@
 	- buyEmbers(shortfall): the Ember Pouch, when "Recover all" is pressed short of Embers.
 	- openShop(productId?): the shop on that product.
 	- When the server says Embers are short ("needEmbers"), the shop opens on EMBERS.
+	- When the Firestarter Kit's window opens ("firstOffer", F-11), its one-time card shows.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -182,6 +183,9 @@ function Shop.start()
 	State.fx:Connect(function(kind: any, payload: any)
 		if kind == "needEmbers" then
 			Actions.openShop(nil, "embers")
+		elseif kind == "firstOffer" and type(payload) == "table" and type(payload.productId) == "string" then
+			-- F-11: the Firestarter Kit's window opened: its card, once (screens/ldoe/OfferCard).
+			State.patch({ offerCard = { productId = payload.productId, endsAt = tonumber(payload.endsAt) or 0 } })
 		elseif kind == "energyShort" and type(payload) == "table" and type(payload.need) == "number" then
 			State.patch({ energyShort = { need = payload.need, at = os.clock() } })
 		end

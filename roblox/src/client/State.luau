@@ -82,6 +82,9 @@ export type Ui = {
 	-- The last Run the server refused for Energy ("energyShort"): how much was missing, and
 	-- when (os.clock()), for the Fog map's Refill slot (UI/offers.energyChip).
 	energyShort: { need: number, at: number }?,
+	-- A limited offer that just opened (the Firestarter Kit's first win, F-11): its one-time
+	-- card (screens/ldoe/OfferCard) until BUY or LATER.
+	offerCard: { productId: string, endsAt: number }?,
 	havenId: string?, -- who or what on Haven Square the "haven" panel is talking to
 	havenTab: string?, -- the Trader's tab: "buy" (default) or "sell"
 	-- The UI gate's emulated screen (Controllers/UiGate): the App lays out for this size

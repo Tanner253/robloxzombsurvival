@@ -5,8 +5,9 @@
 	- Top left: the survivor's name and HP bar with its number; a pulsing food or water icon
 	  with its value appears beside HP at 20 or below (no hunger or thirst bars). Under it,
 	  the Ember Trail tracker: up to 3 quests with their next step, folded with «.
-	- Top right: the minimap, with the sun/moon arc and settings beside it; the event,
-	  offers and gift strip is reserved for S3. Craft and Build stack under the minimap.
+	- Top right: the minimap, with the sun/moon arc and settings beside it, and left of the
+	  arc the offers strip: a running limited offer's icon, pulsing, with its countdown
+	  (F-11). Craft and Build stack under the minimap.
 	- Bottom right: the action cluster: the meds slot (H, the quick slot or best heal), the
 	  second weapon (2 / F swaps), the active weapon circle (1, attack: held to gather here),
 	  the context button (its icon follows the target: hand, axe, pick, station, crate;
@@ -36,11 +37,13 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Content = require(ReplicatedStorage.Shared.Data)
 local Clock = require(ReplicatedStorage.Shared.Clock)
 local Flags = require(ReplicatedStorage.Shared.Flags)
+local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Progression = require(ReplicatedStorage.Shared.Domain.Progression)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Actions = require("../../../Actions")
 local State = require("../../../State")
 local Theme = require("../../theme")
+local format = require("../../format")
 local hooks = require("../../hooks")
 local questText = require("../../questText")
 local mark = require("../../mark")
@@ -377,6 +380,46 @@ local function SunMoon()
 	})
 end
 
+-- The offers strip (F-11; LDoE rec3 94s: the offer icon with its countdown under it, left of
+-- the clock): while a limited offer runs for this player, its icon pulses with the time left
+-- and opens the shop on it. Nothing shows when no window is open.
+local function OfferStrip()
+	local shop = hooks.useSection("shop")
+	local now = hooks.useClock(0.5)
+	local productId, endsAt = Offers.stripOffer(shop, now)
+	if productId == nil then
+		return nil
+	end
+	local beat = math.floor(os.clock() * 2) % 2 == 0
+	return e(Layout.Stack, {
+		gap = 0,
+		alignX = Enum.HorizontalAlignment.Center,
+		size = UDim2.fromOffset(64, H.stripIcon),
+		layoutOrder = 0,
+		children = {
+			Icon = e(IconButton, {
+				glyph = "offer",
+				size = H.stripIcon - 14,
+				active = beat,
+				ring = Theme.colors.accent,
+				layoutOrder = 1,
+				onPress = function()
+					Actions.openShop(productId)
+				end,
+			}),
+			Left = e("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 14),
+				BackgroundTransparency = 1,
+				FontFace = Theme.fonts.header,
+				Text = format.duration(endsAt - now),
+				TextSize = Theme.textSize.caption - 2,
+				TextColor3 = Theme.colors.accentSoft,
+				LayoutOrder = 2,
+			}),
+		},
+	})
+end
+
 local function TopRight()
 	local ui = hooks.useUi()
 	local run = hooks.useSection("run")
@@ -397,7 +440,8 @@ local function TopRight()
 				size = UDim2.new(1, 0, 0, H.stripIcon),
 				layoutOrder = 1,
 				children = {
-					-- The event / offers / gift strip (S3) is reserved here, left of the arc.
+					-- The offers strip, left of the arc (F-11); events and gifts join it later.
+					Offer = not onRun and e(OfferStrip),
 					SunMoon = e(SunMoon),
 					Settings = e(IconButton, {
 						glyph = "settings",

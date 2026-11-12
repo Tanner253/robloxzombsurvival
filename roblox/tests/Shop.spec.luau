@@ -390,6 +390,32 @@ return function(test: TestKit.Register)
 		TestKit.equal(string.find(shop, '" broke"', 1, true), nil, "no blanket match on any break")
 	end)
 
+	test("F-11: the Firestarter window opens out loud: a one-time card, then the strip countdown", function()
+		local rows = {
+			["product.starter_offer"] = { available = true, endsAt = 5000 },
+			["product.resource_pack"] = { available = true, endsAt = 0 },
+			["product.vip_lounge"] = { available = false, endsAt = 9000 },
+		}
+		TestKit.deepEqual({ Offers.stripOffer(rows, 1000) }, { "product.starter_offer", 5000 })
+		TestKit.deepEqual({ Offers.stripOffer(rows, 5000) }, { nil, 0 }, "gone when the window ends")
+		TestKit.deepEqual({ Offers.stripOffer(nil, 1000) }, { nil, 0 }, "nothing before the shop syncs")
+		-- The wiring: the server's one-time effect, the client's card and the HUD's strip.
+		local fs = require("@lune/fs")
+		local needles = {
+			{ "src/server/Services/Shop.luau", 'Sync.fx(player, "firstOffer"' },
+			{ "src/server/Services/Shop.luau", "data.shop.cardShown = true" },
+			{ "src/server/Services/Shop.luau", 'if outcome == "extracted" then' },
+			{ "src/client/Controllers/Shop.luau", 'kind == "firstOffer"' },
+			{ "src/client/UI/App.luau", "e(OfferCard)" },
+			{ "src/client/UI/screens/ldoe/OfferCard.luau", "Actions.buyProduct(card.productId)" },
+			{ "src/client/UI/screens/ldoe/Hud.luau", "Offers.stripOffer(shop, now)" },
+			{ "src/client/UI/screens/ldoe/Hud.luau", "Offer = not onRun and e(OfferStrip)" },
+		}
+		for _, needle in needles do
+			TestKit.truthy(string.find(fs.readFile(needle[1]), needle[2], 1, true), `{needle[1]}: {needle[2]}`)
+		end
+	end)
+
 	test("F-10: Fill Up charges for what is missing, never the whole cost", function()
 		local have = function(itemId: string): number
 			return if itemId == "item.timber" then 2 else 0

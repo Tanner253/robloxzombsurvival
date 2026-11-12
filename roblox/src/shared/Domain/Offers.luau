@@ -5,7 +5,8 @@
 
 	- The Firestarter Kit: shown only to accounts that never paid, for an accurate 48 h from
 	  their first win (the first night survived or the first extraction), once; the window
-	  never restarts.
+	  never restarts. It opens out loud (F-11): a one-time card, then the strip icon with its
+	  countdown (stripOffer) until it ends.
 	- Ember prices: a speed-up by time left (max(2, ceil(3.9 x sqrt(minutes)))), only for
 	  jobs with at least 2 minutes left; Fill Up per missing unit; Trail Rations in ones
 	  and fives.
@@ -53,6 +54,25 @@ function Offers.firstPurchase(
 	end
 	local endsAt = firstWinAt + hours * HOUR
 	return not Offers.hasPaid(counts) and now < endsAt, endsAt
+end
+
+--[[
+	The HUD's offers strip (the flow review's F-11): the product whose countdown is running for
+	this player now (on offer, ending in the future), the soonest to end first, and when it
+	ends; nil and 0 when there is none. `rows` is the synced "shop" section.
+]]
+function Offers.stripOffer(rows: any, now: number): (string?, number)
+	if type(rows) ~= "table" then
+		return nil, 0
+	end
+	local best: string?, bestEnds = nil, math.huge
+	for id, row in rows do
+		local ends = if type(row) == "table" and row.available == true then row.endsAt else nil
+		if type(ends) == "number" and ends > now and (ends < bestEnds or (ends == bestEnds and id < (best or id))) then
+			best, bestEnds = id, ends
+		end
+	end
+	return best, if best then bestEnds else 0
 end
 
 -- Embers to finish `seconds` of a station's work now; nil when under the minimum.

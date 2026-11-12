@@ -95,6 +95,19 @@ return function(test: TestKit.Register)
 		TestKit.equal(data.survival.thirst, Tuning.survival.thirst.max, "thirst")
 	end)
 
+	test("v12: v11 profiles gain the offer card flag, a death count and room for a Walk", function()
+		local old: { [string]: any } = { version = 11, shop = { firstWinAt = 1234 }, embers = 5 }
+		PlayerSchema.migrations[11](old)
+		TestKit.deepEqual(old.shop, { firstWinAt = 1234, cardShown = false }, "the window's card not yet shown")
+		TestKit.equal(old.deaths, 0)
+		TestKit.deepEqual(old.travel, {}, "no Walk: trips lived in server memory before")
+		local fresh = PlayerSchema.template()
+		TestKit.equal(fresh.version, 12)
+		TestKit.equal(fresh.shop.cardShown, false)
+		TestKit.equal(fresh.deaths, 0)
+		TestKit.equal(fresh.travel.walk, nil)
+	end)
+
 	test("template returns a fresh table each call", function()
 		local a = PlayerSchema.template()
 		a.inventory.pockets[1].count = 5

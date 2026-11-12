@@ -15,7 +15,8 @@
 	  (Receipts.applyPass); the Lounge's perks are Services/Haven's.
 	- Any purchase opens the VIP Lounge for Tuning.embers.vipTrialDays (LDoE's VIP 1).
 	- The first win (the first extraction, or the first dawn reached after a night online)
-	  opens the Firestarter Kit's window; it never restarts.
+	  opens the Firestarter Kit's window; it never restarts. The "firstOffer" effect tells the
+	  client to show its one-time card (F-11).
 	- Ember sinks: EmbersRations(count) buys Trail Rations (inbox); FillUp(stacks) buys the
 	  missing materials of a craft, build or upgrade at Fill Up rates; Recover all through
 	  FogRuns/Payments' premium method. Speed-ups are Services/Stations'.
@@ -48,6 +49,7 @@ local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local Net = require("../Net")
+local OnRun = require("../OnRun")
 local PlayerData = require("./PlayerData")
 local Plots = require("./Plots")
 local Sync = require("./Sync")
@@ -269,12 +271,36 @@ end
 
 -- The first win ---------------------------------------------------------------------------------------
 
+-- The first win opens the Firestarter Kit's window out loud (the flow review's F-11): the
+-- client shows its one-time card ("firstOffer"), then the strip icon with the countdown. The
+-- card waits for home (a first extraction ends on the run server) and shows once per
+-- survivor (PlayerData.shop.cardShown).
+local STARTER = "product.starter_offer"
+local CARD_DELAY = 4 -- seconds: let the HUD (or the trip home) settle first
+
+local function offerCard(player: Player)
+	local data = PlayerData.get(player)
+	if data == nil or data.shop.cardShown or OnRun.is(player) then
+		return
+	end
+	local open, _, endsAt = Receipts.canOffer(Products[STARTER], data.purchases :: any, data.progression.level, {
+		now = os.time(),
+		firstWinAt = data.shop.firstWinAt,
+		firstPurchaseHours = emberTuning.firstPurchaseHours,
+	})
+	if open then
+		data.shop.cardShown = true
+		Sync.fx(player, "firstOffer", { productId = STARTER, endsAt = endsAt })
+	end
+end
+
 local function firstWin(player: Player)
 	local data = PlayerData.get(player)
 	if data and data.shop.firstWinAt == 0 then
 		data.shop.firstWinAt = os.time()
 		Sync.mark(player, "shop")
 		Analytics.custom(player, "FirstWin", 1)
+		task.delay(CARD_DELAY, offerCard, player)
 	end
 end
 
@@ -377,6 +403,7 @@ function Shop.start()
 		Inventory.refreshBackpack(player) -- slots bought on another server
 		Sync.mark(player, "shop")
 		task.spawn(checkPasses, player)
+		task.delay(CARD_DELAY, offerCard, player) -- a window opened on a run shows its card home
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		joinedAt[player] = nil
