@@ -6,8 +6,12 @@
 
 	- `landing`: the aim, pulled inside the throwable's [minRange, range] ring around the thrower.
 	- `flightSeconds` and `at`: the flight. The throwable moves along the ground at `flightSpeed`
-	  and rises in a parabola `apex` studs over the straight line at mid-flight, so a short lob
-	  and a long throw both read as throws.
+	  and rises in a parabola over the straight line, highest at mid-flight: `apexFor` studs,
+	  the item's `apex` on a long throw and lower on a short one (batch 5 follow-up: a 12-stud
+	  lob rose 9 studs over the ground and caught roof edges and overhangs, so it fell short of
+	  the ring the preview showed).
+	- `solid`: whether a part stops an arc. See-through volumes (markers, exit edges, trigger
+	  boxes) don't; Util/ArcCast applies it on both the server and the client preview.
 	- `points`: the arc sampled for the preview and for the server's wall checks.
 	- `falloff` and `blastDamage`: a blast hits hardest at its centre, down to `edgeMultiplier`
 	  at its radius, nothing past it.
@@ -29,6 +33,9 @@ export type Fire = { ticks: number, perTick: number, tickSeconds: number }
 
 local MIN_FLIGHT_SECONDS = 0.35
 local DEFAULT_EDGE = 0.25
+local APEX_BASE = 1 -- studs: the lowest lob
+local APEX_PER_STUD = 0.3 -- the rise grows with the throw's length up to the item's apex
+Throw.SEE_THROUGH = 0.9 -- a part this transparent or more never stops an arc
 
 local function point(x: number, y: number, z: number): Point
 	return { x = x, y = y, z = z }
@@ -58,10 +65,19 @@ function Throw.flightSeconds(from: Point, to: Point, stats: Types.ThrowStats): n
 	return math.max(MIN_FLIGHT_SECONDS, flat(from, to) / stats.flightSpeed)
 end
 
+-- The arc's height over the straight line at mid-flight for a throw `distance` studs long.
+function Throw.apexFor(stats: Types.ThrowStats, distance: number): number
+	return math.min(stats.apex, APEX_BASE + APEX_PER_STUD * math.max(distance, 0))
+end
+
+function Throw.solid(transparency: number): boolean
+	return transparency < Throw.SEE_THROUGH
+end
+
 -- Where it is `t` seconds into a flight of `flight` seconds (clamped to the flight).
 function Throw.at(from: Point, to: Point, stats: Types.ThrowStats, flight: number, t: number): Point
 	local s = if flight > 0 then math.clamp(t / flight, 0, 1) else 1
-	local rise = 4 * stats.apex * s * (1 - s)
+	local rise = 4 * Throw.apexFor(stats, flat(from, to)) * s * (1 - s)
 	return point(from.x + (to.x - from.x) * s, from.y + (to.y - from.y) * s + rise, from.z + (to.z - from.z) * s)
 end
 

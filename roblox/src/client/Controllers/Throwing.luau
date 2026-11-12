@@ -23,6 +23,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Content = require(ReplicatedStorage.Shared.Data)
 local Throw = require(ReplicatedStorage.Shared.Domain.Throw)
+local ArcCast = require(ReplicatedStorage.Shared.Util.ArcCast)
 local Trigger = require(ReplicatedStorage.Shared.Domain.Trigger)
 local Clips = require("../Clips")
 local Net = require("../Net")
@@ -91,6 +92,11 @@ local function worldParams(): RaycastParams
 	if preview then
 		table.insert(skip, preview)
 	end
+	-- The Hollows as this client draws them (the server's arc has no bodies to meet).
+	local views = workspace:FindFirstChild("EO_HollowView")
+	if views then
+		table.insert(skip, views)
+	end
 	params.FilterDescendantsInstances = skip
 	params.RespectCanCollide = true
 	return params
@@ -149,7 +155,8 @@ local function arcFor(root: BasePart, stats: any): ({ Vector3 }, Vector3)
 	local origin = root.Position + Vector3.new(0, HAND_HEIGHT, 0)
 	local look = root.CFrame.LookVector
 	local target = Throw.landing(point(origin), point(aimPoint(root)), stats, math.atan2(look.X, look.Z))
-	local floor = workspace:Raycast(Vector3.new(target.x, origin.Y + 30, target.z), Vector3.new(0, -120, 0), params)
+	local top = Vector3.new(target.x, origin.Y + 30, target.z)
+	local floor = ArcCast.cast(top, top - Vector3.new(0, 120, 0), params)
 	target.y = if floor then floor.Position.Y else origin.Y - 3
 	local list: { Vector3 } = {}
 	local samples = Throw.points(point(origin), target, stats, SEGMENTS)
@@ -157,7 +164,7 @@ local function arcFor(root: BasePart, stats: any): ({ Vector3 }, Vector3)
 		local at = vector(sample)
 		if i > 1 then
 			local from = list[#list]
-			local hit = workspace:Raycast(from, at - from, params)
+			local hit = ArcCast.cast(from, at, params)
 			if hit then
 				table.insert(list, hit.Position)
 				return list, hit.Position

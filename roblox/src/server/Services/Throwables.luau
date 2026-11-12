@@ -29,6 +29,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local HoldRules = require(ReplicatedStorage.Shared.Domain.HoldRules)
 local Plane = require(ReplicatedStorage.Shared.Domain.Plane)
 local Throw = require(ReplicatedStorage.Shared.Domain.Throw)
+local ArcCast = require(ReplicatedStorage.Shared.Util.ArcCast)
 local Net = require("../Net")
 local Combat = require("./Combat")
 local Hollow = require("./Hollow")
@@ -80,27 +81,34 @@ local function broadcast(run: Lobby.Run, kind: string, payload: any)
 end
 
 -- Where the throw comes down: on the ground under the clamped aim, or on the first thing the
--- arc meets. Returns the landing and the flight time to it.
-local function flightOf(origin: Vector3, aim: Vector3, stats: Types.ThrowStats, facing: number): (Vector3, number)
+-- arc meets (Util/ArcCast, the cast the client's preview makes). Returns the landing, the
+-- flight time to it and what stopped it short (nil when nothing did).
+local function flightOf(
+	origin: Vector3,
+	aim: Vector3,
+	stats: Types.ThrowStats,
+	facing: number
+): (Vector3, number, string?)
 	local params = worldParams()
 	local target = Throw.landing(point(origin), point(aim), stats, facing)
-	local floor = workspace:Raycast(Vector3.new(target.x, origin.Y + 30, target.z), Vector3.new(0, -120, 0), params)
+	local top = Vector3.new(target.x, origin.Y + 30, target.z)
+	local floor = ArcCast.cast(top, top - Vector3.new(0, 120, 0), params)
 	target.y = if floor then floor.Position.Y else origin.Y - 3
 	local flight = Throw.flightSeconds(point(origin), target, stats)
 	local points = Throw.points(point(origin), target, stats, SEGMENTS)
 	for i = 1, #points - 1 do
 		local a, b = vector(points[i]), vector(points[i + 1])
-		local hit = workspace:Raycast(a, b - a, params)
+		local hit = ArcCast.cast(a, b, params)
 		if hit then
 			-- It stops on what it hit and drops to the ground there.
 			local stop = hit.Position - (b - a).Unit * 0.3
-			local under = workspace:Raycast(stop + Vector3.new(0, 1, 0), Vector3.new(0, -60, 0), params)
+			local under = ArcCast.cast(stop + Vector3.new(0, 1, 0), stop - Vector3.new(0, 59, 0), params)
 			local land = if under then under.Position else stop
 			local share = (i - 1 + (hit.Position - a).Magnitude / math.max((b - a).Magnitude, 1e-3)) / SEGMENTS
-			return land, math.max(0.2, flight * share)
+			return land, math.max(0.2, flight * share), ArcCast.describe(hit)
 		end
 	end
-	return vector(target), flight
+	return vector(target), flight, nil
 end
 
 -- Every living Hollow inside `radius` of `at` with a clear line from it, nearest first.
@@ -190,7 +198,7 @@ local function throw(player: Player, x: number, y: number, z: number): (any, str
 	-- The swing starts now for everyone; the throwable leaves the hand on its release frame.
 	broadcast(run, "swing", { userId = player.UserId, itemId = itemId, heavy = false })
 	local origin = root.Position + Vector3.new(0, HAND_HEIGHT, 0)
-	local landing, flight = flightOf(origin, Vector3.new(x, y, z), stats, facing)
+	local landing, flight, blocker = flightOf(origin, Vector3.new(x, y, z), stats, facing)
 	local goesOff = Throw.detonatesAfter(stats, flight)
 	task.delay(release, function()
 		-- Still in hand on the release frame (a swap or a death in the wind-up cancels it).
@@ -213,11 +221,17 @@ local function throw(player: Player, x: number, y: number, z: number): (any, str
 			task.delay(goesOff, if stats.kind == "blast" then blast else fire, player, run, stats, landing, itemId)
 		end
 	end)
-	return { landing = landing, flight = flight, goesOff = release + goesOff }, nil
+	return { landing = landing, flight = flight, goesOff = release + goesOff, blocker = blocker }, nil
 end
 
--- Scripted playtests (Diagnostics "throw"): the same throw the remote makes.
-Throwables.dev = { throw = throw }
+-- Scripted playtests (Diagnostics "throw"): the same throw the remote makes, and the arc alone
+-- (where a throw from a root at `origin` at `aim` would land and what would stop it).
+Throwables.dev = {
+	throw = throw,
+	arc = function(origin: Vector3, aim: Vector3, itemId: string): (Vector3, number, string?)
+		return flightOf(origin + Vector3.new(0, HAND_HEIGHT, 0), aim, Items[itemId].throw, 0)
+	end,
+}
 
 function Throwables.init()
 	if not Features.on(tuning, "fogRuns") then
