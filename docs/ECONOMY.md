@@ -800,7 +800,7 @@ The §9 model and the §11.4 Lune test run every sink:
 A deterministic expected-value simulation of one free player. It is spelled out in §11.4, so the Lune test reproduces it.
 
 - **Play time:** two sessions a day of 75 minutes each, at 08:00 and 19:00. That is 2.5 hours, the middle of GAME_DESIGN's 2–3 h. 2 × 60 and 2 × 90 are the band edges.
-- **Energy:** cap 200, +1 every 5 minutes, +20 on each level-up, starting full. Run costs 15/22/33; Walk is free but takes 12/19/29 minutes. Returning home after extraction is free.
+- **Energy:** cap 120 (200 until the 2.0 economy batch, F-16), +1 every 5 minutes, +20 on each level-up, starting full. Run costs 15/22/33; Walk is free but takes 12/19/29 minutes. Returning home after extraction is free.
 - **Runs:**
   - **Overhead:** 2.5 minutes in Light, 3.5 in Dense and Black (matchmaking, teleport, crossing the map), plus extraction at 15 s or 45 s.
   - **Gathering time:** a tool node takes 0.8 s per hit + 4 s of walking; a hand node 2.5 s; a container its search time + 15 s.

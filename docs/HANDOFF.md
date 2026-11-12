@@ -350,6 +350,20 @@ Run all checks after each merge.
 >     - The Hand Axe's `structureMultiplier` has no reader until M2 raids.
 >     - The Credits panel lists the 14 new models while the flag is off.
 >     - The Blast Furnace burns wood fuel like the Smelter; on Embercoal alone the model starved it.
+> - **Update 2026-11-12, 2.0 economy batch (the flow review's balance findings): done on branch `economy-balance`, pushed, not merged.** No Studio was used. Every rule is in a pure Domain module or data with Lune specs; calls are in the 2026-11-12 DECISIONS row. Numbers are `Pacing.spec`'s 2.5 h-a-day player, before → after. One line per finding:
+>   - **Melee wear (the open step-3 item):** the junk lever is turned in `Data/LootTables` and the spec's copy (Pine Hollow's band 2 and 3 ammo rows give `loot.junk`). Melee breaks in 52 of 233 → 41 of 231 runs with content2 on, and 52 of 233 → 43 of 227 with content2 off. The new content2-off check (`Features.strip`, no chapter 4 or Fortified goal) holds the bands and the 10% floor. The "about 5%" in step 3 predated batch 4's sim fixes.
+>   - **F-16:** Energy cap 200 → 120 (regen and Run costs unchanged), location dailies 2 → 0 Rations a day, airdrops at 84/48/12. `PacingSim` now counts the moments the wanted Run was unaffordable: 5 → 33 (2 h a day 0 → 12, 3 h 24 → 45), none on day 1; walks 0 → 4 (3 h: 4 → 16).
+>   - **F-15:** Black fog fills in 240 → 380 s unprotected; a full Padded set 7.3 → 11.5 min, so band 3 (11.8 min) costs about 34 HP instead of 500+. Into the Black warns of the fog and the gear drop.
+>   - **Gas mask:** `maxResist` 0.8 → 0.56; Hidebound 0.55 → 0.48 and Riveted 0.67 → 0.51 fog resist. Any set plus the mask reaches the cap, 14.4 min (was 18.2 to 20), so the best kit still loses health before the 15 min close.
+>   - **F-17:** the Trader's list drops Rivets and Planks: basics only.
+>   - **F-18:** `Gathering.pickTool` takes the lowest tier that can harvest the node (a pine uses the Stone Hatchet with a Forged one in the bag).
+>   - **F-19:** band 1 adds a Shambler per seated survivor past two and tops up for late joiners: Pine Hollow 6-9 → 16-19 at 12 players.
+>   - **F-23:** player schema v12 → **v13** (`limits`: both ad caps, the airdrop day and pins, signal-tower parts and repairs), migration and spec; Travel and Lobby read the profile, not server memory. The parked Haven VIP branch's schema bump becomes v14 when it is ported.
+>   - **F-25:** a speed-up is capped at the Fill Up value of what it makes (one Scrap Plate 18 → 13 Embers); tier-1 raw 1 → ⅓ Ember a unit (30 timber 30 → 10); Supply Bundle 196 → 65 Embers of contents, so the rate rises with price (0.66, 0.72, 0.75 Embers a Robux).
+>   - **F-31:** Niter, Steel Pipe, Trigger Group, Signal Flare, Reanimator, both venisons and Leather stack to 20 (scrap 50).
+>   - Bands: Scrap 4.37 → 4.36, Black 6.81 → 6.83, Reinforced 11.79 → 12.38, chapter 3 ends 17.82 → 19.34, chapter 4 27.81 → 28.82, Fortified 24.81 → 25.34; none moved. 580 Lune specs, all six checks green.
+>   - **Needs a play-check:** the Fog map with a 120 cap (the regen countdown, "Need N more", the Refill slot, airdrop pins at 84/48/12); a profile loading as v13 and a Recover-all or AUTO ad cap surviving a hop (ads are off, so check the saved `limits` with `EO_Dev`); a tower part kept across a rejoin (`regionGates` is off); Black fog HP with a full Padded set, and with the mask once content2 is on; 10+ survivors at Pine Hollow (the crowd Shamblers, `maxActive` 60); the station pane's speed-up price on a short job; the Trader's shorter list; the Supply Bundle card; a pine chopped with both hatchets carried.
+>   - **Seen, not fixed:** the pacing model is sensitive: a small Energy or loot change moves the broken-melee count between 1 run in 15 and 1 in 4, so re-run `PACING_VERBOSE=1` after any tuning. ECONOMY §9.2-9.3's tables and SHOP_CATALOG's Supply Bundle row still show the old numbers; LDOE_PARITY #38 and #43, ECONOMY §9.1 and ARSENAL §5's cap note are updated.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):

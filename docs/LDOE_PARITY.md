@@ -78,7 +78,7 @@ This came out of an independent audit of every LDoE recording frame (rec1–rec9
 37. **Fog-exposure meter** in Dense and Black, with a gear resistance stat, so armor sets gate the tiers (S2).
 
 ### Map and travel (S2)
-38. **Energy:** cap 200, +1 every 5 min. Run costs 15/22/33 by tier; Walk takes 12/19/29 min. Energy shows **on the map**, with a regen countdown and a Rations "+" counter.
+38. **Energy:** cap 200, +1 every 5 min (ours: cap 120 since the economy batch, F-16, so the night tops out and Energy binds). Run costs 15/22/33 by tier; Walk takes 12/19/29 min. Energy shows **on the map**, with a regen countdown and a Rations "+" counter.
 39. **Location panel:**
     - art, name, skulls, the rule line, a Main loot row, and a Possible loot grid with rarity frames
     - **AUTO buttons**
@@ -88,7 +88,7 @@ This came out of an independent audit of every LDoE recording frame (rec1–rec9
 40. **Travel bonus:** TAKE costs one item per rewarded ad; TAKE ALL costs Rations or premium. Free players see the grid.
 41. **Rations:** a consumable earned from quests and the pass, sold in Currency, and shown on the map. It pays for AUTO and bonus loot, and refills Energy.
 42. **Exit zones:** a green ground overlay plus a green minimap arc. **Travel state:** a "CURRENT LOCATION / DESTINATION" bar.
-43. **Map pop-ups** with event cards ("Show me" pans to the pin) and one offer card during the Run load. **Airdrops** spawn as Energy falls below 140, 80 and 20 (a guarded crate). A **"Hurry"** button on Walk spends Energy. **Region gates:** repair the tower with a parts checklist before Dense and Black. An **arrival title card**.
+43. **Map pop-ups** with event cards ("Show me" pans to the pin) and one offer card during the Run load. **Airdrops** spawn as Energy falls below 140, 80 and 20 (a guarded crate; 84, 48 and 12 on our 120 cap). A **"Hurry"** button on Walk spends Energy. **Region gates:** repair the tower with a parts checklist before Dense and Black. An **arrival title card**.
 
 ### Locations, combat, death (S2)
 44. **Sneak (Ctrl):** slower and quieter, a 3× melee backstab, and a smaller detection radius. It breaks on loot or harvest.
