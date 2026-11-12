@@ -16,6 +16,12 @@ local function holdable(def: any): boolean
 	return def.tool ~= nil or def.equipSlot == "weapon"
 end
 
+-- Content behind a feature that is off (content2 until its Studio pass) can't be held yet;
+-- switching the feature on brings its items under this spec, so they need grips first.
+local function shipped(def: any): boolean
+	return def.feature == nil or (Content.Tuning.features :: any)[def.feature] == true
+end
+
 -- The body of a `Name = { ... } :: ...` table in Art.luau (read as source: it uses Roblox types).
 local function block(source: string, opener: string, closer: string): string
 	local _, from = string.find(source, opener, 1, true)
@@ -43,7 +49,7 @@ return function(test: TestKit.Register)
 		local models = block(art, "Art.items = {", "\n} :: { [string]: { string } }")
 		local count = 0
 		for id, def in Items do
-			if holdable(def) then
+			if holdable(def) and shipped(def) then
 				count += 1
 				local class = Holds.items[id]
 				TestKit.truthy(class, `{id} has a hold class in Data/Holds`)
