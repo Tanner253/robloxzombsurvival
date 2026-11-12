@@ -246,7 +246,8 @@ function Hollow.noise(
 	position: Vector3,
 	firearm: Types.FirearmStats?,
 	sourceId: string?,
-	sneaking: boolean? -- the maker is sneaking: quieter melee and steps (LDOE_PARITY #44)
+	sneaking: boolean?, -- the maker is sneaking: quieter melee and steps (LDOE_PARITY #44)
+	radius: number? -- overrides the kind's radius (a weapon's own `melee.noise`, CONTENT_2_0 §4)
 )
 	local world = worldOf(hosted)
 	if world == nil then
@@ -255,6 +256,9 @@ function Hollow.noise(
 	world.seq += 1
 	local sneak = if sneaking then tuning.sneak else nil
 	local event = Noise.new(world.seq, kind, plane(position), now(), tuning.noise, firearm, sourceId, sneak)
+	if radius ~= nil then
+		event.radius = if sneak then Noise.sneaky(kind, radius, sneak) else radius
+	end
 	table.insert(world.noises, event)
 	cue(world, "noise", position.X, position.Z, event.radius)
 end
