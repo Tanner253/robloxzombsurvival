@@ -217,6 +217,10 @@ local Tuning: Types.TuningDef = {
 		-- and Black fog open on the level gate alone, and no airdrops land.
 		regionGates = false,
 		airdrops = false,
+		-- Deer and wolves wait for their own rig (Data/Enemies `deferred`). Until then the Smoke
+		-- Rack, its venison line and the quest steps that need them stay hidden: nothing else
+		-- drops enough Raw Venison to feed them (the flow review's F-21).
+		wildlife = false,
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby

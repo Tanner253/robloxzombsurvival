@@ -518,7 +518,7 @@ local BuildPieces: { [Types.BuildPieceId]: Types.BuildPieceDef } = {
 		stationId = "station.smoke_rack",
 		maxPerPlot = 2,
 		unlock = quest("quest.stand_your_ground"),
-		feature = "fogRuns",
+		feature = "wildlife", -- its venison comes from deer (F-21)
 	},
 }
 

@@ -43,4 +43,65 @@ return function(test: TestKit.Register)
 			"no fixed price"
 		)
 	end)
+
+	test("F-21: run deaths count toward the milestone gifts; the 20th sends the Ember Heart", function()
+		local DeathRecovery = require("../src/shared/Domain/DeathRecovery")
+		local config: any = Content.Tuning.deathRecovery
+		local function gifts(before: number, after: number): { [string]: number }
+			local result: { [string]: number } = {}
+			for _, stack in DeathRecovery.milestoneGifts(before, after, config) do
+				result[stack.itemId] = (result[stack.itemId] or 0) + stack.count
+			end
+			return result
+		end
+		TestKit.truthy(next(gifts(0, 1)) ~= nil, "the first death sends something")
+		TestKit.equal(next(gifts(1, 2)), nil, "the second, nothing")
+		TestKit.equal(gifts(19, 20)["item.reanimator"], 1, "the 20th: the Ember Heart")
+		TestKit.equal(Content.Items["item.reanimator"].name, "Ember Heart")
+		has("src/server/Services/Lobby.luau", "DeathRecovery.milestoneGifts(before, data.deaths", "run deaths count")
+		has(
+			"src/server/Services/Lobby.luau",
+			"\tcountDeath(player)\n\tlocal result = applyDeath(",
+			"on every run death"
+		)
+		TestKit.equal(
+			string.find(fs.readFile("src/server/Services/Deaths.luau"), "milestoneGifts", 1, true),
+			nil,
+			"home deaths (a Reset) don't farm it"
+		)
+		-- The Rain Barrel's station screen has no input to fill (Converter.spec runs the barrel).
+		has("src/client/UI/screens/ldoe/StationPane.luau", "Input = not passive and e(DropSlot", "no input slot")
+	end)
+
+	test("F-36: a Walk is saved in the profile and resumes on the next visit", function()
+		local trip: TravelMath.Trip = {
+			destinationId = "loc.pine_hollow",
+			mode = "walk",
+			departedAt = 1000,
+			arrivesAt = 1600,
+			energySpent = 0,
+		}
+		local saved = TravelMath.saveWalk(trip) :: TravelMath.SavedWalk
+		TestKit.deepEqual(
+			saved,
+			{ locationId = "loc.pine_hollow", departedAt = 1000, arrivesAt = 1600, energySpent = 0 }
+		)
+		local function exists(id: string): boolean
+			return id == "loc.pine_hollow"
+		end
+		TestKit.deepEqual(TravelMath.resumeWalk(saved, exists), trip, "the same trip, same clock")
+		TestKit.truthy(TravelMath.hasArrived(TravelMath.resumeWalk(saved, exists) :: any, 2000), "arrived while away")
+		local run = table.clone(trip)
+		run.mode = "run"
+		TestKit.equal(TravelMath.saveWalk(run), nil, "a Run isn't kept")
+		local back = table.clone(trip)
+		back.reentry = true
+		TestKit.equal(TravelMath.saveWalk(back), nil, "nor a trip back for a bag")
+		TestKit.equal(TravelMath.resumeWalk({ locationId = "loc.gone", departedAt = 1, arrivesAt = 2 }, exists), nil)
+		TestKit.equal(TravelMath.resumeWalk({ locationId = "loc.pine_hollow" }, exists), nil, "malformed")
+		local travel = "src/server/Services/Travel.luau"
+		has(travel, "data.travel.walk = if record and #record.members == 1 then TravelMath.saveWalk", "saved")
+		has(travel, "TravelMath.resumeWalk(data.travel.walk", "resumed")
+		has(travel, "trips[member] = record\n\t\tremember(member, record)", "saved when it starts")
+	end)
 end

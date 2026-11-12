@@ -257,9 +257,37 @@ return function(test: TestKit.Register)
 	test("every real station line converts one input stack into one output stack", function()
 		for _, def in Content.Stations do
 			for _, line in Converter.lines(def, Content.Recipes) do
-				TestKit.truthy(line.inputCount >= 1, line.key)
+				-- A passive station (the Rain Barrel) takes nothing in.
+				TestKit.truthy(line.inputCount >= 1 or def.passive ~= nil, line.key)
 				TestKit.truthy(#line.outputs >= 1, line.key)
 			end
 		end
+	end)
+
+	test("F-21: the Rain Barrel fills itself, a Boiled Water every 15 minutes up to 5, offline too", function()
+		local def = Content.Stations["station.rain_barrel"]
+		TestKit.deepEqual(def.passive, { itemId = "item.boiled_water", seconds = 900, max = 5 })
+		local items: any = Content.Items
+		local context: Converter.Context = { def = def, recipes = Content.Recipes, items = items }
+		local state = Converter.new(def, T0)
+		local after, made = Converter.advance(state, context, T0 + 899)
+		TestKit.equal(Converter.ready(after), 0, "not yet")
+		after, made = Converter.advance(after, context, T0 + 900)
+		TestKit.equal(Converter.ready(after), 1, "one at 15 minutes")
+		TestKit.deepEqual(made, { { itemId = "item.boiled_water", count = 1 } })
+		local day = Converter.advance(state, context, T0 + 24 * 3600)
+		TestKit.equal(Converter.ready(day), 5, "a day away: full at 5, no more")
+		TestKit.equal(Converter.status(day, context).activity, "outputFull")
+		TestKit.equal(Converter.status(after, context).batchesLeft, 4, "room for four more")
+		-- Taking one starts the next from now: no time banked while it was full.
+		local taken = Converter.takeOutput(day, context, 1, 1, T0 + 24 * 3600)
+		TestKit.equal(Converter.ready(taken), 4)
+		local next = Converter.advance(taken, context, T0 + 24 * 3600 + 899)
+		TestKit.equal(Converter.ready(next), 4, "the next one is a full 15 minutes away")
+		-- Nothing can be put in it.
+		local progress = { level = 99, unlocks = { recipes = {}, blueprints = {} } }
+		local put, _, why = Converter.putInput(state, context, progress, { itemId = "item.murky_water", count = 1 }, T0)
+		TestKit.equal(put, nil)
+		TestKit.equal(why, "notConvertible", "no input on a rain catcher")
 	end)
 end

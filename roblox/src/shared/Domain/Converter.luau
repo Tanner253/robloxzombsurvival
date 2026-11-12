@@ -17,6 +17,10 @@
 	is kept while it waits (no fuel, output full) and resumes when that clears. Taking the
 	whole input out loses the batch in progress.
 
+	A passive station (StationDef.passive, the Rain Barrel) has no input: it makes one of its
+	item every `seconds` while the output holds fewer than `max` (the flow review's F-21: a
+	barrel that needed Murky Water put in was a slow boiler, not a rain catcher).
+
 	Every function returns new state and never mutates its input.
 ]]
 
@@ -152,6 +156,34 @@ function Converter.nextLevel(def: Types.StationDef, level: number): Types.Statio
 	return nil
 end
 
+-- A passive station's one line: nothing in, one item out ("passive:<itemId>").
+local function passiveLine(def: Types.StationDef): Line?
+	local passive = def.passive
+	if passive == nil then
+		return nil
+	end
+	return {
+		key = `passive:{passive.itemId}`,
+		inputItemId = "",
+		inputCount = 0,
+		outputs = { { itemId = passive.itemId, count = 1 } },
+		seconds = passive.seconds,
+		stationLevel = 1,
+		unlock = DEFAULT_GATE,
+	}
+end
+
+-- How many of a passive station's item wait in the output.
+local function passiveHeld(state: State, itemId: string): number
+	local total = 0
+	for _, slot in state.output do
+		if slot.itemId == itemId then
+			total += slot.count
+		end
+	end
+	return total
+end
+
 -- Every conversion the station offers ("ALL RECIPES"), sorted by key. With `items`, food and
 -- drink lines come first (ECONOMY §8.4: a hungry survivor cooks before making coal).
 function Converter.lines(
@@ -160,6 +192,10 @@ function Converter.lines(
 	items: { [string]: Types.ItemDef }?
 ): { Line }
 	local result: { Line } = {}
+	local passive = passiveLine(def)
+	if passive then
+		table.insert(result, passive)
+	end
 	for id, recipe in recipes do
 		if recipe.stationId == def.id then
 			table.insert(result, {
@@ -394,6 +430,12 @@ end
 
 -- Whether the input holds a whole batch and the station can work on it, and why not.
 local function readiness(state: State, ctx: Context): (Line?, Activity)
+	local passive = passiveLine(ctx.def)
+	if passive and ctx.def.passive then
+		local full = passiveHeld(state, ctx.def.passive.itemId) >= ctx.def.passive.max
+			or not fits(state.output, passive.outputs, Converter.slotCap(ctx.def, state.level), ctx.items)
+		return passive, if full then "outputFull" else "working"
+	end
 	local line = Converter.lineFor(ctx.def, ctx.recipes, state.input.itemId)
 	if line == nil or state.input.count <= 0 then
 		return nil, "idle"
@@ -447,9 +489,11 @@ function Converter.advance(state: State, ctx: Context, now: number): (State, { T
 		end
 		result.worked = 0
 		local cond = condition(result.input, ctx.items)
-		result.input.count -= line.inputCount
-		if result.input.count <= 0 then
-			result.input = emptySlot()
+		if line.inputCount > 0 then
+			result.input.count -= line.inputCount
+			if result.input.count <= 0 then
+				result.input = emptySlot()
+			end
 		end
 		local outputs: { Types.ItemStack } = if line.salvage
 			then rollSalvage(line.salvage, ctx, result, cond)
@@ -476,7 +520,11 @@ function Converter.status(state: State, ctx: Context): Status
 		batchSeconds = batchSeconds,
 		progress = if batchSeconds > 0 then math.clamp(state.worked / batchSeconds, 0, 1) else 0,
 		batchRemaining = math.max(0, batchSeconds - state.worked),
-		batchesLeft = if line then state.input.count // line.inputCount else 0,
+		-- A passive station counts the room left under its max instead of the input.
+		batchesLeft = if ctx.def.passive
+			then math.max(0, ctx.def.passive.max - passiveHeld(state, ctx.def.passive.itemId))
+			elseif line then state.input.count // line.inputCount
+			else 0,
 		ready = Converter.ready(state),
 		capacity = cap,
 		fuelSeconds = Converter.fuelSeconds(state, ctx.def),

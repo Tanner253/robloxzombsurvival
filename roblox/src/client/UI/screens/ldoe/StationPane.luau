@@ -7,6 +7,8 @@
 	- the converter: the input slot, an arrow with the batch bar, and the output slot (the
 	  Recycler shows its four outputs); fuelled stations add the fuel slot and burn bar;
 	- a status line: time left, how many batches the input holds, or why it waits.
+	A passive station (the Rain Barrel, F-21) has no input slot and no recipe list: the arrow
+	fills its output by itself, and the line says how long until the next and how much room.
 
 	Drag a stack onto the input or fuel slot (or select it and press PUT IN / ADD FUEL);
 	click the input to take it back, the output to take it into the bag. The client draws
@@ -304,7 +306,19 @@ local function StationPane(props: Props)
 	local line = status.line
 	local maxed = Converter.nextLevel(def, state.level) == nil
 
-	local statusText = if status.activity == "working"
+	-- A passive station (the Rain Barrel, F-21) has no input: it fills itself up to its max.
+	local passive = def.passive
+	local activity: string = status.activity
+	local passiveText: string? = if passive == nil
+		then nil
+		elseif
+			activity == "working"
+		then `Catching rain: {format.duration(status.batchRemaining)} for the next, room for {status.batchesLeft}`
+		else `Full at {passive.max}: take the water`
+	local statusText = if passiveText
+		then passiveText
+		elseif
+			activity == "working"
 		then `{format.duration(status.batchRemaining)} for the next, {status.batchesLeft} in the input`
 		elseif status.activity == "noFuel" then "Add fuel to keep it burning"
 		elseif status.activity == "outputFull" then "The output is full: take it"
@@ -374,7 +388,7 @@ local function StationPane(props: Props)
 		alignX = Enum.HorizontalAlignment.Center,
 		padding = Theme.spacing.md,
 		children = {
-			Recipes = e(Parts.BarButton, {
+			Recipes = not passive and e(Parts.BarButton, {
 				text = "All recipes",
 				width = 180,
 				tone = "plain",
@@ -391,7 +405,7 @@ local function StationPane(props: Props)
 				size = UDim2.new(1, 0, 0, math.max(BIG + HINT_HEIGHT + 6, if multi then gridSide else 0)),
 				layoutOrder = 2,
 				children = {
-					Input = e(DropSlot, {
+					Input = not passive and e(DropSlot, {
 						target = "stationInput",
 						slot = state.input,
 						hint = if line then format.itemName(line.inputItemId) else "Input",

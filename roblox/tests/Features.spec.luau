@@ -48,8 +48,30 @@ return function(test: TestKit.Register)
 	test("Fog Runs ship on (F-01): its recipes, station and build piece are in the game", function()
 		TestKit.equal(Content.Tuning.features.fogRuns, true, "flag")
 		TestKit.truthy(Content.Recipes["recipe.pipe_pistol"], "gun recipe")
-		TestKit.truthy(Content.Stations["station.smoke_rack"], "station")
+		TestKit.truthy(Content.Recipes["recipe.cooked_meat"], "the campfire's venison (Raw Venison is a quest reward)")
 		TestKit.truthy(Content.BuildPieces["build.doormat"], "build piece")
+	end)
+
+	test("F-21: the Smoke Rack waits for wildlife: no station, piece or line, and no quest asks", function()
+		TestKit.equal(Content.Tuning.features.wildlife, false, "deer and wolves are deferred")
+		TestKit.equal(Content.Stations["station.smoke_rack"], nil, "station")
+		TestKit.equal(Content.BuildPieces["build.smoke_rack"], nil, "build piece")
+		TestKit.equal(Content.Recipes["recipe.smoked_meat"], nil, "recipe")
+		local Quests = require("../src/shared/Domain/Quests")
+		local Flags = require("../src/shared/Flags")
+		for id, quest in Content.Quests do
+			for _, objective in Quests.objectives(quest, Flags.DEFAULTS) do
+				local o: any = objective
+				TestKit.truthy(o.pieceId ~= "build.smoke_rack", `{id} doesn't ask for the rack`)
+				TestKit.truthy(o.recipeId ~= "recipe.smoked_meat", `{id} doesn't ask for smoked venison`)
+			end
+		end
+		-- Nothing spawns deer while they are deferred, so nothing else may need venison.
+		for id, enemy in Content.Enemies do
+			if enemy.wildlife then
+				TestKit.truthy(enemy.deferred ~= nil, `{id} still deferred: switch features.wildlife on with it`)
+			end
+		end
 	end)
 
 	test("with Fog Runs switched off, its recipes, station and build piece are left out", function()

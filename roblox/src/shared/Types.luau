@@ -177,6 +177,9 @@ export type StationDef = {
 	fuel: StationFuel?, -- converts only while fuel burns
 	salvage: { SalvageDef }?, -- Recycler: what it breaks down
 	outputSlots: number?, -- output slots; nil means 1
+	-- A station that fills itself with no input (the Rain Barrel, the flow review's F-21): one
+	-- itemId every `seconds` (divided by the level's speed), while the output holds fewer than max.
+	passive: { itemId: ItemId, seconds: number, max: number }?,
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
 
@@ -627,7 +630,7 @@ export type TuningDef = {
 -- Fog Runs (slice 2) -------------------------------------------------------------------
 -- Everything here is read only while Tuning.features.fogRuns is on (Shared/Features).
 
-export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops"
+export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops" | "wildlife"
 
 export type Features = {
 	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
@@ -635,6 +638,7 @@ export type Features = {
 	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift (cut from v0.1, MVP_LAUNCH)
 	regionGates: boolean, -- M4: LDOE_PARITY #43's signal towers before Dense and Black fog
 	airdrops: boolean, -- M4: LDOE_PARITY #43's supply drops as Energy falls
+	wildlife: boolean, -- LDOE_PARITY #35's deer and wolves, and the venison lines that need them
 }
 
 -- Per-weapon melee overrides; anything missing comes from Tuning.melee.
