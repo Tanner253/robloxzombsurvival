@@ -113,6 +113,19 @@ function Survival.consume(player: Player, effect: Types.ConsumeEffect)
 end
 
 -- Full health (level-ups).
+-- How many heals are still running and what they have left to give (Studio checks).
+function Survival.healsOf(player: Player): string
+	local state = runtime[player]
+	if state == nil then
+		return "none"
+	end
+	local parts: { string } = {}
+	for _, heal in state.heals do
+		table.insert(parts, `{math.floor(heal.remaining * 10) / 10}`)
+	end
+	return `{#state.heals} running` .. (if #parts > 0 then ` ({table.concat(parts, ", ")} left)` else "")
+end
+
 function Survival.healFull(player: Player)
 	local humanoid = humanoidOf(player)
 	if humanoid then
