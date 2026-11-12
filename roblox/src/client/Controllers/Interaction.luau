@@ -720,6 +720,28 @@ function Interaction.aimAtMouse()
 	end
 end
 
+--[[
+	The click paths, for the Studio-only AutoPlayer (Controllers/AutoPlayer), so it plays
+	through exactly what a click or E does:
+	- swingAt: one swing at a node (throttled to the swing time), as a click on it;
+	- useModel: E on a station, crate, container, bag, exit or drop in reach;
+	- reach: how close a player must stand to use a model of that kind.
+]]
+Interaction.swingAt = swingAt
+
+function Interaction.useModel(model: Model, kind: string): boolean
+	local described = describe(model, kind)
+	if described == nil then
+		return false
+	end
+	use(described)
+	return true
+end
+
+function Interaction.reach(kind: string, model: Model): number
+	return reachFor(kind, model)
+end
+
 function Interaction.start()
 	RunService.Heartbeat:Connect(function(dt)
 		scanElapsed += dt

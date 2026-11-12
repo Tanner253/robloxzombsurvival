@@ -70,6 +70,7 @@ local SPECS: { { name: string, spec: TestKit.Spec } } = {
 	{ name = "Facing", spec = require("./Facing.spec") },
 	{ name = "Trigger", spec = require("./Trigger.spec") },
 	{ name = "RightPane", spec = require("./RightPane.spec") },
+	{ name = "AutoPlan", spec = require("./AutoPlan.spec") },
 	{ name = "QolFlow", spec = require("./QolFlow.spec") },
 	{ name = "AssetAudit", spec = require("./AssetAudit.spec") },
 	{ name = "Content2", spec = require("./Content2.spec") },
