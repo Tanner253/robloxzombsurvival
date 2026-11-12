@@ -16,6 +16,7 @@
 
 local Types = require("../Types")
 local Offers = require("./Offers")
+local Unlocks = require("./Unlocks")
 
 local Receipts = {}
 
@@ -34,8 +35,22 @@ export type Delivery = {
 	vipLounge: boolean,
 }
 
--- When the shop decides what's on offer: the clock and the first win (the Firestarter Kit).
-export type OfferContext = { now: number, firstWinAt: number, firstPurchaseHours: number }
+-- A capped piece on the plot: how many of its chain stand there and its limit now.
+export type Placed = { count: number, limit: number }
+
+--[[
+	When the shop decides what's on offer: the clock and the first win (the Firestarter Kit),
+	and (the flow review's F-12, F-27) the player's progress for a product's unlock gate and
+	the capped pieces on their plot, by base piece, for "+1 can be placed" products. Without
+	`progress` no gate is checked; without `placed` a capacity product is never offered.
+]]
+export type OfferContext = {
+	now: number,
+	firstWinAt: number,
+	firstPurchaseHours: number,
+	progress: Unlocks.Progress?,
+	placed: { [string]: Placed }?,
+}
 
 export type Decision = "granted" | "duplicate"
 
@@ -98,7 +113,9 @@ end
 
 --[[
 	Whether the shop may offer `product` now, and why not: "notListed", "limit", "level", or
-	"window" (the Firestarter Kit outside its never-paid, 48 h-after-the-first-win window).
+	"window" (the Firestarter Kit outside its never-paid, 48 h-after-the-first-win window),
+	"locked" (its unlock gate isn't met, F-12) or "notFull" (a capacity product while the plot
+	still has room for that piece, F-27).
 	Returns when an offer with a countdown ends (0 when it has none).
 ]]
 function Receipts.canOffer(
@@ -117,6 +134,21 @@ function Receipts.canOffer(
 	if product.offerMaxLevel and level > product.offerMaxLevel then
 		return false, "level", 0
 	end
+	-- F-12: never sell what the player can't use yet (pieces they can't place, parts for
+	-- recipes still locked): the card greys with the gate's line instead.
+	if product.unlock and context and context.progress and not Unlocks.isMet(product.unlock, context.progress) then
+		return false, "locked", 0
+	end
+	-- F-27: "+1 can be placed" only once the plot holds as many as it may.
+	for _, grant in product.grants do
+		local g: any = grant
+		if g.kind == "pieceSlot" then
+			local placed = if context and context.placed then context.placed[g.pieceId] else nil
+			if placed == nil or placed.count < placed.limit then
+				return false, "notFull", 0
+			end
+		end
+	end
 	if product.offer == "firstPurchase" then
 		if context == nil then
 			return false, "window", 0
@@ -129,6 +161,40 @@ function Receipts.canOffer(
 		return true, nil, endsAt
 	end
 	return true, nil, 0
+end
+
+--[[
+	The line a greyed card shows for a product that isn't on offer because of the player's
+	progress (F-12, F-27), or nil: "Complete the 'Stand Your Ground' quest" for a gate,
+	"Placed 1/2: buy when your plot is full" for a capacity product (or the piece's own
+	unlock line while it is still locked).
+]]
+function Receipts.lockLine(
+	product: Types.ProductDef,
+	reason: string?,
+	context: OfferContext?,
+	names: Unlocks.Names,
+	pieces: { [string]: { unlock: Types.UnlockGate? } }
+): string?
+	if reason == "locked" then
+		return Unlocks.text(product.unlock, names)
+	elseif reason == "notFull" then
+		for _, grant in product.grants do
+			local g: any = grant
+			if g.kind == "pieceSlot" then
+				local piece = pieces[g.pieceId]
+				local progress = context and context.progress
+				if piece and progress and not Unlocks.isMet(piece.unlock, progress) then
+					return Unlocks.text(piece.unlock, names)
+				end
+				local placed = context and context.placed and context.placed[g.pieceId]
+				if placed then
+					return `Placed {placed.count}/{placed.limit}: buy when your plot is full`
+				end
+			end
+		end
+	end
+	return nil
 end
 
 --[[

@@ -82,6 +82,49 @@ function MomentOffers.runSlot(energy: number, cost: number, blocked: boolean): R
 	return { run = if short > 0 then "refill" else "go", short = short }
 end
 
+export type BreakOffer = { kind: "kit" } | { kind: "fillUp", recipeId: string }
+
+--[[
+	What a "Your X broke" toast offers (the flow review's F-28). A weapon: the Scavenger's Kit,
+	to fight on. A tool: Fill Up of the hand recipe that makes it again, so the hatchet you
+	lost is one tap away. Armor and anything else: nothing (a combat kit for a broken hatchet
+	read as a cash grab). `items` and `recipes` are Data/Items and Data/Recipes.
+]]
+function MomentOffers.forBreak(
+	text: string,
+	items: { [string]: { name: string, category: string } },
+	recipes: { [string]: { stationId: string?, outputs: { { itemId: string, count: number } } } }
+): BreakOffer?
+	local name = string.match(text, "^Your (.-) broke")
+	if name == nil then
+		return nil
+	end
+	local itemId: string? = nil
+	for id, def in items do
+		if def.name == name then
+			itemId = id
+			break
+		end
+	end
+	local def = if itemId then items[itemId] else nil
+	if def == nil or itemId == nil then
+		return nil
+	elseif def.category == "weapon" then
+		return { kind = "kit" }
+	elseif def.category == "tool" then
+		local best: string? = nil
+		for id, recipe in recipes do
+			if recipe.stationId == nil and recipe.outputs[1] and recipe.outputs[1].itemId == itemId then
+				if best == nil or id < best then
+					best = id
+				end
+			end
+		end
+		return if best then { kind = "fillUp", recipeId = best } else nil
+	end
+	return nil
+end
+
 -- Once the death screen closes: whether to start the trip back in from home, and whether the
 -- re-entry stays open (not once the bag is recovered, nor after the lobby closed).
 function MomentOffers.afterHold(choice: Choice, recovered: boolean): { reenter: boolean, keepReentry: boolean }

@@ -132,6 +132,11 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		icon = "rbxassetid://111714823062229",
 		defaultPriceRobux = price["product.room_kit_reinforced"],
 		tab = "supplies",
+		-- Every Reinforced piece needs the Plans read (Data/BuildPieces REINFORCED_TIER): on sale
+		-- once they are, greyed with "Read the Reinforcement Plans" before (the flow review's
+		-- F-12; LDoE's locked lines name their condition, rec9). The Plans stay out of the kit:
+		-- a repeatable pack never carries a permanent unlock (tests/Shop.spec).
+		unlock = { kind = "blueprint", itemId = "item.bp_reinforced" },
 		grants = items({ -- about 32 grind-hours (the whole 3x3 room is about 145)
 			{ itemId = "item.ironbark_plank", count = 30 },
 			{ itemId = "item.copper_wire", count = 12 },
@@ -201,15 +206,21 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 	["product.scouts_kit"] = {
 		id = "product.scouts_kit",
 		name = "Scout's Kit",
-		description = "A Tire Iron, dressings, tins and water: a quick, light trip into the Fog.",
+		description = "The whole Reedweave set, a Tire Iron, Trail Rations and food: a new survivor's first trip out.",
 		kind = "devProduct",
 		robloxId = 3729896813,
 		icon = "rbxassetid://78831018995933",
 		defaultPriceRobux = price["product.scouts_kit"],
 		tab = "equipment",
+		-- Its own job (the flow review's F-26): the Scavenger's Kit re-arms a veteran after a bad
+		-- run; this one dresses a fresh survivor head to toe and pays for the road (Rations).
 		grants = items({
+			{ itemId = "item.reedweave_cap", count = 1 },
+			{ itemId = "item.reedweave_shirt", count = 1 },
+			{ itemId = "item.reedweave_trousers", count = 1 },
+			{ itemId = "item.reedweave_wraps", count = 1 },
 			{ itemId = "item.tire_iron", count = 1 },
-			{ itemId = "item.field_dressing", count = 5 },
+			{ itemId = "item.rations", count = 3 },
 			{ itemId = "item.sealed_tin", count = 3 },
 			{ itemId = "item.boiled_water", count = 3 },
 		}),
@@ -223,6 +234,7 @@ local Products: { [Types.ProductId]: Types.ProductDef } = {
 		icon = "rbxassetid://94037310668170",
 		defaultPriceRobux = price["product.weapon_parts"],
 		tab = "equipment",
+		unlock = { kind = "quest", questId = "quest.the_dense_fog" }, -- the re-crafts it feeds (F-12)
 		grants = items({
 			{ itemId = "item.trigger_group", count = 2 },
 			{ itemId = "item.steel_pipe", count = 2 },

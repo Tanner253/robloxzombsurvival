@@ -256,4 +256,158 @@ return function(test: TestKit.Register)
 		end
 		TestKit.truthy(refill > 0, "the Refill gives Energy")
 	end)
+
+	-- Batch 2 (the flow review's quality-of-life findings) ---------------------------------
+
+	local Unlocks = require("../src/shared/Domain/Unlocks")
+	local MomentOffers = require("../src/shared/Domain/MomentOffers")
+	local NAMES: any = { items = Content.Items, quests = Content.Quests }
+
+	local function progress(completed: { [string]: number }?, blueprints: { [string]: boolean }?): Unlocks.Progress
+		return {
+			level = 1,
+			unlocks = { recipes = {}, blueprints = blueprints or {} },
+			quests = { completed = completed or {} },
+		}
+	end
+
+	local function gated(gate: any, ctx: Receipts.OfferContext): Receipts.OfferContext
+		ctx.progress = if gate.kind == "quest"
+			then progress({ [gate.questId] = 1 })
+			else progress(nil, { [gate.itemId] = true })
+		return ctx
+	end
+
+	test("F-12: a pack whose gate isn't met is greyed with its line, and sells once it is", function()
+		local kit = Products["product.room_kit_reinforced"]
+		TestKit.deepEqual(kit.unlock, { kind = "blueprint", itemId = "item.bp_reinforced" }, "the Plans")
+		local ctx = context(0, 1000)
+		ctx.progress = progress()
+		local ok, reason = Receipts.canOffer(kit, fresh(), 1, ctx)
+		TestKit.equal(ok, false)
+		TestKit.equal(reason, "locked")
+		TestKit.equal(
+			Receipts.lockLine(kit, reason, ctx, NAMES, Content.BuildPieces :: any),
+			"Read the Reinforcement Plans"
+		)
+		TestKit.equal((Receipts.canOffer(kit, fresh(), 1, gated(kit.unlock, context(0, 1000)))), true, "after reading")
+		-- Every gate names something real, and the parts pack opens with the re-crafts it feeds.
+		for id, product in Products do
+			local gate: any = product.unlock
+			if gate then
+				TestKit.truthy(Unlocks.text(gate, NAMES) ~= nil, `{id} has a lock line`)
+				TestKit.truthy(
+					(gate.kind == "quest" and Content.Quests[gate.questId] ~= nil)
+						or (gate.kind == "blueprint" and Content.Items[gate.itemId] ~= nil),
+					`{id}'s gate exists`
+				)
+			end
+		end
+		local parts = Products["product.weapon_parts"].unlock :: any
+		local feeds = false
+		for _, recipe in Content.Recipes do
+			local gate: any = recipe.unlock
+			for _, input in recipe.inputs do
+				if input.itemId == "item.trigger_group" and gate.kind == "quest" and gate.questId == parts.questId then
+					feeds = true
+				end
+			end
+		end
+		TestKit.truthy(feeds, "Weapon Parts opens with the first recipe that takes a Trigger Group")
+	end)
+
+	test("F-27: '+1 can be placed' waits for a full plot and names the count", function()
+		local slot = Products["product.smelter_slot"]
+		local ctx = context(0, 1000)
+		ctx.progress = progress({ ["quest.into_the_fog"] = 1 })
+		TestKit.equal(select(2, Receipts.canOffer(slot, fresh(), 1, ctx)), "notFull", "no plot known: not offered")
+		ctx.placed = { ["build.smelter"] = { count = 1, limit = 2 } }
+		local ok, reason = Receipts.canOffer(slot, fresh(), 1, ctx)
+		TestKit.equal(ok, false)
+		TestKit.equal(
+			Receipts.lockLine(slot, reason, ctx, NAMES, Content.BuildPieces :: any),
+			"Placed 1/2: buy when your plot is full"
+		)
+		ctx.placed = { ["build.smelter"] = { count = 2, limit = 2 } }
+		TestKit.equal((Receipts.canOffer(slot, fresh(), 1, ctx)), true, "full: on offer")
+		-- Before the Smelter unlocks the line names its quest, not a count.
+		local early = context(0, 1000)
+		early.progress = progress()
+		early.placed = { ["build.smelter"] = { count = 0, limit = 2 } }
+		local _, why = Receipts.canOffer(slot, fresh(), 1, early)
+		local line = Receipts.lockLine(slot, why, early, NAMES, Content.BuildPieces :: any) :: string
+		TestKit.truthy(string.find(line, "quest", 1, true) ~= nil, line)
+		-- BuildRules.placedCaps counts each capped chain on a real layout.
+		local BuildRules = require("../src/shared/Domain/BuildRules")
+		local Grid = require("../src/shared/Domain/Grid")
+		local caps = BuildRules.placedCaps(Grid.new(), Content.BuildPieces :: any, { ["build.smelter"] = 1 })
+		TestKit.deepEqual(
+			caps["build.smelter"],
+			{ count = 0, limit = (BuildRules.limitOf("build.smelter", Content.BuildPieces :: any) :: number) + 1 }
+		)
+	end)
+
+	test("F-26: the Scout's Kit has its own job, not a worse Scavenger's Kit", function()
+		local function contents(id: string): { [string]: number }
+			local result: { [string]: number } = {}
+			for _, grant in Products[id].grants do
+				local g: any = grant
+				if g.kind == "item" then
+					result[g.itemId] = (result[g.itemId] or 0) + g.count
+				end
+			end
+			return result
+		end
+		local scout, scavenger = contents("product.scouts_kit"), contents("product.scavenger_kit")
+		local armor, only = 0, 0
+		for itemId in scout do
+			if Content.Items[itemId].category == "armor" then
+				armor += 1
+			end
+			if scavenger[itemId] == nil then
+				only += 1
+			end
+		end
+		TestKit.equal(armor, 4, "a whole armor set, head to feet")
+		TestKit.truthy((scout["item.rations"] or 0) > 0, "Rations for the road")
+		TestKit.truthy(only >= 5, "most of it is nothing the Scavenger's Kit has")
+	end)
+
+	test("F-28: a broken weapon offers the kit, a broken tool its Fill Up, armor nothing", function()
+		local items: any, recipes: any = Content.Items, Content.Recipes
+		TestKit.deepEqual(
+			MomentOffers.forBreak("Your Scrapblade broke: switched weapons", items, recipes),
+			{ kind = "kit" }
+		)
+		local tool = MomentOffers.forBreak("Your Stone Hatchet broke", items, recipes) :: any
+		TestKit.equal(tool and tool.kind, "fillUp")
+		TestKit.equal(recipes[tool.recipeId].outputs[1].itemId, "item.stone_hatchet")
+		TestKit.equal(MomentOffers.forBreak("Your armor broke", items, recipes), nil)
+		TestKit.equal(MomentOffers.forBreak("Your bag is full", items, recipes), nil)
+		local fs = require("@lune/fs")
+		local shop = fs.readFile("src/client/Controllers/Shop.luau")
+		TestKit.truthy(string.find(shop, "MomentOffers.forBreak(text", 1, true), "the toast asks forBreak")
+		TestKit.equal(string.find(shop, '" broke"', 1, true), nil, "no blanket match on any break")
+	end)
+
+	test("F-10: Fill Up charges for what is missing, never the whole cost", function()
+		local have = function(itemId: string): number
+			return if itemId == "item.timber" then 2 else 0
+		end
+		local cost = { { itemId = "item.timber", count = 3 }, { itemId = "item.stone", count = 2 } }
+		TestKit.deepEqual(
+			Offers.shortfall(cost, have),
+			{ { itemId = "item.timber", count = 1 }, { itemId = "item.stone", count = 2 } }
+		)
+		TestKit.deepEqual(Offers.shortfall(cost, have, 2)[1], { itemId = "item.timber", count = 4 }, "two crafts")
+		local short, price = Offers.fillUpFor(cost, have, embers)
+		TestKit.equal(#(short :: any), 2)
+		TestKit.equal(price, Offers.fillUpPrice(short :: any, embers))
+		TestKit.equal(Offers.fillUpFor({ { itemId = "item.timber", count = 2 } }, have, embers), nil, "nothing short")
+		TestKit.equal(
+			Offers.fillUpFor({ { itemId = "item.bp_reinforced", count = 1 } }, have, embers),
+			nil,
+			"not for sale"
+		)
+	end)
 end

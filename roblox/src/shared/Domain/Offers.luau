@@ -77,6 +77,48 @@ function Offers.fillUpPrice(stacks: { { itemId: string, count: number } }, tunin
 	return if total > 0 then total else nil
 end
 
+--[[
+	What a cost lacks: each stack the player has fewer of than `times` x its count, by how many
+	(in the cost's order). Fill Up charges for this, never the whole cost: having 2 of 3 Timber
+	buys 1. `have` counts an item the way the screen does (the home pool at home).
+]]
+function Offers.shortfall(
+	cost: { { itemId: string, count: number } },
+	have: (itemId: string) -> number,
+	times: number?
+): { { itemId: string, count: number } }
+	local short: { { itemId: string, count: number } } = {}
+	for _, stack in cost do
+		local missing = stack.count * (times or 1) - have(stack.itemId)
+		if missing > 0 then
+			table.insert(short, { itemId = stack.itemId, count = missing })
+		end
+	end
+	return short
+end
+
+--[[
+	The Fill Up slot for a cost (the build tray, upgrades, crafting; the flow review's F-10):
+	the missing stacks and their Ember price, or nil when nothing is missing or something
+	missing can't be bought this way (rare parts and blueprints come only from play).
+]]
+function Offers.fillUpFor(
+	cost: { { itemId: string, count: number } },
+	have: (itemId: string) -> number,
+	tuning: EmberTuning,
+	times: number?
+): ({ { itemId: string, count: number } }?, number?)
+	local short = Offers.shortfall(cost, have, times)
+	if #short == 0 then
+		return nil, nil
+	end
+	local price = Offers.fillUpPrice(short, tuning)
+	if price == nil then
+		return nil, nil
+	end
+	return short, price
+end
+
 -- Embers for `count` Trail Rations: 5 for the five-price, the rest at the single price.
 function Offers.rationsPrice(count: number, tuning: EmberTuning): number
 	return (count // 5) * tuning.rationsFive + (count % 5) * tuning.ration

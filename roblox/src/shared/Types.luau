@@ -439,6 +439,10 @@ export type ProductDef = {
 	defaultPriceRobux: number,
 	limit: number?, -- purchases per player; nil means unlimited (game passes are 1)
 	offerMaxLevel: number?, -- only offered at or below this player level
+	-- Sold only once this gate is met (the flow review's F-12): the card greys with its lock
+	-- line before that. Capacity products ("+1 can be placed") need no gate: they wait for
+	-- the plot to be full (Domain/Receipts.canOffer).
+	unlock: UnlockGate?,
 	-- "firstPurchase": shown only to accounts that never paid, for Tuning.embers.
 	-- firstPurchaseHours after their first win, once (Domain/Offers).
 	offer: "firstPurchase"?,
