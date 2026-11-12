@@ -7,9 +7,13 @@
 	  & decor and the starred tab join when they have pieces) with the active tab's name, a
 	  CLOSE at the right, and a row of cards: the piece's real model, its name, cost chips
 	  with have/need, "Installed x/y" on placeables, a NEW ribbon on pieces a quest just
-	  unlocked, and the lock text naming the quest.
+	  unlocked, and the lock text naming the quest. A cost nothing unlocked can make yet adds
+	  where it will come from ("Stonecutter: Ember Trail 4", the flow review's F-34).
+	- The card being placed, short of materials, puts "Fill up (coin) N" in the tray's
+	  header beside CLOSE (F-10, LDOE_PARITY #28: the crafting pane's Fill Up).
 	- Click a placed piece (with no card picked) for its floating actions: move (objects),
-	  demolish (red) and upgrade (green, with the next tier's have/need). R, U and X stay.
+	  demolish (red) and upgrade (green, with the next tier's have/need, and Fill up when
+	  it is short). R, U and X stay.
 	- The cursor hint sits above the tray.
 ]]
 
@@ -22,6 +26,8 @@ local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Grid = require(ReplicatedStorage.Shared.Domain.Grid)
+local ItemSources = require(ReplicatedStorage.Shared.Domain.ItemSources)
+local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local Actions = require("../../../Actions")
 local Building = require("../../../Controllers/Building")
@@ -31,11 +37,13 @@ local Theme = require("../../theme")
 local hooks = require("../../hooks")
 local format = require("../../format")
 local mark = require("../../mark")
+local offers = require("../../offers")
 local CostChip = require("../../components/CostChip")
 local Glyph = require("../../components/Glyph")
 local IconButton = require("../../components/IconButton")
 local Layout = require("../../components/Layout")
 local ModelView = require("../../components/ModelView")
+local PriceButton = require("../../components/PriceButton")
 
 local e = React.createElement
 local H = Theme.hud
@@ -54,6 +62,9 @@ local TABS: { { id: string, label: string, glyph: string, kinds: { [string]: boo
 }
 
 local CARD = Vector2.new(132, 156)
+-- A card with a source line (F-34) is wider, so the line reads at caption size.
+local WIDE_CARD = 176
+local NAMES = { items = Content.Items :: any, quests = Content.Quests :: any }
 
 local function pieceModel(pieceId: string): Model?
 	local assets = ReplicatedStorage:FindFirstChild("Assets")
@@ -95,6 +106,36 @@ State.fx:Connect(function(kind: any, payload: any)
 	end
 end)
 
+-- The Fill Up slot for a cost (the flow review's F-10, LDOE_PARITY #28): the missing stacks
+-- and their Ember price, or nil when nothing is short or a short item is never sold.
+local function fillUpFor(cost: { any }, pooled: any): ({ any }?, number?)
+	if offers.fillUp == nil then
+		return nil, nil
+	end
+	return Offers.fillUpFor(cost, function(itemId: string): number
+		return format.count(pooled, itemId)
+	end, Content.Tuning.embers :: any)
+end
+
+-- The crafting pane's Fill Up, as a price button: "Fill up (coin) 12" asks to buy the
+-- shortfall (screens/ldoe/EmberConfirm, GET EMBERS when the balance is short).
+local function FillUpButton(props: { short: { any }, price: number, size: UDim2, layoutOrder: number })
+	return e(PriceButton, {
+		currency = "embers",
+		label = "Fill up",
+		price = props.price,
+		enabled = true,
+		size = props.size,
+		layoutOrder = props.layoutOrder,
+		onActivated = function()
+			local fillUp = offers.fillUp
+			if fillUp then
+				fillUp(props.short)
+			end
+		end,
+	})
+end
+
 local function Card(props: { def: any, pooled: any, layout: any, selected: boolean, layoutOrder: number })
 	local def = props.def
 	local progress = progressNow()
@@ -109,6 +150,18 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 	local placeable = def.kind == "station" or def.kind == "storage" or def.kind == "furniture"
 	local model = pieceModel(def.id)
 	local costs: { [string]: any } = {}
+	-- F-34: a cost nothing unlocked can make yet says where it will come from, so an open card
+	-- that can't be built yet tells you why ("Stonecutter: Ember Trail 4" under the red chip).
+	local source: string? = nil
+	if unlocked then
+		for _, stack in def.cost do
+			local maker = ItemSources.lockedMaker(Content :: any, stack.itemId, progress, NAMES)
+			if maker and format.count(props.pooled, stack.itemId) < stack.count then
+				source = maker
+				break
+			end
+		end
+	end
 	for index, stack in def.cost do
 		costs[`C{index}`] = e(CostChip, {
 			itemId = stack.itemId,
@@ -119,7 +172,7 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 		})
 	end
 	return e("TextButton", {
-		Size = UDim2.fromOffset(CARD.X, CARD.Y),
+		Size = UDim2.fromOffset(if source then WIDE_CARD else CARD.X, CARD.Y),
 		AutoButtonColor = false,
 		Text = "",
 		LayoutOrder = props.layoutOrder,
@@ -147,7 +200,8 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 			padding = 6,
 			children = {
 				Preview = e("Frame", {
-					Size = UDim2.new(1, 0, 0, 62),
+					-- The model gives up a line's height when the card carries a source line.
+					Size = UDim2.new(1, 0, 0, if source then 46 else 62),
 					BackgroundTransparency = 1,
 					LayoutOrder = 1,
 				}, {
@@ -190,6 +244,17 @@ local function Card(props: { def: any, pooled: any, layout: any, selected: boole
 					TextSize = Theme.textSize.caption,
 					TextColor3 = if installed >= limit then Theme.colors.locked else Theme.colors.textMuted,
 					LayoutOrder = 4,
+				}),
+				Source = source and e("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 14),
+					BackgroundTransparency = 1,
+					FontFace = Theme.fonts.body,
+					Text = source,
+					TextScaled = true,
+					TextColor3 = Theme.colors.locked,
+					LayoutOrder = 5,
+				}, {
+					Max = e("UITextSizeConstraint", { MaxTextSize = Theme.textSize.caption }),
 				}),
 			},
 		}),
@@ -250,6 +315,11 @@ local function PieceActions(props: { uid: string, layout: any, pooled: any })
 	local def = Content.BuildPieces[piece.pieceId]
 	local nextDef = if def.upgradesTo then Content.BuildPieces[def.upgradesTo] else nil
 	local costs: { [string]: any } = {}
+	-- F-10: an upgrade short of plates has its buy button beside the costs.
+	local upShort, upPrice = nil, nil
+	if nextDef and BuildRules.isUnlocked(nextDef, progressNow()) then
+		upShort, upPrice = fillUpFor(nextDef.cost, props.pooled)
+	end
 	if nextDef then
 		for index, stack in nextDef.cost do
 			costs[`C{index}`] = e(CostChip, {
@@ -307,6 +377,12 @@ local function PieceActions(props: { uid: string, layout: any, pooled: any })
 					layoutOrder = 2,
 					children = costs,
 				}),
+				FillUp = upShort and upPrice and e(FillUpButton, {
+					short = upShort,
+					price = upPrice,
+					size = UDim2.fromOffset(150, 44),
+					layoutOrder = 3,
+				}),
 			},
 		}),
 	}
@@ -320,7 +396,7 @@ local function PieceActions(props: { uid: string, layout: any, pooled: any })
 			gap = 8,
 			alignX = Enum.HorizontalAlignment.Center,
 			alignY = Enum.VerticalAlignment.Center,
-			size = UDim2.fromOffset(280, 64),
+			size = UDim2.fromOffset(if upShort then 440 else 280, 64),
 			position = position,
 			anchorPoint = Vector2.new(0.5, 1),
 			children = buttons,
@@ -415,6 +491,13 @@ local function Build()
 		})
 	end
 
+	-- F-10: the card being placed, short of materials, gets its Fill Up in the tray's header.
+	local selected = if ui.buildPiece then Content.BuildPieces[ui.buildPiece] else nil
+	local fillShort, fillPrice = nil, nil
+	if selected and BuildRules.isUnlocked(selected, progressNow()) then
+		fillShort, fillPrice = fillUpFor(selected.cost, pooled)
+	end
+
 	local touch = ui.touch or (ui.gate ~= nil and ui.gate.touch)
 	local touchRight = if touch then math.ceil(H.touchJumpReserve / (Theme.currentScale or 1)) else 0
 	return e("Frame", {
@@ -480,11 +563,17 @@ local function Build()
 									}),
 								},
 							}),
+							FillUp = fillShort and fillPrice and e(FillUpButton, {
+								short = fillShort,
+								price = fillPrice,
+								size = UDim2.fromOffset(170, 40),
+								layoutOrder = 2,
+							}),
 							Close = e("TextButton", {
 								Size = UDim2.fromOffset(120, 40),
 								BackgroundTransparency = 1,
 								Text = "",
-								LayoutOrder = 2,
+								LayoutOrder = 3,
 								[React.Event.Activated] = function()
 									Building.cancelMove()
 									State.clear("pieceActions")

@@ -27,4 +27,43 @@ return function(test: TestKit.Register)
 			end
 		end
 	end)
+
+	local NAMES: any = { items = Content.Items, quests = Content.Quests }
+	local function after(...: string): any
+		local completed = {}
+		for _, questId in { ... } do
+			completed[questId] = 1
+		end
+		return { level = 1, unlocks = { recipes = {}, blueprints = {} }, quests = { completed = completed } }
+	end
+
+	test("F-34: a cost no open station makes names where it will come from", function()
+		local early = after("quest.first_light", "quest.tools_of_survival", "quest.claim_the_ground")
+		TestKit.equal(
+			ItemSources.lockedMaker(Content :: any, "item.stone_block", early, NAMES),
+			"Stonecutter: Ember Trail 4",
+			"quest 5's Workbench needs blocks from the build line's quest-4 Stonecutter"
+		)
+		local later = after("quest.first_light", "quest.claim_the_ground", "quest.a_place_to_work")
+		TestKit.equal(ItemSources.lockedMaker(Content :: any, "item.stone_block", later, NAMES), nil, "cutter open")
+		TestKit.equal(ItemSources.lockedMaker(Content :: any, "item.timber", early, NAMES), nil, "gathered")
+		TestKit.equal(ItemSources.obtainable(Content :: any, "item.stone_block", early), false)
+		TestKit.equal(ItemSources.obtainable(Content :: any, "item.stone_block", later), true)
+		local fs = require("@lune/fs")
+		local build = fs.readFile("src/client/UI/screens/ldoe/Build.luau")
+		TestKit.truthy(string.find(build, "ItemSources.lockedMaker(", 1, true), "the build card asks")
+	end)
+
+	test("F-10: the build tray and the upgrade button carry the crafting pane's Fill Up", function()
+		local fs = require("@lune/fs")
+		local build = fs.readFile("src/client/UI/screens/ldoe/Build.luau")
+		TestKit.truthy(string.find(build, "FillUp = fillShort and fillPrice and e(FillUpButton", 1, true), "tray")
+		TestKit.truthy(string.find(build, "FillUp = upShort and upPrice and e(FillUpButton", 1, true), "upgrade")
+		TestKit.truthy(string.find(build, "local fillUp = offers.fillUp", 1, true), "the same offer as crafting")
+		-- Crafting and crate upgrades buy the shortfall, not the whole cost.
+		for _, file in { "src/client/UI/screens/CraftingScreen.luau", "src/client/UI/screens/InventoryScreen.luau" } do
+			local source = fs.readFile(file)
+			TestKit.truthy(string.find(source, "Offers.shortfall(", 1, true), `{file} fills only the shortfall`)
+		end
+	end)
 end

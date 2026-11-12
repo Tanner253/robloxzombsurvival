@@ -22,6 +22,7 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local Crafting = require(ReplicatedStorage.Shared.Domain.Crafting)
 local ItemSources = require(ReplicatedStorage.Shared.Domain.ItemSources)
+local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
 local Sfx = require("../../Sfx")
@@ -509,8 +510,12 @@ local function Detail(props: { recipe: any, pooled: any, progress: any, unlocked
 				anchorPoint = Vector2.new(1, 0),
 				onActivated = function()
 					local fillUp = offers.fillUp
-					if fillUp then
-						fillUp(recipe.inputs)
+					-- Only what this many crafts lack, never the whole recipe (Offers.shortfall).
+					local short = Offers.shortfall(recipe.inputs, function(itemId: string): number
+						return format.count(props.pooled, itemId)
+					end, runs)
+					if fillUp and #short > 0 then
+						fillUp(short)
 					end
 				end,
 			}),

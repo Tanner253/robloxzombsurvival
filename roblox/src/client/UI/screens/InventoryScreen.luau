@@ -22,6 +22,7 @@ local Content = require(ReplicatedStorage.Shared.Data)
 local Unlocks = require(ReplicatedStorage.Shared.Domain.Unlocks)
 local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Slots = require(ReplicatedStorage.Shared.Domain.Slots)
+local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Actions = require("../../Actions")
 local Net = require("../../Net")
 local Sfx = require("../../Sfx")
@@ -640,8 +641,12 @@ local function CrateUpgrade(props: { uid: string, pieceId: string })
 			anchorPoint = Vector2.new(1, 0.5),
 			onActivated = function()
 				local fillUp = offers.fillUp
-				if fillUp then
-					fillUp(nextDef.cost)
+				-- Only what the upgrade lacks, never its whole cost (Offers.shortfall).
+				local short = Offers.shortfall(nextDef.cost, function(itemId: string): number
+					return format.count(pooled, itemId)
+				end)
+				if fillUp and #short > 0 then
+					fillUp(short)
 				end
 			end,
 		}),
