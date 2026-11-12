@@ -1370,10 +1370,10 @@ return function(test: TestKit.Register)
 		local stats = result.stats
 		TestKit.equal(stats.starvingMinutes, 0, "starving minutes")
 		TestKit.truthy(stats.foodMinutes <= 0.15 * stats.runMinutes, "food time at most 15% of run time")
-		-- F-13 and F-14 move this: the pine bands' ammo rows became scrap (earlier Scrapblades)
-		-- and the Pistol's 150 shots carry more of a Black run, so melee breaks about 1 run in
-		-- 20 (it was 1 in 4). It must still break.
-		TestKit.truthy(stats.brokenRuns >= 0.05 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
+		-- F-13 and F-14 dropped this to about 1 run in 20 (the floor went to 5%). With content2
+		-- modelled (chapter 4's plates and rivets, the Fortified goal) and loaded stations fuelled
+		-- between visits, melee breaks in about 1 run in 4 again, so the 10% floor is back.
+		TestKit.truthy(stats.brokenRuns >= 0.10 * stats.runs, `{stats.brokenRuns} of {stats.runs} runs broke a weapon`)
 		TestKit.truthy(stats.gunsCrafted > 0 and stats.gunRuns > 0, "the Pipe Pistol is used on Black runs")
 		-- 150 shots at 15 a Black run: a pistol lasts at most 10 runs, then it is re-crafted.
 		TestKit.truthy(

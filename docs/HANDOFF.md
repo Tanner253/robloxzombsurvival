@@ -262,6 +262,31 @@ Run all checks after each merge.
 >   4. **Content past the Scrap tier** (F-24, F-37): ARSENAL melee and armor (port the parked melee WIP), and Zona item depth (helmets, the gas mask as fog protection, bags, a meds ladder, grenades). Spec first.
 >   5. **More guns** (the ARSENAL roster) and the full SHOP_CATALOG.
 >   6. **M2:** raids, PvP and guilds.
+> - **Update 2026-11-11, 2.0 batch 4 (content past the Scrap tier): built, behind `Tuning.features.content2 = false`.** Branch `content-past-scrap`, not merged. Spec: [CONTENT_2_0.md](CONTENT_2_0.md). 534 Lune specs, all six checks green.
+>   - **In:**
+>     - 23 items: the four ARSENAL melee (Hand Axe, Hardwood Bat, Field Knife, Hay Fork), the Hidebound and Riveted sets (each piece consumes the one below), Steel Helmet, Combat Helmet, Plate Carrier, Gas Mask, Hide Rucksack (+8), Ranger Pack (+15), Trauma Pouch, First-Aid Kit, Ember Stim, Steel Plate, Antiseptic Tablets. 18 recipes, 32 loot rows.
+>     - The **Fortified tier** (tier 4, five pieces upgrading from Reinforced) and two stations: the Blast Furnace (Steel Plate; needs a Reinforced floor) and the Apothecary (Antiseptic; needs a Fortified floor).
+>     - Ember Trail **chapter 4, "Iron Lungs"** (quests 26-33), after Hold the Line.
+>     - Rules: `Domain/Gear` (defense, bag slots capped at `maxBackpackSlots`, now 20), `Domain/Meds` (instant plus healing over time, 3 at once), `FogExposure.filterWear` (the mask's filter, 1 a second in Dense and Black fog), `Combat.backstab` and `Combat.meleeNoise` overrides. Wired in `Lobby` (Gear defense; filter wear applied 5 points at a time), `Survival` (heals tick with the meters, drop on death) and `Inventory` (bag slots; the meds button picks the biggest total).
+>     - `Features.strip` now also drops tagged quests and loot rows, and the upgrade link into a dropped piece. `tests/Content2.spec`: flag off, nothing in the bundle names anything new; flag on, it validates and every item is earnable.
+>     - The melee WIP (`worktree-agent-a3c75eb84c6644ce1`): its class taxonomy is ported as `melee.class`; its clips, poses and timing stay parked for batch 1.
+>   - **Save schema: unchanged** (no new slots; heals are runtime only), so this batch takes no v13. If the Haven VIP or another branch bumps it, nothing here conflicts.
+>   - **Pacing** (`tests/Pacing.spec`, content modelled on): every existing band green on the 21-day runs (2.5 h: Scrap 4.37, Black 6.81, Reinforced 11.79). New 30-day run: chapter 4 from day 17.8 to 27.8 with no gap over 4 days, Fortified on day 24.8; 3 h a day ends it on 23.8; 2 h a day gets 7 of 8 by day 30. Two sim changes: a loaded station gets fuel between demands, and a quest's crates can steer runs (`seek`).
+>     - **The open melee-wear item above is closed:** melee now breaks in 52 of 233 runs (22%) at 2.5 h a day, so `Pacing.spec`'s floor is back at 10%.
+>   - **Studio pass (orchestrator), in order:**
+>     1. Upload the 14 GLBs in `art/content2/` and grade each side by side with rec9. The gear and meds are decoded for Roblox (no meshopt or WebP). The four melee are the **unreviewed** `art/zona/wip-v3` files: check them first. The pill box (Antiseptic Tablets) is a 12-triangle textured box: keep it only if the icon grades A.
+>     2. Generate (free Studio MCP) and grade what Zona has no licensable model for: the 8 Hidebound and Riveted pieces, Steel Plate, the 5 Fortified pieces, the Blast Furnace and the Apothecary.
+>     3. Held grips for the four melee (batch 1 owns grips; `melee.class` says axe, blunt, stab, stab).
+>     4. Worn visuals: both helmets, the gas mask and the set caps on the head, the Hidebound and Riveted pieces, the Plate Carrier, both bags on the back.
+>     5. Icons for all 23 (every `icon` is "" today), and `Art.items` entries.
+>     6. **The Combat hook** (Services/Combat.luau, batch 1's file): at the melee hit, pass the weapon's melee stats: `CombatMath.backstab(fighter.sneaking, Hollow.isAware(run.hosted, target.id), tuning.sneak, weapon.melee)`. The knife's quiet swing needs `Hollow.noise` to take a radius: `CombatMath.meleeNoise(weapon.melee, tuning.noise.melee)`.
+>     7. Flip `content2 = true` (and the "ships off" test in `Content2.spec`), then check in play: the mask's filter in Black fog, healing over time, a Fortified upgrade, the 20-slot backpack.
+>   - **Seen, not fixed:**
+>     - **For the economy batch:** with the mask, `fogExposure.maxResist` 0.8 binds for Hidebound and Riveted wearers, so Black fog stops hurting a geared player (20 min to fill against a 15 min run). Consider 0.75.
+>     - The Hide Rucksack unlocks at quest 13, not F-37's quest 9: at 9 the model's Reinforced tier fell to day 9.8, under its band.
+>     - The Hand Axe's `structureMultiplier` has no reader until M2 raids.
+>     - The Credits panel lists the 14 new models while the flag is off.
+>     - The Blast Furnace burns wood fuel like the Smelter; on Embercoal alone the model starved it.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):
