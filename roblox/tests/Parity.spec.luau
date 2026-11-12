@@ -287,6 +287,30 @@ return function(test: TestKit.Register)
 		TestKit.deepEqual((FogMap.airdropsCrossed(80, 100, day, T0, config)), {}, "regen never triggers")
 	end)
 
+	-- The flow review's F-23: the ad caps, airdrop day, pins and tower parts live in the profile
+	-- (PlayerSchema v13), since every run is a new server.
+	test("F-23: airdrop days save as a list and load back; the caps and towers live in the profile", function()
+		local _, day = FogMap.airdropsCrossed(60, 5, { day = 0, fired = {} }, T0, TUNING.airdrops)
+		local saved = FogMap.saveDay(day)
+		TestKit.deepEqual(saved.fired, { 12, 48 }, "a sorted list, no sparse keys")
+		TestKit.deepEqual(FogMap.loadDay(saved), day, "round trip")
+		local again = FogMap.airdropsCrossed(60, 5, FogMap.loadDay(saved), T0 + 60, TUNING.airdrops)
+		TestKit.deepEqual(again, {}, "a new server remembers today's drops")
+		TestKit.deepEqual(FogMap.loadDay(nil), { day = 0, fired = {} }, "nothing saved")
+		TestKit.deepEqual(FogMap.loadDay({ day = 3, fired = { "x", 84 } }), { day = 3, fired = { [84] = true } })
+		local fs = require("@lune/fs")
+		local travel = fs.readFile("src/server/Services/Travel.luau")
+		local lobby = fs.readFile("src/server/Services/Lobby.luau")
+		for _, gone in { "autoDaily", "airdropDays", "local pins:", "local repaired:", "local contributed:" } do
+			TestKit.equal(string.find(travel, gone, 1, true), nil, `Travel keeps {gone} in memory`)
+		end
+		TestKit.equal(string.find(lobby, "recoverDaily[player] =", 1, true), nil, "Lobby keeps the ad cap in memory")
+		for _, needle in { "limits(player).autoAds", "saved.autoAds = used", "FogMap.loadDay(limits(player).airdrops)" } do
+			TestKit.truthy(string.find(travel, needle, 1, true), `Travel: {needle}`)
+		end
+		TestKit.truthy(string.find(lobby, "data.limits.recoverAds = ", 1, true), "Lobby saves the Recover-all ad cap")
+	end)
+
 	test("#43 an airdrop pin opens the drop location, once", function()
 		local drop = Content.Locations[TUNING.airdrops.locationId]
 		local _, _, closed = Travel.start(drop, "run", travelCtx(100))

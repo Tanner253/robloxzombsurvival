@@ -52,6 +52,37 @@ function FogMap.airdropsCrossed(
 	return crossed, { day = today, fired = fired }
 end
 
+--[[
+	The airdrop day as the profile keeps it (PlayerSchema v13, the flow review's F-23): the
+	thresholds fired as a sorted list, since a DataStore can't hold a sparse number-keyed
+	table. `loadDay` takes whatever was saved (nil or junk reads as no airdrop yet).
+]]
+export type SavedAirdropDay = { day: number, fired: { number } }
+
+function FogMap.saveDay(day: AirdropDay): SavedAirdropDay
+	local fired: { number } = {}
+	for threshold, done in day.fired do
+		if done then
+			table.insert(fired, threshold)
+		end
+	end
+	table.sort(fired)
+	return { day = day.day, fired = fired }
+end
+
+function FogMap.loadDay(saved: any): AirdropDay
+	local fired: { [number]: boolean } = {}
+	if type(saved) ~= "table" or type(saved.day) ~= "number" then
+		return { day = 0, fired = fired }
+	end
+	for _, threshold in (if type(saved.fired) == "table" then saved.fired else {}) :: { any } do
+		if type(threshold) == "number" then
+			fired[threshold] = true
+		end
+	end
+	return { day = saved.day, fired = fired }
+end
+
 function FogMap.pin(threshold: number, now: number, config: Types.AirdropTuning): Pin
 	return { locationId = config.locationId, threshold = threshold, landedAt = now, expiresAt = now + config.pinSeconds }
 end

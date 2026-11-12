@@ -143,7 +143,11 @@ local pendingHosts: { [string]: boolean } = {} -- lobbies whose map is still bei
 local pendingHome: { [Player]: { data: Teleport.HomeData, homePlaceId: number, tries: number } } = {}
 local loadWaits: { [Player]: any } = {} -- run arrivals waiting on their profile
 local dispatched: { [Player]: number } = {} -- when a player's teleport to a lobby was sent
-local recoverDaily: { [Player]: DeathRecovery.DailyState } = {}
+-- The Recover-all ad cap lives in the profile (PlayerSchema v13, F-23): a run is a new server.
+local function recoverDaily(player: Player): DeathRecovery.DailyState
+	local data = PlayerData.get(player)
+	return if data and data.limits then data.limits.recoverAds else { day = 0, used = 0 }
+end
 local holds: { [Player]: Hold } = {}
 local seq = 0
 
@@ -1078,7 +1082,7 @@ end
 -- by rewarded ad once a day or by premium (both verified by S3 through Payments).
 local function recoverAll(player: Player, bagId: string, method: DeathRecovery.Method)
 	local stamp = now()
-	local daily = recoverDaily[player] or { day = 0, used = 0 }
+	local daily = recoverDaily(player)
 	if not DeathRecovery.canRecoverAll(daily, method, stamp, tuning.deathRecovery) then
 		Sync.notice(player, "You've used today's free recovery")
 		return
@@ -1102,8 +1106,9 @@ local function recoverAll(player: Player, bagId: string, method: DeathRecovery.M
 					bagModels[key] = nil
 				end
 				Inbox.grant(player, slots, "Recovery")
-				if method == "ad" then
-					recoverDaily[player] = DeathRecovery.useRecoverAll(daily, stamp)
+				local data = PlayerData.get(player)
+				if method == "ad" and data and data.limits then
+					data.limits.recoverAds = DeathRecovery.useRecoverAll(daily, stamp)
 				end
 				local hold = holds[player]
 				if hold then
@@ -1490,7 +1495,6 @@ local function onPlayerRemoving(player: Player)
 	lastCause[player] = nil
 	pendingHome[player] = nil
 	dispatched[player] = nil
-	recoverDaily[player] = nil
 	local hold = holds[player]
 	if hold then
 		holds[player] = nil

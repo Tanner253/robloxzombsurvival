@@ -102,10 +102,27 @@ return function(test: TestKit.Register)
 		TestKit.equal(old.deaths, 0)
 		TestKit.deepEqual(old.travel, {}, "no Walk: trips lived in server memory before")
 		local fresh = PlayerSchema.template()
-		TestKit.equal(fresh.version, 12)
 		TestKit.equal(fresh.shop.cardShown, false)
 		TestKit.equal(fresh.deaths, 0)
 		TestKit.equal(fresh.travel.walk, nil)
+	end)
+
+	test("v13 (F-23): v12 profiles gain the ad caps, airdrops and tower progress, all unused", function()
+		local old: { [string]: any } = { version = 12, embers = 5, deaths = 3 }
+		PlayerSchema.migrations[12](old)
+		TestKit.deepEqual(old.limits, PlayerSchema.freshLimits(), "nothing to carry over: it was never saved")
+		TestKit.equal(old.deaths, 3, "the rest untouched")
+		local kept = { recoverAds = { day = 9, used = 1 } }
+		local again: { [string]: any } = { version = 12, limits = kept }
+		PlayerSchema.migrations[12](again)
+		TestKit.equal(again.limits, kept, "an existing section is left alone")
+		local fresh = PlayerSchema.template()
+		TestKit.equal(fresh.version, 13)
+		TestKit.deepEqual(fresh.limits.recoverAds, { day = 0, used = 0 })
+		TestKit.deepEqual(fresh.limits.autoAds, { day = 0, adsUsed = 0 })
+		TestKit.deepEqual(fresh.limits.airdrops, { day = 0, fired = {} })
+		TestKit.deepEqual(fresh.limits.towers, { repaired = {}, contributed = {} })
+		TestKit.truthy(fresh.limits ~= PlayerSchema.template().limits, "a fresh table each time")
 	end)
 
 	test("template returns a fresh table each call", function()

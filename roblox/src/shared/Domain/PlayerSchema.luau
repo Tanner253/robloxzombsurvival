@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 12
+PlayerSchema.VERSION = 13
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -116,6 +116,19 @@ export type PlayerData = {
 	-- A Walk under way (v12, F-36): it carries on while the player is offline and arrives on
 	-- their next visit. Nil when not walking.
 	travel: { walk: SavedWalk? },
+	-- Caps and progress that lived in server memory (v13, the flow review's F-23): every run
+	-- is a new server, so they reset on each hop. The rewarded-ad caps (Recover all, AUTO),
+	-- the airdrop day and its live pins, and the signal towers' parts and repairs.
+	limits: Limits,
+}
+
+export type Limits = {
+	recoverAds: { day: number, used: number }, -- DeathRecovery.DailyState
+	autoAds: { day: number, adsUsed: number }, -- AutoClear.DailyState
+	-- FogMap.AirdropDay, its thresholds as a list (a DataStore keeps no sparse number keys).
+	airdrops: { day: number, fired: { number } },
+	pins: { { locationId: string, threshold: number, landedAt: number, expiresAt: number } },
+	towers: { repaired: { [string]: boolean }, contributed: { [string]: { [string]: number } } },
 }
 
 -- A Walk saved in the profile (Domain/Travel trip fields; Services/Travel restores it).
@@ -197,6 +210,17 @@ function PlayerSchema.freshSurvival(): SurvivalSave
 	}
 end
 
+-- Fresh caps and progress (v13, F-23): no ad used, no airdrop, no tower parts.
+function PlayerSchema.freshLimits(): Limits
+	return {
+		recoverAds = { day = 0, used = 0 },
+		autoAds = { day = 0, adsUsed = 0 },
+		airdrops = { day = 0, fired = {} },
+		pins = {},
+		towers = { repaired = {}, contributed = {} },
+	}
+end
+
 -- A fresh profile. ProfileStore copies this for new players and uses it to fill
 -- missing keys (Reconcile) after migrations run.
 function PlayerSchema.template(): PlayerData
@@ -240,6 +264,7 @@ function PlayerSchema.template(): PlayerData
 		shop = { firstWinAt = 0, cardShown = false },
 		deaths = 0,
 		travel = {},
+		limits = PlayerSchema.freshLimits(),
 	}
 end
 
@@ -856,6 +881,14 @@ PlayerSchema.migrations = {
 		end
 		if type(data.travel) ~= "table" then
 			data.travel = {}
+		end
+	end,
+	-- v13, the economy batch (the flow review's F-23): the ad caps, airdrops and signal-tower
+	-- progress move from server memory to the profile. Nothing to carry over: they were
+	-- never saved, so everyone starts with today's caps unused and no tower parts in.
+	[12] = function(data)
+		if type(data.limits) ~= "table" then
+			data.limits = PlayerSchema.freshLimits()
 		end
 	end,
 } :: Migrations.Steps
