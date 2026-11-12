@@ -19,9 +19,8 @@
 	  (Data/UalClips) that replaces the keys when the rig can take it.
 
 	The gun stances, carries and the bow draw were solved by inverse kinematics against the
-	StarterCharacter's joints in Studio (2026-11-12): the grip hand lands on the gun's grip
-	with the bore level along the aim, and the other hand on the handguard (long guns: the
-	torso blades 38 degrees so it reaches). Melee and gathering keys are hand-keyed, with
+	StarterCharacter's joints and meshes in Studio (batch 5 re-solve: no arm inside the torso,
+	head or worn bag; see the note above AIM_PISTOL). Melee and gathering keys are hand-keyed, with
 	each hit frame's wrist set from the weapon's measured direction there: an axe level or
 	a little down into the target, a blade sweeping flat, the stake rising to the chest.
 ]]
@@ -140,63 +139,73 @@ Holds.classes = {
 	throw = { mount = "fist", swing = "throw", heavy = "throw" },
 } :: { [string]: ClassDef }
 
--- Solved stances (see the header): the grip hand on the grip, the bore level ahead.
+--[[
+	Clearance re-solve (batch 5, 2026-11-12): the stances above clipped. The survivor's arms
+	are short against its torso (shoulder to wrist 1.38 studs, the chest 1.53 by 1.28), and
+	the batch-3 blade left the gun elbow inside the chest (the forearm 0.47 studs deep). Each
+	stance below was solved in Studio against the StarterCharacter's own meshes: the hand
+	keeps its rotation (the bore keeps its line), the torso yaw and the hand's place were
+	searched, and each elbow was swung out (two-bone IK) until no arm vertex sat inside the
+	torso, head or worn bag. The elbows sit out to the side or ahead of the chest, as
+	HoldRules.armClear checks. A long gun's off hand closes on the gun just ahead of the grip
+	while aiming (HoldRules.SUPPORT_MAX_STUDS) and lets go at the carry, where a two-handed
+	hold can't clear the chest at this build.
+]]
 local AIM_PISTOL: { [string]: Pose } = {
-	UpperTorso = { 0, -8, 0 },
-	Head = { 0, 6, 0 },
-	RightUpperArm = { 76.8, 2.2, -44.2 },
-	RightLowerArm = { -5.8, 3.1, 10.5 },
-	RightHand = { 3.6, -7.1, 59 },
-	LeftUpperArm = { 51.6, -6, 27.1 },
-	LeftLowerArm = { 36.4, -11.2, -0.9 },
-	LeftHand = { 9.9, -7.8, 3.7 },
+	UpperTorso = { 0, 2, 0 },
+	Head = { 0, -4, 0 },
+	RightUpperArm = { -40.2, 81.5, 118.3 },
+	RightLowerArm = { 37.1, 39.9, 1.2 },
+	RightHand = { 134.7, -56.2, 173.8 },
+	LeftUpperArm = { -60.1, -79.4, -130.1 },
+	LeftLowerArm = { 27.6, -34.5, -3.3 },
+	LeftHand = { 118.5, 24.8, -84.2 },
 }
--- Stock in the shoulder pocket, bladed, the other hand under the handguard (rec6_05).
--- Batch 3: bladed 20 degrees more (from -38) so the off hand reaches the handguard; the
--- head and the gun arm turn back by as much, so the gun and the gaze are unchanged. The
--- off hand lands by IK (client/Controllers/Animations, HoldRules.supportAt).
+-- Shouldered, bladed 30 degrees, the gun elbow out (rec6_05). The off hand lands by IK on the
+-- gun just ahead of the grip (client/Controllers/Animations, HoldRules.supportAt); these
+-- left-arm keys are where that IK starts from.
 local AIM_LONG: { [string]: Pose } = {
-	UpperTorso = { 0, -58, 0 },
-	Head = { 0, 52, 0 },
-	RightUpperArm = { 52.3, 39.3, -67.7 },
-	RightLowerArm = { 54.2, 44.4, -18.4 },
-	RightHand = { -27.7, -15.1, 43.8 },
-	LeftUpperArm = { 51.3, 7.1, 20.5 },
-	LeftLowerArm = { 43, -7, -10.2 },
-	LeftHand = { 2.9, -7.7, 3.9 },
+	UpperTorso = { 0, -30, 0 },
+	Head = { 0, 24, 0 },
+	RightUpperArm = { -44.8, 74.3, 118.2 },
+	RightLowerArm = { 68.4, 51.2, -16.3 },
+	RightHand = { 121.4, -56.8, 150.6 },
+	LeftUpperArm = { 45.3, -62.8, -18.5 },
+	LeftLowerArm = { 54, -47.2, 9.3 },
+	LeftHand = { 104.1, 51.2, -94.1 },
 }
--- Low ready: both hands on the gun, the muzzle down at the ground ahead (rec3_08).
+-- Low ready in the gun hand, the muzzle down at the ground ahead (rec3_08); the off arm
+-- swings with the walk.
 local CARRY_LONG: { [string]: Pose } = {
-	UpperTorso = { 0, -42, 0 }, -- batch 3: 20 degrees more blade (from -22), as AIM_LONG
-	Head = { 0, 38, 0 },
-	RightUpperArm = { 8.7, 43.7, -37.3 },
-	RightLowerArm = { 46.9, 38, -14.3 },
-	RightHand = { -26.7, -9.5, 44.2 },
-	LeftUpperArm = { 27.8, -0.7, 24.2 },
-	LeftLowerArm = { 27.5, 14.2, -7.2 },
-	LeftHand = { -4.9, 4.8, -3.1 },
+	UpperTorso = { 0, -10, 0 },
+	Head = { 0, 6, 0 },
+	RightUpperArm = { -83, 49.7, 127.9 },
+	RightLowerArm = { 46.3, 44.4, -3.3 },
+	RightHand = { 132.7, -46.6, 135 },
 }
 local CARRY_PISTOL: { [string]: Pose } = {
-	RightUpperArm = { -6.4, 21.2, -22.8 },
-	RightLowerArm = { 66.6, 32.7, -1.3 },
-	RightHand = { -21.6, -2.3, 36.2 },
+	UpperTorso = { 0, -10, 0 },
+	Head = { 0, 10, 0 },
+	RightUpperArm = { -104.3, 41.6, 157.1 },
+	RightLowerArm = { 32.5, 37.3, 3.1 },
+	RightHand = { 149.9, -31, 147.2 },
 }
 -- Upright in front of the hip, the string toward the body, both tips clear of the legs.
 local CARRY_BOW: { [string]: Pose } = {
-	RightUpperArm = { -8, 19.3, -23.7 },
-	RightLowerArm = { 62, 32.6, -0.3 },
-	RightHand = { 14, 12.6, 33.4 },
+	RightUpperArm = { -55.7, 46.3, 89.4 },
+	RightLowerArm = { 61.2, 49.5, -11.8 },
+	RightHand = { 98.3, -23.7, 121.8 },
 }
--- The bow arm out at the target, the string hand drawn back to the face.
+-- The bow arm out at the target, the string hand drawn back along the arrow.
 local DRAW_BOW: { [string]: Pose } = {
-	UpperTorso = { 0, 45, 0 },
-	Head = { 0, -40, 0 },
-	RightUpperArm = { 98.1, 14.5, -4.9 },
-	RightLowerArm = { 51.8, -35, 82.5 },
-	RightHand = { -17.7, 39.7, 35.3 },
-	LeftUpperArm = { 79.7, -32.6, 53 },
-	LeftLowerArm = { 93, -83.4, 72.3 },
-	LeftHand = { -19.7, -3.3, 8.9 },
+	UpperTorso = { 0, 15, 0 },
+	Head = { 0, -10, 0 },
+	RightUpperArm = { -146.3, 86.5, -127.1 },
+	RightLowerArm = { 2.5, 13.7, 8.7 },
+	RightHand = { 146, -67.3, 167.8 },
+	LeftUpperArm = { -35.6, -65.3, -144.2 },
+	LeftLowerArm = { 67.9, -50.8, 17.7 },
+	LeftHand = { 17.5, 47.3, -18.9 },
 }
 
 local function held(poses: { [string]: Pose }, length: number): Clip
@@ -226,32 +235,27 @@ Holds.clips = {
 	-- Throwables (batch 5): an overhand throw. The off arm points at the target while the
 	-- throwing arm winds up behind the head with the right shoulder turned back; the chest
 	-- turns through and the hand lets go above the shoulder at `hit` (Services/Throwables
-	-- releases it then), then follows through across the body.
+	-- releases it then), then follows through across the body. The hands keep the hand-keyed
+	-- path; the elbows were re-solved clear of the body (see the stances), and the clip starts
+	-- and ends on what plays beneath it rather than the rig's rest pose, whose arms sit in
+	-- the hips.
 	throw = {
 		length = 0.75,
 		hit = 0.3,
 		partial = true,
 		keys = {
-			{
-				time = 0,
-				poses = {
-					UpperTorso = { 0, 0, 0 },
-					Head = { 0, 0, 0 },
-					RightUpperArm = { 0, 0, 0 },
-					RightLowerArm = { 0, 0, 0 },
-					LeftUpperArm = { 0, 0, 0 },
-					LeftLowerArm = { 0, 0, 0 },
-				},
-			},
+			{ time = 0, poses = {} },
 			{
 				time = 0.18,
 				poses = {
 					UpperTorso = { -8, -40, 0 },
 					Head = { 0, 34, 0 },
-					RightUpperArm = { 150, 0, 18 },
-					RightLowerArm = { 95, 0, 0 },
-					LeftUpperArm = { 85, 0, 12 },
-					LeftLowerArm = { 10, 0, 0 },
+					RightUpperArm = { 72, -10.8, 112 },
+					RightLowerArm = { 53.6, 47.2, -7.3 },
+					RightHand = { 150.2, 33.5, 100.2 },
+					LeftUpperArm = { 84.4, -37.5, 3.4 },
+					LeftLowerArm = { -0.7, -11.7, -7.4 },
+					LeftHand = { 37.2, 42.5, -5.1 },
 				},
 			},
 			{
@@ -259,34 +263,28 @@ Holds.clips = {
 				poses = {
 					UpperTorso = { 6, 14, 0 },
 					Head = { 0, -10, 0 },
-					RightUpperArm = { 135, 0, -4 },
-					RightLowerArm = { 20, 0, 0 },
-					LeftUpperArm = { 45, 0, 10 },
-					LeftLowerArm = { 25, 0, 0 },
+					RightUpperArm = { 124.8, 38.7, 12.8 },
+					RightLowerArm = { 5.3, 16.2, 8.8 },
+					RightHand = { 47.8, -48.6, 13.6 },
+					LeftUpperArm = { 24.7, -57.7, -25.6 },
+					LeftLowerArm = { 7.7, -19.1, -7.4 },
+					LeftHand = { 89.7, 55.1, -48.4 },
 				},
 			},
 			{
 				time = 0.45,
 				poses = {
-					UpperTorso = { 14, 30, 0 },
-					Head = { 0, -24, 0 },
-					RightUpperArm = { 70, 0, -32 },
-					RightLowerArm = { 30, 0, 0 },
-					LeftUpperArm = { 15, 0, 8 },
-					LeftLowerArm = { 15, 0, 0 },
+					UpperTorso = { 14, 40, 0 },
+					Head = { 0, -34, 0 },
+					RightUpperArm = { 75.4, 77.5, 10.9 },
+					RightLowerArm = { 14, 23.8, 8.2 },
+					RightHand = { 131.6, -48.9, 97.5 },
+					LeftUpperArm = { -21.1, -53.8, -46.6 },
+					LeftLowerArm = { 19.6, -28.8, -5.6 },
+					LeftHand = { 65.5, 69, -27.1 },
 				},
 			},
-			{
-				time = 0.75,
-				poses = {
-					UpperTorso = { 0, 0, 0 },
-					Head = { 0, 0, 0 },
-					RightUpperArm = { 0, 0, 0 },
-					RightLowerArm = { 0, 0, 0 },
-					LeftUpperArm = { 0, 0, 0 },
-					LeftLowerArm = { 0, 0, 0 },
-				},
-			},
+			{ time = 0.75, poses = {} },
 		},
 	},
 	-- Melee -----------------------------------------------------------------------------------
@@ -467,28 +465,43 @@ Holds.clips = {
 	drawBow = held(DRAW_BOW, 0.6),
 	recoilPistol = kick(AIM_PISTOL),
 	recoilLong = kick(AIM_LONG),
+	-- The gun comes down in front of the chest, the off hand works the magazine, the gun comes
+	-- back up. Hand-keyed (the UAL Pistol_Reload put the gun forearm 0.12 studs into the chest
+	-- on this rig), each key's elbows solved clear; partial, so the legs walk on under it.
 	reload = {
 		length = 1.2,
-		ual = "Pistol_Reload",
+		partial = true,
 		keys = {
 			{ time = 0, poses = {} },
 			{
 				time = 0.25,
-				poses = { RightUpperArm = { 50, 0, -20 }, RightLowerArm = { 60, 0, 0 }, Head = { -20, 0, 0 } },
+				poses = {
+					Head = { -20, 0, 0 },
+					RightUpperArm = { 41.5, 27, 10.2 },
+					RightLowerArm = { 29.1, 35.1, 4.4 },
+					RightHand = { 82.6, -48, 48.7 },
+				},
 			},
 			{
 				time = 0.6,
 				poses = {
-					RightUpperArm = { 50, 0, -20 },
-					RightLowerArm = { 60, 0, 0 },
-					LeftUpperArm = { 40, 0, 30 },
-					LeftLowerArm = { 70, 0, 0 },
 					Head = { -24, 0, 0 },
+					RightUpperArm = { 41.5, 27, 10.2 },
+					RightLowerArm = { 29.1, 35.1, 4.4 },
+					RightHand = { 82.6, -48, 48.7 },
+					LeftUpperArm = { 13.9, -49.9, -37.4 },
+					LeftLowerArm = { 35.7, -39.3, -0.1 },
+					LeftHand = { 127.8, 24.1, -87 },
 				},
 			},
 			{
 				time = 0.9,
-				poses = { RightUpperArm = { 60, 0, -10 }, RightLowerArm = { 30, 0, 0 }, Head = { -10, 0, 0 } },
+				poses = {
+					Head = { -10, 0, 0 },
+					RightUpperArm = { 55.1, 30.1, 5.4 },
+					RightLowerArm = { 10.9, 21.2, 8.5 },
+					RightHand = { 46.5, -46.4, 14.7 },
+				},
 			},
 			{ time = 1.2, poses = {} },
 		},

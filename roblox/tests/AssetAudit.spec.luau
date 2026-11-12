@@ -70,10 +70,12 @@ return function(test: TestKit.Register)
 	test("the off hand's handguard point on a long gun stays within the arm's reach", function()
 		local HoldRules = require("../src/shared/Domain/HoldRules")
 		TestKit.equal(HoldRules.supportAt("pistol", 0.3, 1.2), nil, "pistols: no support point")
-		TestKit.equal(HoldRules.supportAt("long", 0.31, 2), 0.31 + 0.4, "a short gun: 0.4 of its length")
+		TestKit.equal(HoldRules.supportAt("long", 0.31, 0.2), 0.31 + 0.4, "a tiny gun: 0.4 of its length")
 		local amr = HoldRules.supportAt("long", 0.22, 4.7) :: number
 		TestKit.truthy(math.abs((amr - 0.22) * 4.7 - HoldRules.SUPPORT_MAX_STUDS) < 1e-6, "a long one: capped in studs")
-		TestKit.equal(HoldRules.supportWeight(true), 0, "lets go for a reload")
+		TestKit.equal(HoldRules.supportWeight(true, true), 0, "lets go for a reload")
+		TestKit.equal(HoldRules.supportWeight(false, true), 1, "holds on while aiming")
+		TestKit.equal(HoldRules.supportWeight(false, false), 0, "a one-handed carry")
 		for itemId, art in Art.held do
 			local at = HoldRules.supportAt(HoldRules.classOf(itemId, nil), art.grip, art.length)
 			if at then

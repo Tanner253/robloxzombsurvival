@@ -153,6 +153,48 @@ return function(test: TestKit.Register)
 		end
 	end)
 
+	test("pose limits: every held stance keeps both arms out of the chest (batch 5)", function()
+		-- The batch-3 long carry, which put the gun forearm 0.47 studs into the chest in Studio:
+		-- the rule must catch it.
+		local clipped = {
+			UpperTorso = { 0, -42, 0 },
+			RightUpperArm = { 8.7, 43.7, -37.3 },
+			RightLowerArm = { 46.9, 38, -14.3 },
+		}
+		TestKit.truthy(not HoldRules.armClear(clipped, "Right"), "the old low ready is caught")
+		local elbow = HoldRules.armPoints(clipped, "Right")
+		TestKit.truthy(
+			math.abs(elbow[1] - 0.33) < 0.03 and math.abs(elbow[3] - 0.22) < 0.03,
+			"FK matches Studio's elbow"
+		)
+		-- Arms hanging at rest are clear.
+		TestKit.truthy(HoldRules.armClear({}, "Right") and HoldRules.armClear({}, "Left"), "rest")
+		local checked = 0
+		local names: { [string]: boolean } = { throw = true, reload = true }
+		for _, class in Holds.classes do
+			for _, use in { "carry", "aim", "recoil" } do
+				local clip = (class :: any)[use]
+				if clip and class.mount == "gun" then
+					names[clip] = true
+				end
+			end
+		end
+		for name in names do
+			for _, key in Holds.clips[name].keys do
+				for _, side in { "Right", "Left" } do
+					if key.poses[side .. "UpperArm"] then
+						checked += 1
+						TestKit.truthy(
+							HoldRules.armClear(key.poses, side),
+							`{name} at {key.time}: the {side} arm clears the chest`
+						)
+					end
+				end
+			end
+		end
+		TestKit.truthy(checked >= 20, `{checked} arm keys checked`)
+	end)
+
 	test("classOf: listed items by Data/Holds, new ones by their kind, empty hands are fists", function()
 		TestKit.equal(HoldRules.classOf(nil, nil), "fists")
 		TestKit.equal(HoldRules.classOf("", nil), "fists")
