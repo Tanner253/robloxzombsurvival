@@ -83,7 +83,8 @@ local function InventoryPane(props: Props)
 		},
 	})
 
-	local body = e(Layout.Stack, {
+	-- Scrolls: pockets plus a big bag's backpack rows are taller than the pane.
+	local body = e(Parts.ScrollBody, {
 		gap = Theme.spacing.md,
 		children = {
 			Pockets = e(Parts.Section, {
