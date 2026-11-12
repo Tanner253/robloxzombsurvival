@@ -644,6 +644,16 @@ local function watchDoor(instance: Instance)
 	end
 	local leaf = instance:FindFirstChild("Leaf")
 	if leaf and leaf:IsA("Model") then
+		-- Your own door opens as you reach it, so this client's paths may run through it: E or
+		-- a click on a station inside a walled room walked into the wall instead, as the
+		-- closed leaf blocked the path (found by the AutoPlayer, 2026-11-12).
+		for _, part in leaf:GetDescendants() do
+			if part:IsA("BasePart") and part:FindFirstChildOfClass("PathfindingModifier") == nil then
+				local modifier = Instance.new("PathfindingModifier")
+				modifier.PassThrough = true
+				modifier.Parent = part
+			end
+		end
 		task.delay(0.5, function()
 			doors[instance] = { leaf = leaf, closed = leaf:GetPivot(), open = false }
 		end)

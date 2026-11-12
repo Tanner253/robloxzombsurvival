@@ -207,6 +207,16 @@ return function(test: TestKit.Register)
 		TestKit.equal((AutoPlan.onRun(c, view)), "extract", "the lobby closes soon")
 	end)
 
+	-- Found by the AutoPlayer: a path to a station inside a walled room failed at the closed
+	-- door (it opens only as you reach it), so E walked the survivor into the wall.
+	test("your own doors are open to your paths", function()
+		local fx = fs.readFile("src/client/Controllers/WorldFx.luau")
+		local watch = string.match(fx, "local function watchDoor%(.-\nend")
+		TestKit.truthy(watch, "WorldFx.watchDoor")
+		TestKit.truthy(string.find(watch :: string, 'OwnerUserId") ~= player.UserId', 1, true), "own doors only")
+		TestKit.truthy(string.find(watch :: string, "PassThrough = true", 1, true), "the leaf lets paths through")
+	end)
+
 	test("the AutoPlayer runs only in Studio and only through a player's inputs", function()
 		local source = fs.readFile("src/client/Controllers/AutoPlayer.luau")
 		local start = string.match(source, "function AutoPlayer%.start%(%).-\nend")

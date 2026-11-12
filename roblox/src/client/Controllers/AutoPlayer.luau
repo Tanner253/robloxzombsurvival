@@ -396,7 +396,13 @@ end
 	stops at one. Re-paths when stuck; gives up after WALK_GIVE_UP seconds. `interrupt`
 	(checked every step) stops the walk early. True when it arrived.
 ]]
-local function walkTo(goal: Vector3, within: number, interrupt: (() -> boolean)?): boolean
+local function walkTo(
+	goal: Vector3,
+	within: number,
+	interrupt: (() -> boolean)?,
+	via: Vector3?, -- where the path goes (a stand point beside `goal`); default `goal`
+	path: { PathWaypoint }?
+): boolean
 	local hum, here = humanoid(), root()
 	if hum == nil or here == nil then
 		return false
@@ -404,10 +410,12 @@ local function walkTo(goal: Vector3, within: number, interrupt: (() -> boolean)?
 	if flat(here.Position, goal) <= within then
 		return true
 	end
+	local target = via or goal
 	local began = os.clock()
 	local repaths = 0
-	local waypoints = computePath(here.Position, goal)
-		or { { Position = goal, Action = Enum.PathWaypointAction.Walk } :: any }
+	local waypoints = path
+		or computePath(here.Position, target)
+		or { { Position = target, Action = Enum.PathWaypointAction.Walk } :: any }
 	local index = math.min(2, #waypoints)
 	local lastPos, lastProgress = here.Position, os.clock()
 	while enabled and os.clock() - began < WALK_GIVE_UP do
@@ -444,7 +452,7 @@ local function walkTo(goal: Vector3, within: number, interrupt: (() -> boolean)?
 				return false
 			end
 			hum.Jump = true
-			waypoints = computePath(here.Position, goal) or waypoints
+			waypoints = computePath(here.Position, target) or waypoints
 			index = math.min(2, #waypoints)
 			lastProgress = os.clock()
 		end
@@ -454,12 +462,42 @@ local function walkTo(goal: Vector3, within: number, interrupt: (() -> boolean)?
 	return false
 end
 
--- Walks to a model's edge, within its use reach.
+--[[
+	Walks to a model's edge, within its use reach: to the nearest of eight stand points
+	around it that a path reaches (a station against a wall can only be stood at from the
+	room's side; a path to its own centre ends inside it).
+]]
 local function approach(model: Model, kind: string, interrupt: (() -> boolean)?): boolean
 	local reach = Interaction.reach(kind, model)
-	local ok = walkTo(model:GetPivot().Position, math.max(2, reach - 1.2), interrupt)
+	local centre = model:GetPivot().Position
+	local here = root()
+	if here == nil then
+		return false
+	end
+	local within = math.max(2, reach - 1.2)
+	if flat(here.Position, centre) <= within then
+		faceToward(centre)
+		return true
+	end
+	local stands = {}
+	for i = 0, 7 do
+		local angle = i * math.pi / 4
+		table.insert(stands, centre + Vector3.new(math.cos(angle), 0, math.sin(angle)) * math.max(1.5, reach - 1.8))
+	end
+	table.sort(stands, function(a, b)
+		return flat(a, here.Position) < flat(b, here.Position)
+	end)
+	local via, path = nil, nil
+	for _, stand in stands do
+		local found = computePath(here.Position, stand)
+		if found then
+			via, path = stand, found
+			break
+		end
+	end
+	local ok = walkTo(centre, within, interrupt, via, path)
 	if ok then
-		faceToward(model:GetPivot().Position)
+		faceToward(centre)
 	end
 	return ok
 end
