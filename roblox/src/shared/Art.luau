@@ -261,6 +261,19 @@ Art.approved = {
 	EO_HuntingRifle = true,
 	EO_AssaultRifle = true,
 	EO_AntiMaterielRifle = true,
+	-- The rest of the roster (batch 5), graded in a side-by-side lineup with the five above
+	-- (docs/milestones/m1-launch G02): Zona's uploads for the Machine Pistol, Patrol Carbine
+	-- and Tactical SMG; Studio's mesh generator for the Hand Cannon (Zona's big-bore pistol
+	-- carries its maker's name on the slide), the Compact Rifle and Marksman Rifle (their Zona
+	-- files sit outside the approved upload folders), and both throwables.
+	EO_HandCannon = true,
+	EO_MachinePistol = true,
+	EO_PatrolCarbine = true,
+	EO_CompactRifle = true,
+	EO_TacticalSMG = true,
+	EO_MarksmanRifle = true,
+	EO_FragGrenade = true,
+	EO_Molotov = true,
 	-- Launch content, graded in the lineup beside the Campfire, Crate and Spiked Club
 	-- (docs/milestones/m1-launch L04): the camp family's wrapped torch and rain collector,
 	-- the generated smoke rack (second take: muted meat, cold ash), Zona's crowbar and
@@ -310,98 +323,132 @@ Art.approved = {
 -- A place built by Rojo alone lacks them in ServerStorage.EO_Kit, so the first lookup
 -- loads the asset (the creator's own) and conforms it as the Studio pass did: turned by
 -- `yaw`, scaled so its world `axis` measures `size` studs, pivot at its base centre.
-Art.uploaded =
-	{
-		EO_BareBranches = { id = 131242296768407, yaw = 90, axis = "X", size = 5 },
-		EO_WallTimber = { id = 124343239589548, yaw = 90, axis = "X", size = 8 },
-		EO_PalisadeDoorway = { id = 94082431833572, yaw = 90, axis = "X", size = 8 },
-		EO_PalisadeDoor = { id = 87138652228163, yaw = 90, axis = "Y", size = 6.4 },
-		EO_PalisadeWindow = { id = 87647223753915, yaw = 90, axis = "X", size = 8 },
-		EO_CampfireRing = { id = 81464877202205, yaw = 0, axis = "X", size = 4.6 },
-		EO_SpringBasin = { id = 121429807141566, yaw = 0, axis = "X", size = 9 },
-		EO_ReedStubbleMesh = { id = 73755966799812, yaw = 0, axis = "Y", size = 1.4 },
-		EO_RockCluster = { id = 112631953002450, yaw = 0, axis = "X", size = 7 },
-		EO_LanternPost = { id = 115765948750615, yaw = 0, axis = "Y", size = 9 },
-		EO_StandingTorch = { id = 76894774227727, yaw = 0, axis = "Y", size = 6 },
-		EO_DoorwayTimber = { id = 86510148563388, yaw = 90, axis = "X", size = 8 },
-		EO_WindowTimber = { id = 123523155311228, yaw = 90, axis = "X", size = 8 },
-		EO_DeadTree = { id = 125675745178137, yaw = 0, axis = "Y", size = 18 },
-		EO_StorageCrate = { id = 86480969772739, yaw = 0, axis = "X", size = 5.4 },
-		EO_RecyclerStation = { id = 114511988922602, yaw = 0, axis = "Z", size = 6 },
-		EO_BarrelCluster = { id = 97808210346830, yaw = 0, axis = "X", size = 4 },
-		EO_SupplySacksMesh = { id = 106489665857780, yaw = 0, axis = "X", size = 3.5 },
-		EO_RainCollector = { id = 96623096328279, yaw = 0, axis = "Y", size = 5 },
-		EO_Signpost = { id = 129379454140930, yaw = 0, axis = "Y", size = 7 },
-		EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
-		EO_PineConifer = { id = 130639495990824, yaw = 0, axis = "Y", size = 22 },
-		EO_LooseStonesClean = { id = 100348018403125, yaw = 0, axis = "X", size = 2.4 },
-		EO_ReedsClean = { id = 106633992505764, yaw = 0, axis = "Y", size = 4.2 },
-		EO_EmberBushClean = { id = 106896648014033, yaw = 0, axis = "Y", size = 4 },
-		EO_ScrapHeapClean = { id = 89747869389109, yaw = 0, axis = "Y", size = 3.8 },
-		-- Launch stations (art/higgsfield/m1-launch): turned so the kiln's hatch and the bench's
-		-- long side face the front, sized to their 6 x 6 and 6 x 4 footprints.
-		EO_Smelter = { id = 134220739947756, yaw = 90, axis = "X", size = 5.8 },
-		EO_Stonecutter = { id = 96553555280227, yaw = 90, axis = "X", size = 5.6 },
-		-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
-		EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
-		EO_PickupWreck = { id = 112415392425301, yaw = 90, axis = "X", size = 16 },
-		EO_VanWreck = { id = 75377164376070, yaw = 0, axis = "X", size = 16 },
-		EO_TractorWreck = { id = 138754378882219, yaw = 0, axis = "X", size = 11 },
-		EO_AppleTree = { id = 119281991299964, yaw = 0, axis = "Y", size = 15 },
-		EO_HayBales = { id = 98372468469042, yaw = 90, axis = "X", size = 7 },
-		EO_Boxcar = { id = 133928155401070, yaw = 90, axis = "Y", size = 14 },
-		EO_FuelPump = { id = 130764128762105, yaw = 0, axis = "Y", size = 6 },
-		-- Held weapons (scaled again to Art.held lengths in the hand).
-		EO_WornPistol = { id = 137577727330156, yaw = 0, axis = "Y", size = 1 },
-		EO_FlarePistol = { id = 130325429565330, yaw = 0, axis = "Z", size = 1.25 },
-		EO_ScrapShotgun = { id = 72894953650046, yaw = 0, axis = "Y", size = 1 },
-		EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
-		EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
-		EO_Shortbow = { id = 104799057457758, yaw = 0, axis = "Z", size = 3 },
-		-- ARSENAL §0's graded uploads (art/zona/guns). As imported the muzzle points along -X
-		-- (the Duty Pistol's along -Z) with the top up, measured in Studio 2026-11-11.
-		EO_DutyPistol = { id = 72665632302595, yaw = 0, axis = "Z", size = 1.2 },
-		EO_PumpShotgun = { id = 102438923048838, yaw = 0, axis = "X", size = 4 },
-		-- The source model carries a loose cartridge under its magazine: a floater, left out.
-		EO_HuntingRifle = { id = 99562708864658, yaw = 0, axis = "X", size = 4.3, omit = { "Vert.023" } },
-		EO_AssaultRifle = { id = 129256241328198, yaw = 0, axis = "X", size = 3.5 },
-		EO_AntiMaterielRifle = { id = 93078334956668, yaw = 0, axis = "X", size = 4.7 },
-		-- Launch content: found melee from Zona (art/zona/melee), the generated smoke rack.
-		EO_TireIron = { id = 74586365090292, yaw = 0, axis = "Y", size = 2 },
-		EO_SharpenedStake = { id = 88147290024814, yaw = 0, axis = "Y", size = 2 },
-		EO_RailMallet = { id = 84097844053183, yaw = 0, axis = "Y", size = 3.4 },
-		EO_SmokeRack = { id = 132431669150006, yaw = 0, axis = "X", size = 5.6 },
-		-- Content 2.0 (batch 4b). Worn and carried items face +Z (the icon camera's side), so
-		-- an icon shows the front; Art.wornModels turns them to face ahead on the body. The gas
-		-- mask was imported face up (`pitch` stands it up first). Bags show their outer face.
-		EO_GasMask = { id = 135203303519979, yaw = 180, pitch = -90, axis = "Y", size = 1 },
-		EO_SteelHelmet = { id = 117347120589715, yaw = 0, axis = "Z", size = 0.95 },
-		EO_CombatHelmet = { id = 82934175970933, yaw = 0, axis = "Z", size = 1.05 },
-		EO_PlateCarrier = { id = 71564496579353, yaw = 0, axis = "Y", size = 1.8 },
-		EO_RangerPack = { id = 129119268659888, yaw = 180, axis = "Y", size = 1.85 },
-		EO_TraumaPouch = { id = 106960913686733, yaw = 0, axis = "Y", size = 0.65 },
-		EO_FirstAidKit = { id = 89281981728389, yaw = 0, axis = "X", size = 1.4 },
-		EO_EmberStim = { id = 135609039504160, yaw = 0, axis = "Z", size = 0.5 },
-		EO_HideboundCap = { id = 77172601565001, yaw = 180, axis = "X", size = 1 },
-		EO_HideboundCoat = { id = 71576554068381, yaw = 180, axis = "Y", size = 2.4 },
-		EO_HideboundLeggings = { id = 84832116640218, yaw = 180, axis = "Y", size = 2.6 },
-		EO_HideboundBoots = { id = 112414225746582, yaw = 180, axis = "Y", size = 1.3 },
-		EO_RivetedHelm = { id = 70666819282091, yaw = 180, axis = "X", size = 1 },
-		EO_RivetedCuirass = { id = 136751421981432, yaw = 180, axis = "Y", size = 2.3 },
-		EO_RivetedLegguards = { id = 98389006096672, yaw = 180, axis = "Y", size = 2.6 },
-		EO_RivetedBoots = { id = 101760723597225, yaw = 180, axis = "Y", size = 1.3 },
-		EO_HideRucksack = { id = 132651051145310, yaw = 180, axis = "Y", size = 2 },
-		EO_SteelPlate = { id = 82910989221839, yaw = 0, axis = "X", size = 1.6 },
-		EO_AntisepticBottle = { id = 97827015398174, yaw = 180, axis = "Y", size = 0.6 },
-		-- Melee as generated: handle down (+Y head) except the bat, which lies along Z, knob at +Z.
-		EO_HandAxe = { id = 133113732197143, yaw = 0, axis = "Y", size = 2 },
-		EO_HardwoodBat = { id = 117761103396118, yaw = 0, axis = "Z", size = 3 },
-		EO_FieldKnife = { id = 104034707094359, yaw = 0, axis = "Y", size = 1.3 },
-		EO_HayFork = { id = 113254000755998, yaw = 0, axis = "Y", size = 4.6 },
-		-- Stations: front to +Z (the gameplay camera's side), sized to 6 x 6 and 6 x 4 footprints.
-		EO_BlastFurnace = { id = 134195576178730, yaw = 180, axis = "X", size = 5.8 },
-		EO_Apothecary = { id = 99418897818426, yaw = 180, axis = "X", size = 5.6 },
-	} :: { [string]: { id: number, yaw: number, pitch: number?, axis: string, size: number, omit: { string }? } }
+Art.uploaded = {
+	EO_BareBranches = { id = 131242296768407, yaw = 90, axis = "X", size = 5 },
+	EO_WallTimber = { id = 124343239589548, yaw = 90, axis = "X", size = 8 },
+	EO_PalisadeDoorway = { id = 94082431833572, yaw = 90, axis = "X", size = 8 },
+	EO_PalisadeDoor = { id = 87138652228163, yaw = 90, axis = "Y", size = 6.4 },
+	EO_PalisadeWindow = { id = 87647223753915, yaw = 90, axis = "X", size = 8 },
+	EO_CampfireRing = { id = 81464877202205, yaw = 0, axis = "X", size = 4.6 },
+	EO_SpringBasin = { id = 121429807141566, yaw = 0, axis = "X", size = 9 },
+	EO_ReedStubbleMesh = { id = 73755966799812, yaw = 0, axis = "Y", size = 1.4 },
+	EO_RockCluster = { id = 112631953002450, yaw = 0, axis = "X", size = 7 },
+	EO_LanternPost = { id = 115765948750615, yaw = 0, axis = "Y", size = 9 },
+	EO_StandingTorch = { id = 76894774227727, yaw = 0, axis = "Y", size = 6 },
+	EO_DoorwayTimber = { id = 86510148563388, yaw = 90, axis = "X", size = 8 },
+	EO_WindowTimber = { id = 123523155311228, yaw = 90, axis = "X", size = 8 },
+	EO_DeadTree = { id = 125675745178137, yaw = 0, axis = "Y", size = 18 },
+	EO_StorageCrate = { id = 86480969772739, yaw = 0, axis = "X", size = 5.4 },
+	EO_RecyclerStation = { id = 114511988922602, yaw = 0, axis = "Z", size = 6 },
+	EO_BarrelCluster = { id = 97808210346830, yaw = 0, axis = "X", size = 4 },
+	EO_SupplySacksMesh = { id = 106489665857780, yaw = 0, axis = "X", size = 3.5 },
+	EO_RainCollector = { id = 96623096328279, yaw = 0, axis = "Y", size = 5 },
+	EO_Signpost = { id = 129379454140930, yaw = 0, axis = "Y", size = 7 },
+	EO_WorkbenchP2 = { id = 104388307441616, yaw = 270, axis = "X", size = 5.6 },
+	EO_PineConifer = { id = 130639495990824, yaw = 0, axis = "Y", size = 22 },
+	EO_LooseStonesClean = { id = 100348018403125, yaw = 0, axis = "X", size = 2.4 },
+	EO_ReedsClean = { id = 106633992505764, yaw = 0, axis = "Y", size = 4.2 },
+	EO_EmberBushClean = { id = 106896648014033, yaw = 0, axis = "Y", size = 4 },
+	EO_ScrapHeapClean = { id = 89747869389109, yaw = 0, axis = "Y", size = 3.8 },
+	-- Launch stations (art/higgsfield/m1-launch): turned so the kiln's hatch and the bench's
+	-- long side face the front, sized to their 6 x 6 and 6 x 4 footprints.
+	EO_Smelter = { id = 134220739947756, yaw = 90, axis = "X", size = 5.8 },
+	EO_Stonecutter = { id = 96553555280227, yaw = 90, axis = "X", size = 5.6 },
+	-- Slice 2 props (art/higgsfield/m1-slice2/_roblox_assets.json): long side along X.
+	EO_SedanWreck = { id = 121904797870360, yaw = 0, axis = "X", size = 14 },
+	EO_PickupWreck = { id = 112415392425301, yaw = 90, axis = "X", size = 16 },
+	EO_VanWreck = { id = 75377164376070, yaw = 0, axis = "X", size = 16 },
+	EO_TractorWreck = { id = 138754378882219, yaw = 0, axis = "X", size = 11 },
+	EO_AppleTree = { id = 119281991299964, yaw = 0, axis = "Y", size = 15 },
+	EO_HayBales = { id = 98372468469042, yaw = 90, axis = "X", size = 7 },
+	EO_Boxcar = { id = 133928155401070, yaw = 90, axis = "Y", size = 14 },
+	EO_FuelPump = { id = 130764128762105, yaw = 0, axis = "Y", size = 6 },
+	-- Held weapons (scaled again to Art.held lengths in the hand).
+	EO_WornPistol = { id = 137577727330156, yaw = 0, axis = "Y", size = 1 },
+	EO_FlarePistol = { id = 130325429565330, yaw = 0, axis = "Z", size = 1.25 },
+	EO_ScrapShotgun = { id = 72894953650046, yaw = 0, axis = "Y", size = 1 },
+	EO_Machete = { id = 105390370970083, yaw = 0, axis = "Y", size = 2 },
+	EO_FireAxe = { id = 101477205236958, yaw = 0, axis = "Z", size = 3 },
+	EO_Shortbow = { id = 104799057457758, yaw = 0, axis = "Z", size = 3 },
+	-- ARSENAL §0's graded uploads (art/zona/guns). As imported the muzzle points along -X
+	-- (the Duty Pistol's along -Z) with the top up, measured in Studio 2026-11-11.
+	EO_DutyPistol = { id = 72665632302595, yaw = 0, axis = "Z", size = 1.2 },
+	EO_PumpShotgun = { id = 102438923048838, yaw = 0, axis = "X", size = 4 },
+	-- The source model carries a loose cartridge under its magazine: a floater, left out.
+	EO_HuntingRifle = { id = 99562708864658, yaw = 0, axis = "X", size = 4.3, omit = { "Vert.023" } },
+	EO_AssaultRifle = { id = 129256241328198, yaw = 0, axis = "X", size = 3.5 },
+	EO_AntiMaterielRifle = { id = 93078334956668, yaw = 0, axis = "X", size = 4.7 },
+	-- Batch 5. The Zona uploads point along -X as above; the generations along -Z.
+	EO_MachinePistol = { id = 109481505500458, yaw = 0, axis = "X", size = 2 },
+	EO_TacticalSMG = { id = 138864024632624, yaw = 0, axis = "X", size = 2.4 },
+	-- ARSENAL §8.1 strips the carbine's suppressor and light; its sight drew untextured
+	-- white, and its muzzle brake floats 0.2 studs under the bore (moved up onto it).
+	EO_PatrolCarbine = {
+		id = 75563310459171,
+		yaw = 0,
+		axis = "X",
+		size = 3.3,
+		omit = {
+			"GEMTECH ABYSS 5.56_suppressor_0",
+			"Surefire EDC1_SureFire EDC1_0",
+			"mount flashlight_mount flashlight_0",
+			"EOtech EXPS-2_eotech_0",
+		},
+		nudge = { ["Muzzle brake_muzzle brake_0"] = Vector3.new(0, 0.2, 0) },
+	},
+	EO_HandCannon = { id = 104201434214205, yaw = 0, axis = "Z", size = 1.5 },
+	EO_CompactRifle = { id = 74935082651837, yaw = 0, axis = "Z", size = 2.6 },
+	EO_MarksmanRifle = { id = 78490302802730, yaw = 0, axis = "Z", size = 4.3 },
+	EO_FragGrenade = { id = 72864434091320, yaw = 0, axis = "Y", size = 0.5 },
+	EO_Molotov = { id = 116760868033182, yaw = 0, axis = "Y", size = 1 },
+	-- Launch content: found melee from Zona (art/zona/melee), the generated smoke rack.
+	EO_TireIron = { id = 74586365090292, yaw = 0, axis = "Y", size = 2 },
+	EO_SharpenedStake = { id = 88147290024814, yaw = 0, axis = "Y", size = 2 },
+	EO_RailMallet = { id = 84097844053183, yaw = 0, axis = "Y", size = 3.4 },
+	EO_SmokeRack = { id = 132431669150006, yaw = 0, axis = "X", size = 5.6 },
+	-- Content 2.0 (batch 4b). Worn and carried items face +Z (the icon camera's side), so
+	-- an icon shows the front; Art.wornModels turns them to face ahead on the body. The gas
+	-- mask was imported face up (`pitch` stands it up first). Bags show their outer face.
+	EO_GasMask = { id = 135203303519979, yaw = 180, pitch = -90, axis = "Y", size = 1 },
+	EO_SteelHelmet = { id = 117347120589715, yaw = 0, axis = "Z", size = 0.95 },
+	EO_CombatHelmet = { id = 82934175970933, yaw = 0, axis = "Z", size = 1.05 },
+	EO_PlateCarrier = { id = 71564496579353, yaw = 0, axis = "Y", size = 1.8 },
+	EO_RangerPack = { id = 129119268659888, yaw = 180, axis = "Y", size = 1.85 },
+	EO_TraumaPouch = { id = 106960913686733, yaw = 0, axis = "Y", size = 0.65 },
+	EO_FirstAidKit = { id = 89281981728389, yaw = 0, axis = "X", size = 1.4 },
+	EO_EmberStim = { id = 135609039504160, yaw = 0, axis = "Z", size = 0.5 },
+	EO_HideboundCap = { id = 77172601565001, yaw = 180, axis = "X", size = 1 },
+	EO_HideboundCoat = { id = 71576554068381, yaw = 180, axis = "Y", size = 2.4 },
+	EO_HideboundLeggings = { id = 84832116640218, yaw = 180, axis = "Y", size = 2.6 },
+	EO_HideboundBoots = { id = 112414225746582, yaw = 180, axis = "Y", size = 1.3 },
+	EO_RivetedHelm = { id = 70666819282091, yaw = 180, axis = "X", size = 1 },
+	EO_RivetedCuirass = { id = 136751421981432, yaw = 180, axis = "Y", size = 2.3 },
+	EO_RivetedLegguards = { id = 98389006096672, yaw = 180, axis = "Y", size = 2.6 },
+	EO_RivetedBoots = { id = 101760723597225, yaw = 180, axis = "Y", size = 1.3 },
+	EO_HideRucksack = { id = 132651051145310, yaw = 180, axis = "Y", size = 2 },
+	EO_SteelPlate = { id = 82910989221839, yaw = 0, axis = "X", size = 1.6 },
+	EO_AntisepticBottle = { id = 97827015398174, yaw = 180, axis = "Y", size = 0.6 },
+	-- Melee as generated: handle down (+Y head) except the bat, which lies along Z, knob at +Z.
+	EO_HandAxe = { id = 133113732197143, yaw = 0, axis = "Y", size = 2 },
+	EO_HardwoodBat = { id = 117761103396118, yaw = 0, axis = "Z", size = 3 },
+	EO_FieldKnife = { id = 104034707094359, yaw = 0, axis = "Y", size = 1.3 },
+	EO_HayFork = { id = 113254000755998, yaw = 0, axis = "Y", size = 4.6 },
+	-- Stations: front to +Z (the gameplay camera's side), sized to 6 x 6 and 6 x 4 footprints.
+	EO_BlastFurnace = { id = 134195576178730, yaw = 180, axis = "X", size = 5.8 },
+	EO_Apothecary = { id = 99418897818426, yaw = 180, axis = "X", size = 5.6 },
+} :: {
+	[string]: {
+		id: number,
+		yaw: number,
+		pitch: number?,
+		axis: string,
+		size: number,
+		omit: { string }?,
+		-- Parts moved by this many studs (world axes at `size`, after the turn): a part that
+		-- floats off its mount in the source.
+		nudge: { [string]: Vector3 }?,
+	},
+}
 
 local function anyApproved(names: { string }?): boolean
 	local list: { string } = names or {}
@@ -523,6 +570,14 @@ Art.items = {
 	["item.hunting_rifle"] = { "EO_HuntingRifle" },
 	["item.assault_rifle"] = { "EO_AssaultRifle" },
 	["item.anti_materiel_rifle"] = { "EO_AntiMaterielRifle" },
+	["item.hand_cannon"] = { "EO_HandCannon" },
+	["item.machine_pistol"] = { "EO_MachinePistol" },
+	["item.patrol_carbine"] = { "EO_PatrolCarbine" },
+	["item.compact_rifle"] = { "EO_CompactRifle" },
+	["item.tactical_smg"] = { "EO_TacticalSMG" },
+	["item.marksman_rifle"] = { "EO_MarksmanRifle" },
+	["item.frag_grenade"] = { "EO_FragGrenade" },
+	["item.molotov"] = { "EO_Molotov" },
 	-- Launch content: the starter stake, the found Tire Iron and Rail Mallet (Zona meshes).
 	["item.sharpened_stake"] = { "EO_SharpenedStake" },
 	["item.tire_iron"] = { "EO_TireIron" },
@@ -579,6 +634,10 @@ export type HeldArt = {
 	-- pick's point) pulls the box off the handle. Measured in Studio by casting rays across
 	-- the handle (2026-11-12, batch 1); with it the fist closes on the handle, not beside it.
 	offset: Vector3?,
+	-- Long guns: where the off hand goes above the grip's height, as a share of the gun's
+	-- height (default HoldRules.SUPPORT_LIFT). A tall scope raises the box's centre over the
+	-- handguard, so the Anti-Materiel Rifle sets its own (batch 5: its hand sat on the receiver).
+	supportLift: number?,
 }
 
 Art.held = {
@@ -699,6 +758,74 @@ Art.held = {
 		length = 4.7,
 		holster = "back",
 		drop = 0.27,
+		supportLift = -0.08,
+	},
+	-- Batch 5, read from side captures of each conformed model and checked in hand. The Zona
+	-- uploads' muzzles point along -X, the generations' along -Z.
+	["item.hand_cannon"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.2,
+		length = 1.3,
+		holster = "belt",
+		drop = 0.12,
+	},
+	["item.machine_pistol"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.46,
+		length = 2,
+		holster = "back",
+		drop = -0.06,
+	},
+	["item.patrol_carbine"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.36,
+		length = 3.3,
+		holster = "back",
+		drop = -0.06,
+	},
+	["item.compact_rifle"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.36,
+		length = 2.6,
+		holster = "back",
+		drop = 0.02,
+	},
+	["item.tactical_smg"] = {
+		axis = Vector3.new(-1, 0, 0),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.56,
+		length = 2.4,
+		holster = "back",
+		drop = -0.1,
+	},
+	["item.marksman_rifle"] = {
+		axis = Vector3.new(0, 0, -1),
+		edge = Vector3.new(0, -1, 0),
+		grip = 0.26,
+		length = 4.3,
+		holster = "back",
+		drop = 0.06,
+	},
+	-- Throwables sit upright in the fist (their tops along +Y), the grenade's lever to the palm.
+	["item.frag_grenade"] = {
+		axis = Vector3.new(0, 1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.4,
+		length = 0.5,
+		holster = "belt",
+	},
+	-- The molotov is held by the neck, the bottle swinging out ahead of the fist and the
+	-- burning rag just past the thumb (`axis` runs neck to base); on the belt the neck is up.
+	["item.molotov"] = {
+		axis = Vector3.new(0, -1, 0),
+		edge = Vector3.new(0, 0, 1),
+		grip = 0.22,
+		length = 1,
+		holster = "belt",
 	},
 	["item.machete"] = {
 		axis = Vector3.new(0, 1, 0),
@@ -875,6 +1002,10 @@ Art.sounds = {
 	rifleShot = snd(9117396996, 1.2, { region = { 0, 0.9 }, speed = 0.78 }),
 	heavyShot = snd(9112912106, 1.35, { region = { 0, 1.1 }, speed = 0.7 }),
 	flareLaunch = snd(9118591402, 1, { region = { 0, 1.4 } }), -- PSE "Rocket Flare Out 1"
+	-- Throwables (batch 5): the grenade's burst is the hard front of PSE "Earthquake Explosion 1";
+	-- a molotov breaks with PSE "Glass Break 1" and burns with fireLoop.
+	grenadeBlast = snd(9114224354, 1.6, { region = { 0, 2.4 } }),
+	glassBreak = snd(9114590297, 1.2, { region = { 0, 1.3 } }),
 	reload = snd(9113104516, 1, { region = { 0, 1.4 } }), -- PSE magazine clip, "Magazine 4" (the reload beat)
 	dryClick = snd(9117396530, 1, { region = { 0, 0.3 } }), -- PSE "Pistol Handling 1", one click
 	meleeSwing = snd(9120972321, 0.9, { variants = { snd(9120728815, 0.8, { region = { 0, 0.6 } }) } }), -- PSE whooshes

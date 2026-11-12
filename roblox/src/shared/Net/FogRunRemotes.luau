@@ -24,7 +24,10 @@ type Decl = {
 local SERVER_ONLY = { count = 1, perSeconds = 60 }
 local ACTIONS = { count = 10, perSeconds = 2 }
 local TAKES = { count = 24, perSeconds = 4 }
-local SHOTS = { count = 8, perSeconds = 2 } -- above the fastest weapon's cadence, below a macro
+local SHOTS = { count = 8, perSeconds = 2 } -- above the fastest swing's cadence, below a macro
+-- A held trigger (batch 5): the Tactical SMG asks 13.3 times a second, so the bucket refills at
+-- 16 a second; the server's fire interval (Domain/Combat.canFire) still sets the real rate.
+local TRIGGER = { count = 16, perSeconds = 1 }
 local MAX_SLOT = 64
 
 local locationId = Check.contentId("loc")
@@ -167,9 +170,16 @@ local FogRunRemotes: { [string]: Decl } = {
 	CombatFire = {
 		kind = "event",
 		clientCanSend = true,
-		rateLimit = SHOTS,
+		rateLimit = TRIGGER,
 		validate = Check.args(yaw, Check.optional(hollowId)),
 		description = "(aimYaw, lockedTargetId?) fires the active gun, or releases a drawn bow",
+	},
+	CombatThrow = {
+		kind = "event",
+		clientCanSend = true,
+		rateLimit = ACTIONS,
+		validate = Check.args(Check.number(-1e5, 1e5), Check.number(-1e5, 1e5), Check.number(-1e5, 1e5)),
+		description = "(x, y, z) throws the grenade or molotov in hand at that point; the server clamps it to the throw's range",
 	},
 	CombatDraw = {
 		kind = "event",

@@ -65,7 +65,7 @@ function Matchmaking.gearScore(loadout: Loadout, items: ItemLookup, config: Conf
 	local bestWeapon = 0
 	for _, itemId in loadout.weaponIds do
 		local item = items[itemId]
-		if item and item.category == "weapon" then
+		if item and item.category == "weapon" and (item :: any).throw == nil then
 			bestWeapon = math.max(bestWeapon, item.tier)
 		end
 	end
@@ -106,7 +106,7 @@ function Matchmaking.loadoutOf(
 	local function addWeapon(slot: Types.Slot?)
 		if slot and slot.count > 0 then
 			local item = items[slot.itemId]
-			if item and item.category == "weapon" then
+			if item and item.category == "weapon" and (item :: any).throw == nil then
 				table.insert(weapons, slot.itemId)
 			end
 		end

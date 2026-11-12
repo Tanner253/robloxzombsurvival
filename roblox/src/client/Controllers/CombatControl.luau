@@ -35,6 +35,7 @@ local State = require("../State")
 local Camera = require("./Camera")
 local FogRun = require("./FogRun")
 local HollowView = require("./HollowView")
+local Throwing = require("./Throwing")
 
 local CombatControl = {}
 
@@ -97,8 +98,11 @@ local function clipOf(itemId: string?, use: string): string?
 	return HoldRules.clip(HoldRules.classOf(itemId, if itemId then Items[itemId] else nil), use)
 end
 
-local function weaponKind(): "melee" | "gun" | "bow"
+local function weaponKind(): "melee" | "gun" | "bow" | "throw"
 	local _, def = activeItem()
+	if def and def.throw then
+		return "throw"
+	end
 	local weapon = def and def.weapon
 	if weapon and weapon.kind == "ranged" then
 		return if weapon.bow then "bow" else "gun"
@@ -479,6 +483,12 @@ local holding = false
 local pressedAt = 0
 local lastShot = 0
 local drawing = false
+local burstLeft = 0 -- rounds still to come in a burst gun's burst (a tap fires the whole burst)
+
+local function activeFirearm(): any
+	local _, def = activeItem()
+	return def and def.weapon and def.weapon.firearm
+end
 
 local function lockedId(target: HollowView.Target?): string?
 	return if target then target.id else nil
@@ -522,8 +532,19 @@ function CombatControl.press()
 	local character = player.Character
 	if kind == "gun" then
 		play(character, clipFor("aim"))
-		fireOnce()
-		lastShot = os.clock()
+		local firearm = activeFirearm()
+		local burst = firearm and firearm.burst
+		-- A burst gun takes its cooldown after the last burst before the next one starts.
+		if burst and burstLeft <= 0 and os.clock() - lastShot < burst.cooldown then
+			return
+		end
+		if burst == nil or burstLeft <= 0 then
+			fireOnce()
+			lastShot = os.clock()
+			burstLeft = if burst then burst.count - 1 else 0
+		end
+	elseif kind == "throw" then
+		Throwing.begin()
 	elseif kind == "bow" then
 		drawing = true
 		play(character, clipFor("aim"))
@@ -553,8 +574,18 @@ function CombatControl.release()
 	elseif kind == "bow" and drawing then
 		drawing = false
 		fireOnce()
+	elseif kind == "throw" then
+		Throwing.release()
 	elseif kind == "gun" then
-		stop(character, clipFor("aim"))
+		local firearm = activeFirearm()
+		-- A burst still coming keeps the stance up until its last round.
+		local wait = if burstLeft > 0 and firearm then burstLeft * firearm.fireInterval + 0.1 else 0
+		local aimName = clipFor("aim")
+		task.delay(wait, function()
+			if not holding then
+				stop(character, aimName)
+			end
+		end)
 	end
 end
 
@@ -611,15 +642,30 @@ function CombatControl.start()
 			targetClock = 0
 			updateTarget()
 		end
-		if holding and FogRun.active() and weaponKind() == "gun" then
-			local _, def = activeItem()
-			local firearm = def and def.weapon and def.weapon.firearm
-			local interval = if firearm then math.max(firearm.fireInterval, 0.1) else 0.5
-			if os.clock() - lastShot >= interval then
-				lastShot = os.clock()
-				fireOnce()
+		if (holding or burstLeft > 0) and FogRun.active() and weaponKind() == "gun" then
+			local firearm = activeFirearm()
+			local burst = firearm and firearm.burst
+			-- The server keeps the beat (Domain/Combat.shotTime); this only asks on it. A frame
+			-- is 1/60 s, so the floor only stops a runaway, not a fast SMG.
+			local interval = if firearm then math.max(firearm.fireInterval, 0.06) else 0.5
+			if burst and burstLeft <= 0 then
+				interval = burst.cooldown
 			end
+			if os.clock() - lastShot >= interval then
+				if burstLeft > 0 then
+					burstLeft -= 1
+					lastShot = os.clock()
+					fireOnce()
+				elseif holding then
+					burstLeft = if burst then burst.count - 1 else 0
+					lastShot = os.clock()
+					fireOnce()
+				end
+			end
+		elseif burstLeft > 0 and weaponKind() ~= "gun" then
+			burstLeft = 0
 		end
+		Throwing.step()
 	end)
 end
 

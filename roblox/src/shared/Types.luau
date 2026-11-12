@@ -107,7 +107,29 @@ export type ItemDef = {
 	consume: ConsumeEffect?,
 	bagSlots: number?, -- bags: backpack slots while equipped
 	flare: FlareStats?, -- the Signal Flare the Black-fog flare extract burns (Domain/Flare)
+	throw: ThrowStats?, -- grenades and molotovs: held as a stack in a weapon slot, thrown one at a time (Domain/Throw)
 	feature: FeatureName?, -- only made by recipes of that feature: it need not be earnable while the flag is off
+}
+
+-- A throwable (2.0 batch 5, Domain/Throw). It lands where it is aimed, inside its range, on an
+-- arc; a "blast" goes off `fuseSeconds` after the throw, a "fire" bursts on landing and burns
+-- an area. Damage falls off from the centre to `edgeMultiplier` at `radius`.
+export type ThrowStats = {
+	kind: "blast" | "fire",
+	range: number, -- studs: the farthest landing point
+	minRange: number, -- studs: a closer aim lands here
+	flightSpeed: number, -- studs per second along the ground; the flight time follows
+	apex: number, -- studs: the arc's height over the straight line at mid-flight
+	intervalSeconds: number, -- between throws
+	radius: number, -- studs
+	noiseRadius: number, -- studs (Domain/Noise "blast")
+	fuseSeconds: number?, -- blast: from release
+	damage: number?, -- blast: at the centre, before falloff
+	edgeMultiplier: number?, -- blast: damage multiplier at the radius (default 0.25)
+	knockbackStuds: number?, -- blast: at the centre
+	burnSeconds: number?, -- fire: how long the area burns
+	burnTickSeconds: number?, -- fire: seconds between damage ticks
+	burnDps: number?, -- fire: damage a second to each Hollow inside
 }
 
 -- An amount of one item, used for costs, recipe inputs and outputs, and grants.
@@ -683,6 +705,9 @@ export type FirearmStats = {
 	animClass: GunClass,
 	pierce: number?, -- extra Hollow one round passes through (the Anti-Materiel Rifle: 2)
 	recoilScale: number?, -- the kick's size against a pistol's (camera shake and muzzle flash); default 1
+	-- ARSENAL §8.4: a burst gun fires `count` rounds `fireInterval` apart, then waits
+	-- `cooldown` seconds after the burst's last round (the Patrol Carbine: 3, 0.35).
+	burst: { count: number, cooldown: number }?,
 }
 
 export type GunClass = "pistol" | "smg" | "rifle" | "shotgun"

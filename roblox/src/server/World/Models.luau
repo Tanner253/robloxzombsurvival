@@ -161,6 +161,14 @@ local function loadUploaded(name: string): Model?
 	local _, size = model:GetBoundingBox()
 	local current = if entry.axis == "X" then size.X elseif entry.axis == "Y" then size.Y else size.Z
 	model:ScaleTo(model:GetScale() * entry.size / current)
+	-- Parts that float off their mount in the source, moved back onto it (studs at `size`).
+	local nudge: { [string]: Vector3 } = entry.nudge or {}
+	for partName, offset in nudge do
+		local stray = model:FindFirstChild(partName, true)
+		if stray and stray:IsA("BasePart") then
+			stray.CFrame += offset
+		end
+	end
 	local centre, fitted = model:GetBoundingBox()
 	model.WorldPivot = CFrame.new(centre.Position - Vector3.new(0, fitted.Y / 2, 0))
 	model:PivotTo(CFrame.new())
@@ -862,7 +870,8 @@ function Models.held(itemId: string, def: Types.ItemDef, mount: Mount): Held?
 		-- handguard: back up the grip's drop, then 0.15 of the gun's height (set on the
 		-- Assault Rifle in Studio, where it puts the palm under the handguard).
 		local height = math.abs(edge.X) * box.X + math.abs(edge.Y) * box.Y + math.abs(edge.Z) * box.Z
-		local lift = -edge * (((drop or 0) + HoldRules.SUPPORT_LIFT) * height)
+		local share = if art and art.supportLift then art.supportLift else HoldRules.SUPPORT_LIFT
+		local lift = -edge * (((drop or 0) + share) * height)
 		attachment.WorldPosition = gripPoint + axis * ((support - grip) * length) + lift
 	end
 	model.Name = itemId

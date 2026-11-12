@@ -54,8 +54,9 @@ local carrying: { [Model]: string? } = {}
 --[[
 	The off hand on a long gun's handguard (batch 3): an IKControl on the left arm toward the
 	held model's "Support" attachment (World/Models, HoldRules.supportAt), on every character
-	this client draws. The solved stances stop at the magazine well at 1.3x gun scale. It
-	lets go during a reload, when that hand works the magazine.
+	this client draws. Batch 5: the point sits just ahead of the grip (the only hold that
+	keeps both arms out of the chest), and the hand holds on only while aiming; it lets go
+	at the carry and during a reload, when that hand works the magazine.
 
 	On this rig (AnimationConstraint joints) the IKControl settles 0.2 to 0.3 studs short of
 	its target wherever the target is, so the target it chases is the handguard point plus a
@@ -109,11 +110,12 @@ local function supportFor(character: Model, gear: Instance?)
 	ik.Name = SUPPORT_NAME
 	ik.Type = Enum.IKControlType.Position
 	ik.SmoothTime = 0.04
-	-- The elbow stays down and out to the side, as in the solved stances.
+	-- The elbow goes out to the left and ahead of the chest, as in the solved aim (batch 5:
+	-- the old pole, down and behind, folded the upper arm 0.08-0.13 studs into the chest).
 	local found = torso:FindFirstChild("EO_SupportPole")
 	local pole: Attachment = if found and found:IsA("Attachment") then found else Instance.new("Attachment")
 	pole.Name = "EO_SupportPole"
-	pole.Position = Vector3.new(-1.8, -2.2, 0.6)
+	pole.Position = Vector3.new(-1.2, -0.2, -1.6)
 	pole.Parent = torso
 	local aim = Instance.new("Attachment")
 	aim.Name = "EO_SupportAim"
@@ -127,12 +129,20 @@ local function supportFor(character: Model, gear: Instance?)
 	supports[character] = { ik = ik, source = source, aim = aim, palm = palm, correction = Vector3.zero }
 end
 
--- Each frame: chase the handguard point (see above).
+local AIM_LONG = HoldRules.clip("long", "aim") or "aimLong"
+
+-- Each frame: hold on while aiming and not reloading (HoldRules.supportWeight), and chase the
+-- support point (see above).
 local function stepSupports()
 	for character, record in supports do
 		if record.source.Parent == nil or record.ik.Parent == nil then
 			dropSupport(character, record.ik)
 			continue
+		end
+		local weight = HoldRules.supportWeight(Clips.playing(character, "reload"), Clips.playing(character, AIM_LONG))
+		if record.ik.Weight ~= weight then
+			record.ik.Weight = weight
+			record.correction = Vector3.zero
 		end
 		local want = record.source.WorldPosition
 		if record.ik.Weight > 0 then
@@ -207,15 +217,6 @@ function Animations.start()
 		track(player)
 	end
 	Players.PlayerAdded:Connect(track)
-	-- The support hand lets go for a reload (a few checks a second is plenty).
-	task.spawn(function()
-		while true do
-			task.wait(0.1)
-			for character, record in supports do
-				record.ik.Weight = HoldRules.supportWeight(Clips.playing(character, "reload"))
-			end
-		end
-	end)
 	RunService.PreRender:Connect(stepSupports)
 end
 

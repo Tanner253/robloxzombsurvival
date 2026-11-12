@@ -23,7 +23,13 @@ export type Container = Types.Container
 
 -- The item fields Slots needs; Data/Items satisfies this.
 export type ItemLookup = {
-	[string]: { stackSize: number, durability: number?, equipSlot: Types.EquipSlot?, category: Types.ItemCategory? },
+	[string]: {
+		stackSize: number,
+		durability: number?,
+		equipSlot: Types.EquipSlot?,
+		category: Types.ItemCategory?,
+		throw: Types.ThrowStats?,
+	},
 }
 
 export type Reason = "empty" | "badSlot" | "same" | "wrongSlot" | "noSpace" | "count"
@@ -82,7 +88,8 @@ local function accepts(side: Side, index: number, slot: Slot, items: ItemLookup)
 		local category: string = if def and def.category then def.category else ""
 		return def ~= nil and Slots.QUICK_CATEGORIES[category] == true
 	end
-	return def ~= nil and def.equipSlot == wanted and slot.count == 1
+	-- One at a time, except a throwable's stack (LDoE holds a stack of them in the hand).
+	return def ~= nil and def.equipSlot == wanted and (slot.count == 1 or def.throw ~= nil)
 end
 
 --[[
