@@ -30,6 +30,8 @@
 	  (checklist 12.9); run it with no lobby open.
 	  Scripted playtests: ("kill", range?) kills the nearest Hollow as the survivor and stands
 	  them on the spot, ("queststate", questId) reads one trail quest's progress.
+	  Worn gear and meds (batch 4b): ("hurt", hp) sets health, ("gearstate") reads each worn
+	  slot and its durability, the backpack size, health, the heals running and what the body shows.
 	  Performance (batch 3): ("perf", seconds?) samples heartbeat frames, the Hollow tick, memory,
 	  instances and bytes per remote; ("mapstats") reads each built Fog Run map's build times
 	  and part, light and emitter counts; ("assetfails") lists content that failed to load

@@ -67,8 +67,9 @@ Art.decks = {
 	{ base = Enum.Material.CorrodedMetal, variant = "EO_Deck_Scrap", tint = Color3.fromRGB(122, 116, 112) },
 	{ base = Enum.Material.Concrete, variant = "EO_Deck_Reinforced", tint = Color3.fromRGB(200, 198, 194) },
 	-- Fortified (Content 2.0): riveted steel plates (Studio's material generator, picked from
-	-- four takes beside the Reinforced concrete), a shade darker so the tiers read apart.
-	{ base = Enum.Material.DiamondPlate, variant = "EO_Deck_Fortified", tint = Color3.fromRGB(178, 176, 172) },
+	-- four takes beside the Reinforced concrete), a shade darker so the tiers read apart and
+	-- warmed off its blue toward gunmetal (C04: beside the warm kit it read slate-blue).
+	{ base = Enum.Material.DiamondPlate, variant = "EO_Deck_Fortified", tint = Color3.fromRGB(172, 164, 154) },
 } :: { { base: Enum.Material, variant: string, tint: Color3 } }
 
 -- Ground (three layers, ART_DIRECTION §4): every terrain material the ground is painted
@@ -490,7 +491,7 @@ local FACE_AHEAD = Vector3.new(0, 180, 0)
 Art.wornModels = {
 	["item.steel_helmet"] = { mount = "head", size = 0.98, at = Vector3.new(0, 0.24, 0.03), turn = FACE_AHEAD },
 	["item.combat_helmet"] = { mount = "head", size = 1.05, at = Vector3.new(0, 0.16, 0.04), turn = FACE_AHEAD },
-	["item.gas_mask"] = { mount = "head", size = 1, at = Vector3.new(0, -0.02, -0.08), turn = FACE_AHEAD },
+	["item.gas_mask"] = { mount = "head", size = 1.08, at = Vector3.new(0, 0.02, -0.06), turn = FACE_AHEAD },
 	["item.hidebound_cap"] = { mount = "head", size = 1, at = Vector3.new(0, 0.22, 0.02), turn = FACE_AHEAD },
 	["item.riveted_helm"] = { mount = "head", size = 1.02, at = Vector3.new(0, 0.2, 0.03), turn = FACE_AHEAD },
 	["item.hide_rucksack"] = { mount = "pack", size = 1.9, at = Vector3.new(0, 0.15, 1.25), depth = 0.9 },
