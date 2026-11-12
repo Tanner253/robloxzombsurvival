@@ -693,15 +693,22 @@ end
 	What demolishing `piece` now would return. The whole investment comes back
 	in full while the piece is within the grace window of being placed; the
 	latest upgrade comes back in full within the grace window of that upgrade;
-	everything else returns `lateRefundFraction`, rounded down per stack.
+	everything else returns `lateRefundFraction`, rounded down per stack. A piece of the
+	starter shelter (`isStarter`) never refunds the tier it came as: the player never paid for
+	it (the flow review's F-30: the shelter refunded more timber than the home forest holds).
+	Upgrades the player paid for on it refund as usual.
 ]]
 function Grid.refundFor(piece: Piece, ctx: Context): { Types.ItemStack }
 	local config = ctx.config or Grid.DEFAULT_CONFIG
-	local fresh = ctx.now - piece.placedAt <= config.refundGraceSeconds
-	local freshUpgrade = ctx.now - piece.upgradedAt <= config.refundGraceSeconds
+	local starter = Grid.isStarter(piece)
+	local fresh = not starter and ctx.now - piece.placedAt <= config.refundGraceSeconds
+	local freshUpgrade = piece.upgradedAt ~= Grid.STARTER_AT and ctx.now - piece.upgradedAt <= config.refundGraceSeconds
 	local chain = upgradeChain(piece.pieceId, ctx.pieces)
 	local refund: { Types.ItemStack } = {}
 	for index, def in chain do
+		if starter and index == 1 then
+			continue
+		end
 		local fraction = if fresh or (index == #chain and freshUpgrade) then 1 else config.lateRefundFraction
 		for _, stack in def.cost do
 			merge(refund, stack.itemId, math.floor(stack.count * fraction + EPSILON))

@@ -589,15 +589,8 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		craftSeconds = 4,
 		unlock = { kind = "default" },
 	},
-	-- The no-fuel food and water stations (LB-5): water off the roof, meat in the smoke.
-	["recipe.rain_water"] = {
-		id = "recipe.rain_water",
-		inputs = { { itemId = "item.murky_water", count = 1 } },
-		outputs = { { itemId = "item.boiled_water", count = 1 } },
-		stationId = "station.rain_barrel",
-		craftSeconds = 10 * 60,
-		unlock = quest("quest.keep_the_fire"),
-	},
+	-- The no-fuel food station (LB-5): meat in the smoke. The Rain Barrel fills itself
+	-- (Data/Stations passive, F-21): it takes no recipe.
 	["recipe.smoked_meat"] = {
 		id = "recipe.smoked_meat",
 		inputs = { { itemId = "item.raw_meat", count = 1 } },
@@ -605,7 +598,7 @@ local Recipes: { [Types.RecipeId]: Types.RecipeDef } = {
 		stationId = "station.smoke_rack",
 		craftSeconds = 10 * 60,
 		unlock = quest("quest.stand_your_ground"),
-		feature = "fogRuns",
+		feature = "wildlife",
 	},
 }
 

@@ -13,7 +13,8 @@
 	- Energy sits top-left with its regen countdown, and Rations below it.
 	- Choosing a pin opens its panel on the right: art, name, the fog tier, the rule
 	  line, the Hollow found there, the recommended gear score, Main loot and Possible
-	  loot (rarity frames), and AUTO (clear it into the inbox for Rations, #31).
+	  loot (rarity frames), and AUTO (clear it into the inbox, #31), its button priced from
+	  data: the tier's Rations plus the Run's Energy (F-20).
 	- The round Run and Walk buttons sit under the chosen pin: Run costs Energy and
 	  arrives in seconds; Walk is free and takes real minutes you can spend at home.
 	  They work at the Trailhead or the fog's edge; elsewhere the map is for planning.
@@ -26,6 +27,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Art = require(ReplicatedStorage.Shared.Art)
 local Content = require(ReplicatedStorage.Shared.Data)
+local AutoClear = require(ReplicatedStorage.Shared.Domain.AutoClear)
 local FogRegions = require(ReplicatedStorage.Shared.Data.FogRegions)
 local NeighboursMath = require(ReplicatedStorage.Shared.Domain.Neighbours)
 local MomentOffers = require(ReplicatedStorage.Shared.Domain.MomentOffers)
@@ -891,10 +893,21 @@ local function Panel(props: { location: any, onClose: () -> (), blocked: string?
 			),
 			Possible = lootGrid(location.possibleLoot, 58, 8, 6),
 		}),
+		-- F-20: the price from data, as the server charges it: the tier's Rations and the Run's
+		-- Energy ("AUTO: 2 Rations + 22 Energy"); airdrops are looted in person.
 		Auto = e(Button, {
-			text = if props.blocked then `AUTO: {props.blocked}` else "AUTO: clear it for 1 Ration",
+			text = if props.blocked
+				then `AUTO: {props.blocked}`
+				elseif location.availability.kind == "airdrop" then "AUTO: loot airdrops in person"
+				else AutoClear.label(
+					AutoClear.price(
+						location.fogTier,
+						TravelMath.plan(location :: any, "run", Content.Tuning.travel :: any).energyCost,
+						Content.Tuning.autoClear :: any
+					)
+				),
 			variant = "secondary",
-			disabled = props.blocked ~= nil,
+			disabled = props.blocked ~= nil or location.availability.kind == "airdrop",
 			size = UDim2.new(1, -32, 0, 48),
 			position = UDim2.new(0, 16, 1, -62),
 			onActivated = function()

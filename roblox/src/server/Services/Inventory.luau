@@ -796,6 +796,7 @@ local function use(player: Player, ref: string, index: number)
 		if spendOne() then
 			data.unlocks.blueprints[slot.itemId] = true
 			Sync.mark(player, "unlocks")
+			Sync.mark(player, "shop") -- packs gated on a schematic (F-12)
 			Sync.notice(player, `Learned: {def.name}`, "good")
 			Analytics.custom(player, "BlueprintRead", 1, { slot.itemId })
 		end

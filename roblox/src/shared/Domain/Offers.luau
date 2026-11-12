@@ -5,7 +5,8 @@
 
 	- The Firestarter Kit: shown only to accounts that never paid, for an accurate 48 h from
 	  their first win (the first night survived or the first extraction), once; the window
-	  never restarts.
+	  never restarts. It opens out loud (F-11): a one-time card, then the strip icon with its
+	  countdown (stripOffer) until it ends.
 	- Ember prices: a speed-up by time left (max(2, ceil(3.9 x sqrt(minutes)))), only for
 	  jobs with at least 2 minutes left; Fill Up per missing unit; Trail Rations in ones
 	  and fives.
@@ -55,6 +56,25 @@ function Offers.firstPurchase(
 	return not Offers.hasPaid(counts) and now < endsAt, endsAt
 end
 
+--[[
+	The HUD's offers strip (the flow review's F-11): the product whose countdown is running for
+	this player now (on offer, ending in the future), the soonest to end first, and when it
+	ends; nil and 0 when there is none. `rows` is the synced "shop" section.
+]]
+function Offers.stripOffer(rows: any, now: number): (string?, number)
+	if type(rows) ~= "table" then
+		return nil, 0
+	end
+	local best: string?, bestEnds = nil, math.huge
+	for id, row in rows do
+		local ends = if type(row) == "table" and row.available == true then row.endsAt else nil
+		if type(ends) == "number" and ends > now and (ends < bestEnds or (ends == bestEnds and id < (best or id))) then
+			best, bestEnds = id, ends
+		end
+	end
+	return best, if best then bestEnds else 0
+end
+
 -- Embers to finish `seconds` of a station's work now; nil when under the minimum.
 function Offers.speedUpPrice(seconds: number, tuning: EmberTuning): number?
 	if seconds < tuning.speedUpMinSeconds then
@@ -75,6 +95,48 @@ function Offers.fillUpPrice(stacks: { { itemId: string, count: number } }, tunin
 		total += unit * stack.count
 	end
 	return if total > 0 then total else nil
+end
+
+--[[
+	What a cost lacks: each stack the player has fewer of than `times` x its count, by how many
+	(in the cost's order). Fill Up charges for this, never the whole cost: having 2 of 3 Timber
+	buys 1. `have` counts an item the way the screen does (the home pool at home).
+]]
+function Offers.shortfall(
+	cost: { { itemId: string, count: number } },
+	have: (itemId: string) -> number,
+	times: number?
+): { { itemId: string, count: number } }
+	local short: { { itemId: string, count: number } } = {}
+	for _, stack in cost do
+		local missing = stack.count * (times or 1) - have(stack.itemId)
+		if missing > 0 then
+			table.insert(short, { itemId = stack.itemId, count = missing })
+		end
+	end
+	return short
+end
+
+--[[
+	The Fill Up slot for a cost (the build tray, upgrades, crafting; the flow review's F-10):
+	the missing stacks and their Ember price, or nil when nothing is missing or something
+	missing can't be bought this way (rare parts and blueprints come only from play).
+]]
+function Offers.fillUpFor(
+	cost: { { itemId: string, count: number } },
+	have: (itemId: string) -> number,
+	tuning: EmberTuning,
+	times: number?
+): ({ { itemId: string, count: number } }?, number?)
+	local short = Offers.shortfall(cost, have, times)
+	if #short == 0 then
+		return nil, nil
+	end
+	local price = Offers.fillUpPrice(short, tuning)
+	if price == nil then
+		return nil, nil
+	end
+	return short, price
 end
 
 -- Embers for `count` Trail Rations: 5 for the five-price, the rest at the single price.

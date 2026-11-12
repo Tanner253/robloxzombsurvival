@@ -177,6 +177,9 @@ export type StationDef = {
 	fuel: StationFuel?, -- converts only while fuel burns
 	salvage: { SalvageDef }?, -- Recycler: what it breaks down
 	outputSlots: number?, -- output slots; nil means 1
+	-- A station that fills itself with no input (the Rain Barrel, the flow review's F-21): one
+	-- itemId every `seconds` (divided by the level's speed), while the output holds fewer than max.
+	passive: { itemId: ItemId, seconds: number, max: number }?,
 	feature: FeatureName?, -- left out of the bundle while that Tuning.features flag is off
 }
 
@@ -439,6 +442,10 @@ export type ProductDef = {
 	defaultPriceRobux: number,
 	limit: number?, -- purchases per player; nil means unlimited (game passes are 1)
 	offerMaxLevel: number?, -- only offered at or below this player level
+	-- Sold only once this gate is met (the flow review's F-12): the card greys with its lock
+	-- line before that. Capacity products ("+1 can be placed") need no gate: they wait for
+	-- the plot to be full (Domain/Receipts.canOffer).
+	unlock: UnlockGate?,
 	-- "firstPurchase": shown only to accounts that never paid, for Tuning.embers.
 	-- firstPurchaseHours after their first win, once (Domain/Offers).
 	offer: "firstPurchase"?,
@@ -519,7 +526,6 @@ export type TuningDef = {
 		departureStuds: number, -- Fog Runs: how near the Trailhead or the fog wall a trip may start
 	},
 	death: {
-		despawnSeconds: number, -- how long the dropped backpack waits at the location
 		keepPockets: boolean, -- false: pockets drop with the backpack (equipment is always kept)
 	},
 	building: {
@@ -624,14 +630,15 @@ export type TuningDef = {
 -- Fog Runs (slice 2) -------------------------------------------------------------------
 -- Everything here is read only while Tuning.features.fogRuns is on (Shared/Features).
 
-export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops"
+export type FeatureName = "fogRuns" | "aiRaiders" | "dailyGift" | "regionGates" | "airdrops" | "wildlife"
 
 export type Features = {
 	fogRuns: boolean, -- Fog map travel, lobbies, combat and the Hollow (M1 slice 2)
 	aiRaiders: boolean, -- M2: AI survivor bands backfill short lobbies
-	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift (cut from v0.1, MVP_LAUNCH)
+	dailyGift: boolean, -- LDOE_PARITY #58's daily food and water gift until level 10 (on, F-33)
 	regionGates: boolean, -- M4: LDOE_PARITY #43's signal towers before Dense and Black fog
 	airdrops: boolean, -- M4: LDOE_PARITY #43's supply drops as Energy falls
+	wildlife: boolean, -- LDOE_PARITY #35's deer and wolves, and the venison lines that need them
 }
 
 -- Per-weapon melee overrides; anything missing comes from Tuning.melee.

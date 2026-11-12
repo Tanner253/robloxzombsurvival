@@ -4,7 +4,8 @@
 
 	Run costs the location's Energy and takes a short, fixed time (a loading
 	beat). Walk is free and takes the location's real walk time. A trip is a pair
-	of timestamps, so a player can log out mid-walk and arrive while offline.
+	of timestamps, so a player can log out mid-walk and arrive while offline: the profile
+	keeps a Walk (saveWalk) and the next visit resumes it (resumeWalk, the flow review's F-36).
 
 	Types.LocationDef satisfies Destination. Multipliers model buffs and perks
 	(LDoE's VIP travel discount, the Walker skill); results round to the nearest
@@ -294,6 +295,46 @@ function Travel.hurry(trip: Trip, ctx: Context, perMinute: number): (Trip?, Ener
 	hurried.arrivesAt = math.min(trip.arrivesAt, ctx.now)
 	hurried.energySpent += cost
 	return hurried, energy, nil
+end
+
+-- Saving a Walk (the flow review's F-36) -----------------------------------------------------
+
+export type SavedWalk = { locationId: string, departedAt: number, arrivesAt: number, energySpent: number }
+
+-- What the profile keeps of a trip: a Walk only (a Run arrives in seconds, a re-entry is
+-- tied to its lobby), so leaving the game mid-walk doesn't end it. Nil for anything else.
+function Travel.saveWalk(trip: Trip): SavedWalk?
+	if trip.mode ~= "walk" or trip.reentry then
+		return nil
+	end
+	return {
+		locationId = trip.destinationId,
+		departedAt = trip.departedAt,
+		arrivesAt = trip.arrivesAt,
+		energySpent = trip.energySpent,
+	}
+end
+
+-- The trip a saved Walk resumes as on the next visit (arrived already if the time passed
+-- offline), or nil for a malformed save or a place that no longer exists.
+function Travel.resumeWalk(saved: any, exists: (locationId: string) -> boolean): Trip?
+	if type(saved) ~= "table" or type(saved.locationId) ~= "string" or not exists(saved.locationId) then
+		return nil
+	end
+	if
+		type(saved.departedAt) ~= "number"
+		or type(saved.arrivesAt) ~= "number"
+		or saved.arrivesAt < saved.departedAt
+	then
+		return nil
+	end
+	return {
+		destinationId = saved.locationId,
+		mode = "walk",
+		departedAt = saved.departedAt,
+		arrivesAt = saved.arrivesAt,
+		energySpent = if type(saved.energySpent) == "number" then saved.energySpent else 0,
+	}
 end
 
 return Travel

@@ -9,10 +9,10 @@ local ITEMS: Inventory.ItemLookup = {
 	["item.wood"] = { stackSize = 20 },
 	["item.axe"] = { stackSize = 1, durability = 100 },
 }
-local CONFIG: Death.Config = { despawnSeconds = 3600 }
+local CONFIG: Death.Config = {}
 
 local function ctx(): Death.DropContext
-	return { id = "drop.1", ownerUserId = OWNER, locationId = "loc.pines", now = T0 }
+	return { id = "drop.1", ownerUserId = OWNER, locationId = "loc.pines", now = T0, despawnAt = T0 + 3600 }
 end
 
 local function carrying(): Inventory.Inventory
@@ -35,7 +35,7 @@ return function(test: TestKit.Register)
 	end)
 
 	test("keepPockets keeps the pocket items", function()
-		local inventory, drop = Death.drop(carrying(), ctx(), { despawnSeconds = 60, keepPockets = true })
+		local inventory, drop = Death.drop(carrying(), ctx(), { keepPockets = true })
 		TestKit.equal(Inventory.count(inventory, "item.wood"), 30, "both wood stacks were in pockets")
 		TestKit.equal(#(drop :: Death.DroppedBackpack).contents, 1, "only the axe dropped")
 	end)
@@ -45,7 +45,7 @@ return function(test: TestKit.Register)
 		TestKit.equal(drop, nil)
 	end)
 
-	test("an earlier despawn (location reset) wins", function()
+	test("F-32: the bag lives exactly as long as the caller says (lobby close, or the home drop life)", function()
 		local context = ctx()
 		context.despawnAt = T0 + 600
 		local _, drop = Death.drop(carrying(), context, CONFIG)

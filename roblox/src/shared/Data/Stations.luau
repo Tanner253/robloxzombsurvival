@@ -297,16 +297,19 @@ local Stations: { [Types.StationId]: Types.StationDef } = {
 	},
 	-- No-fuel food and water (docs/research/ldoe-mvp-parity-content.md LB-5): one level each,
 	-- the slots of a level-1 station.
+	-- It catches the rain (the flow review's F-21): a Boiled Water every 15 minutes, up to 5,
+	-- with nothing put in, offline too. It was a slow boiler that needed Murky Water.
 	["station.rain_barrel"] = {
 		id = "station.rain_barrel",
 		name = "Rain Barrel",
 		levels = { { level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 } },
+		passive = { itemId = "item.boiled_water", seconds = 15 * 60, max = 5 },
 	},
 	["station.smoke_rack"] = {
 		id = "station.smoke_rack",
 		name = "Smoke Rack",
 		levels = { { level = 1, upgradeCost = {}, slotCap = 20, speedMultiplier = 1 } },
-		feature = "fogRuns", -- raw venison comes from Fog Run deer
+		feature = "wildlife", -- raw venison comes from deer: hidden until they ship (F-21)
 	},
 }
 

@@ -9,6 +9,7 @@
 ]]
 
 local Types = require("../Types")
+local Unlocks = require("./Unlocks")
 
 local ItemSources = {}
 
@@ -87,6 +88,108 @@ function ItemSources.of(content: Types.Content, itemId: string, limit: number?):
 		table.remove(lines)
 	end
 	return lines
+end
+
+local function gathered(content: Types.Content, itemId: string): boolean
+	for _, node in content.Nodes do
+		for _, yield in node.yields do
+			if yield.itemId == itemId then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- The gate still closed on a recipe: its station's piece first (no Stonecutter, no blocks),
+-- then the recipe's own; nil when both are open.
+local function closedGate(
+	content: Types.Content,
+	recipe: Types.RecipeDef,
+	progress: Unlocks.Progress
+): Types.UnlockGate?
+	if recipe.stationId then
+		local open = false
+		local gate: Types.UnlockGate? = nil
+		for _, piece in content.BuildPieces do
+			if piece.stationId == recipe.stationId then
+				if Unlocks.isMet(piece.unlock, progress) then
+					open = true
+				elseif gate == nil then
+					gate = piece.unlock
+				end
+			end
+		end
+		if not open then
+			return gate or recipe.unlock
+		end
+	end
+	return if Unlocks.isMet(recipe.unlock, progress) then nil else recipe.unlock
+end
+
+local function gateOrder(gate: Types.UnlockGate, content: Types.Content): number
+	if gate.kind == "quest" then
+		local quest: any = content.Quests[gate.questId]
+		return if quest and quest.order then quest.order else math.huge
+	end
+	return math.huge
+end
+
+--[[
+	When everything that makes an item is still locked and it can't be gathered, where it will
+	come from, short enough for a cost chip: "Stonecutter: Ember Trail 4" (the flow review's
+	F-34: the Workbench read unlocked while its Stone Blocks waited on the other branch's
+	Stonecutter). A chance find on a run doesn't count: it is luck, not a plan. Nil when the
+	player can make or gather it now.
+]]
+function ItemSources.lockedMaker(
+	content: Types.Content,
+	itemId: string,
+	progress: Unlocks.Progress,
+	names: Unlocks.Names
+): string?
+	if gathered(content, itemId) then
+		return nil
+	end
+	local best: { where: string, gate: Types.UnlockGate, order: number }? = nil
+	for _, recipe in content.Recipes do
+		local made = false
+		for _, output in recipe.outputs do
+			made = made or output.itemId == itemId
+		end
+		if made then
+			local gate = closedGate(content, recipe, progress)
+			if gate == nil then
+				return nil -- one way to make it is open
+			end
+			local station = recipe.stationId and content.Stations[recipe.stationId]
+			local order = gateOrder(gate, content)
+			if best == nil or order < best.order then
+				best = { where = if station then station.name else "Crafting", gate = gate, order = order }
+			end
+		end
+	end
+	if best == nil then
+		return nil
+	end
+	local short = Unlocks.short(best.gate, names)
+	return if short then `{best.where}: {short}` else nil
+end
+
+-- Whether the player can get an item on purpose now: gathered, or made with what is unlocked
+-- (Haven's contract board asks only for these, the flow review's F-35).
+function ItemSources.obtainable(content: Types.Content, itemId: string, progress: Unlocks.Progress): boolean
+	if gathered(content, itemId) then
+		return true
+	end
+	for _, recipe in content.Recipes do
+		for _, output in recipe.outputs do
+			if output.itemId == itemId and closedGate(content, recipe, progress) == nil then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 return ItemSources

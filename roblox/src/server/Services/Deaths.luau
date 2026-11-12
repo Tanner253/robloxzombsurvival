@@ -45,6 +45,7 @@ local function dropAtHome(player: Player, position: Vector3)
 		ownerUserId = player.UserId,
 		locationId = "home",
 		now = os.time(),
+		despawnAt = os.time() + Content.Tuning.drops.lifetimeSeconds, -- the ground drop's own life
 	}, deathConfig)
 	if bag == nil then
 		return -- nothing carried

@@ -285,6 +285,27 @@ Run all checks after each merge.
 >     - At 1.3x gun scale the support hand can't reach a long gun's handguard; it holds the magazine well. The survivor's hands are open meshes and can't close on a grip.
 >     - Checklist 13.4's combos, weapon trails and per-material impacts are not built; the parked melee WIP (`worktree-agent-a3c75eb84c6644ce1`) uses the same class names as `Data/Holds` and is still batch 4's.
 >     - The "Found on the way" travel-bonus card stays up into the first fight on arrival.
+> - **Update 2026-11-11, 2.0 batch 2 (flow-review QoL and UX): done on branch `qol-flow-review`, pushed, not merged.** No Studio was used; every rule is a pure Domain module with Lune specs, and wiring is held by needles (`tests/QolFlow.spec.luau`, plus Shop, ItemSources, Grid, Death, Converter, Features and PlayerSchema specs). One line per finding:
+>   - **F-06, F-07:** hold on main. Owned gear and placed pieces count when a quest opens (`Domain/Quests` holdings); 84 home timber, a last-tree toast and the Guide's Trailhead pointer.
+>   - **F-10:** build mode's tray header shows "Fill up (coin) N" beside CLOSE for the card being placed when it's short; a placed piece's upgrade has it beside its costs. Both use the crafting pane's `offers.fillUp`. Fill Up in crafting and crate upgrades now buys only the shortfall (it charged for the whole recipe). `Offers.shortfall` and `fillUpFor`.
+>   - **F-11:** the first win sends a one-time `firstOffer` (at home, once: `shop.cardShown`). It opens `screens/ldoe/OfferCard` (art, contents, the real countdown, the price button), and the HUD's offers strip, left of the clock, then shows the icon pulsing with its countdown until the window ends (`Offers.stripOffer`). The first extraction already counted as the first win.
+>   - **F-12:** `ProductDef.unlock`. The Reinforced Room Kit needs the Plans read and Weapon Parts needs The Dense Fog. Locked cards stay greyed with the price and a red lock line (`Receipts.lockLine`); BEST skips them. The gun packs need no gate (no ammo since F-13). The Firestarter Kit isn't gated.
+>   - **F-20:** the AUTO button reads "AUTO: 2 Rations + 22 Energy" from data (`AutoClear.price` and `label`). Refusals name the shortfall; airdrops read "loot airdrops in person".
+>   - **F-21:** a `wildlife` flag (off) hides the Smoke Rack, its station, smoked venison and their quest steps; Full Stores asks for 10 Hearth Stews meanwhile. The Rain Barrel fills itself with a Boiled Water every 15 minutes, up to 5 (`StationDef.passive`, Converter), and its pane has no input slot. Run deaths count toward the milestone gifts (the 20th is the Ember Heart); home deaths don't. **Left:** selling the Ember Heart needs a new SKU. The doormat and leather were already fixed.
+>   - **F-22:** `Domain/QuestText`: "Make a Hewn Plank at the Saw Bench and take it out", "Search containers in Pine Hollow", "Reach level 8: gather, fight and extract for XP". Tracker steps wrap to two lines. The Guide points a level step at the Trailhead. `InboxUse` reports `consume`.
+>   - **F-26:** the Scout's Kit is the whole Reedweave set, a Tire Iron, 3 Trail Rations, 3 tins and 3 water (79).
+>   - **F-27:** "+1 Smelter/Recycler" sell only at the plot's limit (`BuildRules.placedCaps`); before that they show "Placed 1/2: buy when your plot is full" (or the piece's quest).
+>   - **F-28:** `MomentOffers.forBreak`: a weapon offers the kit, a tool Fill Up of its recipe, armor nothing.
+>   - **F-30:** starter shelter pieces refund nothing; upgrades paid for on them still refund (`Grid.refundFor`). The old comment claimed this but the code refunded half.
+>   - **F-32:** `Tuning.death.despawnSeconds` is gone. A run bag lasts until the lobby closes, a home bag `drops.lifetimeSeconds`.
+>   - **F-33:** `features.dailyGift = true`; the false note is gone.
+>   - **F-34:** `ItemSources.lockedMaker`: a build card whose cost no open station makes reads "Stonecutter: Ember Trail 4" (the card is wider to fit it).
+>   - **F-35:** Trader sales and contract deliveries take from the home pool, and the pane counts the pool; the board only asks for items the player can gather or make now (`Contracts.eligible`, `ItemSources.obtainable`).
+>   - **F-36:** a solo Walk is saved in `travel.walk` and resumes, or arrives, about 5 s after the next home load (`Travel.saveWalk` and `resumeWalk`). Party Walks aren't saved.
+>   - **F-38:** already on main (Into the Fog pays 300 coins, 4 dressings and 2 Rations); a spec holds every chapter to a reward.
+>   - **Player schema v12** (`shop.cardShown`, `deaths`, `travel.walk`), with a migration and a spec. **The parked Haven VIP branch also claims v12:** whichever merges second renumbers to v13.
+>   - **Needs a play-check in Studio:** the OfferCard and the offers strip (`ShopTestFirstWin = true`); build mode's tray Fill Up and the upgrade row's Fill Up (the row widens to 440); the wider build card with the source line; the shop's greyed cards (Supplies, Equipment, Building); the two-line tracker (the UI overlap gate); the Rain Barrel pane; the AUTO label; a Walk surviving a rejoin; a contract delivered from a crate.
+>   - **Seen, not fixed:** `Converter.lines` lists the Rain Barrel's passive line, so ALL RECIPES would show it if opened (the pane hides the button). Haven's board can change mid-day when an unlock adds an eligible item; delivered contracts stay delivered.
 
 1. **Merge** the branches in §5 and get main green.
 2. **Fix the 5 flow blockers** ([flow-mechanics-review.md](research/flow-mechanics-review.md)):

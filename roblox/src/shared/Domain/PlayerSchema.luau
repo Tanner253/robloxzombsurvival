@@ -22,7 +22,7 @@ local Migrations = require("./Migrations")
 
 local PlayerSchema = {}
 
-PlayerSchema.VERSION = 11
+PlayerSchema.VERSION = 12
 
 -- How many purchase receipt IDs are kept for idempotency checks (oldest dropped first).
 PlayerSchema.RECEIPT_LOG_SIZE = 100
@@ -107,8 +107,23 @@ export type PlayerData = {
 	-- Embers, the premium currency (MVP_LAUNCH Monetization v0.1): bought, never raidable.
 	embers: number,
 	-- The shop: when the player first won (the first night survived or the first
-	-- extraction; 0 = not yet), which opens the Firestarter Kit's window (Domain/Offers).
-	shop: { firstWinAt: number },
+	-- extraction; 0 = not yet), which opens the Firestarter Kit's window (Domain/Offers),
+	-- and whether its one-time card has been shown (v12, the flow review's F-11).
+	shop: { firstWinAt: number, cardShown: boolean },
+	-- Deaths so far, run and home (v12): crossing a Tuning.deathRecovery milestone sends its
+	-- gift to the inbox (Domain/DeathRecovery.milestoneGifts, F-21).
+	deaths: number,
+	-- A Walk under way (v12, F-36): it carries on while the player is offline and arrives on
+	-- their next visit. Nil when not walking.
+	travel: { walk: SavedWalk? },
+}
+
+-- A Walk saved in the profile (Domain/Travel trip fields; Services/Travel restores it).
+export type SavedWalk = {
+	locationId: string,
+	departedAt: number,
+	arrivesAt: number,
+	energySpent: number,
 }
 
 -- Haven Square (Services/Haven): coins from the Trader and contracts, today's contract
@@ -222,7 +237,9 @@ function PlayerSchema.template(): PlayerData
 		settings = PlayerSchema.defaultSettings(),
 		haven = PlayerSchema.freshHaven(),
 		embers = 0,
-		shop = { firstWinAt = 0 },
+		shop = { firstWinAt = 0, cardShown = false },
+		deaths = 0,
+		travel = {},
 	}
 end
 
@@ -823,6 +840,23 @@ PlayerSchema.migrations = {
 	-- inbox. See migrateToV11.
 	[10] = function(data)
 		PlayerSchema.migrateToV11(data, os.time())
+	end,
+	-- v12, batch 2 of 2.0 (the flow review's quality-of-life findings): the Firestarter Kit's
+	-- one-time card (F-11), a death count for the milestone gifts (F-21) and a saved Walk
+	-- (F-36). Nobody has a Walk to keep: trips lived in server memory before. (The parked
+	-- Haven VIP branch also claims v12; whichever merges second renumbers to v13.)
+	[11] = function(data)
+		if type(data.shop) ~= "table" then
+			data.shop = { firstWinAt = 0 }
+		end
+		-- Anyone whose window already opened was never shown the card: they see it once.
+		data.shop.cardShown = data.shop.cardShown == true
+		if type(data.deaths) ~= "number" then
+			data.deaths = 0
+		end
+		if type(data.travel) ~= "table" then
+			data.travel = {}
+		end
 	end,
 } :: Migrations.Steps
 

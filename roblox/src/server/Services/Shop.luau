@@ -15,7 +15,8 @@
 	  (Receipts.applyPass); the Lounge's perks are Services/Haven's.
 	- Any purchase opens the VIP Lounge for Tuning.embers.vipTrialDays (LDoE's VIP 1).
 	- The first win (the first extraction, or the first dawn reached after a night online)
-	  opens the Firestarter Kit's window; it never restarts.
+	  opens the Firestarter Kit's window; it never restarts. The "firstOffer" effect tells the
+	  client to show its one-time card (F-11).
 	- Ember sinks: EmbersRations(count) buys Trail Rations (inbox); FillUp(stacks) buys the
 	  missing materials of a craft, build or upgrade at Fill Up rates; Recover all through
 	  FogRuns/Payments' premium method. Speed-ups are Services/Stations'.
@@ -34,6 +35,7 @@ local RunService = game:GetService("RunService")
 
 local Clock = require(ReplicatedStorage.Shared.Clock)
 local Content = require(ReplicatedStorage.Shared.Data)
+local BuildRules = require(ReplicatedStorage.Shared.Domain.BuildRules)
 local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Receipts = require(ReplicatedStorage.Shared.Domain.Receipts)
 local PlayerSchema = require(ReplicatedStorage.Shared.Domain.PlayerSchema)
@@ -47,7 +49,9 @@ local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
 local Net = require("../Net")
+local OnRun = require("../OnRun")
 local PlayerData = require("./PlayerData")
+local Plots = require("./Plots")
 local Sync = require("./Sync")
 
 local Shop = {}
@@ -71,11 +75,24 @@ local function slotsOf(items: { Types.ItemStack }): { Types.Slot }
 	return slots
 end
 
-local function offerContext(data: any): Receipts.OfferContext
+local NAMES = { items = Content.Items :: any, quests = Content.Quests :: any }
+
+local function offerContext(player: Player, data: any): Receipts.OfferContext
+	local plot = Plots.of(player)
 	return {
 		now = os.time(),
 		firstWinAt = data.shop.firstWinAt,
 		firstPurchaseHours = emberTuning.firstPurchaseHours,
+		-- F-12 and F-27: unlock gates and "+1 can be placed" read the player's progress and
+		-- plot (no plot, as on a run server: capacity products wait).
+		progress = { level = data.progression.level, unlocks = data.unlocks, quests = data.quests },
+		placed = if plot
+			then BuildRules.placedCaps(
+				plot.layout,
+				Content.BuildPieces :: any,
+				BuildRules.pieceSlots(Products, data.purchases.counts)
+			)
+			else nil,
 	}
 end
 
@@ -87,7 +104,7 @@ local function view(player: Player): any
 		return nil
 	end
 	local result: { [string]: any } = {}
-	local context = offerContext(data)
+	local context = offerContext(player, data)
 	for id, product in Products do
 		local purchases = data.purchases :: any
 		local available, reason, endsAt = Receipts.canOffer(product, purchases, data.progression.level, context)
@@ -97,6 +114,8 @@ local function view(player: Player): any
 			available = available,
 			reason = reason,
 			endsAt = endsAt,
+			-- The greyed card's line (F-12, F-27); nil when progress isn't what holds it back.
+			lock = Receipts.lockLine(product, reason, context, NAMES, Content.BuildPieces :: any),
 		}
 	end
 	return result
@@ -139,10 +158,15 @@ local function buy(player: Player, productId: string)
 	if product == nil or data == nil then
 		return
 	end
-	local available, reason =
-		Receipts.canOffer(product, data.purchases :: any, data.progression.level, offerContext(data))
+	local context = offerContext(player, data)
+	local available, reason = Receipts.canOffer(product, data.purchases :: any, data.progression.level, context)
 	if not available then
-		Sync.notice(player, if reason == "limit" then "You already have this" else "Not on offer right now", "warn")
+		local lock = Receipts.lockLine(product, reason, context, NAMES, Content.BuildPieces :: any)
+		Sync.notice(
+			player,
+			if reason == "limit" then "You already have this" elseif lock then lock else "Not on offer right now",
+			"warn"
+		)
 		Sync.mark(player, "shop")
 		return
 	end
@@ -247,12 +271,36 @@ end
 
 -- The first win ---------------------------------------------------------------------------------------
 
+-- The first win opens the Firestarter Kit's window out loud (the flow review's F-11): the
+-- client shows its one-time card ("firstOffer"), then the strip icon with the countdown. The
+-- card waits for home (a first extraction ends on the run server) and shows once per
+-- survivor (PlayerData.shop.cardShown).
+local STARTER = "product.starter_offer"
+local CARD_DELAY = 4 -- seconds: let the HUD (or the trip home) settle first
+
+local function offerCard(player: Player)
+	local data = PlayerData.get(player)
+	if data == nil or data.shop.cardShown or OnRun.is(player) then
+		return
+	end
+	local open, _, endsAt = Receipts.canOffer(Products[STARTER], data.purchases :: any, data.progression.level, {
+		now = os.time(),
+		firstWinAt = data.shop.firstWinAt,
+		firstPurchaseHours = emberTuning.firstPurchaseHours,
+	})
+	if open then
+		data.shop.cardShown = true
+		Sync.fx(player, "firstOffer", { productId = STARTER, endsAt = endsAt })
+	end
+end
+
 local function firstWin(player: Player)
 	local data = PlayerData.get(player)
 	if data and data.shop.firstWinAt == 0 then
 		data.shop.firstWinAt = os.time()
 		Sync.mark(player, "shop")
 		Analytics.custom(player, "FirstWin", 1)
+		task.delay(CARD_DELAY, offerCard, player)
 	end
 end
 
@@ -355,6 +403,7 @@ function Shop.start()
 		Inventory.refreshBackpack(player) -- slots bought on another server
 		Sync.mark(player, "shop")
 		task.spawn(checkPasses, player)
+		task.delay(CARD_DELAY, offerCard, player) -- a window opened on a run shows its card home
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		joinedAt[player] = nil

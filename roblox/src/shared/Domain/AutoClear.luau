@@ -65,6 +65,30 @@ function AutoClear.rationsCost(fogTier: number, config: Config): number
 	return config.rationsByTier[fogTier] or config.rationsByTier[#config.rationsByTier]
 end
 
+export type Price = { rations: number, energy: number }
+
+-- What AUTO costs at a location (the flow review's F-20): its tier's Rations and the Run's
+-- Energy (`runEnergy`, Domain/Travel.plan's), since a clear is still a trip.
+function AutoClear.price(fogTier: number, runEnergy: number, config: Config): Price
+	return { rations = AutoClear.rationsCost(fogTier, config), energy = runEnergy }
+end
+
+-- The AUTO button, built from the price: "AUTO: 2 Rations + 22 Energy".
+function AutoClear.label(price: Price): string
+	local rations = if price.rations == 1 then "1 Ration" else `{price.rations} Rations`
+	return if price.energy > 0 then `AUTO: {rations} + {price.energy} Energy` else `AUTO: {rations}`
+end
+
+-- The refusal that names what is missing, or nil when both are covered.
+function AutoClear.shortText(price: Price, rationsCarried: number, energy: number): string?
+	if rationsCarried < price.rations then
+		return `AUTO needs {price.rations} Trail Rations: you carry {rationsCarried}`
+	elseif energy < price.energy then
+		return `AUTO needs {price.energy} Energy: you have {math.floor(energy)}`
+	end
+	return nil
+end
+
 --[[
 	Whether the player may pay with `method` now. `rationsCarried` only matters for
 	"rations". Returns ok and, when not, why.

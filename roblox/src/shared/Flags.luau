@@ -19,13 +19,14 @@
 	- fogRuns: the Fog map, locations and the Hollow (S2). Quest objectives that need them
 	  carry this flag and are left out while it is off. Its default is Tuning.features.fogRuns,
 	  the switch slice 2's services read, so there is one switch.
+	- wildlife: deer, wolves and the venison steps (Tuning.features.wildlife, F-21).
 ]]
 
 local Tuning = require("./Data/Tuning")
 
 local Flags = {}
 
-export type Name = "ldoeHud" | "ldoeInventory" | "ldoeStations" | "ldoeBuild" | "vehicleFrame" | "fogRuns"
+export type Name = "ldoeHud" | "ldoeInventory" | "ldoeStations" | "ldoeBuild" | "vehicleFrame" | "fogRuns" | "wildlife"
 
 Flags.DEFAULTS = {
 	-- On since Phase B (b): the UI gate passes at zero on all four profiles with them, and
@@ -40,6 +41,7 @@ Flags.DEFAULTS = {
 	ldoeBuild = true,
 	vehicleFrame = false,
 	fogRuns = (Tuning.features :: any).fogRuns == true,
+	wildlife = (Tuning.features :: any).wildlife == true, -- the Smoke Rack's quest steps (F-21)
 } :: { [string]: boolean }
 
 -- Whether `name` is on, given the Studio state (pure, for Lune).

@@ -261,6 +261,23 @@ return function(test: TestKit.Register)
 		TestKit.equal(count((removal :: Grid.Removal).refund, "item.wood"), 2, "5 * 0.5 = 2.5 -> 2")
 	end)
 
+	test("F-30: a starter shelter piece refunds nothing; an upgrade paid for on one still does", function()
+		local layout = build({ { "build.floor_wood", { x = 0, z = 0 } } })
+		local uid = uidAt(layout, "floor", 0, 0)
+		local stamped = table.clone(layout.pieces[uid])
+		stamped.placedAt = Grid.STARTER_AT
+		stamped.upgradedAt = Grid.STARTER_AT
+		layout.pieces[uid] = stamped
+		local _, removal = Grid.demolish(layout, uid, ctx(T0 + 10))
+		TestKit.equal(#(removal :: Grid.Removal).refund, 0, "the shelter's own floor gives nothing back")
+		local upgraded = Grid.upgrade(layout, uid, ctx(T0 + 100)) :: Grid.Layout
+		local _, fresh = Grid.demolish(upgraded, uid, ctx(T0 + 200))
+		TestKit.equal(count((fresh :: Grid.Removal).refund, "item.stone"), 10, "the paid upgrade, in full")
+		TestKit.equal(count((fresh :: Grid.Removal).refund, "item.wood"), 0, "never the free base")
+		local _, later = Grid.demolish(upgraded, uid, ctx(T0 + 10_000))
+		TestKit.equal(count((later :: Grid.Removal).refund, "item.stone"), 5, "the upgrade at half later")
+	end)
+
 	test("a fresh upgrade on an old piece refunds the upgrade in full and the base at half", function()
 		local layout = build({ { "build.floor_wood", { x = 0, z = 0 } } })
 		local uid = uidAt(layout, "floor", 0, 0)

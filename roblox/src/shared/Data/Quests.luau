@@ -289,12 +289,13 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 16,
 		chapter = LINE,
 		name = "Rain and Smoke",
-		description = "Stop boiling every drop. Set out a Rain Barrel to catch clean water, and build a Smoke Rack to cure venison that keeps.",
+		description = "Stop boiling every drop. Set out a Rain Barrel: it catches clean water while you are out in the fog.",
 		prerequisite = "quest.light_the_edges",
 		objectives = {
 			{ kind = "build", pieceId = "build.rain_barrel", count = 1 },
-			{ kind = "build", pieceId = "build.smoke_rack", count = 1, flag = "fogRuns" },
-			{ kind = "craft", recipeId = "recipe.smoked_meat", count = 4, flag = "fogRuns" },
+			-- The rack and its venison wait for deer (Tuning.features.wildlife, F-21).
+			{ kind = "build", pieceId = "build.smoke_rack", count = 1, flag = "wildlife" },
+			{ kind = "craft", recipeId = "recipe.smoked_meat", count = 4, flag = "wildlife" },
 		},
 		-- Cloth and cord for the spare Reedweave set and the doormat (Come Home Again).
 		rewards = {
@@ -361,10 +362,11 @@ local Quests: { [Types.QuestId]: Types.QuestDef } = {
 		order = 24,
 		chapter = LINE,
 		name = "Full Stores",
-		description = "A base that holds needs food that keeps. Hunt deer, smoke twenty cuts of venison on the rack, and grow seasoned enough to live on it.",
+		description = "A base that holds needs food that keeps. Cook a store of Hearth Stew, and grow seasoned enough to live on it.",
 		prerequisite = "quest.stranded_caravan",
 		objectives = {
-			{ kind = "craft", recipeId = "recipe.smoked_meat", count = 20, flag = "fogRuns" },
+			{ kind = "craft", recipeId = "recipe.hearth_stew", count = 10 },
+			{ kind = "craft", recipeId = "recipe.smoked_meat", count = 20, flag = "wildlife" },
 			{ kind = "reachLevel", level = 24 },
 		},
 		rewards = {

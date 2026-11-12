@@ -123,10 +123,10 @@ Nothing player-facing is done until it has all ten:
 | # | Requirement | LDoE reference | Owner |
 |---|---|---|---|
 | 6.1 | B enters build mode: grid overlay and tabs (Foundations, Walls, Doors, Windows, Stations, Storage) | rec2 | S1 |
-| 6.2 | Ghost preview, green or red, **with the reason** ("Needs a foundation", "Not enough timber 3/8"). Cost shown with have/need. | rec2 | S1 |
+| 6.2 | Ghost preview, green or red, **with the reason** ("Needs a foundation", "Not enough timber 3/8"). Cost shown with have/need. (✅ 2026-11-11, F-34: a cost no open station makes adds where it will come from on the card, "Stonecutter: Ember Trail 4".) | rec2 | S1 |
 | 6.3 | R rotates. Place snaps with an animation, a dust puff and a sound. | — | S1 |
 | 6.4 | Upgrading in place visibly swaps the tier material and model, with a sound. "Can be improved" hint. | rec2 | S1 |
-| 6.5 | Demolish asks for confirmation and shows the refund rule. Hovering a piece shows its HP. | — | S1 |
+| 6.5 | Demolish asks for confirmation and shows the refund rule. Hovering a piece shows its HP. (⚠️ 2026-11-11, F-30: the starter shelter's own pieces refund nothing; the confirm and HP hover are unchanged.) | — | S1 |
 | 6.6 | Doors open and close with an animation and sound, and lock to the owner (crew in S3) | — | S1 |
 | 6.7 | Interiors stay readable: walls and roofs between the camera and the player fade (see 2.3) | — | S1 |
 | 6.8 | Walls are taller than any reachable point (enforced by a test) | — | S1 |
@@ -156,7 +156,7 @@ Nothing player-facing is done until it has all ten:
 | 8.6 | Settings: audio sliders, camera shake, UI scale, keybind list | — | S1 |
 | 8.7 | Minimap with points of interest and, later, enemy dots | rec6 | S2 |
 | 8.8 | Targeted enemy name and HP bar at top centre, damage numbers | rec6 | S2 |
-| 8.9 | A collapsible quest tracker (the « button), and a level bar with the level number along the bottom edge | rec8 | S1 |
+| 8.9 | A collapsible quest tracker (the « button), and a level bar with the level number along the bottom edge (✅ 2026-11-11, F-22: each step names where, wrapping to two lines as LDoE's does) | rec8 | S1 |
 | 8.10 | A bottom or side menu bar (Inventory, Crafting, Build, Quests, Shop, Social) with count and NEW badges on each icon | rec8 | S1 (Shop and Social in S3) |
 | 8.11 | **A smooth, live minimap** (the developer, 2026-11-08: "not smooth, doesn't update live... not acceptable"). It's a circular radar like LDoE's (rec1, rec6, rec8).<br>• **Background:** a pre-built image of each map, generated from that map's data (terrain zones, roads and paths, water, building footprints, fences), in the illustrated Fog-map style, drawn once at load via EditableImage or composed UI.<br>• **Smooth:** it pans every frame (RenderStepped) under a centred player arrow that rotates smoothly with facing. No stepping or jitter, at 60 fps.<br>• **Live icons, every frame:** Hollow dots (only when alerted or in sight), containers (searched ones dimmed), stations with ready badges, bags (red X), party members, and extraction or exit markers at the rim when off-radar.<br>• **Zoom:** mouse wheel over the minimap, or pinch.<br>• **Expand:** tap or click to open the full-screen map view.<br>• Home and the Neighbourhood (plots, Haven, Trailhead) and every Fog Run map. One shared component. | rec1, rec6, rec8 | S1b (component, home) / S2 (location data) |
 
@@ -180,7 +180,7 @@ Nothing player-facing is done until it has all ten:
 |---|---|---|---|
 | 10.1 | A loading screen with game art and gameplay tips, never a raw Roblox load into an empty world | rec2, rec7 | S1 |
 | 10.2 | Autosave plus save on leave. Rejoin restores the base, inventory, queues and timers exactly. | — | S1 |
-| 10.3 | The first 10 minutes as designed (arrival, first Hearth pushes back the fog, first craft, first build) with an objective beacon or arrow | — | S3 |
+| 10.3 | The first 10 minutes as designed (arrival, first Hearth pushes back the fog, first craft, first build) with an objective beacon or arrow (⚠️ 2026-11-11, F-22: every objective kind on the trail has a Guide pointer, a level step too; the Hearth fog push-back is not checked here) | — | S3 |
 | 10.4 | Quest tracker with chapters and rewards, plus a premium row | rec5 | S3 |
 
 ## 11. Fog map and travel (S2)
@@ -190,7 +190,7 @@ Nothing player-facing is done until it has all ten:
 | 11.1 | Walking into the Neighbourhood fog edge or the Trailhead starts a 1.5 s fog-in (the screen fogs, audio shifts); backing out cancels it. Then the Fog map opens. M opens it anywhere for planning only. | — | S2 |
 | 11.2 | **Fog map:** a painted map of the region with location markers by fog tier (Light, Dense, Black), rotating-event markers with countdowns, and your outpost. Pan and zoom. It's a real illustrated map, not a UI grid. | rec1 world map | S2 |
 | 11.3 | **Location panel:** name and art, fog tier, main loot and possible loot (icons), Hollow types, a recommended gear score, **Run** (Energy cost) or **Walk** (real-time minutes), and the warning "items left here are lost when the lobby closes". | rec1, rec3 | S2 |
-| 11.4 | The travel route is drawn on the map. Walk shows a real-time timer you can leave running while you do other things at home. | rec3 route | S2 |
+| 11.4 | The travel route is drawn on the map. Walk shows a real-time timer you can leave running while you do other things at home. (✅ 2026-11-11, F-36: a solo Walk is saved in the profile, carries on offline and arrives on the next visit.) | rec3 route | S2 |
 | 11.5 | **Loading screen:** location name, time of day, fog tier, your HP, Energy, food and water, and a rotating gameplay tip, over location art. | rec7 | S2 |
 | 11.6 | **Travel bonus loot:** a "found on the way" panel on arrival, with TAKE per item and Take all (the ad slot is wired in S3). | rec3 | S2 |
 | 11.7 | Energy display with "+", and regen ticking in real time. When Energy is short, the Run greys and an Energy Refill slot beside it shows the shortfall (✅ 2026-11-11, F-08; also on a server "energyShort"). | rec1 | S2 |
@@ -238,8 +238,8 @@ S3's brief expands these into full rows:
   - A **daily free claim**.
   - **Daily Deals:** a rotating stock bought with soft currency, with one free refresh and further refreshes by rewarded ad for 13+.
   - **Room kits:** prefab material bundles such as "Stone room 3×3".
-  - **Capacity packs:** "+1 Campfire can be placed".
+  - **Capacity packs:** "+1 Campfire can be placed" (✅ 2026-11-11, F-27: on offer once the plot is full, "Placed 1/2" before).
   - The currency "+" opens it. Receipt flow.
-- **Buy at the moment of need** (GAME_DESIGN Monetization): Energy refill in the travel panel, "Fill up" missing materials in every craft, build and upgrade panel, a backpack offer on the inventory-full toast, capacity offers at limits, timer speed-ups on station rows, and a gear offer on the death screen (✅ 2026-11-11: the travel-panel Refill and the death-screen kit, Refill and Recover all). All are one tap through the Roblox prompt, and the item lands in the inbox and counts toward have/need instantly. S1 should leave a slot for these buttons in its panels now.
+- **Buy at the moment of need** (GAME_DESIGN Monetization): Energy refill in the travel panel, "Fill up" missing materials in every craft, build and upgrade panel, a backpack offer on the inventory-full toast, capacity offers at limits, timer speed-ups on station rows, and a gear offer on the death screen (✅ 2026-11-11: the travel-panel Refill and the death-screen kit, Refill and Recover all; ✅ 2026-11-11 batch 2: Fill up in build mode's tray and on a piece's upgrade (F-10), buying only the shortfall everywhere; capacity packs only at the plot's limit (F-27); a broken tool's toast offers its Fill up, a broken weapon the kit (F-28); the Firestarter Kit's window opens with a one-time card and the HUD's offers strip countdown (F-11); packs not yet usable sit greyed with their lock line (F-12)). All are one tap through the Roblox prompt, and the item lands in the inbox and counts toward have/need instantly. S1 should leave a slot for these buttons in its panels now.
 - **Delivery inbox** (rec8): purchases, event rewards and mail land here, with TAKE per row, Take all and a category filter. It's safe storage that can't be raided, which is our locked-stash rule turned into UX. Items never expire if they were bought.
 - **Crews:** invites, roles, a shared outpost.

@@ -398,6 +398,7 @@ local function Panels()
 			havenId = havenId,
 			haven = if type(haven) == "table" then haven else nil,
 			inventory = inventory,
+			pooled = pooled,
 			now = now,
 			tab = ui.havenTab,
 		})

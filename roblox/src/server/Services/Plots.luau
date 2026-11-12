@@ -418,6 +418,7 @@ function Plots.setLayout(player: Player, layout: Grid.Layout)
 		plot.profile.Data.layout = Grid.serialize(layout)
 	end
 	Sync.mark(player, "layout")
+	Sync.mark(player, "shop") -- "+1 can be placed" waits for a full plot (F-27)
 end
 
 -- The world position of a placed piece's model (for reach checks), or nil.

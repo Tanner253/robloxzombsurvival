@@ -32,6 +32,7 @@ local Glyph = require("../../components/Glyph")
 local IconButton = require("../../components/IconButton")
 local ItemIcon = require("../../components/ItemIcon")
 local Layout = require("../../components/Layout")
+local LockGlyph = require("../../components/LockGlyph")
 local PriceButton = require("../../components/PriceButton")
 
 local e = React.createElement
@@ -131,6 +132,7 @@ type CardProps = {
 	itemIcon: string?,
 	chips: { [string]: any },
 	limitText: string,
+	locked: boolean?, -- limitText is a lock line (F-12, F-27): red with the padlock, the art dimmed
 	ribbon: { text: string, color: Color3 }?,
 	focused: boolean,
 	height: number,
@@ -203,6 +205,7 @@ local function CardFrame(props: CardProps)
 							Size = UDim2.fromScale(1, 1),
 							BackgroundTransparency = 1,
 							Image = props.icon,
+							ImageTransparency = if props.locked then 0.45 else 0,
 							ScaleType = Enum.ScaleType.Fit,
 						}),
 						Item = props.itemIcon and e("Frame", {
@@ -222,15 +225,31 @@ local function CardFrame(props: CardProps)
 					layoutOrder = 5,
 					children = props.chips,
 				}),
-				Limit = e("TextLabel", {
-					Size = UDim2.new(1, 0, 0, 18),
-					BackgroundTransparency = 1,
-					FontFace = Theme.fonts.body,
-					Text = props.limitText,
-					TextSize = Theme.textSize.caption,
-					TextColor3 = Theme.colors.textMuted,
-					TextXAlignment = Enum.TextXAlignment.Left,
-					LayoutOrder = 6,
+				Limit = e(Layout.Stack, {
+					direction = "row",
+					gap = 4,
+					alignY = Enum.VerticalAlignment.Center,
+					size = UDim2.new(1, 0, 0, 18),
+					layoutOrder = 6,
+					children = {
+						Lock = props.locked and e(LockGlyph, { size = 14, color = Theme.colors.locked }),
+						Text = e(Layout.Fill, {
+							direction = "row",
+							layoutOrder = 2,
+							children = {
+								Label = e("TextLabel", {
+									Size = UDim2.fromScale(1, 1),
+									BackgroundTransparency = 1,
+									FontFace = Theme.fonts.body,
+									Text = props.limitText,
+									TextSize = Theme.textSize.caption,
+									TextColor3 = if props.locked then Theme.colors.locked else Theme.colors.textMuted,
+									TextXAlignment = Enum.TextXAlignment.Left,
+									TextTruncate = Enum.TextTruncate.AtEnd,
+								}),
+							},
+						}),
+					},
 				}),
 				Buy = props.button,
 			},
@@ -285,8 +304,12 @@ local function ProductCard(props: {
 		})
 	end
 	local endsAt = state.endsAt or 0
-	local limitText = if endsAt > 0 and available
-		then `Once, ends in {format.duration(endsAt - props.now)}`
+	-- Held back by progress (F-12, F-27): the card stays, greyed, with the price and the line
+	-- that says what opens it, like LDoE's locked recipes (rec9: the condition in red).
+	local lock: string? = if not available and type(state.lock) == "string" then state.lock else nil
+	local limitText = if lock
+		then lock
+		elseif endsAt > 0 and available then `Once, ends in {format.duration(endsAt - props.now)}`
 		elseif product.kind == "gamePass" then "Yours for good"
 		elseif product.limit == 1 then "Once per survivor"
 		elseif product.limit then `Up to {product.limit} per survivor`
@@ -297,6 +320,7 @@ local function ProductCard(props: {
 		icon = product.icon,
 		chips = chips,
 		limitText = limitText,
+		locked = lock ~= nil,
 		ribbon = RIBBONS[props.productId],
 		focused = props.focused,
 		height = props.height,
@@ -304,8 +328,8 @@ local function ProductCard(props: {
 		fraction = props.fraction,
 		button = e(PriceButton, {
 			currency = "robux",
-			price = if available then state.price or product.defaultPriceRobux else nil,
-			text = if owned then "OWNED" elseif not available then "NOT ON OFFER" else nil,
+			price = if available or lock then state.price or product.defaultPriceRobux else nil,
+			text = if owned then "OWNED" elseif not available and not lock then "NOT ON OFFER" else nil,
 			enabled = available,
 			layoutOrder = 7,
 			onActivated = function()
@@ -347,6 +371,10 @@ local function listFor(tab: Tab, state: any): { string }
 	for _, id in ORDER[tab] do
 		local entry = if type(state) == "table" then state[id] else nil
 		if id == "product.starter_offer" and not (entry and entry.available) then
+			continue
+		end
+		-- BEST features what can be bought now; a pack still locked waits greyed on its own tab.
+		if tab == "best" and entry and entry.lock ~= nil and entry.available ~= true then
 			continue
 		end
 		table.insert(list, id)

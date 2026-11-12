@@ -36,6 +36,7 @@ local LdoeHud = require("./screens/ldoe/Hud")
 local LdoeBuild = require("./screens/ldoe/Build")
 local Shop = require("./screens/ldoe/Shop")
 local EmberConfirm = require("./screens/ldoe/EmberConfirm")
+local OfferCard = require("./screens/ldoe/OfferCard")
 local FogMap = require("./screens/FogMap")
 local AreaMap = require("./screens/AreaMap")
 local RunHud = require("./screens/RunHud")
@@ -138,6 +139,7 @@ local function App(props: Props)
 		Crafting = e(Boundary, { name = "Crafting" }, { Screen = e(CraftingScreen) }),
 		Shop = e(Boundary, { name = "Shop" }, { Screen = e(Shop) }),
 		EmberConfirm = e(Boundary, { name = "EmberConfirm" }, { Screen = e(EmberConfirm) }),
+		OfferCard = e(Boundary, { name = "OfferCard" }, { Screen = e(OfferCard) }), -- F-11
 		-- Fog Runs (M1 slice 2): the travel map, and everything a run adds to the screen.
 		FogMap = e(Boundary, { name = "FogMap" }, { Screen = e(FogMap) }),
 		-- The full-screen map of the Neighbourhood (the minimap's Expand, 8.11).

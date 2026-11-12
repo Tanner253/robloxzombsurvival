@@ -149,6 +149,25 @@ function BuildRules.limitOf(pieceId: Types.BuildPieceId, defs: Grid.Defs, slots:
 	return limit
 end
 
+-- Every capped chain on the plot, by base piece: how many stand and the limit now (the
+-- shop's "+1 can be placed" waits for count >= limit, the flow review's F-27).
+function BuildRules.placedCaps(
+	layout: Grid.Layout,
+	defs: Grid.Defs,
+	slots: { [string]: number }?
+): { [string]: { count: number, limit: number } }
+	local caps: { [string]: { count: number, limit: number } } = {}
+	for id in defs do
+		if BuildRules.isBase(id, defs) then
+			local limit = BuildRules.limitOf(id, defs, slots)
+			if limit then
+				caps[id] = { count = BuildRules.countChain(layout, id, defs), limit = limit }
+			end
+		end
+	end
+	return caps
+end
+
 -- Whether every foundation under an object meets its minFoundationTier.
 local function foundationOk(
 	layout: Grid.Layout,

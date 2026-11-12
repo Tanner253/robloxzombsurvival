@@ -575,10 +575,34 @@ local function applyDeath(player: Player, run: Run, lost: boolean): LobbyMath.De
 	return result
 end
 
+--[[
+	The flow review's F-21: every death in the Fog counts (PlayerData.deaths), and crossing a
+	Tuning.deathRecovery milestone sends its gift to the inbox (the 20th, the Ember Heart).
+	Home deaths don't count: a Reset at home would farm them.
+]]
+local function countDeath(player: Player)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return
+	end
+	local before = data.deaths
+	data.deaths = before + 1
+	local gifts = DeathRecovery.milestoneGifts(before, data.deaths, tuning.deathRecovery :: any)
+	if #gifts > 0 then
+		local slots: { Types.Slot } = {}
+		for _, stack in gifts do
+			table.insert(slots, { itemId = stack.itemId, count = stack.count })
+		end
+		Inbox.grant(player, slots, "DeathMilestone")
+		Sync.notice(player, "Something for the road back: it waits in your inbox at home", "good")
+	end
+end
+
 local function onDied(player: Player, run: Run)
 	if runs[player] ~= run then
 		return
 	end
+	countDeath(player)
 	local result = applyDeath(player, run, false)
 	local drop = result and result.drop
 	if drop and drop.position then

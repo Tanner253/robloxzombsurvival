@@ -6,8 +6,9 @@
 	- Fill up (craft, build, station and crate upgrades): asks to buy the shortfall with
 	  Embers at Fill Up rates (screens/ldoe/EmberConfirm); GET EMBERS when short.
 	- Toasts: "View offer" on "bag full" (the Pack Expansion, until owned) and on a broken
-	  weapon (the Scavenger's Kit), each trigger at most once a day (playbook §3: contextual
-	  offers, neutral calls to action).
+	  weapon (the Scavenger's Kit); "Fill up" on a broken tool (its recipe's missing parts,
+	  F-28); nothing on broken armor. Each trigger at most once a day (playbook §3:
+	  contextual offers, neutral calls to action).
 	- gear() and gearChip(): the Scavenger's Kit, prompted at once (the death screen's chip).
 	- buyEnergy(shortfall?) and energyChip(shortfall): the Energy Refill (the Fog map's slot
 	  beside a greyed Run, and "Go back in" when Energy is short); a chip is nil while the
@@ -16,6 +17,7 @@
 	- buyEmbers(shortfall): the Ember Pouch, when "Recover all" is pressed short of Embers.
 	- openShop(productId?): the shop on that product.
 	- When the server says Embers are short ("needEmbers"), the shop opens on EMBERS.
+	- When the Firestarter Kit's window opens ("firstOffer", F-11), its one-time card shows.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +27,7 @@ local MomentOffers = require(ReplicatedStorage.Shared.Domain.MomentOffers)
 local Offers = require(ReplicatedStorage.Shared.Domain.Offers)
 local Actions = require("../Actions")
 local Net = require("../Net")
+local Pool = require("../Pool")
 local State = require("../State")
 local format = require("../UI/format")
 local offers = require("../UI/offers")
@@ -144,13 +147,33 @@ function Shop.init()
 					Actions.openShop("product.pack_expansion")
 				end,
 			})
-		elseif string.find(lower, " broke", 1, true) then
+		end
+		-- F-28: a broken weapon offers the kit; a broken tool offers Fill Up of its recipe;
+		-- armor offers nothing (Domain/MomentOffers.forBreak).
+		local broke = MomentOffers.forBreak(text, Content.Items :: any, Content.Recipes :: any)
+		if broke and broke.kind == "kit" then
 			return once("weaponBroke", {
 				label = "View offer",
 				onActivated = function()
-					Actions.openShop("product.scavenger_kit")
+					Actions.openShop(GEAR)
 				end,
 			})
+		elseif broke and broke.kind == "fillUp" then
+			local recipe = Content.Recipes[broke.recipeId]
+			local pooled = Pool.inventory(State.get("inventory"))
+			local short = recipe
+				and Offers.fillUpFor(recipe.inputs, function(itemId: string): number
+					return format.count(pooled, itemId)
+				end, Content.Tuning.embers :: any)
+			local fillUp = offers.fillUp
+			if short and fillUp then
+				return once("toolBroke", {
+					label = "Fill up",
+					onActivated = function()
+						fillUp(short)
+					end,
+				})
+			end
 		end
 		return nil
 	end
@@ -160,6 +183,9 @@ function Shop.start()
 	State.fx:Connect(function(kind: any, payload: any)
 		if kind == "needEmbers" then
 			Actions.openShop(nil, "embers")
+		elseif kind == "firstOffer" and type(payload) == "table" and type(payload.productId) == "string" then
+			-- F-11: the Firestarter Kit's window opened: its card, once (screens/ldoe/OfferCard).
+			State.patch({ offerCard = { productId = payload.productId, endsAt = tonumber(payload.endsAt) or 0 } })
 		elseif kind == "energyShort" and type(payload) == "table" and type(payload.need) == "number" then
 			State.patch({ energyShort = { need = payload.need, at = os.clock() } })
 		end

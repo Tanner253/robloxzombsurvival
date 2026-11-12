@@ -1141,7 +1141,7 @@ local Items: { [Types.ItemId]: Types.ItemDef } = {
 		stackSize = 20,
 		icon = "rbxassetid://75926985668024",
 		consume = { health = 15, hunger = 40 },
-		feature = "fogRuns",
+		feature = "wildlife",
 	},
 }
 

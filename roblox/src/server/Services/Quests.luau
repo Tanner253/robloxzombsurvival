@@ -103,6 +103,7 @@ local function settle(player: Player, event: QuestsMath.Event?)
 		return
 	end
 	settling[player] = true
+	local completedAny = false
 	local ok, err = pcall(function()
 		-- Completing a quest can complete the next (a reward's level-up meets reachLevel):
 		-- settle and pay until nothing more completes.
@@ -113,6 +114,7 @@ local function settle(player: Player, event: QuestsMath.Event?)
 			if #done == 0 then
 				break
 			end
+			completedAny = true
 			for _, questId in done do
 				pay(player, questId)
 			end
@@ -120,6 +122,9 @@ local function settle(player: Player, event: QuestsMath.Event?)
 	end)
 	settling[player] = nil
 	Sync.mark(player, "quests")
+	if completedAny then
+		Sync.mark(player, "shop") -- a pack gated on a quest may be on offer now (F-12)
+	end
 	if not ok then
 		warn(`Quests: settling for {player.UserId} failed: {err}`)
 	end

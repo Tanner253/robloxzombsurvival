@@ -15,8 +15,9 @@
 	  when the run ends.
 	- LobbyReenter: back into the lobby you died in, by Run, for half its Energy.
 
-	Trips live in server memory for Phase A, so a Walk ends if you leave the game;
-	Phase B saves them in the profile once slice 1's schema is merged.
+	Trips live in server memory, and a solo Walk is also saved in the profile
+	(PlayerData.travel.walk, the flow review's F-36): leaving the game doesn't end it. The
+	next visit home resumes it, and a Walk that arrived while you were away arrives then.
 ]]
 
 local Players = game:GetService("Players")
@@ -39,6 +40,7 @@ local Energy = require("./Energy")
 local Inbox = require("./Inbox")
 local Inventory = require("./Inventory")
 local Lobby = require("./Lobby")
+local PlayerData = require("./PlayerData")
 local Progression = require("./Progression")
 local Sync = require("./Sync")
 local Maps = require("../FogRuns/Maps")
@@ -82,6 +84,17 @@ local REASONS: { [string]: string } = {
 
 local function now(): number
 	return workspace:GetServerTimeNow()
+end
+
+local RESUME_DELAY = 5 -- seconds after the profile loads: let the client settle first
+
+-- F-36: a solo Walk lives in the profile too, so it outlasts the session.
+local function remember(player: Player, record: Trip?)
+	local data = PlayerData.get(player)
+	if data == nil then
+		return
+	end
+	data.travel.walk = if record and #record.members == 1 then TravelMath.saveWalk(record.trip) else nil
 end
 
 -- Whether a player stands at the Trailhead or the fog wall (where trips start).
@@ -227,6 +240,7 @@ local function start(player: Player, locationId: string, mode: TravelMath.Mode)
 		spendEnergy(member, plan.before, plan.energy, plan.trip.energySpent, "Run")
 		record.spent[member] = plan.trip.energySpent
 		trips[member] = record
+		remember(member, record)
 		Sync.fx(member, "travel", {
 			locationId = locationId,
 			mode = mode,
@@ -244,6 +258,7 @@ local function cancel(player: Player)
 	local refunds = TravelMath.cancelRefund(record.trip, now()) > 0
 	for _, member in record.members do
 		trips[member] = nil
+		remember(member, nil)
 		if refunds then
 			refund(member, record.spent[member] or 0, "RunRefund")
 		end
@@ -282,6 +297,7 @@ local function arrive(record: Trip)
 	for _, member in record.members do
 		if member.Parent == Players and trips[member] == record then
 			trips[member] = nil
+			remember(member, nil)
 			table.insert(present, member)
 		end
 	end
@@ -357,6 +373,7 @@ local function hurry(player: Player)
 	end
 	spendEnergy(player, ctx.energy, energy, hurried.energySpent - record.trip.energySpent, "Hurry")
 	record.trip = hurried
+	remember(player, record)
 	Sync.fx(player, "travel", { locationId = record.location.id, mode = "walk", arrivesAt = hurried.arrivesAt })
 end
 
@@ -376,13 +393,7 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 		Sync.notice(player, "Airdrops have to be looted in person")
 		return
 	end
-	local trip, energy, reason = TravelMath.start(location :: any, "run", ctx)
-	if trip == nil or energy == nil then
-		Sync.notice(player, REASONS[reason or ""] or "Can't clear that now")
-		return
-	end
 	local config = tuning.autoClear
-	local daily = autoDaily[player] or { day = 0, adsUsed = 0 }
 	local rationsCarried = 0
 	for _, container in { view.pockets, view.backpack } do
 		for _, slot in container do
@@ -391,11 +402,32 @@ local function autoClear(player: Player, locationId: string, method: AutoClear.M
 			end
 		end
 	end
+	-- F-20: the refusal names what is missing, the same price the button shows.
+	local runEnergy = TravelMath.plan(location :: any, "run", travelConfig).energyCost
+	local price = AutoClear.price(location.fogTier, runEnergy, config)
+	local trip, energy, reason = TravelMath.start(location :: any, "run", ctx)
+	if trip == nil or energy == nil then
+		if reason == "energy" then
+			local have = EnergyMath.current(ctx.energy, ctx.now, ctx.energyConfig).value
+			Sync.notice(player, AutoClear.shortText({ rations = 0, energy = price.energy }, 0, have) or REASONS.energy)
+			Sync.fx(player, "energyShort", {
+				need = EnergyMath.shortfall(ctx.energy, ctx.now, ctx.energyConfig, price.energy),
+			})
+		else
+			Sync.notice(player, REASONS[reason or ""] or "Can't clear that now")
+		end
+		return
+	end
+	local daily = autoDaily[player] or { day = 0, adsUsed = 0 }
 	local ok, refusal = AutoClear.canPay(method, location.fogTier, ctx.level, daily, rationsCarried, ctx.now, config)
 	if not ok then
 		Sync.notice(
 			player,
-			if refusal == "level" then `Ad clears open at level {config.adMinLevel}` else "You can't pay for that"
+			if refusal == "level"
+				then `Ad clears open at level {config.adMinLevel}`
+				elseif refusal == "rations" then AutoClear.shortText(price, rationsCarried, math.huge)
+					or "You can't pay for that"
+				else "You can't pay for that"
 		)
 		return
 	end
@@ -561,6 +593,37 @@ function Travel.start()
 		if bonus and not TravelBonus.isEmpty(bonus) then
 			Sync.fx(player, "travelBonus", nil) -- whatever was left behind is gone
 		end
+	end)
+	-- F-36: a Walk saved on an earlier visit carries on (or arrives) on this one, at home.
+	PlayerData.loaded:Connect(function(player: Player)
+		task.delay(RESUME_DELAY, function()
+			local data = PlayerData.get(player)
+			if data == nil or trips[player] or Teleport.role() == "run" or Lobby.busy(player) then
+				return
+			end
+			local trip = TravelMath.resumeWalk(data.travel.walk, function(locationId: string): boolean
+				return Content.Locations[locationId] ~= nil and Maps.has(locationId)
+			end)
+			if trip == nil then
+				data.travel.walk = nil
+				return
+			end
+			local location = Content.Locations[trip.destinationId]
+			trips[player] = { trip = trip, location = location, members = { player }, spent = { [player] = 0 } }
+			Sync.fx(player, "travel", {
+				locationId = location.id,
+				mode = "walk",
+				departedAt = trip.departedAt,
+				arrivesAt = trip.arrivesAt,
+			})
+			Sync.notice(
+				player,
+				if TravelMath.hasArrived(trip, now())
+					then `You reached {location.name} while you were away`
+					else `Still walking to {location.name}`,
+				"info"
+			)
+		end)
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		local record = trips[player]

@@ -92,8 +92,9 @@ local Tuning: Types.TuningDef = {
 		reentryEnergyMultiplier = 0.5,
 		departureStuds = 40, -- the Trailhead sign or the fog wall: travel starts only at the edge (GAME_DESIGN)
 	},
+	-- A dropped bag lives until the lobby closes on a run, and drops.lifetimeSeconds at home
+	-- (the flow review's F-32: no third number).
 	death = {
-		despawnSeconds = 2 * 60 * 60,
 		keepPockets = false, -- LDoE drops everything carried; equipment is always kept
 	},
 	building = {
@@ -211,11 +212,17 @@ local Tuning: Types.TuningDef = {
 	features = {
 		fogRuns = true,
 		aiRaiders = false, -- M2
-		dailyGift = false, -- cut from v0.1 (docs/MVP_LAUNCH.md); built and tested, switch on later
+		-- LDOE_PARITY #58: on for launch (the flow review's F-33). MVP_LAUNCH never cut it; the old
+		-- "cut" note was wrong, and a new player needs the food and water cushion F-05 made matter.
+		dailyGift = true,
 		-- M4 (docs/MVP_LAUNCH.md): built and tested on the server, no client UI yet. Off, Dense
 		-- and Black fog open on the level gate alone, and no airdrops land.
 		regionGates = false,
 		airdrops = false,
+		-- Deer and wolves wait for their own rig (Data/Enemies `deferred`). Until then the Smoke
+		-- Rack, its venison line and the quest steps that need them stay hidden: nothing else
+		-- drops enough Raw Venison to feed them (the flow review's F-21).
+		wildlife = false,
 	},
 	lobby = {
 		capacity = 12, -- GAME_DESIGN: 8-12 a lobby

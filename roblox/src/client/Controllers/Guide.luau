@@ -16,8 +16,9 @@
 	  Services/Travel), the Map button rings (ui.guide = "map") and the Fog map opens once
 	  (Actions.toggleFogMap, S2B); ui.guideLocation names the location for the map to mark
 	  its pin and Run button;
-	- kill, take a Hollow's drop, search containers: the same Trailhead pointer while you are
-	  at home (on a run they are all around you, so nothing is outlined).
+	- kill, take a Hollow's drop, search containers, and reach a level (XP comes fastest on a
+	  run; the line says so, F-22): the same Trailhead pointer while you are at home (on a
+	  run they are all around you, so nothing is outlined).
 	It steps aside while a panel is open or AUTO is gathering for you. The HUD reads the
 	button from ui.guide.
 ]]
@@ -181,6 +182,9 @@ local function pointFor(objective: any): ({ Instance }, string?)
 	elseif kind == "kill" or kind == "lootBody" or kind == "loot" then
 		-- Hollow and containers are out in the Fog: at home the way there is the Trailhead.
 		return toTrailhead(objective.locationId or kind)
+	elseif kind == "reachLevel" then
+		-- F-22: XP comes fastest on a run (kills, searches, the extraction): the Trailhead.
+		return toTrailhead(kind)
 	end
 	return {}, nil
 end
